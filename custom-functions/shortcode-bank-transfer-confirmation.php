@@ -51,7 +51,7 @@ function render_search_ui()
     <div>
         <p><input type="text" id="order_search" placeholder="Nhập mã đơn"></p>
         <div style="display: flex; flex-wrap: wrap; gap: 5px;">
-            <button type="button" onclick="searchOrder()" class="button--small button--green">Tìm kiếm</button>
+            <button type="button" id="btn_search_order" class="button--small button--green">Tìm kiếm</button>
             <button type="button" id="clear_results_btn" class="button--small button--red">Xóa kết quả</button>
         </div>
     </div>
@@ -98,7 +98,7 @@ function render_order_details_ui()
                 <textarea id="cod_note"></textarea>
             </div>
 
-            <button class="button--small" type="button" class="button" onclick="confirmPayment()">Xác nhận</button>
+            <button class="button--small button" type="button" id="btn_confirm_payment">Xác nhận</button>
         </div>
     </div>
 <?php
@@ -110,6 +110,46 @@ function render_order_details_ui()
 function render_order_paid_confirmation_script()
 { ?>
     <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Bind Search Button
+            var btnSearch = document.getElementById('btn_search_order');
+            if (btnSearch) {
+                btnSearch.addEventListener('click', searchOrder);
+            }
+
+            // Bind Enter Key for Search
+            var inputSearch = document.getElementById('order_search');
+            if (inputSearch) {
+                inputSearch.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') searchOrder();
+                });
+            }
+
+            // Bind Clear Button
+            var btnClear = document.getElementById('clear_results_btn');
+            if (btnClear) {
+                btnClear.addEventListener('click', function() {
+                    document.getElementById('order_search').value = '';
+                    document.getElementById('order_results').innerHTML = '';
+                    document.getElementById('order_details').style.display = 'none';
+                });
+            }
+
+            // Bind Confirm Payment Button
+            var btnConfirm = document.getElementById('btn_confirm_payment');
+            if (btnConfirm) {
+                btnConfirm.addEventListener('click', confirmPayment);
+            }
+
+            // Bind Payer Change
+            var payerSelect = document.getElementById('payer');
+            if (payerSelect) {
+                payerSelect.addEventListener('change', function() {
+                    document.getElementById('cod_note_section').style.display = (this.value === 'shipper' || this.value === 'self') ? 'block' : 'none';
+                });
+            }
+        });
+
         function searchOrder() {
             var searchKey = document.getElementById('order_search').value;
             if (!searchKey) {
@@ -126,22 +166,12 @@ function render_order_paid_confirmation_script()
             });
         }
 
-        document.getElementById('clear_results_btn').addEventListener('click', function() {
-            document.getElementById('order_search').value = '';
-            document.getElementById('order_results').innerHTML = '';
-            document.getElementById('order_details').style.display = 'none';
-        });
-
         function selectOrder(orderID) {
             document.getElementById('order_details').style.display = 'block';
             document.getElementById('order_details').setAttribute('data-order-id', orderID);
             var today = new Date().toISOString().split('T')[0];
             document.getElementById('paid_date').value = today;
         }
-
-        document.getElementById('payer').addEventListener('change', function() {
-            document.getElementById('cod_note_section').style.display = (this.value === 'shipper' || this.value === 'self') ? 'block' : 'none';
-        });
 
         function confirmPayment() {
             var orderID = document.getElementById('order_details').getAttribute('data-order-id');
