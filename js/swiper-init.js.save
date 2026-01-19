@@ -1,0 +1,104 @@
+document.addEventListener('DOMContentLoaded', function () {
+    // Select all Swiper containers
+    const swiperContainers = document.querySelectorAll('.swiper-icons');
+
+    swiperContainers.forEach(container => {
+        // Read attributes
+        const slidesPerView = container.getAttribute('data-slides-per-view') || 1;
+        const navigationAttr = container.getAttribute('data-navigation');
+        const autoplayAttr = container.getAttribute('data-autoplay');
+	const speedAttr = container.getAttribute('data-speed');
+	const effectAttr = container.getAttribute('data-effect');
+
+        // Parse navigation attribute
+        const enableNavigation = navigationAttr === 'true';
+
+        // Parse autoplay attribute
+        let autoplay = false; // Default to no autoplay
+        if (autoplayAttr === 'true') {
+            autoplay = { delay: 4000 }; // Default delay of 4 seconds
+        } else if (!isNaN(autoplayAttr)) {
+            autoplay = { delay: parseInt(autoplayAttr, 10) };
+        }
+
+        // Initialize Swiper
+        new Swiper(container, {
+
+  breakpoints: {
+    // when window width is >= 320px
+    320: {
+      slidesPerView: 1
+            spaceBetween: 10, // Space between slides
+    },
+    // when window width is >= 480px
+    480: {
+      slidesPerView: 2
+    },
+    // when window width is >= 640px
+    640: {
+      slidesPerView: 3
+    },
+    900: {
+      slidesPerView: 5
+    }
+    1200: {
+      slidesPerView: 6
+    }
+ },
+
+centeredSlides: true,
+
+
+	    speed: speedAttr,
+            loop: true, // Enable looping
+            slidesPerView: parseInt(slidesPerView, 10), // Number of slides visible
+            spaceBetween: 10, // Space between slides
+            autoplay: autoplay, // Configure autoplay
+//	   autoplay: { delay: 1000 };
+            navigation: enableNavigation
+                ? {
+                    nextEl: container.querySelector('.swiper-button-next'),
+                    prevEl: container.querySelector('.swiper-button-prev'),
+                }
+                : false, // Disable navigation if false
+        });
+
+        // Conditionally hide navigation buttons if navigation is disabled
+        if (!enableNavigation) {
+            const nextButton = container.querySelector('.swiper-button-next');
+            const prevButton = container.querySelector('.swiper-button-prev');
+            if (nextButton) nextButton.style.display = 'none';
+            if (prevButton) prevButton.style.display = 'none';
+        }
+    });
+
+/*    // Initialize Swiper for .recipes-slider
+    const recipesSlider = document.querySelector('.recipes-slider');
+    if (recipesSlider) {
+        new Swiper(recipesSlider, {
+            slidesPerView: 3,
+	    speed: 500,
+            spaceBetween: 20,
+            loop: true,
+	    autoplay: { delay: 4000 },
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+            },
+            breakpoints: {
+                768: {
+                    slidesPerView: 1,
+                },
+                1024: {
+                    slidesPerView: 3,
+                }
+            }
+        });
+    }
+*/
+});
+
