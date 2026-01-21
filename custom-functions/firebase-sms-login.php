@@ -14,7 +14,7 @@ add_action('wp_footer', function () {
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script>
         const firebaseConfig = {
-            apiKey: FIREBASE_API_KEY,
+            apiKey: "<?php echo FIREBASE_API_KEY; ?>",
             authDomain: "the-an-sms.firebaseapp.com ",
             projectId: "the-an-sms",
         };
@@ -229,4 +229,3 @@ function custom_firebase_login_handler()
         wp_send_json(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()], 400);
     }
 }
-
