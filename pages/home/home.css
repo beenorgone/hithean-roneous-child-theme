@@ -1,0 +1,196 @@
+/*-------------------------------*\
+  HERO SECTIONS
+\*-------------------------------*/
+
+/* Nuoc ep ky tu */
+
+#section-hero-nuocepkytu .b-hero-title {
+    font-weight: 500;
+    color: var(--product-nuocepkytu-light-green);
+    text-transform: uppercase;
+}
+
+#section-hero-nuocepkytu .b-hero-subtitle {
+    color: var(--default-color-white);
+    max-width: 500px;
+}
+
+#section-hero-nuocepkytu .b-hero-left-filled-column {
+    padding-top: 10%;
+}
+
+/* Yeast Hero */
+
+#section-hero-protein .b-hero-left-filled-column {
+    order: 1;
+    padding: 0 20px 150px 20px;
+    text-align: center;
+}
+
+#section-hero-protein .b-hero-left-blank-column {
+    order: 0;
+}
+
+#section-hero-protein .b-hero-title {
+    font-weight: 500;
+    color: var(--default-color-white);
+    text-transform: uppercase;
+}
+
+#section-hero-protein .b-hero-subtitle {
+    font-weight: 500;
+    color: var(--default-color-white);
+    max-width: 500px;
+}
+
+#section-hero-protein .b-hero-desc {
+    color: var(--default-color-white);
+    max-width: 500px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+/* Yeast Hero Overnight */
+
+#section-hero-overnight .b-hero-left {
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+#section-hero-overnight .b-hero-left-filled-column {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: center;
+    align-items: center;
+}
+
+#section-hero-overnight .b-hero-title {
+    font-weight: 500;
+    color: #e9e1da;
+    text-transform: uppercase;
+}
+
+#section-hero-overnight .b-hero-subtitle {
+    font-weight: 500;
+    color: #e9e1da;
+    max-width: 500px;
+}
+
+#section-hero-overnight .b-hero-desc {
+    color: #e9e1da;
+    max-width: 500px;
+    text-align: center;
+}
+
+/* Background image for hero sections */
+
+.b-hero-cta-button {
+    text-transform: capitalize;
+}
+
+#section-hero-nuocepkytu {
+    background-image: url(https://hithean.com/wp-content/uploads/2025/02/thean-nuocepkytu-banner-202502-mobile.jpg);
+    aspect-ratio: 0.67 / 1;
+    background-size: cover;
+    background-position: center;
+}
+
+#section-hero-protein {
+    background-image: url(https://hithean.com/wp-content/uploads/2025/12/Bot-dam-The-An-Organics-Yeast-Hero-Protein-Powder-Original-103.jpg);
+    aspect-ratio: 0.67 / 1;
+    background-size: cover;
+    background-position: center;
+}
+
+#section-hero-overnight {
+    background-image: url(https://hithean.com/wp-content/uploads/2026/01/hero-thean-overnight-new-product-mobile.jpg);
+    aspect-ratio: 0.67 / 1;
+    background-size: cover;
+    background-position: center;
+}
+
+@media only screen and (min-width: 1000px) {
+    #section-hero-protein .b-hero-left-filled-column {
+    order: 0;
+    padding: 100px 50px;
+    text-align: left;
+    }
+
+    #section-hero-protein .b-hero-left-blank-column {
+        order: 1;
+    }
+    
+    #section-hero-overnight .b-hero-left {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    #section-hero-overnight .button--protein-yeast-brown.b-hero-cta-button {
+        margin-top: 200px;
+    }
+
+    #section-hero-overnight .b-hero-left-filled-column {
+        flex-direction: column;
+    }
+
+    #section-hero-nuocepkytu {
+        background-image: url(https://hithean.com/wp-content/uploads/2025/02/thean-nuocepkytu-banner-202502-desktop.jpg) !important;
+        background-size: cover;
+        aspect-ratio: 2.14 / 1;
+    }
+
+    #section-hero-protein {
+        background-image: url(https://hithean.com/wp-content/uploads/2025/12/Bot-dam-The-An-Organics-Yeast-Hero-Protein-Powder-Original-103.jpg) !important;
+        background-size: cover;
+        aspect-ratio: 1.78 / 1;
+    }
+
+    #section-hero-overnight {
+        background-image: url(https://hithean.com/wp-content/uploads/2026/01/hero-thean-overnight-new-product-desktop.jpg) !important;
+        background-size: cover;
+        aspect-ratio: 1.78 / 1;
+    }
+}
+
+#float-icon {
+    position: absolute;
+    right: -134px;
+    top: -9vw;
+    z-index: 999999999999;
+}
+
+#section-product > div > div > div:nth-child(2) > .vc_column-inner {
+    height: unset !important;
+    min-height: unset !important;
+}
+
+/*-------------------------*\
+  SECTION ABOUT US
+\*-------------------------*/
+
+#section-about-us {
+    padding-top: 50px;
+}
+
+@media screen and (min-width: 768px) {
+    #section-about-us {
+        padding: 50px 40px 50px 20px;
+    }
+}
+
+@media screen and (min-width: 1200px) {
+    #section-about-us {
+        padding-top: 70px;
+        padding-bottom: 70px;
+    }
+}
+
+
+/*-------------------------------*\
+  FOOTER
+\*-------------------------------*/
+
+footer {
+    background-image: url(https://hithean.com/wp-content/uploads/2024/09/footer-background-default.png) !important;
+}
