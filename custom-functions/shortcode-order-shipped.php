@@ -22,7 +22,7 @@ function ost_get_shippers() {
 function ost_get_payment_label($method) {
     $method = strtoupper($method);
     if ($method === 'COD') return 'COD';
-    if ($method === 'BACS') return 'CK';
+    if ($method === 'BACS') return 'BACS';
     return ucfirst(strtolower($method));
 }
 
@@ -222,7 +222,7 @@ function ost_render_single_row($data) {
     <tr>
         <td><a href="<?php echo esc_url(get_edit_post_link($data['id'])); ?>" target="_blank">#<?php echo $data['id']; ?></a></td>
         <td><?php echo esc_html($order->get_billing_phone()); ?></td>
-        <td><?php echo number_format($order->get_total(), 0, '', '.'); ?></td>
+        <td><?php echo $order->get_total(); ?></td>
         <td><?php echo wc_get_order_status_name($order->get_status()); ?></td>
         <td><?php echo esc_html($handling_display); ?></td>
         <td><?php echo $order->get_date_created()->date('Y-m-d'); ?></td>
