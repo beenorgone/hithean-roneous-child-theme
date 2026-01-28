@@ -543,8 +543,8 @@ if (!defined('ABSPATH')) {
                                             $quantity = $item->get_quantity();
                                     ?>
                                             <tr>
-                                                <td><?php echo $product['name'] ?></td>
-                                                <td class="big bold"><?php echo $product['quantity'] ?></td>
+                                                <td><?php echo $product_name; ?></td>
+                                                <td class="big bold"><?php echo $quantity; ?></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
