@@ -104,6 +104,18 @@ foreach ($general_includes as $include) {
     }
 }
 
+function patch_phone_orders_script()
+{
+    wp_enqueue_script(
+        'phone-orders-fix',
+        get_stylesheet_directory_uri() . '/js/phone-orders-plugin.js',
+        ['axios'], // Đảm bảo axios đã được load trước
+        '1.0',
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'patch_phone_orders_script', 100);
+
 function load_custom_admin_files()
 {
     if (!is_admin()) {
