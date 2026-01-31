@@ -135,7 +135,6 @@ function load_custom_admin_files()
         $screen_base === 'admin_page_phone-orders-for-woocommerce' ||
         (isset($_GET['page']) && $_GET['page'] === 'phone-orders-for-woocommerce')
     ) {
-        // require_once __DIR__ . '/custom-functions/phone-orders-plugin.php';
     }
 
     // === Admin styles ===
