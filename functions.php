@@ -104,6 +104,7 @@ foreach ($general_includes as $include) {
     }
 }
 
+// Conditionally load admin-specific files
 function load_custom_admin_files()
 {
     if (!is_admin()) {
