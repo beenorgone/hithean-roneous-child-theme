@@ -1761,6 +1761,12 @@ nav .menu li a:focus {
   .cert-preview-slide { height: 300px; }
 }
 
+/* UPSELS SECTION */
+
+.upsells.products {
+    padding: 50px 20px;
+}
+
 /* PRODUCTS */
 
 .woocommerce-result-count {
