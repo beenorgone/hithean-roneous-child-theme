@@ -3,7 +3,7 @@
  * Shortcode to embed a PDF file securely and responsively.
  * Usage: [hithean_pdf url="https://example.com/file.pdf" height="600px"]
  */
-function hithean_display_pdf_shortcode( $atts ) {
+function display_pdf_shortcode( $atts ) {
     // Define default attributes and merge with user inputs
     $atts = shortcode_atts(
         array(
