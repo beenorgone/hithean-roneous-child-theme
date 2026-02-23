@@ -37,8 +37,10 @@ function render_order_paid_confirmation_ui()
         <!-- 📋 Search Results -->
         <p id="order_results" style="margin-top: 30px;"></p>
 
-        <!-- 💰 Order Details -->
-        <?php render_order_details_ui(); ?>
+        <!-- Hidden holder for movable form -->
+        <div id="order_details_holder" style="display:none;">
+            <?php render_order_details_ui(); ?>
+        </div>
     </div>
 <?php
 }
@@ -49,7 +51,7 @@ function render_order_paid_confirmation_ui()
 function render_search_ui()
 { ?>
     <div>
-        <p><input type="text" id="order_search" placeholder="Nhập mã đơn"></p>
+        <p><input type="text" id="order_search" placeholder="Nhập mã đơn (nhiều mã: cách nhau bằng dấu phẩy hoặc khoảng trắng)"></p>
         <div style="display: flex; flex-wrap: wrap; gap: 5px;">
             <button type="button" id="btn_search_order" class="button--small button--green">Tìm kiếm</button>
             <button type="button" id="clear_results_btn" class="button--small button--red">Xóa kết quả</button>
@@ -63,9 +65,14 @@ function render_search_ui()
 // ==============================
 function render_order_details_ui()
 { ?>
-    <div id="order_details" style="display: none;">
+    <div id="order_details" style="display: none; border: 2px solid var(--default-color-grey-2); padding: 20px; margin-top: 12px;">
         <h3>Xác nhận thông tin thanh toán</h3>
         <div style="padding-left: 20px; padding-left: 20px;display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end;">
+            <div style="display: flex; flex-direction: column; min-width: 320px; flex: 1 1 100%;">
+                <label>Thông tin đơn hàng:</label>
+                <textarea id="selected_order_info" rows="2" readonly style="resize: vertical;"></textarea>
+            </div>
+
             <!-- Bank Account -->
             <div>
                 <label>Tài khoản nhận:</label>
@@ -111,6 +118,17 @@ function render_order_paid_confirmation_script()
 { ?>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            function resetOrderDetailsPosition() {
+                var holder = document.getElementById('order_details_holder');
+                var details = document.getElementById('order_details');
+                if (!holder || !details) return;
+                holder.appendChild(details);
+                details.style.display = 'none';
+                details.removeAttribute('data-order-id');
+            }
+
+            window.resetOrderDetailsPosition = resetOrderDetailsPosition;
+
             // Bind Search Button
             var btnSearch = document.getElementById('btn_search_order');
             if (btnSearch) {
@@ -131,7 +149,7 @@ function render_order_paid_confirmation_script()
                 btnClear.addEventListener('click', function() {
                     document.getElementById('order_search').value = '';
                     document.getElementById('order_results').innerHTML = '';
-                    document.getElementById('order_details').style.display = 'none';
+                    resetOrderDetailsPosition();
                 });
             }
 
@@ -156,19 +174,30 @@ function render_order_paid_confirmation_script()
                 alert("Vui lòng nhập mã đơn hàng hoặc số điện thoại!");
                 return;
             }
+            if (typeof resetOrderDetailsPosition === 'function') {
+                resetOrderDetailsPosition();
+            }
             var data = {
                 action: 'search_order_ajax',
                 search: searchKey
             };
             jQuery.post('<?php echo admin_url('admin-ajax.php'); ?>', data, function(response) {
                 document.getElementById('order_results').innerHTML = response;
-                document.getElementById('order_details').style.display = 'none';
             });
         }
 
-        function selectOrder(orderID) {
-            document.getElementById('order_details').style.display = 'block';
-            document.getElementById('order_details').setAttribute('data-order-id', orderID);
+        function selectOrder(buttonEl) {
+            var orderID = buttonEl.getAttribute('data-order-id');
+            var orderBasicInfo = buttonEl.getAttribute('data-order-basic-info') || '';
+            var details = document.getElementById('order_details');
+            var slot = document.getElementById('order-confirm-slot-' + orderID);
+            if (!details || !slot) return;
+
+            details.style.display = 'block';
+            details.setAttribute('data-order-id', orderID);
+            document.getElementById('selected_order_info').value = orderBasicInfo;
+            slot.appendChild(details);
+
             var today = new Date().toISOString().split('T')[0];
             document.getElementById('paid_date').value = today;
         }
@@ -181,7 +210,7 @@ function render_order_paid_confirmation_script()
             var payer = document.getElementById('payer').value;
             var codNote = document.getElementById('cod_note').value;
 
-            if (!paidDate || !bankAccount) {
+            if (!orderID || !paidDate || !bankAccount) {
                 alert("Vui lòng nhập đầy đủ thông tin!");
                 return;
             }
@@ -210,6 +239,59 @@ function render_order_paid_confirmation_script()
 // 🔹 AJAX HANDLER: SEARCH ORDER
 // ==============================
 add_action('wp_ajax_search_order_ajax', 'handle_search_order_ajax');
+
+function parse_order_search_tokens($raw_search)
+{
+    if (!is_string($raw_search) || $raw_search === '') {
+        return [];
+    }
+
+    $parts = preg_split('/[\s,]+/', $raw_search, -1, PREG_SPLIT_NO_EMPTY);
+    if (!is_array($parts)) {
+        return [];
+    }
+
+    return array_values(array_unique(array_map('trim', $parts)));
+}
+
+function normalize_order_search_code($token)
+{
+    $code = strtoupper(trim((string) $token));
+    $code = str_replace('#', '', $code);
+
+    if (strpos($code, 'P0') === 0 || strpos($code, 'P1') === 0) {
+        $code = substr($code, 2);
+    }
+
+    return preg_replace('/\D+/', '', $code);
+}
+
+function resolve_order_from_search_code($token)
+{
+    $normalized = normalize_order_search_code($token);
+    if ($normalized === '') {
+        return null;
+    }
+
+    $attempts = [$normalized];
+    if (strlen($normalized) > 2) {
+        $attempts[] = substr($normalized, 0, -2);
+    }
+
+    foreach ($attempts as $candidate) {
+        if ($candidate === '' || !is_numeric($candidate)) {
+            continue;
+        }
+
+        $order = wc_get_order((int) $candidate);
+        if ($order) {
+            return $order;
+        }
+    }
+
+    return null;
+}
+
 function handle_search_order_ajax()
 {
     if (!current_user_can('manage_woocommerce')) wp_die('Bạn không có quyền thực hiện thao tác này.');
@@ -217,13 +299,36 @@ function handle_search_order_ajax()
     $search = sanitize_text_field($_POST['search'] ?? '');
     if (empty($search)) wp_die('Vui lòng nhập mã đơn hàng.');
 
-    $order = is_numeric($search) ? wc_get_order(intval($search)) : null;
-    if (!$order) {
+    $tokens = parse_order_search_tokens($search);
+    if (empty($tokens)) {
         echo '<p>Không tìm thấy đơn hàng.</p>';
         wp_die();
     }
 
-    render_order_search_result([$order]);
+    $orders = [];
+    $seen_order_ids = [];
+
+    foreach ($tokens as $token) {
+        $order = resolve_order_from_search_code($token);
+        if (!$order) {
+            continue;
+        }
+
+        $order_id = $order->get_id();
+        if (isset($seen_order_ids[$order_id])) {
+            continue;
+        }
+
+        $seen_order_ids[$order_id] = true;
+        $orders[] = $order;
+    }
+
+    if (empty($orders)) {
+        echo '<p>Không tìm thấy đơn hàng.</p>';
+        wp_die();
+    }
+
+    render_order_search_result($orders);
     wp_die();
 }
 
@@ -232,9 +337,9 @@ function handle_search_order_ajax()
 // ==============================
 function render_order_search_result($orders)
 {
-    echo '<h3>Đơn hàng tìm được</h3><p>Chọn đơn hàng để xác nhận thanh toán:</p><ul>';
+    echo '<div><h3>Đơn hàng tìm được</h3><p>Chọn đúng thẻ đơn hàng để xác nhận thanh toán:</p></div><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; align-items: start;">';
     foreach ($orders as $order) render_single_order_info($order);
-    echo '</ul>';
+    echo '</div>';
 }
 
 function render_single_order_info($order)
@@ -247,10 +352,21 @@ function render_single_order_info($order)
     $billing_phone = $order->get_billing_phone();
     $order_status = wc_get_order_status_name($order->get_status());
     $handling_status = get_post_meta($order_id, 'order_handling_status', true) ?: '';
+    $basic_info = sprintf(
+        'Đơn #%d | Khách: %s | SĐT: %s | Tổng: %s | Trạng thái: %s',
+        (int) $order_id,
+        trim($billing_name),
+        trim($billing_phone),
+        wp_strip_all_tags($order_total),
+        trim($order_status)
+    );
 
-    echo '<li>';
-    echo '<a href="#" onclick="selectOrder(' . intval($order_id) . ')"><strong>#' . intval($order_id) . '</strong> - ' . esc_html($billing_name) . '</a>';
-    echo '<div style="padding-left: 20px;">';
+    echo '<div style="border: 2px solid var(--default-color-grey-2); border-radius: 10px; padding: 14px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">';
+    echo '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">';
+    echo '<div><strong style="font-size:16px;">#' . intval($order_id) . '</strong> - ' . esc_html($billing_name) . '</div>';
+    echo '<button type="button" class="button--small button--green" onclick="selectOrder(this)" data-order-id="' . intval($order_id) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Chọn đơn này</button>';
+    echo '</div>';
+    echo '<div style="line-height:1.7;">';
     echo '<strong>Ngày đặt:</strong> ' . esc_html($order_date) . '<br>';
     echo '<strong>Tổng tiền:</strong> ' . $order_total . '<br>';
     echo '<strong>Phương thức thanh toán:</strong> <span class="text-highlight-green">' . esc_html($payment_method) . '</span><br>';
@@ -270,9 +386,9 @@ function render_single_order_info($order)
     echo '<a href="' . esc_url($edit_url) . '" target="_blank">Chỉnh sửa đơn hàng</a>';
 
     echo '</div>';
-    echo '</li>';
-
     render_sms_buttons($order);
+    echo '<div id="order-confirm-slot-' . intval($order_id) . '" style="margin-top: 12px;"></div>';
+    echo '</div>';
 }
 
 // ==============================
