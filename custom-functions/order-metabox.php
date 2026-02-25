@@ -107,14 +107,14 @@ function thean_register_order_meta_boxes($meta_boxes)
                 'placeholder' => 'Chọn nhân viên',
             ],
 			[
-                'id' => $prefix . 'warehouse_export_images',
+                'id' => 'warehouse_export_images',
                 'name' => esc_html__('Ảnh xuất kho (URLs)'),
                 'type' => 'textarea',
                 'desc' => esc_html__('Mỗi dòng là một URL ảnh đã upload', 'order-metabox'),
             ],
 
             [
-                'id' => $prefix . 'export_confirmed_by',
+                'id' => 'export_confirmed_by',
                 'name' => esc_html__('GIAO HÀNG. Xác nhận bởi'),
                 'type' => 'user',
                 'field_type' => 'select_advanced',
