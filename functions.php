@@ -64,6 +64,7 @@ $general_includes = [
     'custom-functions/shortcode-field-content.php',
     'custom-functions/shortcode-greenspark-banner.php',
     'custom-functions/product-page.php',
+    'custom-functions/product-list-page.php',
     'custom-functions/pos-post-type.php',
     // 'custom-functions/recipe-post-type.php',
     'custom-functions/shortcode-recipes.php',
