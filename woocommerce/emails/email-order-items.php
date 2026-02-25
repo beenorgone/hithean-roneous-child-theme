@@ -37,14 +37,9 @@ foreach ($items as $item_id => $item) :
         $image         = $product->get_image($image_size);
     }
 
-    $qty               = max(1, (int) $item->get_quantity());
-    $line_subtotal     = (float) $item->get_subtotal();
-    $line_subtotal_tax = (float) $item->get_subtotal_tax();
-    $subtotal_display  = $line_subtotal;
-
-    if (wc_tax_enabled() && 'incl' === $order->get_tax_display_cart()) {
-        $subtotal_display += $line_subtotal_tax;
-    }
+    $qty              = max(1, (int) $item->get_quantity());
+    $line_subtotal    = (float) $item->get_subtotal();
+    $subtotal_display = $line_subtotal;
 
     $original_unit_price = $subtotal_display / $qty;
 
