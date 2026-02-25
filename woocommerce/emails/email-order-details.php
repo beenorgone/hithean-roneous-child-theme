@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Order details table shown in emails.
  * @version 3.7.0
@@ -11,16 +12,59 @@ $text_align = is_rtl() ? 'right' : 'left';
 do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain_text, $email); ?>
 
 <style>
-#addresses td address { padding-right: 20px; }
-#template_container, #template_header_image, #template_footer { zoom: 1.5; line-height: 150%; }
-#header_wrapper { text-align: center; }
-* { font-family: "Be Vietnam" !important; }
-#body_content_inner table:first-child { box-shadow: rgb(50 50 80 / 0%) 0px 50px 50px -20px, rgb(0 0 0 / 30%) 0px 30px 60px -30px; width: 100%; }
-table, thead, tbody, td, th { border: 0; line-height: 1.2; }
-#body_content_inner table:first-child th, #body_content_inner table:first-child td { padding: 10px; }
-a, a:hover, a:visited { color: #0047ba; }
-#body_content_inner table:first-child tfoot tr:nth-child(3) { text-transform: uppercase; font-weight: 700; font-size: 150%; }
-.awdr-you-saved-text { display: none; }
+    #addresses td address {
+        padding-right: 20px;
+    }
+
+    #template_container,
+    #template_header_image,
+    #template_footer {
+        zoom: 1.5;
+        line-height: 150%;
+    }
+
+    #header_wrapper {
+        text-align: center;
+    }
+
+    * {
+        font-family: "Be Vietnam" !important;
+    }
+
+    #body_content_inner table:first-child {
+        box-shadow: rgb(50 50 80 / 0%) 0px 50px 50px -20px, rgb(0 0 0 / 30%) 0px 30px 60px -30px;
+        width: 100%;
+    }
+
+    table,
+    thead,
+    tbody,
+    td,
+    th {
+        border: 0;
+        line-height: 1.2;
+    }
+
+    #body_content_inner table:first-child th,
+    #body_content_inner table:first-child td {
+        padding: 10px;
+    }
+
+    a,
+    a:hover,
+    a:visited {
+        color: #0047ba;
+    }
+
+    #body_content_inner table:first-child tfoot tr:last-child {
+        text-transform: uppercase;
+        font-weight: 700;
+        font-size: 150%;
+    }
+
+    .awdr-you-saved-text {
+        display: none;
+    }
 </style>
 
 <h2>
@@ -66,10 +110,10 @@ a, a:hover, a:visited { color: #0047ba; }
             <?php
             if ($order->get_customer_note()) {
             ?>
-            <tr>
-                <th class="td" scope="row" colspan="2" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Note:', 'woocommerce'); ?></th>
-                <td class="td" scope="row" colspan="3" style="text-algin: right;"><?php echo wp_kses_post(nl2br(wptexturize($order->get_customer_note()))); ?></td>
-            </tr>
+                <tr>
+                    <th class="td" scope="row" colspan="2" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Note:', 'woocommerce'); ?></th>
+                    <td class="td" scope="row" colspan="3" style="text-algin: right;"><?php echo wp_kses_post(nl2br(wptexturize($order->get_customer_note()))); ?></td>
+                </tr>
             <?php
             }
             ?>
@@ -82,10 +126,10 @@ a, a:hover, a:visited { color: #0047ba; }
                 foreach ($item_totals as $total) {
                     $i++;
             ?>
-            <tr class="total">
-                <th class="td" scope="row" colspan="2" style="text-align:<?php echo esc_attr($text_align); ?>; <?php echo (1 === $i) ? 'border-top-width: 4px;' : ''; ?>"><?php echo wp_kses_post($total['label']); ?></th>
-                <td class="td" scope="row" colspan="3" style="text-align: right; <?php echo (1 === $i) ? 'border-top-width: 4px;' : ''; ?>"><?php echo wp_kses_post($total['value']); ?></td>
-            </tr>
+                    <tr class="total">
+                        <th class="td" scope="row" colspan="2" style="text-align:<?php echo esc_attr($text_align); ?>; <?php echo (1 === $i) ? 'border-top-width: 4px;' : ''; ?>"><?php echo wp_kses_post($total['label']); ?></th>
+                        <td class="td" scope="row" colspan="3" style="text-align: right; <?php echo (1 === $i) ? 'border-top-width: 4px;' : ''; ?>"><?php echo wp_kses_post($total['value']); ?></td>
+                    </tr>
             <?php
                 }
             }
@@ -94,7 +138,7 @@ a, a:hover, a:visited { color: #0047ba; }
     </table>
 </div>
 
-<?php 
+<?php
 // Hook này sẽ gọi code xử lý QR từ functions.php mà không gây lỗi
-do_action('woocommerce_email_after_order_table', $order, $sent_to_admin, $plain_text, $email); 
+do_action('woocommerce_email_after_order_table', $order, $sent_to_admin, $plain_text, $email);
 ?>
