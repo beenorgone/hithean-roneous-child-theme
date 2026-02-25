@@ -76,12 +76,12 @@ function add_custom_product_tabs($tabs)
         }
     }
 
-// Tabs for specific products
+    // Tabs for specific products
 
-function get_product_assigned_tabs($product_id)
-{
+    function get_product_assigned_tabs($product_id)
+    {
         $meta_query = [
-           [
+            [
                 'key'     => 'product_tab_products',
                 'value'   => $product_id,
                 'compare' => 'LIKE',
@@ -93,24 +93,24 @@ function get_product_assigned_tabs($product_id)
             'meta_query'     => $meta_query,
             'posts_per_page' => -1,
         ]);
-}
-        $product_id = $product->get_id();
-        $product_assigned_tabs = get_product_assigned_tabs($product_id);
-
-if ($product_assigned_tabs->have_posts()) {
-    while ($product_assigned_tabs->have_posts()) {
-        $product_assigned_tabs->the_post();
-        $slug = generate_slug(get_the_title());
-        $tabs[get_the_ID()] = [
-            'id'       => 'tab-' . $slug,
-            'title'    => get_the_title(),
-            'callback' => 'display_product_tab_content',
-            'priority' => (int) get_post_meta(get_the_ID(), 'product_tab_priority', true),
-            'content'  => get_the_content(),
-        ];
     }
-    wp_reset_postdata();
-}
+    $product_id = $product->get_id();
+    $product_assigned_tabs = get_product_assigned_tabs($product_id);
+
+    if ($product_assigned_tabs->have_posts()) {
+        while ($product_assigned_tabs->have_posts()) {
+            $product_assigned_tabs->the_post();
+            $slug = generate_slug(get_the_title());
+            $tabs[get_the_ID()] = [
+                'id'       => 'tab-' . $slug,
+                'title'    => get_the_title(),
+                'callback' => 'display_product_tab_content',
+                'priority' => (int) get_post_meta(get_the_ID(), 'product_tab_priority', true),
+                'content'  => get_the_content(),
+            ];
+        }
+        wp_reset_postdata();
+    }
 
 
     // Add custom field tabs
@@ -188,7 +188,7 @@ if ($product_assigned_tabs->have_posts()) {
         }
     }
 
-/*
+    /*
     // Check if there are any points of sale linked to the product
     if (has_points_of_sale($product->get_id(), 'offline')) {
         $tabs['diem_ban_gan_ban'] = [
@@ -206,6 +206,10 @@ if ($product_assigned_tabs->have_posts()) {
         ];
     }
 */
+
+    if (isset($tabs['description'])) {
+        $tabs['description']['priority'] = 1;
+    }
 
     return $tabs;
 }
