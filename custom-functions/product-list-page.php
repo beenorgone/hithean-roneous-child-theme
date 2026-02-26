@@ -18,4 +18,4 @@ function display_loop_product_subheading()
 
     echo '<div class="product-info-subheading">' . wp_kses_post(do_shortcode($subheading)) . '</div>';
 }
-add_action('woocommerce_after_shop_loop_item_title', 'display_loop_product_subheading', 9);
+add_action('woocommerce_after_shop_loop_item_title', 'display_loop_product_subheading', 11);
