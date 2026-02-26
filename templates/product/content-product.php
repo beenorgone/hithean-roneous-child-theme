@@ -2,7 +2,7 @@
 global $product;
 if ( !$product || !$product->is_visible() ) return;
 ?>
-<div <?php post_class('col-md-4 col-sm-4 masonry-item col-xs-12'); ?>>
+<div <?php post_class('col-md-6 col-sm-6 masonry-item col-xs-12'); ?>>
     <div class="image-box shop-outer-title text-center">
     	<?php
         /**
