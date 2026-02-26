@@ -1,68 +1,86 @@
 <?php
 
-/**
- * Move out-of-stock products to the end on WooCommerce product list queries.
- */
-function hithean_move_out_of_stock_to_end($clauses, $query)
-{
-    if (!($query instanceof WP_Query) || is_admin() || !$query->is_main_query()) {
+defined('ABSPATH') || exit;
+
+if (!function_exists('product_list_move_out_of_stock_to_end')) {
+    /**
+     * Move out-of-stock products to the end on WooCommerce catalog main query.
+     */
+    function product_list_move_out_of_stock_to_end($clauses, $query)
+    {
+        if (!($query instanceof WP_Query) || is_admin() || !$query->is_main_query()) {
+            return $clauses;
+        }
+
+        // Restrict to WooCommerce catalog query only (shop, category, tag, attributes).
+        if ('product_query' !== (string) $query->get('wc_query')) {
+            return $clauses;
+        }
+
+        $post_type = $query->get('post_type');
+        if (is_string($post_type) && '' !== $post_type && 'product' !== $post_type) {
+            return $clauses;
+        }
+        if (is_array($post_type) && !in_array('product', $post_type, true)) {
+            return $clauses;
+        }
+
+        global $wpdb;
+
+        $stock_alias = 'product_stock_status_pm';
+        $join = isset($clauses['join']) ? (string) $clauses['join'] : '';
+        $orderby = isset($clauses['orderby']) ? (string) $clauses['orderby'] : '';
+
+        if (false === strpos($join, " {$stock_alias} ")) {
+            $join .= " LEFT JOIN {$wpdb->postmeta} AS {$stock_alias} ON ({$wpdb->posts}.ID = {$stock_alias}.post_id AND {$stock_alias}.meta_key = '_stock_status')";
+        }
+
+        // Out-of-stock last, keep existing ordering as secondary sort.
+        $stock_order = "CASE WHEN {$stock_alias}.meta_value = 'outofstock' THEN 1 ELSE 0 END ASC";
+
+        $clauses['join'] = $join;
+        $clauses['orderby'] = '' !== $orderby ? $stock_order . ', ' . $orderby : $stock_order;
+
         return $clauses;
     }
-
-    // Restrict to WooCommerce catalog main query only.
-    if ('product_query' !== $query->get('wc_query')) {
-        return $clauses;
-    }
-
-    global $wpdb;
-
-    $stock_alias = 'hithean_stock_status_pm';
-
-    if (strpos($clauses['join'], " {$stock_alias} ") === false) {
-        $clauses['join'] .= " LEFT JOIN {$wpdb->postmeta} AS {$stock_alias} ON ({$wpdb->posts}.ID = {$stock_alias}.post_id AND {$stock_alias}.meta_key = '_stock_status')";
-    }
-
-    $stock_order = "CASE {$stock_alias}.meta_value WHEN 'outofstock' THEN 1 ELSE 0 END ASC";
-    $clauses['orderby'] = !empty($clauses['orderby'])
-        ? $stock_order . ', ' . $clauses['orderby']
-        : $stock_order;
-
-    return $clauses;
+    add_filter('posts_clauses', 'product_list_move_out_of_stock_to_end', 20, 2);
 }
-add_filter('posts_clauses', 'hithean_move_out_of_stock_to_end', 20, 2);
 
-/**
- * Show out-of-stock text under price on shop/archive loop cards.
- */
-function hithean_display_loop_out_of_stock_text()
-{
-    global $product;
+if (!function_exists('product_list_display_loop_out_of_stock_text')) {
+    /**
+     * Show out-of-stock text under price on shop/archive loop cards.
+     */
+    function product_list_display_loop_out_of_stock_text()
+    {
+        global $product;
 
-    if (!$product instanceof WC_Product || $product->is_in_stock()) {
-        return;
+        if (!$product instanceof WC_Product || $product->is_in_stock()) {
+            return;
+        }
+
+        echo '<div class="product-stock-status out-of-stock">' . esc_html__('Hết hàng', 'roneous') . '</div>';
     }
-
-    echo '<div class="product-stock-status out-of-stock">' . esc_html__('Hết hàng', 'roneous') . '</div>';
+    add_action('woocommerce_after_shop_loop_item_title', 'product_list_display_loop_out_of_stock_text', 11);
 }
-add_action('woocommerce_after_shop_loop_item_title', 'hithean_display_loop_out_of_stock_text', 11);
 
-/**
- * Show product subheading under product title on shop/archive loop cards.
- */
-function hithean_display_loop_product_subheading()
-{
-    global $product;
+if (!function_exists('display_loop_product_subheading')) {
+    /**
+     * Show product subheading under product title on shop/archive loop cards.
+     */
+    function display_loop_product_subheading()
+    {
+        global $product;
 
-    if (!$product instanceof WC_Product) {
-        return;
+        if (!$product instanceof WC_Product) {
+            return;
+        }
+
+        $subheading = trim((string) get_post_meta($product->get_id(), 'product_info_subheading', true));
+        if ('' === $subheading) {
+            return;
+        }
+
+        echo '<div class="product-info-subheading">' . wp_kses_post($subheading) . '</div>';
     }
-
-    $subheading = get_post_meta($product->get_id(), 'product_info_subheading', true);
-    if (empty($subheading)) {
-        return;
-    }
-
-    // Keep rendering lightweight and safe in archive loops.
-    echo '<div class="product-info-subheading">' . wp_kses_post($subheading) . '</div>';
+    add_action('woocommerce_after_shop_loop_item_title', 'display_loop_product_subheading', 12);
 }
-add_action('woocommerce_after_shop_loop_item_title', 'hithean_display_loop_product_subheading', 12);
