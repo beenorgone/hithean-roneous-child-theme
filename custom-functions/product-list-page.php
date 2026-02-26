@@ -58,7 +58,7 @@ if (!function_exists('product_list_display_loop_out_of_stock_text')) {
             return;
         }
 
-        echo '<div class="product-stock-status out-of-stock">' . esc_html__('Hết hàng', 'roneous') . '</div>';
+        echo '<div class="product-stock-status out-of-stock" style="margin-bottom: 20px;">' . esc_html__('Hết hàng', 'roneous') . '</div>';
     }
     add_action('woocommerce_after_shop_loop_item_title', 'product_list_display_loop_out_of_stock_text', 11);
 }
