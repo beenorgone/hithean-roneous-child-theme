@@ -220,12 +220,20 @@ add_action('init', function () {
                 font-size: 14px;
                 line-height: 1.5;
             }
+            .tracking-reset-wrap {
+                margin: 10px 0;
+            }
             .tracking-reset-btn {
-                margin-left: 8px;
+                margin: 0;
             }
         </style>
         <div id="theo-doi-don">
             <?php if (!empty($results_html)) : ?>
+                <div class="tracking-reset-wrap">
+                    <button type="button" class="button tracking-reset-btn" id="tracking-reset-btn">
+                        <?php esc_html_e('Tìm lại', 'devvn'); ?>
+                    </button>
+                </div>
                 <?php echo $results_html; ?>
             <?php endif; ?>
             <h2>Theo dõi đơn hàng</h2>
@@ -246,9 +254,6 @@ add_action('init', function () {
                         class="button button--green<?php echo esc_attr(wc_wp_theme_get_element_class_name('button') ? ' ' . wc_wp_theme_get_element_class_name('button') : ''); ?>"
                         name="track" value="<?php esc_attr_e('Theo dõi', 'devvn'); ?>">
                         <?php esc_html_e('Theo dõi', 'devvn'); ?>
-                    </button>
-                    <button type="button" class="button tracking-reset-btn" id="tracking-reset-btn">
-                        <?php esc_html_e('Tìm lại', 'devvn'); ?>
                     </button>
                 </p>
 
