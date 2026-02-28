@@ -35,7 +35,6 @@ if (!function_exists('product_list_move_out_of_stock_to_end')) {
             $join .= " LEFT JOIN {$wpdb->postmeta} AS {$stock_alias} ON ({$wpdb->posts}.ID = {$stock_alias}.post_id AND {$stock_alias}.meta_key = '_stock_status')";
         }
 
-        // Out-of-stock last, keep existing ordering as secondary sort.
         $stock_order = "CASE WHEN {$stock_alias}.meta_value = 'outofstock' THEN 1 ELSE 0 END ASC";
 
         $clauses['join'] = $join;
@@ -44,6 +43,27 @@ if (!function_exists('product_list_move_out_of_stock_to_end')) {
         return $clauses;
     }
     add_filter('posts_clauses', 'product_list_move_out_of_stock_to_end', 20, 2);
+}
+
+if (!function_exists('product_list_display_loop_coming_soon_text')) {
+    /**
+     * Show a coming soon label below title when a product has no price.
+     */
+    function product_list_display_loop_coming_soon_text()
+    {
+        global $product;
+
+        if (!$product instanceof WC_Product) {
+            return;
+        }
+
+        if ('' !== (string) $product->get_price()) {
+            return;
+        }
+
+        echo '<div class="product-coming-soon">' . esc_html__('SẮP RA MẮT', 'roneous') . '</div>';
+    }
+    add_action('woocommerce_after_shop_loop_item_title', 'product_list_display_loop_coming_soon_text', 9);
 }
 
 if (!function_exists('product_list_display_loop_out_of_stock_text')) {
@@ -71,7 +91,7 @@ if (!function_exists('display_loop_product_subheading')) {
     {
         global $product;
 
-        if (!$product instanceof WC_Product) {
+        if (!$product instanceof WC_Product || !wp_is_mobile()) {
             return;
         }
 
