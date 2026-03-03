@@ -345,7 +345,7 @@ function tpc_compare_json_encode_for_script($value, $fallback = '[]')
 {
     $encoded = wp_json_encode(
         tpc_compare_sanitize_utf8($value),
-        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
     );
 
     return false === $encoded ? $fallback : $encoded;
