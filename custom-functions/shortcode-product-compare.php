@@ -655,7 +655,7 @@ function tpc_product_compare_shortcode($atts)
     <div id="<?php echo esc_attr($instance_id); ?>" class="tpc-compare-root">
         <div class="tpc-header">
             <h2 class="tpc-title">So sánh sản phẩm</h2>
-            <button type="button" class="button tpc-copy-link-button">Copy link xem bảng</button>
+            <button type="button" class="button tpc-copy-link-button" hidden>Copy link xem bảng</button>
             <span class="tpc-copy-feedback" aria-live="polite" hidden>Đã copy link</span>
         </div>
 
@@ -724,7 +724,10 @@ function tpc_product_compare_shortcode($atts)
             </div>
         </div>
 
-        <button type="button" class="button button--green tpc-build-button">Tạo bảng so sánh</button>
+        <div class="tpc-actions">
+            <button type="button" class="button button--green tpc-build-button">Tạo bảng so sánh</button>
+            <button type="button" class="button tpc-copy-link-button" hidden>Copy link xem bảng</button>
+        </div>
     </div>
 
     <style>
@@ -761,6 +764,13 @@ function tpc_product_compare_shortcode($atts)
             width: auto;
             max-width: max-content;
             align-self: flex-start;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-table-shell {
@@ -1043,7 +1053,7 @@ function tpc_product_compare_shortcode($atts)
             const productMap = new Map();
             const initialProducts = <?php echo tpc_compare_json_encode_for_script($products); ?>;
             const buttons = Array.from(root.querySelectorAll('.tpc-build-button'));
-            const copyButton = root.querySelector('.tpc-copy-link-button');
+            const copyButtons = Array.from(root.querySelectorAll('.tpc-copy-link-button'));
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
             const pickers = Array.from(root.querySelectorAll('.tpc-product-picker'));
 
@@ -1136,6 +1146,12 @@ function tpc_product_compare_shortcode($atts)
                 }, 1800);
             }
 
+            function setCopyButtonsVisible(isVisible) {
+                copyButtons.forEach(function(button) {
+                    button.hidden = !isVisible;
+                });
+            }
+
             function copyText(text) {
                 if (navigator.clipboard && window.isSecureContext) {
                     return navigator.clipboard.writeText(text);
@@ -1167,6 +1183,7 @@ function tpc_product_compare_shortcode($atts)
             }
 
             function showPlaceholder(message) {
+                setCopyButtonsVisible(false);
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
                 body.innerHTML = '<tr><th class="tpc-sticky-col">So sánh</th><td colspan="' + pickers.length + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
@@ -1261,6 +1278,7 @@ function tpc_product_compare_shortcode($atts)
             function renderRows(products) {
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
+                setCopyButtonsVisible(true);
                 const rows = [];
 
                 rows.push('<tr><th class="tpc-sticky-col">Ảnh sản phẩm</th>' + products.map(renderImageCell).join('') + '</tr>');
@@ -1460,7 +1478,7 @@ function tpc_product_compare_shortcode($atts)
                 });
             });
 
-            if (copyButton) {
+            copyButtons.forEach(function(copyButton) {
                 copyButton.addEventListener('click', function(event) {
                     event.preventDefault();
                     const url = getCompareShareUrl();
@@ -1471,11 +1489,12 @@ function tpc_product_compare_shortcode($atts)
                         flashCopyFeedback('Không copy được link', true);
                     });
                 });
-            }
+            });
 
             if (selectedIds().some(function(id) { return !!id; })) {
                 buildTable();
             } else {
+                setCopyButtonsVisible(false);
                 tableShell.hidden = true;
                 tableShell.classList.add('tpc-table-shell--hidden');
                 body.innerHTML = '';
