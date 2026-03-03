@@ -94,9 +94,9 @@ $general_includes = [
     'custom-functions/product-taxonomies.php',
 
     'custom-functions/affiliate-manager.php',
-	
-	/* Plugins */
-	'custom-functions/plugin-devvn-ghtk-tweaks.php',
+
+    /* Plugins */
+    'custom-functions/plugin-devvn-ghtk-tweaks.php',
 ];
 
 foreach ($general_includes as $include) {
@@ -150,49 +150,62 @@ function load_custom_admin_files()
 add_action('admin_enqueue_scripts', 'load_custom_admin_files');
 
 
-/**
- * Vá lỗi i18n.min.js "Cannot read properties of undefined (reading 'replace')"
- * Chèn Script vá lỗi trực tiếp vào thẻ <head> admin.
- */
-add_action('admin_print_scripts', 'hithean_patch_i18n_error_direct', 1);
-function hithean_patch_i18n_error_direct() {
-    // Chỉ áp dụng cho các trang WooCommerce
-    if ( ! isset($_GET['page']) || strpos($_GET['page'], 'wc-') === false ) {
+function tpc_compare_load_shortcode_file_for_ajax()
+{
+    if (!wp_doing_ajax()) {
         return;
     }
-    ?>
-    <script type="text/javascript">
-        /* POLYFILL: Vá lỗi sprintf trong thư viện wp.i18n */
-        (function() {
-            window.wp = window.wp || {};
-            window.wp.i18n = window.wp.i18n || {};
 
-            // Lưu lại hàm sprintf gốc nếu có (đề phòng)
-            var originalSprintf = window.wp.i18n.sprintf;
+    $action = isset($_REQUEST['action']) ? sanitize_key(wp_unslash($_REQUEST['action'])) : '';
+    if (!in_array($action, ['tpc_product_compare_search', 'tpc_product_compare_get_product'], true)) {
+        return;
+    }
 
-            // Định nghĩa lại sprintf an toàn
-            window.wp.i18n.sprintf = function( format ) {
-                // Nếu format bị undefined (nguyên nhân gây lỗi), trả về chuỗi rỗng
-                if ( typeof format === 'undefined' ) {
-                    console.warn('Fixed i18n crash: format string was undefined');
-                    return '';
-                }
-
-                // Nếu thư viện gốc đã tải, thử dùng nó
-                if ( typeof originalSprintf === 'function' ) {
-                    try {
-                        // Gọi hàm gốc với các tham số
-                        return originalSprintf.apply( this, arguments );
-                    } catch (e) {
-                        // Nếu hàm gốc lỗi, trả về format ban đầu thay vì làm sập trang
-                        return format;
-                    }
-                }
-
-                // Fallback đơn giản nếu chưa tải thư viện
-                return format;
-            };
-        })();
-    </script>
-    <?php
+    $path = __DIR__ . '/custom-functions/shortcode-product-compare.php';
+    if (is_file($path)) {
+        require_once $path;
+    }
 }
+add_action('init', 'tpc_compare_load_shortcode_file_for_ajax', 1);
+
+function tpc_compare_should_load_shortcode_file()
+{
+    if (is_admin()) {
+        return false;
+    }
+
+    $allowed_paths = apply_filters('tpc_compare_allowed_paths', [
+        // Example: '/bang-so-sanh-san-pham',
+        '/tien-ich',
+        '/tien-ich-admin',
+        '/tra-cuu',
+        '/so-sanh',
+        '/tra-cuu/so-sanh',
+    ]);
+
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $current_path = $request_uri ? wp_parse_url(home_url($request_uri), PHP_URL_PATH) : '';
+    $current_path = untrailingslashit((string) $current_path);
+
+    foreach ((array) $allowed_paths as $path) {
+        $normalized_path = untrailingslashit((string) $path);
+        if ($normalized_path !== '' && $normalized_path === $current_path) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function tpc_compare_load_shortcode_file_conditionally()
+{
+    if (!tpc_compare_should_load_shortcode_file()) {
+        return;
+    }
+
+    $path = __DIR__ . '/custom-functions/shortcode-product-compare.php';
+    if (is_file($path)) {
+        require_once $path;
+    }
+}
+add_action('wp', 'tpc_compare_load_shortcode_file_conditionally', PHP_INT_MAX - 1);
