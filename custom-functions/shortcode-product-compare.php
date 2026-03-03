@@ -324,6 +324,33 @@ function tpc_compare_parse_fields_from_json($raw_fields)
     return $fields;
 }
 
+function tpc_compare_sanitize_utf8($value)
+{
+    if (is_array($value)) {
+        foreach ($value as $key => $item) {
+            $value[$key] = tpc_compare_sanitize_utf8($item);
+        }
+
+        return $value;
+    }
+
+    if (is_string($value)) {
+        return wp_check_invalid_utf8($value, true);
+    }
+
+    return $value;
+}
+
+function tpc_compare_json_encode_for_script($value, $fallback = '[]')
+{
+    $encoded = wp_json_encode(
+        tpc_compare_sanitize_utf8($value),
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    );
+
+    return false === $encoded ? $fallback : $encoded;
+}
+
 function tpc_compare_format_field_value($value)
 {
     if (is_array($value)) {
@@ -433,7 +460,7 @@ function tpc_compare_build_product_payload($product_id, array $fields)
         $cart_config['label'] = 'Xem thêm / Mua';
     }
 
-    return [
+    return tpc_compare_sanitize_utf8([
         'id'                => $product_id,
         'title'             => html_entity_decode(get_the_title($product_id), ENT_QUOTES, get_bloginfo('charset') ?: 'UTF-8'),
         'image'             => get_the_post_thumbnail_url($product_id, 'medium') ?: '',
@@ -443,7 +470,7 @@ function tpc_compare_build_product_payload($product_id, array $fields)
         'short_description' => wp_kses_post($short_description),
         'fields'            => $field_values,
         'cart'              => $cart_config,
-    ];
+    ]);
 }
 
 function tpc_compare_normalize_product_ids($raw_ids)
@@ -1011,10 +1038,10 @@ function tpc_product_compare_shortcode($atts)
             const nonce = <?php echo wp_json_encode(wp_create_nonce(tpc_compare_ajax_nonce())); ?>;
             const body = root.querySelector('.tpc-compare-body');
             const tableShell = root.querySelector('.tpc-table-shell');
-            const fieldDefinitions = <?php echo wp_json_encode($field_definitions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+            const fieldDefinitions = <?php echo tpc_compare_json_encode_for_script($field_definitions); ?>;
             const comparePageUrl = <?php echo wp_json_encode($compare_page_url); ?>;
             const productMap = new Map();
-            const initialProducts = <?php echo wp_json_encode($products, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+            const initialProducts = <?php echo tpc_compare_json_encode_for_script($products); ?>;
             const buttons = Array.from(root.querySelectorAll('.tpc-build-button'));
             const copyButton = root.querySelector('.tpc-copy-link-button');
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
