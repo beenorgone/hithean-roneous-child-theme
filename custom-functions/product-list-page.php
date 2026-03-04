@@ -91,7 +91,12 @@ if (!function_exists('display_loop_product_subheading')) {
     {
         global $product;
 
-        if (!$product instanceof WC_Product || !wp_is_mobile()) {
+        if (!$product instanceof WC_Product) {
+            return;
+        }
+
+        // Hide on desktop for archive pages (Shop, Category, Tag, etc.)
+        if (!wp_is_mobile() && (is_shop() || is_product_taxonomy())) {
             return;
         }
 
