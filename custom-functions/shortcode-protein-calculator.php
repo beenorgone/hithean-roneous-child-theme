@@ -46,7 +46,7 @@ function render_protein_calculator($atts)
         }
 
         .pc-form-control {
-            width: 100%;
+            width: 100% !important;
             height: 46px;
             /* Matches theme input height */
             padding: 0 15px;
@@ -173,7 +173,7 @@ function render_protein_calculator($atts)
                 <span class="pc-label" style="color:var(--default-color-dark-blue)">Khuyến nghị mới (Mỹ 2026-2030):</span>
                 <span class="pc-val" id="res_us" style="color:var(--default-color-dark-blue)"></span>
                 <div class="pc-note">
-                    Theo hướng dẫn mới của Mỹ: <strong>1.2g</strong> (duy trì sức khỏe) đến <strong>1.6g</strong> (tăng cơ/giảm cân) trên mỗi kg cân nặng.
+                    Theo tài liệu: <strong>Hướng dẫn chế độ ăn uống cho người Mỹ giai đoạn 2025–2030 (Dietary Guidelines for Americans – DGAs)</strong> công bố ngày 7/1/2026, Bộ Y tế và Dịch vụ Nhân sinh Hoa Kỳ (HHS) phối hợp với Bộ Nông nghiệp Hoa Kỳ (USDA): <strong>1.2g</strong> (duy trì sức khỏe) đến <strong>1.6g</strong> (tăng cơ/giảm cân) trên mỗi kg cân nặng.
                 </div>
             </div>
         </div>
