@@ -209,3 +209,42 @@ function tpc_compare_load_shortcode_file_conditionally()
     }
 }
 add_action('wp', 'tpc_compare_load_shortcode_file_conditionally', PHP_INT_MAX - 1);
+
+function protein_calculator_should_load()
+{
+    if (is_admin()) {
+        return false;
+    }
+
+    $allowed_paths = [
+        '/tien-ich',
+        '/tien-ich-admin',
+        '/protein-calculator',
+    ];
+
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $current_path = $request_uri ? wp_parse_url(home_url($request_uri), PHP_URL_PATH) : '';
+    $current_path = untrailingslashit((string) $current_path);
+
+    foreach ($allowed_paths as $path) {
+        $normalized_path = untrailingslashit((string) $path);
+        if ($normalized_path !== '' && $normalized_path === $current_path) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function protein_calculator_load_conditionally()
+{
+    if (!protein_calculator_should_load()) {
+        return;
+    }
+
+    $path = __DIR__ . '/custom-functions/shortcode-protein-calculator.php';
+    if (is_file($path)) {
+        require_once $path;
+    }
+}
+add_action('wp', 'protein_calculator_load_conditionally');
