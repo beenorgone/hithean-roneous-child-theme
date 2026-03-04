@@ -736,67 +736,67 @@ function tpc_product_compare_shortcode($atts)
             gap: 14px;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-header {
+        #<?php echo esc_html($instance_id); ?> .tpc-header {
             display: flex;
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-title {
+        #<?php echo esc_html($instance_id); ?> .tpc-title {
             margin: 0;
             font-size: 28px;
             line-height: 1.2;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-copy-link-button {
+        #<?php echo esc_html($instance_id); ?> .tpc-copy-link-button {
             width: auto;
             max-width: max-content;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-copy-feedback {
+        #<?php echo esc_html($instance_id); ?> .tpc-copy-feedback {
             font-size: 13px;
             color: #0f5132;
             font-weight: 600;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-build-button {
+        #<?php echo esc_html($instance_id); ?> .tpc-build-button {
             width: auto;
             max-width: max-content;
             align-self: flex-start;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-actions {
+        #<?php echo esc_html($instance_id); ?> .tpc-actions {
             display: flex;
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-table-shell {
+        #<?php echo esc_html($instance_id); ?> .tpc-table-shell {
             border: 0;
             border-radius: 12px;
             overflow: hidden;
             background: #fff;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-table-shell--hidden {
+        #<?php echo esc_html($instance_id); ?> .tpc-table-shell--hidden {
             display: none;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-picker-panel {
+        #<?php echo esc_html($instance_id); ?> .tpc-picker-panel {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 12px;
             align-items: start;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-table-scroll {
+        #<?php echo esc_html($instance_id); ?> .tpc-table-scroll {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table {
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table {
             width: 100%;
             min-width: 840px;
             border-collapse: separate;
@@ -806,17 +806,17 @@ function tpc_product_compare_shortcode($atts)
             box-shadow: none !important;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table th:not(.tpc-sticky-col),
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table td {
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table th:not(.tpc-sticky-col),
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
             width: calc((100% - 180px) / <?php echo (int) $number; ?>);
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table,
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table thead,
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table tbody,
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table tr,
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table th,
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table td {
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table,
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table thead,
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table tbody,
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table tr,
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
             padding: 14px;
             border: 0 !important;
             outline: 0 !important;
@@ -825,16 +825,16 @@ function tpc_product_compare_shortcode($atts)
             background: #fff;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table thead th {
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table thead th {
             background: #f6faf8;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table tbody tr:nth-child(even) th,
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table tbody tr:nth-child(even) td {
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table tbody tr:nth-child(even) th,
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table tbody tr:nth-child(even) td {
             background: #fafcfd;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-sticky-col {
+        #<?php echo esc_html($instance_id); ?> .tpc-sticky-col {
             position: sticky;
             left: 0;
             z-index: 2;
@@ -845,21 +845,21 @@ function tpc_product_compare_shortcode($atts)
             background: #f9fbfb;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-compare-table tbody tr:nth-child(even) .tpc-sticky-col {
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table tbody tr:nth-child(even) .tpc-sticky-col {
             background: #f3f7f9;
         }
 
-        #<?php echo esc_html($instance_id); ?>thead .tpc-sticky-col {
+        #<?php echo esc_html($instance_id); ?> thead .tpc-sticky-col {
             z-index: 4;
             background: #eef7f1;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-picker-wrap {
+        #<?php echo esc_html($instance_id); ?> .tpc-picker-wrap {
             min-width: 220px;
             position: relative;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-picker-label {
+        #<?php echo esc_html($instance_id); ?> .tpc-picker-label {
             margin-bottom: 6px;
             font-size: 12px;
             font-weight: 700;
@@ -867,11 +867,11 @@ function tpc_product_compare_shortcode($atts)
             color: #5f6b76;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-product-picker {
+        #<?php echo esc_html($instance_id); ?> .tpc-product-picker {
             position: relative;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-product-search {
+        #<?php echo esc_html($instance_id); ?> .tpc-product-search {
             width: 100%;
             min-width: 180px;
             border: 1px solid #c8d1d6;
@@ -880,7 +880,7 @@ function tpc_product_compare_shortcode($atts)
             padding: 10px 12px;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-product-dropdown {
+        #<?php echo esc_html($instance_id); ?> .tpc-product-dropdown {
             position: absolute;
             left: 0;
             right: 0;
@@ -894,20 +894,20 @@ function tpc_product_compare_shortcode($atts)
             overflow: auto;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-dropdown-state,
-        #<?php echo esc_html($instance_id); ?>.tpc-dropdown-empty {
+        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-state,
+        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-empty {
             padding: 10px 12px;
             color: #5f6b76;
             font-size: 13px;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-dropdown-list {
+        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-list {
             margin: 0;
             padding: 6px 0;
             list-style: none;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-dropdown-item {
+        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-item {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -916,15 +916,15 @@ function tpc_product_compare_shortcode($atts)
             border-bottom: 1px solid #f0f0f0;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-dropdown-item:last-child {
+        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-item:last-child {
             border-bottom: 0;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-dropdown-item:hover {
+        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-item:hover {
             background: #f9fafb;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-dropdown-thumb {
+        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-thumb {
             width: 36px;
             height: 36px;
             border-radius: 4px;
@@ -933,40 +933,40 @@ function tpc_product_compare_shortcode($atts)
             flex-shrink: 0;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-placeholder-cell {
+        #<?php echo esc_html($instance_id); ?> .tpc-placeholder-cell {
             color: #5f6b76;
             font-style: italic;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-cell-list {
+        #<?php echo esc_html($instance_id); ?> .tpc-cell-list {
             margin: 0;
             padding-left: 18px;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-cell-list li+li {
+        #<?php echo esc_html($instance_id); ?> .tpc-cell-list li + li {
             margin-top: 8px;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-price {
+        #<?php echo esc_html($instance_id); ?> .tpc-price {
             font-weight: 700;
             color: #0f5132;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-product-image-link,
-        #<?php echo esc_html($instance_id); ?>.tpc-product-image-link:hover {
+        #<?php echo esc_html($instance_id); ?> .tpc-product-image-link,
+        #<?php echo esc_html($instance_id); ?> .tpc-product-image-link:hover {
             display: inline-block;
             text-decoration: none;
             box-shadow: none;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-product-title-link,
-        #<?php echo esc_html($instance_id); ?>.tpc-product-title-link:hover {
+        #<?php echo esc_html($instance_id); ?> .tpc-product-title-link,
+        #<?php echo esc_html($instance_id); ?> .tpc-product-title-link:hover {
             font-weight: 700;
             text-decoration: none;
             box-shadow: none;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-product-image {
+        #<?php echo esc_html($instance_id); ?> .tpc-product-image {
             display: block;
             width: 100%;
             max-width: 160px;
@@ -976,14 +976,14 @@ function tpc_product_compare_shortcode($atts)
             margin: 0 auto;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-variation-notes {
+        #<?php echo esc_html($instance_id); ?> .tpc-variation-notes {
             display: block;
             margin-top: 4px;
             color: #52606d;
             font-size: 13px;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-add-to-cart {
+        #<?php echo esc_html($instance_id); ?> .tpc-add-to-cart {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -993,26 +993,26 @@ function tpc_product_compare_shortcode($atts)
             white-space: nowrap;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-empty-value,
-        #<?php echo esc_html($instance_id); ?>.tpc-empty-cell {
+        #<?php echo esc_html($instance_id); ?> .tpc-empty-value,
+        #<?php echo esc_html($instance_id); ?> .tpc-empty-cell {
             color: #8a94a0;
         }
 
-        #<?php echo esc_html($instance_id); ?>.tpc-cell-content> :last-child {
+        #<?php echo esc_html($instance_id); ?> .tpc-cell-content > :last-child {
             margin-bottom: 0;
         }
 
         @media (max-width: 767px) {
-            #<?php echo esc_html($instance_id); ?>.tpc-title {
+            #<?php echo esc_html($instance_id); ?> .tpc-title {
                 font-size: 22px;
             }
 
-            #<?php echo esc_html($instance_id); ?>.tpc-compare-table th,
-            #<?php echo esc_html($instance_id); ?>.tpc-compare-table td {
+            #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
+            #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
                 padding: 10px;
             }
 
-            #<?php echo esc_html($instance_id); ?>.tpc-sticky-col {
+            #<?php echo esc_html($instance_id); ?> .tpc-sticky-col {
                 min-width: 88px;
                 width: 88px;
                 max-width: 88px;
@@ -1022,16 +1022,16 @@ function tpc_product_compare_shortcode($atts)
                 word-break: break-word;
             }
 
-            #<?php echo esc_html($instance_id); ?>.tpc-compare-table th:not(.tpc-sticky-col),
-            #<?php echo esc_html($instance_id); ?>.tpc-compare-table td {
+            #<?php echo esc_html($instance_id); ?> .tpc-compare-table th:not(.tpc-sticky-col),
+            #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
                 width: calc((100% - 88px) / <?php echo (int) $number; ?>);
             }
 
-            #<?php echo esc_html($instance_id); ?>.tpc-picker-wrap {
+            #<?php echo esc_html($instance_id); ?> .tpc-picker-wrap {
                 min-width: 160px;
             }
 
-            #<?php echo esc_html($instance_id); ?>.tpc-product-image {
+            #<?php echo esc_html($instance_id); ?> .tpc-product-image {
                 max-width: 120px;
             }
         }
