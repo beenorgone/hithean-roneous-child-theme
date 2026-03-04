@@ -125,6 +125,21 @@ function render_protein_calculator($atts)
             border-left: 4px solid var(--default-color-dark-blue, #0047ba);
             margin-top: 10px;
         }
+
+        .pc-products-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .pc-products-title {
+            text-align: center;
+            color: var(--default-color-dark-blue, #0047ba);
+            margin-bottom: 20px;
+            font-family: "Oswald", sans-serif;
+            text-transform: uppercase;
+            font-size: 20px;
+        }
     </style>
 
     <div class="protein-calc-wrapper">
@@ -176,6 +191,11 @@ function render_protein_calculator($atts)
                     Theo tài liệu: <strong>Hướng dẫn chế độ ăn uống cho người Mỹ giai đoạn 2025–2030 (Dietary Guidelines for Americans – DGAs)</strong> công bố ngày 7/1/2026, Bộ Y tế và Dịch vụ Nhân sinh Hoa Kỳ (HHS) phối hợp với Bộ Nông nghiệp Hoa Kỳ (USDA): <strong>1.2g</strong> (duy trì sức khỏe) đến <strong>1.6g</strong> (tăng cơ/giảm cân) trên mỗi kg cân nặng.
                 </div>
             </div>
+        </div>
+
+        <div class="pc-products-section">
+            <h4 class="pc-products-title">Bổ sung protein cho chế độ ăn</h4>
+            <?php echo do_shortcode('[products ids="4690,3977" columns="2"]'); ?>
         </div>
     </div>
 

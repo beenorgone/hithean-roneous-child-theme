@@ -220,6 +220,7 @@ function protein_calculator_should_load()
         '/tien-ich',
         '/tien-ich-admin',
         '/protein-calculator',
+        '/tien-ich/protein-calculator'
     ];
 
     $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
