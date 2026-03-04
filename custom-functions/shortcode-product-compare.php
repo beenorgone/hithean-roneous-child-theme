@@ -476,14 +476,14 @@ function tpc_compare_build_product_payload($product_id, array $fields)
 function tpc_compare_normalize_product_ids($raw_ids)
 {
     if (is_array($raw_ids)) {
-        $raw_ids = implode(',', $raw_ids);
+        $raw_ids = implode('-', $raw_ids);
     }
 
     if (!is_string($raw_ids) || trim($raw_ids) === '') {
         return [];
     }
 
-    $ids = array_map('absint', preg_split('/\s*,\s*/', $raw_ids));
+    $ids = array_map('absint', preg_split('/[\s,-]+/', $raw_ids));
 
     return array_values(array_unique(array_filter($ids)));
 }
@@ -1127,7 +1127,7 @@ function tpc_product_compare_shortcode($atts)
                 }
 
                 const url = new URL(comparePageUrl, window.location.origin);
-                url.searchParams.set('compare_products', ids.join(','));
+                url.searchParams.set('compare_products', ids.join('-'));
                 return url.toString();
             }
 
