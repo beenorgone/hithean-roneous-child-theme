@@ -1056,6 +1056,8 @@ function tpc_product_compare_shortcode($atts)
             const copyButtons = Array.from(root.querySelectorAll('.tpc-copy-link-button'));
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
             const pickers = Array.from(root.querySelectorAll('.tpc-product-picker'));
+            const headerRow = root.querySelector('.tpc-compare-table thead tr');
+            const headerProductCells = headerRow ? Array.from(headerRow.querySelectorAll('th')).slice(1) : [];
 
             initialProducts.forEach(function(product) {
                 productMap.set(String(product.id), product);
@@ -1152,6 +1154,22 @@ function tpc_product_compare_shortcode($atts)
                 });
             }
 
+            function syncHeaderColumns(activeIds) {
+                if (!headerProductCells.length) {
+                    return;
+                }
+
+                const selectedSet = new Set((activeIds || []).map(String));
+
+                headerProductCells.forEach(function(cell, index) {
+                    const picker = pickers[index];
+                    const hidden = picker ? picker.querySelector('.tpc-product-id') : null;
+                    const value = hidden ? String(hidden.value || '').trim() : '';
+                    const isVisible = value && selectedSet.has(value);
+                    cell.style.display = isVisible ? '' : 'none';
+                });
+            }
+
             function copyText(text) {
                 if (navigator.clipboard && window.isSecureContext) {
                     return navigator.clipboard.writeText(text);
@@ -1185,6 +1203,8 @@ function tpc_product_compare_shortcode($atts)
                 setCopyButtonsVisible(false);
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
+                root.style.setProperty('--tpc-active-cols', String(Math.max(pickers.length, 1)));
+                syncHeaderColumns(selectedIds().filter(function(id) { return !!id; }));
                 body.innerHTML = '<tr><th class="tpc-sticky-col">So sánh</th><td colspan="' + pickers.length + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
             }
 
@@ -1280,6 +1300,7 @@ function tpc_product_compare_shortcode($atts)
                 setCopyButtonsVisible(true);
                 const activeCols = Math.max(Number(renderedColumnCount) || products.length || 1, 1);
                 root.style.setProperty('--tpc-active-cols', String(activeCols));
+                syncHeaderColumns(selectedIds().filter(function(id) { return !!id; }));
                 const rows = [];
 
                 rows.push('<tr><th class="tpc-sticky-col">Ảnh sản phẩm</th>' + products.map(renderImageCell).join('') + '</tr>');
@@ -1349,16 +1370,13 @@ function tpc_product_compare_shortcode($atts)
                 setButtonsDisabled(true);
                 showPlaceholder('Đang tạo bảng so sánh...');
 
-                const hasHeaderPickers = !!root.querySelector('.tpc-compare-table thead');
-                const sourceIds = hasHeaderPickers ? ids : activeIds;
+                const sourceIds = activeIds;
 
                 Promise.all(sourceIds.map(function(id) {
                     if (!id) return Promise.resolve(null);
                     return fetchProductPayload(id);
                 })).then(function(products) {
-                    if (!hasHeaderPickers) {
-                        products = products.filter(function(product) { return !!product; });
-                    }
+                    products = products.filter(function(product) { return !!product; });
                     renderRows(products, sourceIds.length);
                 }).catch(function() {
                     showPlaceholder('Không tải được dữ liệu sản phẩm.');
