@@ -283,7 +283,7 @@ function tpc_compare_parse_fields($raw_fields)
 
         $fields[] = [
             'key'   => $field_key,
-            'label' => !empty($parts[1]) ? wp_strip_all_tags($parts[1]) : tpc_compare_humanize_field_label($field_key),
+            'label' => !empty($parts[1]) ? html_entity_decode(wp_strip_all_tags($parts[1]), ENT_QUOTES, get_bloginfo('charset') ?: 'UTF-8') : tpc_compare_humanize_field_label($field_key),
         ];
     }
 
@@ -313,7 +313,7 @@ function tpc_compare_parse_fields_from_json($raw_fields)
             continue;
         }
 
-        $field_label = isset($field['label']) ? wp_strip_all_tags($field['label']) : tpc_compare_humanize_field_label($field_key);
+        $field_label = isset($field['label']) ? html_entity_decode(wp_strip_all_tags($field['label']), ENT_QUOTES, get_bloginfo('charset') ?: 'UTF-8') : tpc_compare_humanize_field_label($field_key);
 
         $fields[] = [
             'key'   => $field_key,
@@ -808,7 +808,7 @@ function tpc_product_compare_shortcode($atts)
 
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table th:not(.tpc-sticky-col),
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
-            width: calc((100% - 180px) / <?php echo (int) $number; ?>);
+            width: calc((100% - 180px) / var(--tpc-active-cols, <?php echo (int) $number; ?>));
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table,
@@ -1024,7 +1024,7 @@ function tpc_product_compare_shortcode($atts)
 
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table th:not(.tpc-sticky-col),
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
-                width: calc((100% - 88px) / <?php echo (int) $number; ?>);
+                width: calc((100% - 88px) / var(--tpc-active-cols, <?php echo (int) $number; ?>));
             }
 
             #<?php echo esc_html($instance_id); ?> .tpc-picker-wrap {
@@ -1274,10 +1274,12 @@ function tpc_product_compare_shortcode($atts)
                 return '<td><a class="tpc-add-to-cart ' + escapeHtml(classes) + '" href="' + escapeHtml(product.cart.url) + '"' + target + rel + dataProductId + dataSku + dataQuantity + '>' + escapeHtml(product.cart.label || 'Thêm vào giỏ hàng') + '</a></td>';
             }
 
-            function renderRows(products) {
+            function renderRows(products, renderedColumnCount) {
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
                 setCopyButtonsVisible(true);
+                const activeCols = Math.max(Number(renderedColumnCount) || products.length || 1, 1);
+                root.style.setProperty('--tpc-active-cols', String(activeCols));
                 const rows = [];
 
                 rows.push('<tr><th class="tpc-sticky-col">Ảnh sản phẩm</th>' + products.map(renderImageCell).join('') + '</tr>');
@@ -1336,9 +1338,8 @@ function tpc_product_compare_shortcode($atts)
 
             function buildTable() {
                 const ids = selectedIds();
-                const hasSelected = ids.some(function(id) {
-                    return !!id;
-                });
+                const activeIds = ids.filter(function(id) { return !!id; });
+                const hasSelected = activeIds.length > 0;
 
                 if (!hasSelected) {
                     showPlaceholder('Chọn ít nhất 1 sản phẩm rồi bấm "Tạo bảng so sánh".');
@@ -1348,14 +1349,17 @@ function tpc_product_compare_shortcode($atts)
                 setButtonsDisabled(true);
                 showPlaceholder('Đang tạo bảng so sánh...');
 
-                Promise.all(ids.map(function(id) {
-                    if (!id) {
-                        return Promise.resolve(null);
-                    }
+                const hasHeaderPickers = !!root.querySelector('.tpc-compare-table thead');
+                const sourceIds = hasHeaderPickers ? ids : activeIds;
 
+                Promise.all(sourceIds.map(function(id) {
+                    if (!id) return Promise.resolve(null);
                     return fetchProductPayload(id);
                 })).then(function(products) {
-                    renderRows(products);
+                    if (!hasHeaderPickers) {
+                        products = products.filter(function(product) { return !!product; });
+                    }
+                    renderRows(products, sourceIds.length);
                 }).catch(function() {
                     showPlaceholder('Không tải được dữ liệu sản phẩm.');
                 }).finally(function() {
