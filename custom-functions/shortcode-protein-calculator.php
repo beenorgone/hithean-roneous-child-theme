@@ -119,6 +119,11 @@ function render_protein_calculator($atts)
             line-height: 1.4;
         }
 
+        .pc-note a {
+            color: var(--default-color-dark-blue, #0047ba);
+            text-decoration: underline;
+        }
+
         .pc-highlight {
             background-color: #fff;
             padding: 15px;
@@ -126,8 +131,8 @@ function render_protein_calculator($atts)
             margin-top: 10px;
         }
 
-        .pc-highlight-who {
-            border-left-color: var(--default-color-green-dark, #00843d);
+        .pc-highlight-vn {
+            border-left-color: var(--default-color-dark-brown, #2e1203);
         }
 
         .pc-products-section {
@@ -174,24 +179,28 @@ function render_protein_calculator($atts)
                     <option value="very_active">Rất nhiều (VĐV, lao động nặng)</option>
                 </select>
             </div>
+            <div class="pc-form-group">
+                <label>Tình trạng đặc biệt</label>
+                <select class="pc-form-control" id="pc_condition">
+                    <option value="normal">Không mang thai</option>
+                    <option value="pregnant_t1">Mẹ bầu 3 tháng đầu</option>
+                    <option value="pregnant_t2">Mẹ bầu 3 tháng giữa</option>
+                    <option value="pregnant_t3">Mẹ bầu 3 tháng cuối</option>
+                </select>
+            </div>
             <button type="submit" class="button button--nuocepkytu-light-green pc-btn">TÍNH NGAY</button>
         </form>
 
         <div id="pcResult" class="pc-result-box">
             <div class="pc-result-header">Kết Quả Của Bạn</div>
 
-            <div class="pc-result-item">
-                <span class="pc-label">Mức phù hợp cho người Việt:</span>
+            <div class="pc-result-item pc-highlight pc-highlight-vn">
+                <span class="pc-label">Mức phù hợp cho người Việt (tham chiếu WHO):</span>
                 <span class="pc-val" id="res_vn"></span>
                 <div class="pc-note" id="res_vn_activity_note"></div>
                 <div class="pc-note" id="res_vn_age_note"></div>
-            </div>
-
-            <div class="pc-result-item pc-highlight pc-highlight-who">
-                <span class="pc-label" style="color:var(--default-color-green-dark)">Khuyến nghị tham chiếu WHO:</span>
-                <span class="pc-val" id="res_who" style="color:var(--default-color-green-dark)"></span>
-                <div class="pc-note" id="res_who_age_note"></div>
-                <div class="pc-note" id="res_who_activity_note"></div>
+                <div class="pc-note" id="res_vn_condition_note"></div>
+                <div class="pc-note" id="res_vn_ref_note"></div>
             </div>
 
             <div class="pc-result-item pc-highlight">
@@ -199,7 +208,9 @@ function render_protein_calculator($atts)
                 <span class="pc-val" id="res_us" style="color:var(--default-color-dark-blue)"></span>
                 <div class="pc-note" id="res_us_goal_note"></div>
                 <div class="pc-note" id="res_us_age_note"></div>
+                <div class="pc-note" id="res_us_condition_note"></div>
                 <div class="pc-note" id="res_meal_note"></div>
+                <div class="pc-note" id="res_us_ref_note"></div>
             </div>
         </div>
 
@@ -223,6 +234,7 @@ function render_protein_calculator($atts)
                     if (data.age) document.getElementById('pc_age').value = data.age;
                     if (data.weight) document.getElementById('pc_weight').value = data.weight;
                     if (data.activity) document.getElementById('pc_activity').value = data.activity;
+                    if (data.condition) document.getElementById('pc_condition').value = data.condition;
 
                     // Auto submit to show result if data is valid
                     if (data.weight && data.age) {
@@ -241,6 +253,7 @@ function render_protein_calculator($atts)
 
                 var weight = parseFloat(document.getElementById('pc_weight').value);
                 var activity = document.getElementById('pc_activity').value;
+                var condition = document.getElementById('pc_condition').value;
                 var age = parseInt(document.getElementById('pc_age').value);
                 var gender = document.getElementById('pc_gender').value;
 
@@ -251,7 +264,8 @@ function render_protein_calculator($atts)
                     gender: gender,
                     age: age,
                     weight: weight,
-                    activity: activity
+                    activity: activity,
+                    condition: condition
                 };
                 localStorage.setItem('protein_calculator_data', JSON.stringify(dataToSave));
 
@@ -291,19 +305,15 @@ function render_protein_calculator($atts)
 
                 var vn_min = activityInfo.vnMin;
                 var vn_max = activityInfo.vnMax;
-                var who_min = 0.83;
-                var who_max = 1.0;
-                var whoAgeDetail = 'WHO xem khoảng 0.83g/kg/ngày là mức đáp ứng nhu cầu tối thiểu ở người trưởng thành khỏe mạnh.';
                 var vnAgeDetail = '';
                 var usAgeDetail = '';
+                var vnConditionDetail = 'Không có điều chỉnh đặc biệt.';
+                var usConditionDetail = 'Không có điều chỉnh đặc biệt.';
 
                 if (age < 18) {
                     vn_min = Math.max(vn_min, 1.0);
                     vn_max = Math.max(vn_max, 1.3);
-                    who_min = 0.95;
-                    who_max = 1.2;
                     vnAgeDetail = 'Nhóm dưới 18 tuổi: ưu tiên đạm chất lượng để hỗ trợ tăng trưởng, không nên cắt giảm đạm quá thấp.';
-                    whoAgeDetail = 'Với trẻ vị thành niên, nên tham chiếu mức cao hơn người lớn để hỗ trợ phát triển cơ thể.';
                     usAgeDetail = 'Khuyến nghị Mỹ chủ yếu áp dụng cho người trưởng thành, với trẻ em cần theo hướng dẫn riêng theo tuổi.';
                 } else if (age <= 49) {
                     vnAgeDetail = 'Nhóm 18-49 tuổi: áp dụng trực tiếp theo mức vận động để duy trì sức khỏe và thành phần cơ thể.';
@@ -311,30 +321,17 @@ function render_protein_calculator($atts)
                 } else if (age <= 64) {
                     vn_min += 0.1;
                     vn_max += 0.2;
-                    who_min = 1.0;
-                    who_max = 1.2;
                     vnAgeDetail = 'Nhóm 50-64 tuổi: tăng nhẹ đạm để hỗ trợ chống mất cơ liên quan tuổi tác.';
-                    whoAgeDetail = 'Từ 50 tuổi, thường tham chiếu mức 1.0-1.2g/kg/ngày để duy trì khối cơ tốt hơn.';
                     usAgeDetail = 'Tuổi trung niên: có thể ưu tiên mức gần cận trên khi vận động thường xuyên hoặc đang giảm mỡ.';
                 } else {
                     vn_min += 0.2;
                     vn_max += 0.3;
-                    who_min = 1.1;
-                    who_max = 1.3;
                     vnAgeDetail = 'Nhóm từ 65 tuổi: nên tăng đạm và chia đều trong ngày để hỗ trợ vận động và hạn chế suy giảm cơ.';
-                    whoAgeDetail = 'Người lớn tuổi thường cần mức cao hơn chuẩn tối thiểu để duy trì sức cơ và chức năng.';
                     usAgeDetail = 'Nhóm lớn tuổi: nên dùng mức cao vừa phải, đồng thời theo dõi chức năng thận và bệnh nền.';
                 }
 
                 var vn_total_min = Math.round(weight * vn_min);
                 var vn_total_max = Math.round(weight * vn_max);
-
-                // WHO: tăng nhẹ cận trên nếu vận động cao
-                if (activity === 'active' || activity === 'very_active') {
-                    who_max += 0.1;
-                }
-                var who_total_min = Math.round(weight * who_min);
-                var who_total_max = Math.round(weight * who_max);
 
                 // Mỹ 2026-2030: 1.2-1.6g/kg, có thể tăng ở người vận động cao
                 var us_min = 1.2;
@@ -345,22 +342,50 @@ function render_protein_calculator($atts)
                     us_max = 1.8;
                 }
 
+                // Mẹ bầu: tăng thêm theo tam cá nguyệt (tham chiếu WHO/FAO/UNU)
+                var pregnancyExtra = 0;
+                if (condition !== 'normal' && gender === 'female') {
+                    if (condition === 'pregnant_t1') {
+                        pregnancyExtra = 1;
+                    } else if (condition === 'pregnant_t2') {
+                        pregnancyExtra = 9;
+                    } else if (condition === 'pregnant_t3') {
+                        pregnancyExtra = 31;
+                    }
+
+                    vn_min = Math.max(vn_min, 1.1);
+                    vn_max = Math.max(vn_max, 1.3);
+                    us_min = Math.max(us_min, 1.1);
+                    us_max = Math.max(us_max, 1.6);
+
+                    vnConditionDetail = 'Mẹ bầu được cộng thêm ' + pregnancyExtra + 'g/ngày theo tam cá nguyệt, đồng thời ưu tiên nguồn đạm dễ tiêu và an toàn thực phẩm.';
+                    usConditionDetail = 'Với thai kỳ, nên ưu tiên đạt ít nhất ngưỡng nền 1.1g/kg/ngày và theo dõi tăng cân thai kỳ.';
+                } else if (condition !== 'normal' && gender !== 'female') {
+                    vnConditionDetail = 'Bạn chọn mục mẹ bầu nhưng giới tính hiện tại không phải nữ, hệ thống không cộng thêm thai kỳ.';
+                    usConditionDetail = 'Bạn chọn mục mẹ bầu nhưng giới tính hiện tại không phải nữ, hệ thống không cộng thêm thai kỳ.';
+                }
+
+                vn_total_min = Math.round((weight * vn_min) + pregnancyExtra);
+                vn_total_max = Math.round((weight * vn_max) + pregnancyExtra);
                 var us_total_min = Math.round(weight * us_min);
                 var us_total_max = Math.round(weight * us_max);
+                us_total_min = Math.round(us_total_min + pregnancyExtra);
+                us_total_max = Math.round(us_total_max + pregnancyExtra);
                 var meal_min = Math.max(20, Math.round(us_total_min / 3));
                 var meal_max = Math.max(meal_min + 4, Math.round(us_total_max / 3));
 
                 // Hien thi ket qua
                 document.getElementById('res_vn').innerText = vn_total_min + ' - ' + vn_total_max + 'g / ngày';
-                document.getElementById('res_who').innerText = who_total_min + ' - ' + who_total_max + 'g / ngày';
                 document.getElementById('res_us').innerText = us_total_min + ' - ' + us_total_max + 'g / ngày';
                 document.getElementById('res_vn_activity_note').innerText = activityInfo.label + ': ' + activityInfo.detail;
                 document.getElementById('res_vn_age_note').innerText = vnAgeDetail;
-                document.getElementById('res_who_age_note').innerText = whoAgeDetail;
-                document.getElementById('res_who_activity_note').innerText = 'WHO thiên về mức tối thiểu an toàn; nếu bạn vận động cao, có thể cần gần cận trên của khoảng tham chiếu.';
+                document.getElementById('res_vn_condition_note').innerText = vnConditionDetail;
                 document.getElementById('res_us_goal_note').innerText = 'Mỹ 2026-2030: 1.2g/kg cho duy trì sức khỏe và 1.6g/kg (hoặc cao hơn ở người rất năng động) cho mục tiêu tăng cơ/giảm mỡ.';
                 document.getElementById('res_us_age_note').innerText = usAgeDetail;
+                document.getElementById('res_us_condition_note').innerText = usConditionDetail;
                 document.getElementById('res_meal_note').innerText = 'Gợi ý chia 3 bữa chính: khoảng ' + meal_min + ' - ' + meal_max + 'g protein mỗi bữa để hấp thu và phục hồi tốt hơn.';
+                document.getElementById('res_vn_ref_note').innerHTML = 'Nguồn tham khảo: <a href="https://iris.who.int/server/api/core/bitstreams/b7c5ec43-bc59-4b38-b702-3f0e96a06fa1/content" target="_blank" rel="noopener noreferrer">WHO TRS 935</a>.';
+                document.getElementById('res_us_ref_note').innerHTML = 'Nguồn tham khảo: <a href="https://cdn.realfood.gov/DGA.pdf" target="_blank" rel="noopener noreferrer">Dietary Guidelines for Americans</a>.';
 
                 var resultBox = document.getElementById('pcResult');
                 resultBox.style.display = 'block';
