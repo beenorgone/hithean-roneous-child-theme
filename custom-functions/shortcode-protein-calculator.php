@@ -179,7 +179,7 @@ function render_protein_calculator($atts)
                     <option value="very_active">Rất nhiều (VĐV, lao động nặng)</option>
                 </select>
             </div>
-            <div class="pc-form-group">
+            <div class="pc-form-group" id="pc_condition_group">
                 <label>Tình trạng đặc biệt</label>
                 <select class="pc-form-control" id="pc_condition">
                     <option value="normal">Không mang thai</option>
@@ -224,6 +224,20 @@ function render_protein_calculator($atts)
         document.addEventListener('DOMContentLoaded', function() {
             var form = document.getElementById('proteinCalcForm');
             if (!form) return;
+            var genderEl = document.getElementById('pc_gender');
+            var conditionEl = document.getElementById('pc_condition');
+            var conditionGroup = document.getElementById('pc_condition_group');
+
+            function toggleConditionField() {
+                if (!genderEl || !conditionEl || !conditionGroup) return;
+                if (genderEl.value === 'female') {
+                    conditionGroup.style.display = '';
+                    return;
+                }
+
+                conditionGroup.style.display = 'none';
+                conditionEl.value = 'normal';
+            }
 
             // --- LOCAL STORAGE: LOAD ---
             var saved = localStorage.getItem('protein_calculator_data');
@@ -246,6 +260,10 @@ function render_protein_calculator($atts)
                 } catch (e) {
                     console.error('Lỗi khi tải dữ liệu đã lưu:', e);
                 }
+            }
+            toggleConditionField();
+            if (genderEl) {
+                genderEl.addEventListener('change', toggleConditionField);
             }
 
             form.addEventListener('submit', function(e) {
