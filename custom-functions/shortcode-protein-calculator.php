@@ -126,6 +126,10 @@ function render_protein_calculator($atts)
             margin-top: 10px;
         }
 
+        .pc-highlight-who {
+            border-left-color: var(--default-color-green-dark, #00843d);
+        }
+
         .pc-products-section {
             margin-top: 30px;
             padding-top: 20px;
@@ -177,19 +181,25 @@ function render_protein_calculator($atts)
             <div class="pc-result-header">Kết Quả Của Bạn</div>
 
             <div class="pc-result-item">
-                <span class="pc-label">Khuyến nghị tiêu chuẩn (Việt Nam/WHO):</span>
+                <span class="pc-label">Mức phù hợp cho người Việt:</span>
                 <span class="pc-val" id="res_vn"></span>
-                <div class="pc-note">
-                    Phù hợp với thể trạng người Việt và nhu cầu dinh dưỡng cơ bản (0.8 - 1.5g/kg tùy vận động).
-                </div>
+                <div class="pc-note" id="res_vn_activity_note"></div>
+                <div class="pc-note" id="res_vn_age_note"></div>
+            </div>
+
+            <div class="pc-result-item pc-highlight pc-highlight-who">
+                <span class="pc-label" style="color:var(--default-color-green-dark)">Khuyến nghị tham chiếu WHO:</span>
+                <span class="pc-val" id="res_who" style="color:var(--default-color-green-dark)"></span>
+                <div class="pc-note" id="res_who_age_note"></div>
+                <div class="pc-note" id="res_who_activity_note"></div>
             </div>
 
             <div class="pc-result-item pc-highlight">
                 <span class="pc-label" style="color:var(--default-color-dark-blue)">Khuyến nghị mới (Mỹ 2026-2030):</span>
                 <span class="pc-val" id="res_us" style="color:var(--default-color-dark-blue)"></span>
-                <div class="pc-note">
-                    Theo tài liệu: <strong>Hướng dẫn chế độ ăn uống cho người Mỹ giai đoạn 2025–2030 (Dietary Guidelines for Americans – DGAs)</strong> công bố ngày 7/1/2026, Bộ Y tế và Dịch vụ Nhân sinh Hoa Kỳ (HHS) phối hợp với Bộ Nông nghiệp Hoa Kỳ (USDA): <strong>1.2g</strong> (duy trì sức khỏe) đến <strong>1.6g</strong> (tăng cơ/giảm cân) trên mỗi kg cân nặng.
-                </div>
+                <div class="pc-note" id="res_us_goal_note"></div>
+                <div class="pc-note" id="res_us_age_note"></div>
+                <div class="pc-note" id="res_meal_note"></div>
             </div>
         </div>
 
@@ -245,57 +255,112 @@ function render_protein_calculator($atts)
                 };
                 localStorage.setItem('protein_calculator_data', JSON.stringify(dataToSave));
 
-                /* 
-                 * 1. Tinh theo tieu chuan VN/WHO (Standard)
-                 * Baseline 0.8g/kg. Tang theo activity.
-                 */
-                var vn_min = 0.8;
-                var vn_max = 1.0;
+                var activityMap = {
+                    sedentary: {
+                        vnMin: 0.8,
+                        vnMax: 1.0,
+                        label: 'Ít vận động',
+                        detail: 'Nên duy trì đạm ở mức cơ bản để bảo toàn khối cơ và phục hồi hằng ngày.'
+                    },
+                    light: {
+                        vnMin: 1.0,
+                        vnMax: 1.2,
+                        label: 'Vận động nhẹ',
+                        detail: 'Nhu cầu đạm tăng nhẹ để hỗ trợ phục hồi sau các buổi tập/đi bộ nhẹ.'
+                    },
+                    moderate: {
+                        vnMin: 1.2,
+                        vnMax: 1.4,
+                        label: 'Vận động vừa',
+                        detail: 'Mức phù hợp cho người tập đều đặn 3-5 buổi/tuần, cần phục hồi cơ tốt hơn.'
+                    },
+                    active: {
+                        vnMin: 1.4,
+                        vnMax: 1.6,
+                        label: 'Vận động nhiều',
+                        detail: 'Phù hợp người tập nặng, cần tăng đạm để duy trì và phát triển khối cơ.'
+                    },
+                    very_active: {
+                        vnMin: 1.6,
+                        vnMax: 1.8,
+                        label: 'Rất nhiều',
+                        detail: 'Dành cho vận động viên hoặc lao động thể lực cao, nhu cầu phục hồi rất lớn.'
+                    }
+                };
+                var activityInfo = activityMap[activity] || activityMap.sedentary;
 
-                switch (activity) {
-                    case 'light':
-                        vn_min = 1.0;
-                        vn_max = 1.2;
-                        break;
-                    case 'moderate':
-                        vn_min = 1.2;
-                        vn_max = 1.4;
-                        break;
-                    case 'active':
-                        vn_min = 1.4;
-                        vn_max = 1.6;
-                        break;
-                    case 'very_active':
-                        vn_min = 1.6;
-                        vn_max = 1.8;
-                        break;
-                    default:
-                        vn_min = 0.8;
-                        vn_max = 1.0; // sedentary
-                }
+                var vn_min = activityInfo.vnMin;
+                var vn_max = activityInfo.vnMax;
+                var who_min = 0.83;
+                var who_max = 1.0;
+                var whoAgeDetail = 'WHO xem khoảng 0.83g/kg/ngày là mức đáp ứng nhu cầu tối thiểu ở người trưởng thành khỏe mạnh.';
+                var vnAgeDetail = '';
+                var usAgeDetail = '';
 
-                // Nguoi gia (>50) can nhieu protein hon de chong mat co (Sarcopenia)
-                if (age > 50) {
-                    vn_min += 0.2;
+                if (age < 18) {
+                    vn_min = Math.max(vn_min, 1.0);
+                    vn_max = Math.max(vn_max, 1.3);
+                    who_min = 0.95;
+                    who_max = 1.2;
+                    vnAgeDetail = 'Nhóm dưới 18 tuổi: ưu tiên đạm chất lượng để hỗ trợ tăng trưởng, không nên cắt giảm đạm quá thấp.';
+                    whoAgeDetail = 'Với trẻ vị thành niên, nên tham chiếu mức cao hơn người lớn để hỗ trợ phát triển cơ thể.';
+                    usAgeDetail = 'Khuyến nghị Mỹ chủ yếu áp dụng cho người trưởng thành, với trẻ em cần theo hướng dẫn riêng theo tuổi.';
+                } else if (age <= 49) {
+                    vnAgeDetail = 'Nhóm 18-49 tuổi: áp dụng trực tiếp theo mức vận động để duy trì sức khỏe và thành phần cơ thể.';
+                    usAgeDetail = 'Nhóm trưởng thành: có thể dùng mức 1.2-1.6g/kg khi cần tối ưu cơ bắp hoặc kiểm soát cân nặng.';
+                } else if (age <= 64) {
+                    vn_min += 0.1;
                     vn_max += 0.2;
+                    who_min = 1.0;
+                    who_max = 1.2;
+                    vnAgeDetail = 'Nhóm 50-64 tuổi: tăng nhẹ đạm để hỗ trợ chống mất cơ liên quan tuổi tác.';
+                    whoAgeDetail = 'Từ 50 tuổi, thường tham chiếu mức 1.0-1.2g/kg/ngày để duy trì khối cơ tốt hơn.';
+                    usAgeDetail = 'Tuổi trung niên: có thể ưu tiên mức gần cận trên khi vận động thường xuyên hoặc đang giảm mỡ.';
+                } else {
+                    vn_min += 0.2;
+                    vn_max += 0.3;
+                    who_min = 1.1;
+                    who_max = 1.3;
+                    vnAgeDetail = 'Nhóm từ 65 tuổi: nên tăng đạm và chia đều trong ngày để hỗ trợ vận động và hạn chế suy giảm cơ.';
+                    whoAgeDetail = 'Người lớn tuổi thường cần mức cao hơn chuẩn tối thiểu để duy trì sức cơ và chức năng.';
+                    usAgeDetail = 'Nhóm lớn tuổi: nên dùng mức cao vừa phải, đồng thời theo dõi chức năng thận và bệnh nền.';
                 }
 
                 var vn_total_min = Math.round(weight * vn_min);
                 var vn_total_max = Math.round(weight * vn_max);
 
-                /* 
-                 * 2. Tinh theo US 2026 Guidelines 
-                 * Range: 1.2 - 1.6g/kg
-                 */
+                // WHO: tăng nhẹ cận trên nếu vận động cao
+                if (activity === 'active' || activity === 'very_active') {
+                    who_max += 0.1;
+                }
+                var who_total_min = Math.round(weight * who_min);
+                var who_total_max = Math.round(weight * who_max);
+
+                // Mỹ 2026-2030: 1.2-1.6g/kg, có thể tăng ở người vận động cao
                 var us_min = 1.2;
                 var us_max = 1.6;
+                if (activity === 'active') {
+                    us_max = 1.7;
+                } else if (activity === 'very_active') {
+                    us_max = 1.8;
+                }
 
                 var us_total_min = Math.round(weight * us_min);
                 var us_total_max = Math.round(weight * us_max);
+                var meal_min = Math.max(20, Math.round(us_total_min / 3));
+                var meal_max = Math.max(meal_min + 4, Math.round(us_total_max / 3));
 
                 // Hien thi ket qua
                 document.getElementById('res_vn').innerText = vn_total_min + ' - ' + vn_total_max + 'g / ngày';
+                document.getElementById('res_who').innerText = who_total_min + ' - ' + who_total_max + 'g / ngày';
                 document.getElementById('res_us').innerText = us_total_min + ' - ' + us_total_max + 'g / ngày';
+                document.getElementById('res_vn_activity_note').innerText = activityInfo.label + ': ' + activityInfo.detail;
+                document.getElementById('res_vn_age_note').innerText = vnAgeDetail;
+                document.getElementById('res_who_age_note').innerText = whoAgeDetail;
+                document.getElementById('res_who_activity_note').innerText = 'WHO thiên về mức tối thiểu an toàn; nếu bạn vận động cao, có thể cần gần cận trên của khoảng tham chiếu.';
+                document.getElementById('res_us_goal_note').innerText = 'Mỹ 2026-2030: 1.2g/kg cho duy trì sức khỏe và 1.6g/kg (hoặc cao hơn ở người rất năng động) cho mục tiêu tăng cơ/giảm mỡ.';
+                document.getElementById('res_us_age_note').innerText = usAgeDetail;
+                document.getElementById('res_meal_note').innerText = 'Gợi ý chia 3 bữa chính: khoảng ' + meal_min + ' - ' + meal_max + 'g protein mỗi bữa để hấp thu và phục hồi tốt hơn.';
 
                 var resultBox = document.getElementById('pcResult');
                 resultBox.style.display = 'block';
