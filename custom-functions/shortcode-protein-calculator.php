@@ -8,6 +8,49 @@ add_shortcode('protein_calculator', 'render_protein_calculator');
 
 function render_protein_calculator($atts)
 {
+    $atts = shortcode_atts([
+        'products_default'      => '4690,3977',
+        'products_sedentary'    => '',
+        'products_light'        => '',
+        'products_moderate'     => '',
+        'products_active'       => '',
+        'products_very_active'  => '',
+        'products_pregnant_t1'  => '',
+        'products_pregnant_t2'  => '',
+        'products_pregnant_t3'  => '',
+        'products_columns'      => '2',
+    ], $atts, 'protein_calculator');
+
+    $sanitize_ids = static function ($ids, $fallback = '') {
+        $ids = is_string($ids) ? $ids : '';
+        $parts = array_filter(array_map('trim', explode(',', $ids)));
+        $parts = array_map(static function ($id) {
+            return preg_replace('/\D+/', '', (string) $id);
+        }, $parts);
+        $parts = array_filter($parts);
+        $parts = array_values(array_unique($parts));
+
+        if (empty($parts) && $fallback !== '') {
+            return $fallback;
+        }
+
+        return implode(',', $parts);
+    };
+
+    $product_columns = max(1, absint($atts['products_columns']));
+    $default_ids = $sanitize_ids($atts['products_default'], '4690,3977');
+    $product_ids_by_case = [
+        'default'      => $default_ids,
+        'sedentary'    => $sanitize_ids($atts['products_sedentary'], $default_ids),
+        'light'        => $sanitize_ids($atts['products_light'], $default_ids),
+        'moderate'     => $sanitize_ids($atts['products_moderate'], $default_ids),
+        'active'       => $sanitize_ids($atts['products_active'], $default_ids),
+        'very_active'  => $sanitize_ids($atts['products_very_active'], $default_ids),
+        'pregnant_t1'  => $sanitize_ids($atts['products_pregnant_t1'], $default_ids),
+        'pregnant_t2'  => $sanitize_ids($atts['products_pregnant_t2'], $default_ids),
+        'pregnant_t3'  => $sanitize_ids($atts['products_pregnant_t3'], $default_ids),
+    ];
+
     ob_start();
 ?>
     <style>
@@ -149,6 +192,14 @@ function render_protein_calculator($atts)
             text-transform: uppercase;
             font-size: 20px;
         }
+
+        .pc-product-slot {
+            display: none;
+        }
+
+        .pc-product-slot.is-active {
+            display: block;
+        }
     </style>
 
     <div class="protein-calc-wrapper">
@@ -216,7 +267,15 @@ function render_protein_calculator($atts)
 
         <div class="pc-products-section">
             <h4 class="pc-products-title">Bổ sung protein cho chế độ ăn</h4>
-            <?php echo do_shortcode('[products ids="4690,3977" columns="2"]'); ?>
+            <?php foreach ($product_ids_by_case as $case => $ids) : ?>
+                <div class="pc-product-slot<?php echo $case === 'default' ? ' is-active' : ''; ?>" data-product-case="<?php echo esc_attr($case); ?>">
+                    <?php
+                    if ($ids !== '') {
+                        echo do_shortcode(sprintf('[products ids="%s" columns="%d"]', esc_attr($ids), $product_columns));
+                    }
+                    ?>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
 
@@ -227,16 +286,43 @@ function render_protein_calculator($atts)
             var genderEl = document.getElementById('pc_gender');
             var conditionEl = document.getElementById('pc_condition');
             var conditionGroup = document.getElementById('pc_condition_group');
+            var activityEl = document.getElementById('pc_activity');
+            var productSlots = document.querySelectorAll('.pc-product-slot');
+
+            function updateSuggestedProducts() {
+                if (!productSlots.length || !genderEl || !conditionEl || !activityEl) return;
+
+                var selectedCase = activityEl.value || 'default';
+                if (genderEl.value === 'female' && conditionEl.value && conditionEl.value !== 'normal') {
+                    selectedCase = conditionEl.value;
+                }
+
+                var hasActiveCase = false;
+                productSlots.forEach(function(slot) {
+                    var isActive = slot.getAttribute('data-product-case') === selectedCase;
+                    slot.classList.toggle('is-active', isActive);
+                    if (isActive) hasActiveCase = true;
+                });
+
+                if (!hasActiveCase) {
+                    productSlots.forEach(function(slot) {
+                        var isDefault = slot.getAttribute('data-product-case') === 'default';
+                        slot.classList.toggle('is-active', isDefault);
+                    });
+                }
+            }
 
             function toggleConditionField() {
                 if (!genderEl || !conditionEl || !conditionGroup) return;
                 if (genderEl.value === 'female') {
                     conditionGroup.style.display = '';
+                    updateSuggestedProducts();
                     return;
                 }
 
                 conditionGroup.style.display = 'none';
                 conditionEl.value = 'normal';
+                updateSuggestedProducts();
             }
 
             // --- LOCAL STORAGE: LOAD ---
@@ -265,6 +351,13 @@ function render_protein_calculator($atts)
             if (genderEl) {
                 genderEl.addEventListener('change', toggleConditionField);
             }
+            if (conditionEl) {
+                conditionEl.addEventListener('change', updateSuggestedProducts);
+            }
+            if (activityEl) {
+                activityEl.addEventListener('change', updateSuggestedProducts);
+            }
+            updateSuggestedProducts();
 
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -404,6 +497,7 @@ function render_protein_calculator($atts)
                 document.getElementById('res_meal_note').innerText = 'Gợi ý chia 3 bữa chính: khoảng ' + meal_min + ' - ' + meal_max + 'g protein mỗi bữa để hấp thu và phục hồi tốt hơn.';
                 document.getElementById('res_vn_ref_note').innerHTML = 'Nguồn tham khảo: <a href="https://iris.who.int/server/api/core/bitstreams/b7c5ec43-bc59-4b38-b702-3f0e96a06fa1/content" target="_blank" rel="noopener noreferrer">WHO TRS 935</a>.';
                 document.getElementById('res_us_ref_note').innerHTML = 'Nguồn tham khảo: <a href="https://cdn.realfood.gov/DGA.pdf" target="_blank" rel="noopener noreferrer">Dietary Guidelines for Americans</a>.';
+                updateSuggestedProducts();
 
                 var resultBox = document.getElementById('pcResult');
                 resultBox.style.display = 'block';
