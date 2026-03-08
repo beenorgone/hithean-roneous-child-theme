@@ -150,102 +150,153 @@ function load_custom_admin_files()
 add_action('admin_enqueue_scripts', 'load_custom_admin_files');
 
 
-function tpc_compare_load_shortcode_file_for_ajax()
+function tpc_loader_require_relative($relative_path)
+{
+    $path = __DIR__ . '/' . ltrim((string) $relative_path, '/');
+    if (is_file($path)) {
+        require_once $path;
+    }
+}
+
+function tpc_loader_normalize_path($path)
+{
+    $path = '/' . ltrim((string) $path, '/');
+    return untrailingslashit($path);
+}
+
+function tpc_loader_current_path()
+{
+    static $current_path = null;
+
+    if ($current_path !== null) {
+        return $current_path;
+    }
+
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $parsed_path = $request_uri ? wp_parse_url(home_url($request_uri), PHP_URL_PATH) : '';
+    $current_path = tpc_loader_normalize_path((string) $parsed_path);
+
+    return $current_path;
+}
+
+function tpc_loader_path_groups()
+{
+    return apply_filters('tpc_loader_path_groups', [
+        'tools' => [
+            '/tien-ich',
+            '/tien-ich-admin',
+        ],
+        'compare' => [
+            '/tra-cuu',
+            '/so-sanh',
+            '/tra-cuu/so-sanh',
+        ],
+        'protein' => [
+            '/protein-calculator',
+            '/tien-ich/protein-calculator',
+        ],
+    ]);
+}
+
+function tpc_loader_expand_module_paths(array $module)
+{
+    $paths = isset($module['paths']) ? (array) $module['paths'] : [];
+    $groups = isset($module['path_groups']) ? (array) $module['path_groups'] : [];
+    $group_paths = [];
+    $group_map = tpc_loader_path_groups();
+
+    foreach ($groups as $group) {
+        if (isset($group_map[$group])) {
+            $group_paths = array_merge($group_paths, (array) $group_map[$group]);
+        }
+    }
+
+    $all_paths = array_merge($paths, $group_paths);
+
+    if (!empty($module['paths_filter']) && is_string($module['paths_filter'])) {
+        $all_paths = (array) apply_filters($module['paths_filter'], $all_paths, $module);
+    }
+
+    return array_values(array_unique(array_filter(array_map('tpc_loader_normalize_path', $all_paths))));
+}
+
+function tpc_loader_front_path_matches(array $module)
+{
+    if (is_admin()) {
+        return false;
+    }
+
+    $allowed_paths = tpc_loader_expand_module_paths($module);
+    if (empty($allowed_paths)) {
+        return false;
+    }
+
+    return in_array(tpc_loader_current_path(), $allowed_paths, true);
+}
+
+function tpc_loader_current_ajax_action()
 {
     if (!wp_doing_ajax()) {
-        return;
+        return '';
     }
 
-    $action = isset($_REQUEST['action']) ? sanitize_key(wp_unslash($_REQUEST['action'])) : '';
-    if (!in_array($action, ['tpc_product_compare_search', 'tpc_product_compare_get_product'], true)) {
-        return;
-    }
-
-    $path = __DIR__ . '/custom-functions/shortcode-product-compare.php';
-    if (is_file($path)) {
-        require_once $path;
-    }
-}
-add_action('init', 'tpc_compare_load_shortcode_file_for_ajax', 1);
-
-function tpc_compare_should_load_shortcode_file()
-{
-    if (is_admin()) {
-        return false;
-    }
-
-    $allowed_paths = apply_filters('tpc_compare_allowed_paths', [
-        // Example: '/bang-so-sanh-san-pham',
-        '/tien-ich',
-        '/tien-ich-admin',
-        '/tra-cuu',
-        '/so-sanh',
-        '/tra-cuu/so-sanh',
-    ]);
-
-    $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
-    $current_path = $request_uri ? wp_parse_url(home_url($request_uri), PHP_URL_PATH) : '';
-    $current_path = untrailingslashit((string) $current_path);
-
-    foreach ((array) $allowed_paths as $path) {
-        $normalized_path = untrailingslashit((string) $path);
-        if ($normalized_path !== '' && $normalized_path === $current_path) {
-            return true;
-        }
-    }
-
-    return false;
+    return isset($_REQUEST['action']) ? sanitize_key(wp_unslash($_REQUEST['action'])) : '';
 }
 
-function tpc_compare_load_shortcode_file_conditionally()
+function tpc_loader_modules()
 {
-    if (!tpc_compare_should_load_shortcode_file()) {
-        return;
+    static $modules = null;
+
+    if ($modules !== null) {
+        return $modules;
     }
 
-    $path = __DIR__ . '/custom-functions/shortcode-product-compare.php';
-    if (is_file($path)) {
-        require_once $path;
-    }
-}
-add_action('wp', 'tpc_compare_load_shortcode_file_conditionally', PHP_INT_MAX - 1);
-
-function protein_calculator_should_load()
-{
-    if (is_admin()) {
-        return false;
-    }
-
-    $allowed_paths = [
-        '/tien-ich',
-        '/tien-ich-admin',
-        '/protein-calculator',
-        '/tien-ich/protein-calculator'
+    $modules = [
+        [
+            'id' => 'product_compare',
+            'file' => 'custom-functions/shortcode-product-compare.php',
+            'path_groups' => ['tools', 'compare'],
+            'paths_filter' => 'tpc_compare_allowed_paths',
+            'ajax_actions' => [
+                'tpc_product_compare_search',
+                'tpc_product_compare_get_product',
+            ],
+        ],
+        [
+            'id' => 'protein_calculator',
+            'file' => 'custom-functions/shortcode-protein-calculator.php',
+            'path_groups' => ['tools', 'protein'],
+            'ajax_actions' => [
+                'protein_calculator_get_products',
+            ],
+        ],
     ];
 
-    $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
-    $current_path = $request_uri ? wp_parse_url(home_url($request_uri), PHP_URL_PATH) : '';
-    $current_path = untrailingslashit((string) $current_path);
-
-    foreach ($allowed_paths as $path) {
-        $normalized_path = untrailingslashit((string) $path);
-        if ($normalized_path !== '' && $normalized_path === $current_path) {
-            return true;
-        }
-    }
-
-    return false;
+    return apply_filters('tpc_loader_modules', $modules);
 }
 
-function protein_calculator_load_conditionally()
+function tpc_loader_load_front_modules()
 {
-    if (!protein_calculator_should_load()) {
+    foreach (tpc_loader_modules() as $module) {
+        if (!empty($module['file']) && tpc_loader_front_path_matches($module)) {
+            tpc_loader_require_relative($module['file']);
+        }
+    }
+}
+add_action('wp', 'tpc_loader_load_front_modules', PHP_INT_MAX - 1);
+
+function tpc_loader_load_ajax_modules()
+{
+    $action = tpc_loader_current_ajax_action();
+    if ($action === '') {
         return;
     }
 
-    $path = __DIR__ . '/custom-functions/shortcode-protein-calculator.php';
-    if (is_file($path)) {
-        require_once $path;
+    foreach (tpc_loader_modules() as $module) {
+        $ajax_actions = isset($module['ajax_actions']) ? (array) $module['ajax_actions'] : [];
+        if (!empty($module['file']) && in_array($action, $ajax_actions, true)) {
+            tpc_loader_require_relative($module['file']);
+        }
     }
 }
-add_action('wp', 'protein_calculator_load_conditionally');
+add_action('init', 'tpc_loader_load_ajax_modules', 1);
