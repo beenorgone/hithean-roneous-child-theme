@@ -37,12 +37,6 @@ foreach ($items as $item_id => $item) :
         $image         = $product->get_image($image_size);
     }
 
-    $qty               = max(1, (int) $item->get_quantity());
-    $line_subtotal     = (float) $item->get_subtotal();
-    $subtotal_display  = $line_subtotal;
-    $regular_price     = is_object($product) ? (float) $product->get_regular_price() : 0;
-    $applied_unit_price = $subtotal_display / $qty;
-
 ?>
     <tr class="<?php echo esc_attr(apply_filters('woocommerce_order_item_class', 'order_item', $item, $order)); ?>">
         <td class="td" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align: middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif; word-wrap:break-word;">
@@ -78,13 +72,13 @@ foreach ($items as $item_id => $item) :
             ?>
         </td>
         <td class="td" style="font-size: 0.9; text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
-            <?php echo wc_price($regular_price, array('currency' => $order->get_order_currency())); ?>
-        </td>
+            <?php echo wc_price($item->get_product()->get_regular_price(), array('currency' => $order->get_order_currency())); ?>
         <td class="td" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
-            <b><?php echo wc_price($applied_unit_price, array('currency' => $order->get_order_currency())); ?></b>
+            <b><?php echo wc_price($order->get_item_total($item, false, true), array('currency' => $order->get_order_currency())); ?></b>
         </td>
         <td class="td" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
             <?php
+            $qty          = $item->get_quantity();
             $refunded_qty = $order->get_qty_refunded_for_item($item_id);
 
             if ($refunded_qty) {
@@ -96,7 +90,7 @@ foreach ($items as $item_id => $item) :
             ?>
         </td>
         <td class="td" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
-            <?php echo wc_price($subtotal_display, array('currency' => $order->get_order_currency())); ?>
+            <?php echo wp_kses_post($order->get_formatted_line_subtotal($item)); ?>
         </td>
     </tr>
     <?php
