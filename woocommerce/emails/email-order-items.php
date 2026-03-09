@@ -71,8 +71,9 @@ foreach ($items as $item_id => $item) :
 
             ?>
         </td>
-        <td class="td" style="font-size: 0.9; text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
+        <td class="td" style="font-size: 0.9em; text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
             <?php echo wc_price($item->get_product()->get_regular_price(), array('currency' => $order->get_order_currency())); ?>
+        </td>
         <td class="td" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
             <b><?php echo wc_price($order->get_item_total($item, false, true), array('currency' => $order->get_order_currency())); ?></b>
         </td>
