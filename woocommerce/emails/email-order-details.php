@@ -68,7 +68,7 @@ a, a:hover, a:visited { color: #0047ba; }
             ?>
             <tr>
                 <th class="td" scope="row" colspan="2" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Note:', 'woocommerce'); ?></th>
-                <td class="td" scope="row" colspan="3" style="text-algin: right;"><?php echo wp_kses_post(nl2br(wptexturize($order->get_customer_note()))); ?></td>
+                <td class="td" scope="row" colspan="3" style="text-align: right;"><?php echo wp_kses_post(nl2br(wptexturize($order->get_customer_note()))); ?></td>
             </tr>
             <?php
             }
