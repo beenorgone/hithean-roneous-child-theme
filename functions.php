@@ -56,8 +56,8 @@ add_action('after_setup_theme', 'custom_theme_menus');
 
 // General includes with conditionally loaded files commented out
 $general_includes = [
-    'custom-functions/test.php',
-    'custom-functions/hpos-order-check.php',
+    //'custom-functions/test.php',
+    //'custom-functions/hpos-order-check.php',
     'custom-functions/woocommerce-settings.php',
     'custom-functions/swiper-slider.php',
     'custom-functions/popup-widget.php',
