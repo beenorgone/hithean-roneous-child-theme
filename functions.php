@@ -72,6 +72,7 @@ $general_includes = [
     'custom-functions/shortcode-pos.php',
     'custom-functions/shortcode-bank-transfer-confirmation.php',
     'custom-functions/shortcode-google-docs.php',
+    'custom-functions/shortcode-embed.php',
     'custom-functions/shortcode-order-shipped.php',
     'custom-functions/shortcode-order-export-confirm.php',
     'custom-functions/product-tab-post-type.php',
