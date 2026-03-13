@@ -1195,7 +1195,6 @@ function tpc_product_compare_shortcode($atts)
             const buttons = Array.from(root.querySelectorAll('.tpc-build-button'));
             const copyButtons = Array.from(root.querySelectorAll('.tpc-copy-link-button'));
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
-            const pickers = Array.from(root.querySelectorAll('.tpc-product-picker'));
             const categoryFilter = root.querySelector('.tpc-category-filter');
             const headerRow = root.querySelector('.tpc-compare-table thead tr');
             const headerProductCells = headerRow ? Array.from(headerRow.querySelectorAll('th')) : [];
@@ -1203,6 +1202,10 @@ function tpc_product_compare_shortcode($atts)
             initialProducts.forEach(function(product) {
                 productMap.set(String(product.id), product);
             });
+
+            function getPickers() {
+                return Array.from(root.querySelectorAll('.tpc-product-picker'));
+            }
 
             function escapeHtml(value) {
                 const div = document.createElement('div');
@@ -1249,7 +1252,7 @@ function tpc_product_compare_shortcode($atts)
             }
 
             function selectedIds() {
-                return pickers.map(function(picker) {
+                return getPickers().map(function(picker) {
                     const hidden = picker.querySelector('.tpc-product-id');
                     if (!hidden) {
                         return '';
@@ -1257,6 +1260,24 @@ function tpc_product_compare_shortcode($atts)
 
                     const value = String(hidden.value || '').trim();
                     return /^\d+$/.test(value) && Number(value) > 0 ? value : '';
+                });
+            }
+
+            function getExcludedIdsForPicker(currentPicker) {
+                const currentHidden = currentPicker ? currentPicker.querySelector('.tpc-product-id') : null;
+                const currentValue = currentHidden ? String(currentHidden.value || '').trim() : '';
+
+                return getPickers().map(function(picker) {
+                    const hidden = picker.querySelector('.tpc-product-id');
+                    const value = hidden ? String(hidden.value || '').trim() : '';
+
+                    if (!/^\d+$/.test(value) || Number(value) <= 0) {
+                        return '';
+                    }
+
+                    return value !== currentValue ? value : '';
+                }).filter(function(value) {
+                    return !!value;
                 });
             }
 
@@ -1301,6 +1322,7 @@ function tpc_product_compare_shortcode($atts)
                 }
 
                 const selectedSet = new Set((activeIds || []).map(String));
+                const pickers = getPickers();
 
                 headerProductCells.forEach(function(cell, index) {
                     const picker = pickers[index];
@@ -1344,9 +1366,9 @@ function tpc_product_compare_shortcode($atts)
                 setCopyButtonsVisible(false);
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
-                root.style.setProperty('--tpc-active-cols', String(Math.max(pickers.length, 1)));
+                root.style.setProperty('--tpc-active-cols', String(Math.max(getPickers().length, 1)));
                 syncHeaderColumns(selectedIds().filter(function(id) { return !!id; }));
-                body.innerHTML = '<tr><td colspan="' + Math.max(pickers.length, 1) + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
+                body.innerHTML = '<tr><td colspan="' + Math.max(getPickers().length, 1) + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
             }
 
             function renderPriceCell(product) {
@@ -1555,10 +1577,7 @@ function tpc_product_compare_shortcode($atts)
                     nonce: nonce,
                     term: term,
                     category_id: categoryFilter ? categoryFilter.value : '',
-                    exclude_ids: selectedIds().filter(function(id) {
-                        const currentId = picker.querySelector('.tpc-product-id');
-                        return id && (!currentId || id !== currentId.value);
-                    }).join(',')
+                    exclude_ids: getExcludedIdsForPicker(picker).join(',')
                 }).then(function(response) {
                     const items = Array.isArray(response) ? response : [];
                     renderSearchResults(picker, items);
@@ -1569,7 +1588,7 @@ function tpc_product_compare_shortcode($atts)
 
             const searchTimers = new WeakMap();
 
-            pickers.forEach(function(picker) {
+            getPickers().forEach(function(picker) {
                 const input = picker.querySelector('.tpc-product-search');
                 const hidden = picker.querySelector('.tpc-product-id');
                 const dropdown = picker.querySelector('.tpc-product-dropdown');
@@ -1613,14 +1632,14 @@ function tpc_product_compare_shortcode($atts)
 
             document.addEventListener('mousedown', function(event) {
                 if (!event.target.closest('#' + <?php echo wp_json_encode($instance_id); ?>)) {
-                    pickers.forEach(function(picker) {
+                    getPickers().forEach(function(picker) {
                         closeDropdown(picker.querySelector('.tpc-product-dropdown'));
                     });
                     return;
                 }
 
                 if (!event.target.closest('.tpc-product-picker')) {
-                    pickers.forEach(function(picker) {
+                    getPickers().forEach(function(picker) {
                         closeDropdown(picker.querySelector('.tpc-product-dropdown'));
                     });
                 }
