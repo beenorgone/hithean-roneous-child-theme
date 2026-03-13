@@ -1588,37 +1588,58 @@ function tpc_product_compare_shortcode($atts)
 
             const searchTimers = new WeakMap();
 
-            getPickers().forEach(function(picker) {
-                const input = picker.querySelector('.tpc-product-search');
-                const hidden = picker.querySelector('.tpc-product-id');
-                const dropdown = picker.querySelector('.tpc-product-dropdown');
+            root.addEventListener('input', function(event) {
+                const input = event.target.closest('.tpc-product-search');
+                if (!input || !root.contains(input)) {
+                    return;
+                }
 
-                input.addEventListener('input', function() {
-                    if (input.value !== (input.dataset.selectedLabel || '')) {
-                        clearPickerSelection(picker);
-                    }
+                const picker = input.closest('.tpc-product-picker');
+                if (!picker) {
+                    return;
+                }
 
-                    if (searchTimers.has(input)) {
-                        clearTimeout(searchTimers.get(input));
-                    }
+                if (input.value !== (input.dataset.selectedLabel || '')) {
+                    clearPickerSelection(picker);
+                }
 
-                    const timerId = window.setTimeout(function() {
-                        searchProducts(picker, input.value.trim());
-                    }, 250);
+                if (searchTimers.has(input)) {
+                    clearTimeout(searchTimers.get(input));
+                }
 
-                    searchTimers.set(input, timerId);
-                });
+                const timerId = window.setTimeout(function() {
+                    searchProducts(picker, input.value.trim());
+                }, 250);
 
-                input.addEventListener('focus', function() {
-                    const value = input.value.trim();
-                    if (value.length >= 2 && value !== (input.dataset.selectedLabel || '')) {
-                        searchProducts(picker, value);
-                    }
-                });
+                searchTimers.set(input, timerId);
+            });
 
-                dropdown.addEventListener('click', function(event) {
-                    const item = event.target.closest('.tpc-dropdown-item');
-                    if (!item) {
+            root.addEventListener('focusin', function(event) {
+                const input = event.target.closest('.tpc-product-search');
+                if (!input || !root.contains(input)) {
+                    return;
+                }
+
+                const picker = input.closest('.tpc-product-picker');
+                if (!picker) {
+                    return;
+                }
+
+                const value = input.value.trim();
+                if (value.length >= 2 && value !== (input.dataset.selectedLabel || '')) {
+                    searchProducts(picker, value);
+                }
+            });
+
+            root.addEventListener('click', function(event) {
+                const item = event.target.closest('.tpc-dropdown-item');
+                if (item && root.contains(item)) {
+                    const picker = item.closest('.tpc-product-picker');
+                    const input = picker ? picker.querySelector('.tpc-product-search') : null;
+                    const hidden = picker ? picker.querySelector('.tpc-product-id') : null;
+                    const dropdown = picker ? picker.querySelector('.tpc-product-dropdown') : null;
+
+                    if (!picker || !input || !hidden || !dropdown) {
                         return;
                     }
 
@@ -1627,7 +1648,8 @@ function tpc_product_compare_shortcode($atts)
                     input.value = item.getAttribute('data-label') || '';
                     input.dataset.selectedLabel = input.value;
                     closeDropdown(dropdown);
-                });
+                    return;
+                }
             });
 
             document.addEventListener('mousedown', function(event) {
