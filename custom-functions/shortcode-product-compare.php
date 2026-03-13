@@ -874,6 +874,12 @@ function tpc_product_compare_shortcode($atts)
             background: linear-gradient(135deg, #edf3ff 0%, #e2ecff 100%);
         }
 
+        #<?php echo esc_html($instance_id); ?> .tpc-section-label,
+        #<?php echo esc_html($instance_id); ?> .tpc-section-note {
+            display: block;
+            width: 100%;
+        }
+
         #<?php echo esc_html($instance_id); ?> .tpc-section-note {
             display: none;
             font-size: 12px;
@@ -1385,7 +1391,7 @@ function tpc_product_compare_shortcode($atts)
 
             function renderSection(title, cellsHtml) {
                 const activeCols = Math.max(cellsHtml.length, 1);
-                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title">' + escapeHtml(title) + '<span class="tpc-section-note">Kéo sang phải để xem từng sản phẩm.</span></th></tr>' +
+                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title"><span class="tpc-section-label">' + escapeHtml(title) + '</span><span class="tpc-section-note">Kéo sang phải để xem từng sản phẩm.</span></th></tr>' +
                     '<tr class="tpc-section-row">' + cellsHtml.join('') + '</tr>';
             }
 
