@@ -841,12 +841,12 @@ function tpc_product_compare_shortcode($atts)
 
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table thead th {
             background: #f6faf8;
-            border-radius: 14px;
+            border-radius: 0;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-section-row td {
             background: #fff;
-            border-radius: 14px;
+            border-radius: 0;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-compare-body tr.tpc-section-row:nth-of-type(3n + 1) td {
@@ -872,15 +872,15 @@ function tpc_product_compare_shortcode($atts)
             gap: 4px;
             width: 100%;
             padding: 14px 18px;
-            border-radius: 16px;
+            border-radius: 0;
             text-align: center;
             align-items: center;
             justify-content: center;
             font-size: 30px;
             font-weight: 800;
-            color: #ffffff;
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            box-shadow: 0 10px 24px rgba(29, 78, 216, 0.18);
+            color: #13325b;
+            background: linear-gradient(135deg, #e8f0ff 0%, #dce8ff 100%);
+            box-shadow: 0 10px 24px rgba(29, 78, 216, 0.12);
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-section-label,
