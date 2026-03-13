@@ -521,6 +521,11 @@ function tpc_compare_verify_ajax_request()
     }
 }
 
+function tpc_compare_cache_group()
+{
+    return 'tpc_product_compare';
+}
+
 function tpc_compare_search_products_ajax()
 {
     global $wpdb;
@@ -538,14 +543,66 @@ function tpc_compare_search_products_ajax()
     }
     $exclude_ids = is_string($exclude_ids) ? $exclude_ids : '';
     $exclude_ids = array_values(array_unique(array_filter(array_map('absint', preg_split('/\s*,\s*/', $exclude_ids)))));
+    $category_id = isset($_REQUEST['category_id']) ? absint($_REQUEST['category_id']) : 0;
+    $cache_key = 'search:' . md5(wp_json_encode([
+        'term'        => $term,
+        'exclude_ids' => $exclude_ids,
+        'category_id' => $category_id,
+    ]));
+    $cached_results = wp_cache_get($cache_key, tpc_compare_cache_group());
+
+    if ($cached_results !== false && is_array($cached_results)) {
+        wp_send_json($cached_results);
+    }
 
     $like = '%' . $wpdb->esc_like($term) . '%';
     $lookup_table = $wpdb->prefix . 'wc_product_meta_lookup';
     $status_sql = "AND p.post_status = 'publish'";
     $exclude_sql = '';
+    $category_sql = '';
+    $prepare_args = [$like];
 
     if (!empty($exclude_ids)) {
-        $exclude_sql = 'AND p.ID NOT IN (' . implode(',', array_map('intval', $exclude_ids)) . ')';
+        $exclude_placeholders = implode(', ', array_fill(0, count($exclude_ids), '%d'));
+        $exclude_sql = "AND p.ID NOT IN ({$exclude_placeholders})";
+        $prepare_args = array_merge($prepare_args, $exclude_ids);
+    }
+
+    if ($category_id > 0) {
+        $category_term = get_term($category_id, 'product_cat');
+        if (!$category_term || is_wp_error($category_term)) {
+            wp_send_json([]);
+        }
+
+        $term_ids_cache_key = 'product_cat_descendants:' . $category_id;
+        $cached_term_ids = wp_cache_get($term_ids_cache_key, tpc_compare_cache_group());
+        if ($cached_term_ids === false || !is_array($cached_term_ids)) {
+            $cached_term_ids = array_merge([$category_id], get_term_children($category_id, 'product_cat'));
+            $cached_term_ids = array_values(array_unique(array_filter(array_map('absint', $cached_term_ids))));
+            wp_cache_set($term_ids_cache_key, $cached_term_ids, tpc_compare_cache_group(), HOUR_IN_SECONDS);
+        }
+
+        $term_ids = $cached_term_ids;
+        $term_ids = array_values(array_unique(array_filter(array_map('absint', $term_ids))));
+
+        if (empty($term_ids)) {
+            wp_send_json([]);
+        }
+
+        $category_placeholders = implode(', ', array_fill(0, count($term_ids), '%d'));
+        $prepare_args = array_merge($prepare_args, $term_ids);
+
+        $category_sql = "
+          AND EXISTS (
+                SELECT 1
+                FROM {$wpdb->term_relationships} AS category_relationships
+                INNER JOIN {$wpdb->term_taxonomy} AS category_taxonomy
+                    ON category_taxonomy.term_taxonomy_id = category_relationships.term_taxonomy_id
+                WHERE category_relationships.object_id = p.ID
+                  AND category_taxonomy.taxonomy = 'product_cat'
+                  AND category_taxonomy.term_id IN ({$category_placeholders})
+          )
+        ";
     }
 
     $sql = "
@@ -561,12 +618,13 @@ function tpc_compare_search_products_ajax()
           AND p.post_title LIKE %s
           {$status_sql}
           AND product_lookup.min_price IS NOT NULL
+          {$category_sql}
           {$exclude_sql}
         ORDER BY p.post_title ASC
         LIMIT 15
     ";
 
-    $rows = $wpdb->get_results($wpdb->prepare($sql, $like));
+    $rows = $wpdb->get_results($wpdb->prepare($sql, ...$prepare_args));
     $results = [];
 
     foreach ($rows as $row) {
@@ -582,6 +640,7 @@ function tpc_compare_search_products_ajax()
         ];
     }
 
+    wp_cache_set($cache_key, $results, tpc_compare_cache_group(), 5 * MINUTE_IN_SECONDS);
     wp_send_json($results);
 }
 add_action('wp_ajax_tpc_product_compare_search', 'tpc_compare_search_products_ajax');
@@ -649,6 +708,13 @@ function tpc_product_compare_shortcode($atts)
     $instance_id = 'tpc-compare-' . wp_unique_id();
     $has_initial_products = !empty($products);
     $compare_page_url = home_url('/so-sanh/');
+    $category_terms = get_terms([
+        'taxonomy'   => 'product_cat',
+        'hide_empty' => false,
+        'orderby'    => 'name',
+        'order'      => 'ASC',
+    ]);
+    $category_terms = is_wp_error($category_terms) ? [] : $category_terms;
 
     ob_start();
 ?>
@@ -657,6 +723,20 @@ function tpc_product_compare_shortcode($atts)
             <h2 class="tpc-title">So sánh sản phẩm</h2>
             <button type="button" class="button button--dark-blue-reverse tpc-copy-link-button" hidden>Copy link xem bảng</button>
             <span class="tpc-copy-feedback" aria-live="polite" hidden>Đã copy link</span>
+        </div>
+
+        <div class="tpc-toolbar">
+            <label class="tpc-category-filter-wrap">
+                <span class="tpc-category-filter-label">So sánh trong nhóm sản phẩm</span>
+                <select class="tpc-category-filter">
+                    <option value="">Tất cả danh mục</option>
+                    <?php foreach ($category_terms as $category_term) : ?>
+                        <option value="<?php echo esc_attr($category_term->term_id); ?>">
+                            <?php echo esc_html(html_entity_decode($category_term->name, ENT_QUOTES, get_bloginfo('charset') ?: 'UTF-8')); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
         </div>
 
         <?php if (!$has_initial_products) : ?>
@@ -688,7 +768,6 @@ function tpc_product_compare_shortcode($atts)
                     <?php if ($has_initial_products) : ?>
                         <thead>
                             <tr>
-                                <th class="tpc-sticky-col">Tiêu chí</th>
                                 <?php for ($index = 0; $index < $number; $index++) : ?>
                                     <th>
                                         <div class="tpc-picker-wrap">
@@ -714,7 +793,6 @@ function tpc_product_compare_shortcode($atts)
                     <?php endif; ?>
                     <tbody class="tpc-compare-body">
                         <tr>
-                            <th class="tpc-sticky-col">So sánh</th>
                             <td colspan="<?php echo esc_attr($number); ?>" class="tpc-placeholder-cell">
                                 <?php echo $has_initial_products ? 'Đang tải dữ liệu so sánh...' : 'Chọn sản phẩm rồi bấm "Tạo bảng so sánh".'; ?>
                             </td>
@@ -741,6 +819,35 @@ function tpc_product_compare_shortcode($atts)
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-toolbar {
+            display: flex;
+            align-items: end;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-category-filter-wrap {
+            display: grid;
+            gap: 6px;
+            min-width: min(340px, 100%);
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-category-filter-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #5f6b76;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-category-filter {
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 1px solid #c8d1d6;
+            border-radius: 10px;
+            background: #fff;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-title {
@@ -798,17 +905,17 @@ function tpc_product_compare_shortcode($atts)
 
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table {
             width: 100%;
-            min-width: 840px;
+            min-width: max(100%, calc(var(--tpc-active-cols, <?php echo (int) $number; ?>) * 260px));
             border-collapse: separate;
-            border-spacing: 0;
+            border-spacing: 0 10px;
             table-layout: fixed;
             border: 0 !important;
             box-shadow: none !important;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-compare-table th:not(.tpc-sticky-col),
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
-            width: calc((100% - 180px) / var(--tpc-active-cols, <?php echo (int) $number; ?>));
+            width: calc(100% / var(--tpc-active-cols, <?php echo (int) $number; ?>));
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table,
@@ -827,31 +934,49 @@ function tpc_product_compare_shortcode($atts)
 
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table thead th {
             background: #f6faf8;
+            border-radius: 14px;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-compare-table tbody tr:nth-child(even) th,
-        #<?php echo esc_html($instance_id); ?> .tpc-compare-table tbody tr:nth-child(even) td {
-            background: #fafcfd;
+        #<?php echo esc_html($instance_id); ?> .tpc-section-row td {
+            background: #fff;
+            border-radius: 14px;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-sticky-col {
-            position: sticky;
-            left: 0;
-            z-index: 2;
-            min-width: 180px;
-            width: 180px;
-            font-weight: 700;
-            color: #1f2933;
-            background: #f9fbfb;
+        #<?php echo esc_html($instance_id); ?> .tpc-section-head th {
+            padding: 8px 2px 4px;
+            background: transparent;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-compare-table tbody tr:nth-child(even) .tpc-sticky-col {
-            background: #f3f7f9;
+        #<?php echo esc_html($instance_id); ?> .tpc-section-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+            text-align: left;
+            font-size: 18px;
+            font-weight: 800;
+            color: #17324a;
         }
 
-        #<?php echo esc_html($instance_id); ?> thead .tpc-sticky-col {
-            z-index: 4;
-            background: #eef7f1;
+        #<?php echo esc_html($instance_id); ?> .tpc-section-note {
+            display: none;
+            font-size: 12px;
+            font-style: italic;
+            font-weight: 500;
+            color: #687684;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-product-summary {
+            display: grid;
+            gap: 10px;
+            align-content: start;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-product-summary-title {
+            font-size: 17px;
+            font-weight: 800;
+            line-height: 1.35;
+            color: #17324a;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-picker-wrap {
@@ -1007,24 +1132,15 @@ function tpc_product_compare_shortcode($atts)
                 font-size: 22px;
             }
 
+            #<?php echo esc_html($instance_id); ?> .tpc-toolbar,
+            #<?php echo esc_html($instance_id); ?> .tpc-actions {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
                 padding: 10px;
-            }
-
-            #<?php echo esc_html($instance_id); ?> .tpc-sticky-col {
-                min-width: 88px;
-                width: 88px;
-                max-width: 88px;
-                padding-left: 8px;
-                padding-right: 8px;
-                font-size: 14px;
-                word-break: break-word;
-            }
-
-            #<?php echo esc_html($instance_id); ?> .tpc-compare-table th:not(.tpc-sticky-col),
-            #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
-                width: calc((100% - 88px) / var(--tpc-active-cols, <?php echo (int) $number; ?>));
             }
 
             #<?php echo esc_html($instance_id); ?> .tpc-picker-wrap {
@@ -1033,6 +1149,30 @@ function tpc_product_compare_shortcode($atts)
 
             #<?php echo esc_html($instance_id); ?> .tpc-product-image {
                 max-width: 120px;
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-section-title {
+                font-size: 16px;
+            }
+        }
+
+        @media (min-width: 400px) and (max-width: 767px) {
+            #<?php echo esc_html($instance_id); ?> .tpc-compare-table {
+                min-width: calc(var(--tpc-active-cols, <?php echo (int) $number; ?>) * 50vw);
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-section-note {
+                display: inline;
+            }
+        }
+
+        @media (max-width: 399px) {
+            #<?php echo esc_html($instance_id); ?> .tpc-compare-table {
+                min-width: calc(var(--tpc-active-cols, <?php echo (int) $number; ?>) * 72vw);
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-section-note {
+                display: inline;
             }
         }
     </style>
@@ -1056,8 +1196,9 @@ function tpc_product_compare_shortcode($atts)
             const copyButtons = Array.from(root.querySelectorAll('.tpc-copy-link-button'));
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
             const pickers = Array.from(root.querySelectorAll('.tpc-product-picker'));
+            const categoryFilter = root.querySelector('.tpc-category-filter');
             const headerRow = root.querySelector('.tpc-compare-table thead tr');
-            const headerProductCells = headerRow ? Array.from(headerRow.querySelectorAll('th')).slice(1) : [];
+            const headerProductCells = headerRow ? Array.from(headerRow.querySelectorAll('th')) : [];
 
             initialProducts.forEach(function(product) {
                 productMap.set(String(product.id), product);
@@ -1205,7 +1346,7 @@ function tpc_product_compare_shortcode($atts)
                 tableShell.classList.remove('tpc-table-shell--hidden');
                 root.style.setProperty('--tpc-active-cols', String(Math.max(pickers.length, 1)));
                 syncHeaderColumns(selectedIds().filter(function(id) { return !!id; }));
-                body.innerHTML = '<tr><th class="tpc-sticky-col">So sánh</th><td colspan="' + pickers.length + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
+                body.innerHTML = '<tr><td colspan="' + Math.max(pickers.length, 1) + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
             }
 
             function renderPriceCell(product) {
@@ -1253,22 +1394,17 @@ function tpc_product_compare_shortcode($atts)
                 return '<td><div class="tpc-cell-content">' + html + '</div></td>';
             }
 
-            function renderImageCell(product) {
-                if (!product || !product.image) {
-                    return '<td><span class="tpc-empty-cell">-</span></td>';
-                }
-
-                const href = product.permalink || product.image;
-                return '<td><a class="tpc-product-image-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener"><img class="tpc-product-image" src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.title || '') + '"></a></td>';
-            }
-
-            function renderTitleCell(product) {
-                if (!product || !product.title) {
+            function renderProductSummaryCell(product) {
+                if (!product) {
                     return '<td><span class="tpc-empty-cell">-</span></td>';
                 }
 
                 const href = product.permalink || '#';
-                return '<td><a class="tpc-product-title-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' + escapeHtml(product.title) + '</a></td>';
+                const imageHtml = product.image
+                    ? '<a class="tpc-product-image-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener"><img class="tpc-product-image" src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.title || '') + '"></a>'
+                    : '';
+
+                return '<td><div class="tpc-product-summary">' + imageHtml + '<a class="tpc-product-title-link tpc-product-summary-title" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' + escapeHtml(product.title || '-') + '</a></div></td>';
             }
 
             function renderFieldCell(product, key) {
@@ -1294,6 +1430,12 @@ function tpc_product_compare_shortcode($atts)
                 return '<td><a class="tpc-add-to-cart ' + escapeHtml(classes) + '" href="' + escapeHtml(product.cart.url) + '"' + target + rel + dataProductId + dataSku + dataQuantity + '>' + escapeHtml(product.cart.label || 'Thêm vào giỏ hàng') + '</a></td>';
             }
 
+            function renderSection(title, cellsHtml) {
+                const activeCols = Math.max(cellsHtml.length, 1);
+                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title">' + escapeHtml(title) + '<span class="tpc-section-note">Keo sang phai de xem tung san pham.</span></th></tr>' +
+                    '<tr class="tpc-section-row">' + cellsHtml.join('') + '</tr>';
+            }
+
             function renderRows(products, renderedColumnCount) {
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
@@ -1303,28 +1445,19 @@ function tpc_product_compare_shortcode($atts)
                 syncHeaderColumns(selectedIds().filter(function(id) { return !!id; }));
                 const rows = [];
 
-                rows.push('<tr><th class="tpc-sticky-col">Ảnh sản phẩm</th>' + products.map(renderImageCell).join('') + '</tr>');
-                rows.push('<tr><th class="tpc-sticky-col">Tên sản phẩm</th>' + products.map(renderTitleCell).join('') + '</tr>');
-                rows.push('<tr><th class="tpc-sticky-col">Giá bán</th>' + products.map(renderPriceCell).join('') + '</tr>');
-                rows.push(
-                    '<tr><th class="tpc-sticky-col">Mô tả ngắn</th>' +
-                    products.map(function(product) {
-                        return renderHtmlCell(product ? product.short_description : '');
-                    }).join('') +
-                    '</tr>'
-                );
+                rows.push('<tr class="tpc-section-row">' + products.map(renderProductSummaryCell).join('') + '</tr>');
+                rows.push(renderSection('Giá bán', products.map(renderPriceCell)));
+                rows.push(renderSection('Mô tả ngắn', products.map(function(product) {
+                    return renderHtmlCell(product ? product.short_description : '');
+                })));
 
                 fieldDefinitions.forEach(function(field) {
-                    rows.push(
-                        '<tr><th class="tpc-sticky-col">' + escapeHtml(field.label || field.key) + '</th>' +
-                        products.map(function(product) {
-                            return renderFieldCell(product, field.key);
-                        }).join('') +
-                        '</tr>'
-                    );
+                    rows.push(renderSection(field.label || field.key, products.map(function(product) {
+                        return renderFieldCell(product, field.key);
+                    })));
                 });
 
-                rows.push('<tr><th class="tpc-sticky-col">Thêm vào giỏ hàng</th>' + products.map(renderCartCell).join('') + '</tr>');
+                rows.push(renderSection('Mua sản phẩm', products.map(renderCartCell)));
                 body.innerHTML = rows.join('');
             }
 
@@ -1421,6 +1554,7 @@ function tpc_product_compare_shortcode($atts)
                     action: 'tpc_product_compare_search',
                     nonce: nonce,
                     term: term,
+                    category_id: categoryFilter ? categoryFilter.value : '',
                     exclude_ids: selectedIds().filter(function(id) {
                         const currentId = picker.querySelector('.tpc-product-id');
                         return id && (!currentId || id !== currentId.value);
