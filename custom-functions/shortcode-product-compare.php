@@ -849,8 +849,16 @@ function tpc_product_compare_shortcode($atts)
             border-radius: 14px;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-compare-body tr.tpc-section-row:nth-of-type(4n + 3) td {
-            background: #f6f8fd;
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-body tr.tpc-section-row:nth-of-type(3n + 1) td {
+            background: #ffffff;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-body tr.tpc-section-row:nth-of-type(3n + 2) td {
+            background: #f5f8ff;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-compare-body tr.tpc-section-row:nth-of-type(3n) td {
+            background: #eef3ff;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-section-head th {
@@ -870,8 +878,9 @@ function tpc_product_compare_shortcode($atts)
             justify-content: center;
             font-size: 30px;
             font-weight: 800;
-            color: #13325b;
-            background: linear-gradient(135deg, #edf3ff 0%, #e2ecff 100%);
+            color: #ffffff;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            box-shadow: 0 10px 24px rgba(29, 78, 216, 0.18);
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-section-label,
@@ -1391,7 +1400,8 @@ function tpc_product_compare_shortcode($atts)
 
             function renderSection(title, cellsHtml) {
                 const activeCols = Math.max(cellsHtml.length, 1);
-                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title"><span class="tpc-section-label">' + escapeHtml(title) + '</span><span class="tpc-section-note">Kéo sang phải để xem từng sản phẩm.</span></th></tr>' +
+                const noteHtml = activeCols > 2 ? '<span class="tpc-section-note">Kéo sang phải để xem từng sản phẩm.</span>' : '';
+                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title"><span class="tpc-section-label">' + escapeHtml(title) + '</span>' + noteHtml + '</th></tr>' +
                     '<tr class="tpc-section-row">' + cellsHtml.join('') + '</tr>';
             }
 
