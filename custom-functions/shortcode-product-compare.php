@@ -697,14 +697,6 @@ function tpc_product_compare_shortcode($atts)
         }
     }
 
-    $selected_ids = array_column($products, 'id');
-    $selected_titles = array_column($products, 'title');
-
-    while (count($selected_ids) < $number) {
-        $selected_ids[] = '';
-        $selected_titles[] = '';
-    }
-
     $instance_id = 'tpc-compare-' . wp_unique_id();
     $has_initial_products = !empty($products);
     $compare_page_url = home_url('/so-sanh/');
@@ -739,58 +731,26 @@ function tpc_product_compare_shortcode($atts)
             </label>
         </div>
 
-        <?php if (!$has_initial_products) : ?>
-            <div class="tpc-picker-panel">
-                <?php for ($index = 0; $index < $number; $index++) : ?>
-                    <div class="tpc-picker-wrap">
-                        <div class="tpc-picker-label"><?php echo esc_html(sprintf('Sản phẩm %d', $index + 1)); ?></div>
-                        <div class="tpc-product-picker">
-                            <input
-                                type="hidden"
-                                class="tpc-product-id"
-                                value="<?php echo esc_attr($selected_ids[$index]); ?>">
-                            <input
-                                type="text"
-                                class="tpc-product-search"
-                                value="<?php echo esc_attr($selected_titles[$index]); ?>"
-                                data-selected-label="<?php echo esc_attr($selected_titles[$index]); ?>"
-                                placeholder="Tìm sản phẩm...">
-                            <div class="tpc-product-dropdown" hidden></div>
-                        </div>
-                    </div>
-                <?php endfor; ?>
+        <div class="tpc-picker-panel">
+            <div class="tpc-picker-wrap">
+                <div class="tpc-picker-label">Chọn sản phẩm so sánh</div>
+                <div class="tpc-selected-products"></div>
+                <div class="tpc-product-picker">
+                    <input
+                        type="text"
+                        class="tpc-product-search"
+                        value=""
+                        data-selected-label=""
+                        placeholder="<?php echo esc_attr(sprintf('Tìm và thêm sản phẩm (tối đa %d)...', $number)); ?>">
+                    <div class="tpc-product-dropdown" hidden></div>
+                </div>
+                <div class="tpc-picker-help"><?php echo esc_html(sprintf('Chọn tối đa %d sản phẩm.', $number)); ?></div>
             </div>
-        <?php endif; ?>
+        </div>
 
         <div class="tpc-table-shell<?php echo $has_initial_products ? '' : ' tpc-table-shell--hidden'; ?>" <?php echo $has_initial_products ? '' : ' hidden'; ?>>
             <div class="tpc-table-scroll">
                 <table class="tpc-compare-table">
-                    <?php if ($has_initial_products) : ?>
-                        <thead>
-                            <tr>
-                                <?php for ($index = 0; $index < $number; $index++) : ?>
-                                    <th>
-                                        <div class="tpc-picker-wrap">
-                                            <div class="tpc-picker-label"><?php echo esc_html(sprintf('Sản phẩm %d', $index + 1)); ?></div>
-                                            <div class="tpc-product-picker">
-                                                <input
-                                                    type="hidden"
-                                                    class="tpc-product-id"
-                                                    value="<?php echo esc_attr($selected_ids[$index]); ?>">
-                                                <input
-                                                    type="text"
-                                                    class="tpc-product-search"
-                                                    value="<?php echo esc_attr($selected_titles[$index]); ?>"
-                                                    data-selected-label="<?php echo esc_attr($selected_titles[$index]); ?>"
-                                                    placeholder="Tìm sản phẩm...">
-                                                <div class="tpc-product-dropdown" hidden></div>
-                                            </div>
-                                        </div>
-                                    </th>
-                                <?php endfor; ?>
-                            </tr>
-                        </thead>
-                    <?php endif; ?>
                     <tbody class="tpc-compare-body">
                         <tr>
                             <td colspan="<?php echo esc_attr($number); ?>" class="tpc-placeholder-cell">
@@ -892,10 +852,7 @@ function tpc_product_compare_shortcode($atts)
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-picker-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 12px;
-            align-items: start;
+            display: block;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-table-scroll {
@@ -952,17 +909,22 @@ function tpc_product_compare_shortcode($atts)
             flex-direction: column;
             gap: 4px;
             width: 100%;
-            text-align: left;
-            font-size: 18px;
+            padding: 14px 18px;
+            border-radius: 16px;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
             font-weight: 800;
-            color: #17324a;
+            color: #13325b;
+            background: linear-gradient(135deg, #edf3ff 0%, #e2ecff 100%);
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-section-note {
             display: none;
             font-size: 12px;
             font-style: italic;
-            font-weight: 500;
+            font-weight: 600;
             color: #687684;
         }
 
@@ -982,6 +944,44 @@ function tpc_product_compare_shortcode($atts)
         #<?php echo esc_html($instance_id); ?> .tpc-picker-wrap {
             min-width: 220px;
             position: relative;
+            display: grid;
+            gap: 10px;
+            max-width: 720px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-selected-products {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-selected-product {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 34px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #eef4ff;
+            color: #17324a;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-selected-product-remove {
+            border: 0;
+            background: transparent;
+            color: #5f6b76;
+            padding: 0;
+            width: 18px;
+            height: 18px;
+            line-height: 18px;
+            cursor: pointer;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-picker-help {
+            font-size: 13px;
+            color: #687684;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-picker-label {
@@ -1152,7 +1152,8 @@ function tpc_product_compare_shortcode($atts)
             }
 
             #<?php echo esc_html($instance_id); ?> .tpc-section-title {
-                font-size: 16px;
+                font-size: 18px;
+                padding: 12px 14px;
             }
         }
 
@@ -1195,17 +1196,16 @@ function tpc_product_compare_shortcode($atts)
             const buttons = Array.from(root.querySelectorAll('.tpc-build-button'));
             const copyButtons = Array.from(root.querySelectorAll('.tpc-copy-link-button'));
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
+            const selectedProductsWrap = root.querySelector('.tpc-selected-products');
+            const searchInput = root.querySelector('.tpc-product-search');
+            const searchDropdown = root.querySelector('.tpc-product-dropdown');
             const categoryFilter = root.querySelector('.tpc-category-filter');
-            const headerRow = root.querySelector('.tpc-compare-table thead tr');
-            const headerProductCells = headerRow ? Array.from(headerRow.querySelectorAll('th')) : [];
+            const maxProducts = <?php echo (int) $number; ?>;
+            let selectedProducts = initialProducts.slice(0, maxProducts);
 
             initialProducts.forEach(function(product) {
                 productMap.set(String(product.id), product);
             });
-
-            function getPickers() {
-                return Array.from(root.querySelectorAll('.tpc-product-picker'));
-            }
 
             function escapeHtml(value) {
                 const div = document.createElement('div');
@@ -1244,41 +1244,30 @@ function tpc_product_compare_shortcode($atts)
                 dropdown.innerHTML = '';
             }
 
-            function clearPickerSelection(picker) {
-                const hidden = picker.querySelector('.tpc-product-id');
-                const input = picker.querySelector('.tpc-product-search');
-                hidden.value = '';
-                input.dataset.selectedLabel = '';
-            }
-
             function selectedIds() {
-                return getPickers().map(function(picker) {
-                    const hidden = picker.querySelector('.tpc-product-id');
-                    if (!hidden) {
-                        return '';
-                    }
-
-                    const value = String(hidden.value || '').trim();
-                    return /^\d+$/.test(value) && Number(value) > 0 ? value : '';
+                return selectedProducts.map(function(product) {
+                    return product && product.id ? String(product.id) : '';
+                }).filter(function(id) {
+                    return !!id;
                 });
             }
 
-            function getExcludedIdsForPicker(currentPicker) {
-                const currentHidden = currentPicker ? currentPicker.querySelector('.tpc-product-id') : null;
-                const currentValue = currentHidden ? String(currentHidden.value || '').trim() : '';
+            function renderSelectedProducts() {
+                if (!selectedProductsWrap) {
+                    return;
+                }
 
-                return getPickers().map(function(picker) {
-                    const hidden = picker.querySelector('.tpc-product-id');
-                    const value = hidden ? String(hidden.value || '').trim() : '';
+                if (!selectedProducts.length) {
+                    selectedProductsWrap.innerHTML = '';
+                    return;
+                }
 
-                    if (!/^\d+$/.test(value) || Number(value) <= 0) {
-                        return '';
-                    }
-
-                    return value !== currentValue ? value : '';
-                }).filter(function(value) {
-                    return !!value;
-                });
+                selectedProductsWrap.innerHTML = selectedProducts.map(function(product) {
+                    return '<span class="tpc-selected-product" data-product-id="' + escapeHtml(product.id) + '">' +
+                        '<span class="tpc-selected-product-label">' + escapeHtml(product.title || product.label || ('#' + product.id)) + '</span>' +
+                        '<button type="button" class="tpc-selected-product-remove" aria-label="Bỏ sản phẩm" data-product-id="' + escapeHtml(product.id) + '">&times;</button>' +
+                        '</span>';
+                }).join('');
             }
 
             function getCompareShareUrl() {
@@ -1316,23 +1305,6 @@ function tpc_product_compare_shortcode($atts)
                 });
             }
 
-            function syncHeaderColumns(activeIds) {
-                if (!headerProductCells.length) {
-                    return;
-                }
-
-                const selectedSet = new Set((activeIds || []).map(String));
-                const pickers = getPickers();
-
-                headerProductCells.forEach(function(cell, index) {
-                    const picker = pickers[index];
-                    const hidden = picker ? picker.querySelector('.tpc-product-id') : null;
-                    const value = hidden ? String(hidden.value || '').trim() : '';
-                    const isVisible = value && selectedSet.has(value);
-                    cell.style.display = isVisible ? '' : 'none';
-                });
-            }
-
             function copyText(text) {
                 if (navigator.clipboard && window.isSecureContext) {
                     return navigator.clipboard.writeText(text);
@@ -1366,9 +1338,8 @@ function tpc_product_compare_shortcode($atts)
                 setCopyButtonsVisible(false);
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
-                root.style.setProperty('--tpc-active-cols', String(Math.max(getPickers().length, 1)));
-                syncHeaderColumns(selectedIds().filter(function(id) { return !!id; }));
-                body.innerHTML = '<tr><td colspan="' + Math.max(getPickers().length, 1) + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
+                root.style.setProperty('--tpc-active-cols', String(Math.max(selectedIds().length, 1)));
+                body.innerHTML = '<tr><td colspan="' + Math.max(selectedIds().length, 1) + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
             }
 
             function renderPriceCell(product) {
@@ -1454,7 +1425,7 @@ function tpc_product_compare_shortcode($atts)
 
             function renderSection(title, cellsHtml) {
                 const activeCols = Math.max(cellsHtml.length, 1);
-                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title">' + escapeHtml(title) + '<span class="tpc-section-note">Keo sang phai de xem tung san pham.</span></th></tr>' +
+                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title">' + escapeHtml(title) + '<span class="tpc-section-note">Kéo sang phải để xem từng sản phẩm.</span></th></tr>' +
                     '<tr class="tpc-section-row">' + cellsHtml.join('') + '</tr>';
             }
 
@@ -1464,7 +1435,6 @@ function tpc_product_compare_shortcode($atts)
                 setCopyButtonsVisible(true);
                 const activeCols = Math.max(Number(renderedColumnCount) || products.length || 1, 1);
                 root.style.setProperty('--tpc-active-cols', String(activeCols));
-                syncHeaderColumns(selectedIds().filter(function(id) { return !!id; }));
                 const rows = [];
 
                 rows.push('<tr class="tpc-section-row">' + products.map(renderProductSummaryCell).join('') + '</tr>');
@@ -1540,11 +1510,9 @@ function tpc_product_compare_shortcode($atts)
                 });
             }
 
-            function renderSearchResults(picker, items) {
-                const dropdown = picker.querySelector('.tpc-product-dropdown');
-
+            function renderSearchResults(items) {
                 if (!items.length) {
-                    setDropdownState(dropdown, '<div class="tpc-dropdown-empty">Không tìm thấy sản phẩm nào.</div>');
+                    setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không tìm thấy sản phẩm nào.</div>');
                     return;
                 }
 
@@ -1559,30 +1527,28 @@ function tpc_product_compare_shortcode($atts)
                         '</li>';
                 }).join('');
 
-                setDropdownState(dropdown, '<ul class="tpc-dropdown-list">' + html + '</ul>');
+                setDropdownState(searchDropdown, '<ul class="tpc-dropdown-list">' + html + '</ul>');
             }
 
-            function searchProducts(picker, term) {
-                const dropdown = picker.querySelector('.tpc-product-dropdown');
-
+            function searchProducts(term) {
                 if (term.length < 2) {
-                    closeDropdown(dropdown);
+                    closeDropdown(searchDropdown);
                     return;
                 }
 
-                setDropdownState(dropdown, '<div class="tpc-dropdown-state">Đang tải...</div>');
+                setDropdownState(searchDropdown, '<div class="tpc-dropdown-state">Đang tải...</div>');
 
                 postAjax({
                     action: 'tpc_product_compare_search',
                     nonce: nonce,
                     term: term,
                     category_id: categoryFilter ? categoryFilter.value : '',
-                    exclude_ids: getExcludedIdsForPicker(picker).join(',')
+                    exclude_ids: selectedIds().join(',')
                 }).then(function(response) {
                     const items = Array.isArray(response) ? response : [];
-                    renderSearchResults(picker, items);
+                    renderSearchResults(items);
                 }).catch(function() {
-                    setDropdownState(dropdown, '<div class="tpc-dropdown-empty">Không tải được kết quả.</div>');
+                    setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không tải được kết quả.</div>');
                 });
             }
 
@@ -1594,21 +1560,12 @@ function tpc_product_compare_shortcode($atts)
                     return;
                 }
 
-                const picker = input.closest('.tpc-product-picker');
-                if (!picker) {
-                    return;
-                }
-
-                if (input.value !== (input.dataset.selectedLabel || '')) {
-                    clearPickerSelection(picker);
-                }
-
                 if (searchTimers.has(input)) {
                     clearTimeout(searchTimers.get(input));
                 }
 
                 const timerId = window.setTimeout(function() {
-                    searchProducts(picker, input.value.trim());
+                    searchProducts(input.value.trim());
                 }, 250);
 
                 searchTimers.set(input, timerId);
@@ -1620,50 +1577,67 @@ function tpc_product_compare_shortcode($atts)
                     return;
                 }
 
-                const picker = input.closest('.tpc-product-picker');
-                if (!picker) {
-                    return;
-                }
-
                 const value = input.value.trim();
-                if (value.length >= 2 && value !== (input.dataset.selectedLabel || '')) {
-                    searchProducts(picker, value);
+                if (value.length >= 2) {
+                    searchProducts(value);
                 }
             });
 
             root.addEventListener('click', function(event) {
                 const item = event.target.closest('.tpc-dropdown-item');
                 if (item && root.contains(item)) {
-                    const picker = item.closest('.tpc-product-picker');
-                    const input = picker ? picker.querySelector('.tpc-product-search') : null;
-                    const hidden = picker ? picker.querySelector('.tpc-product-id') : null;
-                    const dropdown = picker ? picker.querySelector('.tpc-product-dropdown') : null;
+                    if (!searchInput || !searchDropdown) {
+                        return;
+                    }
 
-                    if (!picker || !input || !hidden || !dropdown) {
+                    const productId = String(item.getAttribute('data-id') || '').trim();
+                    const productLabel = item.getAttribute('data-label') || '';
+
+                    if (!productId || selectedIds().includes(productId)) {
+                        closeDropdown(searchDropdown);
+                        searchInput.value = '';
+                        return;
+                    }
+
+                    if (selectedProducts.length >= maxProducts) {
+                        flashCopyFeedback('Đã đạt số sản phẩm tối đa', true);
+                        closeDropdown(searchDropdown);
                         return;
                     }
 
                     event.preventDefault();
-                    hidden.value = item.getAttribute('data-id') || '';
-                    input.value = item.getAttribute('data-label') || '';
-                    input.dataset.selectedLabel = input.value;
-                    closeDropdown(dropdown);
+                    selectedProducts.push({
+                        id: productId,
+                        title: productLabel,
+                        label: productLabel,
+                    });
+                    renderSelectedProducts();
+                    searchInput.value = '';
+                    searchInput.dataset.selectedLabel = '';
+                    closeDropdown(searchDropdown);
+                    return;
+                }
+
+                const removeButton = event.target.closest('.tpc-selected-product-remove');
+                if (removeButton && root.contains(removeButton)) {
+                    event.preventDefault();
+                    const removeId = String(removeButton.getAttribute('data-product-id') || '').trim();
+                    selectedProducts = selectedProducts.filter(function(product) {
+                        return String(product.id) !== removeId;
+                    });
+                    renderSelectedProducts();
                     return;
                 }
             });
 
             document.addEventListener('mousedown', function(event) {
                 if (!event.target.closest('#' + <?php echo wp_json_encode($instance_id); ?>)) {
-                    getPickers().forEach(function(picker) {
-                        closeDropdown(picker.querySelector('.tpc-product-dropdown'));
-                    });
+                    closeDropdown(searchDropdown);
                     return;
                 }
 
                 if (!event.target.closest('.tpc-product-picker')) {
-                    getPickers().forEach(function(picker) {
-                        closeDropdown(picker.querySelector('.tpc-product-dropdown'));
-                    });
+                    closeDropdown(searchDropdown);
                 }
             });
 
@@ -1673,6 +1647,8 @@ function tpc_product_compare_shortcode($atts)
                     buildTable();
                 });
             });
+
+            renderSelectedProducts();
 
             copyButtons.forEach(function(copyButton) {
                 copyButton.addEventListener('click', function(event) {
