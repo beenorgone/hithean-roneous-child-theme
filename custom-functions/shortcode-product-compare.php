@@ -904,8 +904,8 @@ function tpc_product_compare_shortcode($atts)
             text-align: center;
         }
 
-        #<?php echo esc_html($instance_id); ?>[data-tpc-active-cols="2"] .tpc-section-head,
-        #<?php echo esc_html($instance_id); ?>[data-tpc-active-cols="2"] .tpc-section-head th {
+        #<?php echo esc_html($instance_id); ?> .tpc-section-head,
+        #<?php echo esc_html($instance_id); ?> .tpc-section-head th {
             display: block;
             width: 100vw;
             min-width: 100vw;
