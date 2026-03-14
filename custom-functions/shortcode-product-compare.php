@@ -758,6 +758,10 @@ function tpc_product_compare_shortcode($atts)
             gap: 14px;
         }
 
+        #<?php echo esc_html($instance_id); ?> [hidden] {
+            display: none !important;
+        }
+
         #<?php echo esc_html($instance_id); ?> .tpc-header {
             display: flex;
             align-items: center;
@@ -897,6 +901,7 @@ function tpc_product_compare_shortcode($atts)
         #<?php echo esc_html($instance_id); ?> .tpc-section-head th {
             padding: 8px 2px 4px;
             background: transparent;
+            text-align: center;
         }
 
         #<?php echo esc_html($instance_id); ?>[data-tpc-active-cols="2"] .tpc-section-head,
@@ -1736,6 +1741,7 @@ function tpc_product_compare_shortcode($atts)
 
             renderSelectedProducts();
             syncBuildButtonLabel();
+            hasGeneratedTable = selectedIds().length >= 2 && hasGeneratedTable;
             setTopResetVisible(hasGeneratedTable);
             setTableActionsVisible(hasGeneratedTable);
 
