@@ -930,6 +930,10 @@ function tpc_product_compare_shortcode($atts)
             width: 100%;
         }
 
+        #<?php echo esc_html($instance_id); ?> .tpc-section-label {
+            text-transform: uppercase;
+        }
+
         #<?php echo esc_html($instance_id); ?> .tpc-section-note {
             display: none;
             font-size: 12px;
@@ -1214,7 +1218,7 @@ function tpc_product_compare_shortcode($atts)
             const productMap = new Map();
             const initialProducts = <?php echo tpc_compare_json_encode_for_script($products); ?>;
             const buttons = Array.from(root.querySelectorAll('.tpc-build-button'));
-            const resetButtons = Array.from(root.querySelectorAll('.tpc-reset-button'));
+            const topResetButton = root.querySelector('.tpc-actions .tpc-reset-button');
             const copyButtons = Array.from(root.querySelectorAll('.tpc-copy-link-button'));
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
             const tableActions = root.querySelector('.tpc-table-actions');
@@ -1333,11 +1337,13 @@ function tpc_product_compare_shortcode($atts)
                 });
             }
 
-            function setResetButtonsVisible(isVisible) {
-                resetButtons.forEach(function(button) {
-                    button.hidden = !isVisible;
-                });
+            function setTopResetVisible(isVisible) {
+                if (topResetButton) {
+                    topResetButton.hidden = !isVisible;
+                }
+            }
 
+            function setTableActionsVisible(isVisible) {
                 if (tableActions) {
                     tableActions.hidden = !isVisible;
                 }
@@ -1381,7 +1387,8 @@ function tpc_product_compare_shortcode($atts)
 
             function showPlaceholder(message) {
                 setCopyButtonsVisible(false);
-                setResetButtonsVisible(false);
+                setTopResetVisible(false);
+                setTableActionsVisible(false);
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
                 const activeCols = Math.max(selectedIds().length, 1);
@@ -1482,7 +1489,8 @@ function tpc_product_compare_shortcode($atts)
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
                 setCopyButtonsVisible(true);
-                setResetButtonsVisible(true);
+                setTopResetVisible(true);
+                setTableActionsVisible(true);
                 const activeCols = Math.max(Number(renderedColumnCount) || products.length || 1, 1);
                 root.style.setProperty('--tpc-active-cols', String(activeCols));
                 root.setAttribute('data-tpc-active-cols', String(activeCols));
@@ -1565,7 +1573,8 @@ function tpc_product_compare_shortcode($atts)
                 selectedProducts = [];
                 renderSelectedProducts();
                 setCopyButtonsVisible(false);
-                setResetButtonsVisible(false);
+                setTopResetVisible(false);
+                setTableActionsVisible(false);
                 hasGeneratedTable = false;
                 syncBuildButtonLabel();
                 tableShell.hidden = true;
@@ -1718,7 +1727,7 @@ function tpc_product_compare_shortcode($atts)
                 });
             });
 
-            resetButtons.forEach(function(button) {
+            root.querySelectorAll('.tpc-reset-button').forEach(function(button) {
                 button.addEventListener('click', function(event) {
                     event.preventDefault();
                     resetCompareState();
@@ -1727,7 +1736,8 @@ function tpc_product_compare_shortcode($atts)
 
             renderSelectedProducts();
             syncBuildButtonLabel();
-            setResetButtonsVisible(hasGeneratedTable);
+            setTopResetVisible(hasGeneratedTable);
+            setTableActionsVisible(hasGeneratedTable);
 
             copyButtons.forEach(function(copyButton) {
                 copyButton.addEventListener('click', function(event) {
@@ -1746,7 +1756,8 @@ function tpc_product_compare_shortcode($atts)
                 buildTable();
             } else {
                 setCopyButtonsVisible(false);
-                setResetButtonsVisible(false);
+                setTopResetVisible(false);
+                setTableActionsVisible(false);
                 hasGeneratedTable = false;
                 syncBuildButtonLabel();
                 root.setAttribute('data-tpc-active-cols', '0');
