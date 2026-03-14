@@ -743,7 +743,12 @@ function tpc_product_compare_shortcode($atts)
 
         <div class="tpc-actions">
             <button type="button" class="button button--light-blue tpc-build-button">Tạo bảng so sánh</button>
+            <button type="button" class="button button--dark-blue-reverse tpc-reset-button" hidden>Tìm lại</button>
             <button type="button" class="button button--dark-blue-reverse tpc-copy-link-button" hidden>Copy link xem bảng</button>
+        </div>
+
+        <div class="tpc-table-actions" hidden>
+            <button type="button" class="button button--dark-blue-reverse tpc-reset-button">Tìm lại</button>
         </div>
     </div>
 
@@ -786,7 +791,14 @@ function tpc_product_compare_shortcode($atts)
         #<?php echo esc_html($instance_id); ?> .tpc-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-table-actions {
+            display: flex;
+            align-items: center;
+            gap: 30px;
             flex-wrap: wrap;
         }
 
@@ -818,6 +830,10 @@ function tpc_product_compare_shortcode($atts)
             table-layout: fixed;
             border: 0 !important;
             box-shadow: none !important;
+        }
+
+        #<?php echo esc_html($instance_id); ?>[data-tpc-active-cols="2"] .tpc-compare-table {
+            min-width: 100vw;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
@@ -864,6 +880,14 @@ function tpc_product_compare_shortcode($atts)
         #<?php echo esc_html($instance_id); ?> .tpc-section-head th {
             padding: 8px 2px 4px;
             background: transparent;
+        }
+
+        #<?php echo esc_html($instance_id); ?>[data-tpc-active-cols="2"] .tpc-section-head,
+        #<?php echo esc_html($instance_id); ?>[data-tpc-active-cols="2"] .tpc-section-head th {
+            display: block;
+            width: 100vw;
+            min-width: 100vw;
+            box-sizing: border-box;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-section-title {
@@ -1170,13 +1194,16 @@ function tpc_product_compare_shortcode($atts)
             const productMap = new Map();
             const initialProducts = <?php echo tpc_compare_json_encode_for_script($products); ?>;
             const buttons = Array.from(root.querySelectorAll('.tpc-build-button'));
+            const resetButtons = Array.from(root.querySelectorAll('.tpc-reset-button'));
             const copyButtons = Array.from(root.querySelectorAll('.tpc-copy-link-button'));
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
+            const tableActions = root.querySelector('.tpc-table-actions');
             const selectedProductsWrap = root.querySelector('.tpc-selected-products');
             const searchInput = root.querySelector('.tpc-product-search');
             const searchDropdown = root.querySelector('.tpc-product-dropdown');
             const maxProducts = <?php echo (int) $number; ?>;
             let selectedProducts = initialProducts.slice(0, maxProducts);
+            let hasGeneratedTable = <?php echo $has_initial_products ? 'true' : 'false'; ?>;
 
             initialProducts.forEach(function(product) {
                 productMap.set(String(product.id), product);
@@ -1186,6 +1213,12 @@ function tpc_product_compare_shortcode($atts)
                 const div = document.createElement('div');
                 div.textContent = value == null ? '' : String(value);
                 return div.innerHTML;
+            }
+
+            function decodeHtmlEntities(value) {
+                const text = document.createElement('textarea');
+                text.innerHTML = value == null ? '' : String(value);
+                return text.value;
             }
 
             function serialize(params) {
@@ -1280,6 +1313,23 @@ function tpc_product_compare_shortcode($atts)
                 });
             }
 
+            function setResetButtonsVisible(isVisible) {
+                resetButtons.forEach(function(button) {
+                    button.hidden = !isVisible;
+                });
+
+                if (tableActions) {
+                    tableActions.hidden = !isVisible;
+                }
+            }
+
+            function syncBuildButtonLabel() {
+                const label = hasGeneratedTable ? 'Tạo lại bảng so sánh' : 'Tạo bảng so sánh';
+                buttons.forEach(function(button) {
+                    button.textContent = label;
+                });
+            }
+
             function copyText(text) {
                 if (navigator.clipboard && window.isSecureContext) {
                     return navigator.clipboard.writeText(text);
@@ -1311,10 +1361,13 @@ function tpc_product_compare_shortcode($atts)
 
             function showPlaceholder(message) {
                 setCopyButtonsVisible(false);
+                setResetButtonsVisible(false);
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
-                root.style.setProperty('--tpc-active-cols', String(Math.max(selectedIds().length, 1)));
-                body.innerHTML = '<tr><td colspan="' + Math.max(selectedIds().length, 1) + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
+                const activeCols = Math.max(selectedIds().length, 1);
+                root.style.setProperty('--tpc-active-cols', String(activeCols));
+                root.setAttribute('data-tpc-active-cols', String(activeCols));
+                body.innerHTML = '<tr><td colspan="' + activeCols + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
             }
 
             function renderPriceCell(product) {
@@ -1401,7 +1454,7 @@ function tpc_product_compare_shortcode($atts)
             function renderSection(title, cellsHtml) {
                 const activeCols = Math.max(cellsHtml.length, 1);
                 const noteHtml = activeCols > 2 ? '<span class="tpc-section-note">Kéo sang phải để xem từng sản phẩm.</span>' : '';
-                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title"><span class="tpc-section-label">' + escapeHtml(title) + '</span>' + noteHtml + '</th></tr>' +
+                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title"><span class="tpc-section-label">' + escapeHtml(decodeHtmlEntities(title)) + '</span>' + noteHtml + '</th></tr>' +
                     '<tr class="tpc-section-row">' + cellsHtml.join('') + '</tr>';
             }
 
@@ -1409,8 +1462,10 @@ function tpc_product_compare_shortcode($atts)
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
                 setCopyButtonsVisible(true);
+                setResetButtonsVisible(true);
                 const activeCols = Math.max(Number(renderedColumnCount) || products.length || 1, 1);
                 root.style.setProperty('--tpc-active-cols', String(activeCols));
+                root.setAttribute('data-tpc-active-cols', String(activeCols));
                 const rows = [];
 
                 rows.push('<tr class="tpc-section-row">' + products.map(renderProductSummaryCell).join('') + '</tr>');
@@ -1427,6 +1482,8 @@ function tpc_product_compare_shortcode($atts)
 
                 rows.push(renderSection('Mua sản phẩm', products.map(renderCartCell)));
                 body.innerHTML = rows.join('');
+                hasGeneratedTable = true;
+                syncBuildButtonLabel();
             }
 
             function fetchProductPayload(productId) {
@@ -1461,10 +1518,8 @@ function tpc_product_compare_shortcode($atts)
             function buildTable() {
                 const ids = selectedIds();
                 const activeIds = ids.filter(function(id) { return !!id; });
-                const hasSelected = activeIds.length > 0;
-
-                if (!hasSelected) {
-                    showPlaceholder('Chọn ít nhất 1 sản phẩm rồi bấm "Tạo bảng so sánh".');
+                if (activeIds.length < 2) {
+                    window.alert('Cần chọn ít nhất 2 sản phẩm để tạo bảng so sánh');
                     return;
                 }
 
@@ -1484,6 +1539,25 @@ function tpc_product_compare_shortcode($atts)
                 }).finally(function() {
                     setButtonsDisabled(false);
                 });
+            }
+
+            function resetCompareState() {
+                selectedProducts = [];
+                renderSelectedProducts();
+                setCopyButtonsVisible(false);
+                setResetButtonsVisible(false);
+                hasGeneratedTable = false;
+                syncBuildButtonLabel();
+                tableShell.hidden = true;
+                tableShell.classList.add('tpc-table-shell--hidden');
+                root.setAttribute('data-tpc-active-cols', '0');
+                body.innerHTML = '';
+                closeDropdown(searchDropdown);
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.dataset.selectedLabel = '';
+                    searchInput.focus();
+                }
             }
 
             function renderSearchResults(items) {
@@ -1590,6 +1664,7 @@ function tpc_product_compare_shortcode($atts)
                     searchInput.value = '';
                     searchInput.dataset.selectedLabel = '';
                     closeDropdown(searchDropdown);
+                    searchInput.focus();
                     return;
                 }
 
@@ -1623,7 +1698,16 @@ function tpc_product_compare_shortcode($atts)
                 });
             });
 
+            resetButtons.forEach(function(button) {
+                button.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    resetCompareState();
+                });
+            });
+
             renderSelectedProducts();
+            syncBuildButtonLabel();
+            setResetButtonsVisible(hasGeneratedTable);
 
             copyButtons.forEach(function(copyButton) {
                 copyButton.addEventListener('click', function(event) {
@@ -1638,12 +1722,14 @@ function tpc_product_compare_shortcode($atts)
                 });
             });
 
-            if (selectedIds().some(function(id) {
-                    return !!id;
-                })) {
+            if (selectedIds().length >= 2) {
                 buildTable();
             } else {
                 setCopyButtonsVisible(false);
+                setResetButtonsVisible(false);
+                hasGeneratedTable = false;
+                syncBuildButtonLabel();
+                root.setAttribute('data-tpc-active-cols', '0');
                 tableShell.hidden = true;
                 tableShell.classList.add('tpc-table-shell--hidden');
                 body.innerHTML = '';
