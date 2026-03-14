@@ -727,6 +727,12 @@ function tpc_product_compare_shortcode($atts)
             </div>
         </div>
 
+        <div class="tpc-actions">
+            <button type="button" class="button button--light-blue tpc-build-button">Tạo bảng so sánh</button>
+            <button type="button" class="button button--dark-blue-reverse tpc-reset-button" hidden>Tìm lại</button>
+            <button type="button" class="button button--dark-blue-reverse tpc-copy-link-button" hidden>Copy link xem bảng</button>
+        </div>
+
         <div class="tpc-table-shell<?php echo $has_initial_products ? '' : ' tpc-table-shell--hidden'; ?>" <?php echo $has_initial_products ? '' : ' hidden'; ?>>
             <div class="tpc-table-scroll">
                 <table class="tpc-compare-table">
@@ -739,12 +745,6 @@ function tpc_product_compare_shortcode($atts)
                     </tbody>
                 </table>
             </div>
-        </div>
-
-        <div class="tpc-actions">
-            <button type="button" class="button button--light-blue tpc-build-button">Tạo bảng so sánh</button>
-            <button type="button" class="button button--dark-blue-reverse tpc-reset-button" hidden>Tìm lại</button>
-            <button type="button" class="button button--dark-blue-reverse tpc-copy-link-button" hidden>Copy link xem bảng</button>
         </div>
 
         <div class="tpc-table-actions" hidden>
@@ -800,6 +800,15 @@ function tpc_product_compare_shortcode($atts)
             align-items: center;
             gap: 30px;
             flex-wrap: wrap;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-actions .tpc-build-button,
+        #<?php echo esc_html($instance_id); ?> .tpc-actions .tpc-reset-button,
+        #<?php echo esc_html($instance_id); ?> .tpc-actions .tpc-copy-link-button,
+        #<?php echo esc_html($instance_id); ?> .tpc-table-actions .tpc-reset-button {
+            width: auto;
+            max-width: max-content;
+            flex: 0 0 auto;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-table-shell {
@@ -1133,9 +1142,12 @@ function tpc_product_compare_shortcode($atts)
                 font-size: 22px;
             }
 
-            #<?php echo esc_html($instance_id); ?> .tpc-actions {
-                display: grid;
-                grid-template-columns: 1fr;
+            #<?php echo esc_html($instance_id); ?> .tpc-actions,
+            #<?php echo esc_html($instance_id); ?> .tpc-table-actions {
+                display: flex;
+                align-items: center;
+                gap: 30px;
+                flex-wrap: wrap;
             }
 
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
