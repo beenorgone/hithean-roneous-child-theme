@@ -865,6 +865,14 @@ function tpc_product_compare_shortcode($atts)
             border-radius: 0;
         }
 
+        #<?php echo esc_html($instance_id); ?> .tpc-product-summary-row td {
+            position: sticky;
+            top: 0;
+            z-index: 8;
+            background: #ffffff !important;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+        }
+
         #<?php echo esc_html($instance_id); ?> .tpc-compare-body tr.tpc-section-row:nth-of-type(3n + 1) td {
             background: #ffffff;
         }
@@ -1468,7 +1476,7 @@ function tpc_product_compare_shortcode($atts)
                 root.setAttribute('data-tpc-active-cols', String(activeCols));
                 const rows = [];
 
-                rows.push('<tr class="tpc-section-row">' + products.map(renderProductSummaryCell).join('') + '</tr>');
+                rows.push('<tr class="tpc-section-row tpc-product-summary-row">' + products.map(renderProductSummaryCell).join('') + '</tr>');
                 rows.push(renderSection('Giá bán', products.map(renderPriceCell)));
                 rows.push(renderSection('Mô tả ngắn', products.map(function(product) {
                     return renderHtmlCell(product ? product.short_description : '');
