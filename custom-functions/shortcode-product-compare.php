@@ -730,7 +730,6 @@ function tpc_product_compare_shortcode($atts)
         <div class="tpc-actions">
             <button type="button" class="button button--light-blue tpc-build-button">Tạo bảng so sánh</button>
             <button type="button" class="button button--dark-blue-reverse tpc-reset-button" hidden>Tìm lại</button>
-            <button type="button" class="button button--dark-blue-reverse tpc-copy-link-button" hidden>Copy link xem bảng</button>
         </div>
 
         <div class="tpc-table-shell<?php echo $has_initial_products ? '' : ' tpc-table-shell--hidden'; ?>" <?php echo $has_initial_products ? '' : ' hidden'; ?>>
@@ -748,6 +747,7 @@ function tpc_product_compare_shortcode($atts)
         </div>
 
         <div class="tpc-table-actions" hidden>
+            <button type="button" class="button button--dark-blue-reverse tpc-copy-link-button" hidden>Copy link xem bảng</button>
             <button type="button" class="button button--dark-blue-reverse tpc-reset-button">Tìm lại</button>
         </div>
     </div>
@@ -791,7 +791,7 @@ function tpc_product_compare_shortcode($atts)
         #<?php echo esc_html($instance_id); ?> .tpc-actions {
             display: flex;
             align-items: center;
-            gap: 30px;
+            gap: 20px;
             flex-wrap: wrap;
         }
 
@@ -804,7 +804,7 @@ function tpc_product_compare_shortcode($atts)
 
         #<?php echo esc_html($instance_id); ?> .tpc-actions .tpc-build-button,
         #<?php echo esc_html($instance_id); ?> .tpc-actions .tpc-reset-button,
-        #<?php echo esc_html($instance_id); ?> .tpc-actions .tpc-copy-link-button,
+        #<?php echo esc_html($instance_id); ?> .tpc-table-actions .tpc-copy-link-button,
         #<?php echo esc_html($instance_id); ?> .tpc-table-actions .tpc-reset-button {
             width: auto;
             max-width: max-content;
@@ -1146,7 +1146,7 @@ function tpc_product_compare_shortcode($atts)
             #<?php echo esc_html($instance_id); ?> .tpc-table-actions {
                 display: flex;
                 align-items: center;
-                gap: 30px;
+                gap: 20px;
                 flex-wrap: wrap;
             }
 
