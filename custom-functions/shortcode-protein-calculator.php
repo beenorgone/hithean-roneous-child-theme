@@ -312,16 +312,32 @@ function render_protein_calculator($atts)
                 }
             }
 
+            function syncActivityField() {
+                if (!genderEl || !conditionEl || !activityEl) return;
+
+                var isPregnant = genderEl.value === 'female' && conditionEl.value && conditionEl.value !== 'normal';
+
+                if (isPregnant) {
+                    activityEl.value = 'sedentary';
+                    activityEl.disabled = true;
+                    return;
+                }
+
+                activityEl.disabled = false;
+            }
+
             function toggleConditionField() {
                 if (!genderEl || !conditionEl || !conditionGroup) return;
                 if (genderEl.value === 'female') {
                     conditionGroup.style.display = '';
+                    syncActivityField();
                     updateSuggestedProducts();
                     return;
                 }
 
                 conditionGroup.style.display = 'none';
                 conditionEl.value = 'normal';
+                syncActivityField();
                 updateSuggestedProducts();
             }
 
@@ -348,11 +364,15 @@ function render_protein_calculator($atts)
                 }
             }
             toggleConditionField();
+            syncActivityField();
             if (genderEl) {
                 genderEl.addEventListener('change', toggleConditionField);
             }
             if (conditionEl) {
-                conditionEl.addEventListener('change', updateSuggestedProducts);
+                conditionEl.addEventListener('change', function() {
+                    syncActivityField();
+                    updateSuggestedProducts();
+                });
             }
             if (activityEl) {
                 activityEl.addEventListener('change', updateSuggestedProducts);
@@ -367,6 +387,11 @@ function render_protein_calculator($atts)
                 var condition = document.getElementById('pc_condition').value;
                 var age = parseInt(document.getElementById('pc_age').value);
                 var gender = document.getElementById('pc_gender').value;
+
+                if (gender === 'female' && condition !== 'normal') {
+                    activity = 'sedentary';
+                    document.getElementById('pc_activity').value = activity;
+                }
 
                 if (!weight || weight <= 0) return;
 
