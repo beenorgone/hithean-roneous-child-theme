@@ -537,8 +537,10 @@ if (!defined('ABSPATH')) {
                                     $items = $order->get_items();
                                     if (! empty($items)) :
                                         foreach ($items as $item_id => $item) :
-                                            // Lấy tên gốc sản phẩm
-                                            $product_name = $item->get_name();
+                                            // Lấy tên hiển thị đầy đủ, gồm cả variation nếu có
+                                            $product_name = function_exists('ct_get_order_item_display_name')
+                                                ? ct_get_order_item_display_name($item)
+                                                : $item->get_name();
                                             // Lấy số lượng
                                             $quantity = $item->get_quantity();
                                     ?>

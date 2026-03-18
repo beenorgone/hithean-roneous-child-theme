@@ -58,6 +58,7 @@ add_action('after_setup_theme', 'custom_theme_menus');
 $general_includes = [
     //'custom-functions/test.php',
     //'custom-functions/hpos-order-check.php',
+    'custom-functions/functional.php',
     'custom-functions/woocommerce-settings.php',
     'custom-functions/swiper-slider.php',
     'custom-functions/popup-widget.php',

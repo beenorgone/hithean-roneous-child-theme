@@ -91,7 +91,7 @@ function shortcode_list_unconfirmed_exports()
 
         echo '<ul style="margin:0;padding-left:18px;">';
         foreach ($order->get_items() as $item) {
-            echo '<li>' . esc_html($item->get_name()) . ' × ' . esc_html($item->get_quantity()) . '</li>';
+            echo '<li>' . esc_html(ct_get_order_item_display_name($item)) . ' × ' . esc_html($item->get_quantity()) . '</li>';
         }
         echo '</ul>';
 
@@ -202,7 +202,7 @@ function shortcode_list_uploaded_not_shipped_exports()
 
         echo '<ul style="margin:0;padding-left:18px;">';
         foreach ($order->get_items() as $item) {
-            echo '<li>' . esc_html($item->get_name()) . ' × ' . esc_html($item->get_quantity()) . '</li>';
+            echo '<li>' . esc_html(ct_get_order_item_display_name($item)) . ' × ' . esc_html($item->get_quantity()) . '</li>';
         }
         echo '</ul>';
 
