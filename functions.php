@@ -114,6 +114,8 @@ function load_custom_admin_files()
         return;
     }
 
+    require_once __DIR__ . '/custom-functions/meta-key-rename-tool.php';
+
     // Get current screen (safe fallback)
     $screen = function_exists('get_current_screen') ? get_current_screen() : null;
     $screen_id = $screen ? $screen->id : '';
