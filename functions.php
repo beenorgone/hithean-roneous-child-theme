@@ -107,14 +107,16 @@ foreach ($general_includes as $include) {
     }
 }
 
+if (is_admin() && file_exists(__DIR__ . '/custom-functions/meta-key-rename-tool.php')) {
+    require_once(__DIR__ . '/custom-functions/meta-key-rename-tool.php');
+}
+
 // Conditionally load admin-specific files
 function load_custom_admin_files()
 {
     if (!is_admin()) {
         return;
     }
-
-    require_once __DIR__ . '/custom-functions/meta-key-rename-tool.php';
 
     // Get current screen (safe fallback)
     $screen = function_exists('get_current_screen') ? get_current_screen() : null;
