@@ -128,7 +128,7 @@ function render_protein_calculator($atts)
         }
 
         .pc-result-header {
-            font-weight: bold;
+            font-weight: 500;
             color: var(--default-color-dark-blue, #0047ba);
             margin-bottom: 15px;
             font-size: 18px;
@@ -410,9 +410,24 @@ function render_protein_calculator($atts)
                     <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_beef" min="0" step="10" value="0" placeholder="Ví dụ: 100" data-protein="26" data-base-amount="100">
                 </div>
                 <div class="pc-food-card">
+                    <label for="pc_diet_pork">Thịt heo nạc chín</label>
+                    <span class="pc-food-meta">Nhập tổng gram bạn ăn trong ngày. Quy đổi: 100g = khoảng 27g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_pork" min="0" step="10" value="0" placeholder="Ví dụ: 100" data-protein="27" data-base-amount="100">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_shrimp">Tôm chín</label>
+                    <span class="pc-food-meta">Nhập tổng gram bạn ăn trong ngày. Quy đổi: 100g = khoảng 24g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_shrimp" min="0" step="10" value="0" placeholder="Ví dụ: 120" data-protein="24" data-base-amount="100">
+                </div>
+                <div class="pc-food-card">
                     <label for="pc_diet_milk">Sữa</label>
                     <span class="pc-food-meta">Nhập tổng ml bạn uống trong ngày. Quy đổi: 240ml = khoảng 8g protein</span>
                     <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_milk" min="0" step="50" value="0" placeholder="Ví dụ: 240" data-protein="8" data-base-amount="240">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_soymilk">Sữa đậu nành</label>
+                    <span class="pc-food-meta">Nhập tổng ml bạn uống trong ngày. Quy đổi: 240ml = khoảng 7g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_soymilk" min="0" step="50" value="0" placeholder="Ví dụ: 240" data-protein="7" data-base-amount="240">
                 </div>
                 <div class="pc-food-card">
                     <label for="pc_diet_yogurt">Sữa chua Greek</label>
@@ -428,6 +443,11 @@ function render_protein_calculator($atts)
                     <label for="pc_diet_beans">Đậu, đỗ, đậu lăng đã nấu</label>
                     <span class="pc-food-meta">Nhập tổng gram bạn ăn trong ngày. Quy đổi: 100g = khoảng 9g protein</span>
                     <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_beans" min="0" step="10" value="0" placeholder="Ví dụ: 150" data-protein="9" data-base-amount="100">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_peanuts">Đậu phộng / lạc rang</label>
+                    <span class="pc-food-meta">Nhập tổng gram bạn ăn trong ngày. Quy đổi: 30g = khoảng 7g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_peanuts" min="0" step="10" value="0" placeholder="Ví dụ: 30" data-protein="7" data-base-amount="30">
                 </div>
                 <div class="pc-food-card">
                     <label for="pc_diet_whey">Whey protein</label>
