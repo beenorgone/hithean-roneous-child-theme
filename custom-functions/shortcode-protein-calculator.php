@@ -60,10 +60,16 @@ function render_protein_calculator($atts)
             padding: 30px;
             border-radius: 8px;
             box-shadow: var(--default-box-shadow, 0 4px 6px rgba(0, 0, 0, 0.1));
-            max-width: 600px;
+            max-width: 960px;
             margin: 0 auto;
             font-family: "Be Vietnam", sans-serif;
             border: 1px solid #eee;
+        }
+
+        #proteinCalcForm {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px 20px;
         }
 
         .protein-calc-title {
@@ -107,6 +113,8 @@ function render_protein_calculator($atts)
             margin-top: 15px;
             cursor: pointer;
             font-size: 16px;
+            grid-column: 1 / -1;
+            min-height: 52px;
         }
 
         .pc-result-box {
@@ -268,8 +276,44 @@ function render_protein_calculator($atts)
         }
 
         @media (max-width: 767px) {
+            .protein-calc-wrapper {
+                max-width: 600px;
+            }
+
+            #proteinCalcForm {
+                grid-template-columns: 1fr;
+            }
+
             .pc-food-grid {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .protein-calc-wrapper {
+                padding: 42px;
+            }
+
+            .protein-calc-title {
+                font-size: 32px;
+                margin-bottom: 32px;
+            }
+
+            .pc-form-group label {
+                font-size: 16px;
+            }
+
+            .pc-form-control {
+                height: 52px;
+                font-size: 17px;
+            }
+
+            .pc-result-header {
+                font-size: 22px;
+            }
+
+            .pc-val {
+                font-size: 24px;
             }
         }
     </style>
