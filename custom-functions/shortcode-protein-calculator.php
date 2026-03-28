@@ -200,6 +200,78 @@ function render_protein_calculator($atts)
         .pc-product-slot.is-active {
             display: block;
         }
+
+        .pc-followup-section {
+            margin-top: 24px;
+            padding: 20px;
+            border: 1px solid #e6e0d5;
+            background: #fffdf8;
+            display: none;
+        }
+
+        .pc-followup-section.is-visible {
+            display: block;
+        }
+
+        .pc-followup-intro {
+            margin: 0 0 18px;
+            font-size: 14px;
+            color: #5e5e5e;
+            line-height: 1.6;
+        }
+
+        .pc-food-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px 16px;
+        }
+
+        .pc-food-card {
+            padding: 14px;
+            border: 1px solid #ece7dc;
+            background: #fff;
+        }
+
+        .pc-food-card label {
+            display: block;
+            font-weight: 600;
+            color: var(--default-color-dark-brown, #2e1203);
+            margin-bottom: 6px;
+        }
+
+        .pc-food-meta {
+            display: block;
+            margin-bottom: 8px;
+            color: #6d6d6d;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .pc-food-card input {
+            width: 100% !important;
+        }
+
+        .pc-diet-summary {
+            margin-top: 18px;
+        }
+
+        .pc-reference-list {
+            margin-top: 14px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .pc-reference-list a {
+            color: var(--default-color-dark-blue, #0047ba);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 767px) {
+            .pc-food-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 
     <div class="protein-calc-wrapper">
@@ -265,6 +337,81 @@ function render_protein_calculator($atts)
             </div>
         </div>
 
+        <div id="pcDietEstimator" class="pc-followup-section">
+            <div class="pc-result-header">Ước Tính Protein Từ Chế Độ Ăn Hiện Tại</div>
+            <p class="pc-followup-intro">
+                Sau khi biết nhu cầu protein mỗi ngày, bạn có thể tự nhập lượng thực phẩm mình ăn trong 1 ngày để ước tính lượng protein đang nạp.
+                Đây là công cụ ước tính nhanh dựa trên dữ liệu thành phần thực phẩm phổ biến; nên đối chiếu thêm với nhãn dinh dưỡng của sản phẩm bạn thực tế sử dụng.
+            </p>
+
+            <div class="pc-food-grid">
+                <div class="pc-food-card">
+                    <label for="pc_diet_eggs">Trứng gà</label>
+                    <span class="pc-food-meta">Nhập số quả bạn ăn trong ngày. Quy đổi: 1 quả lớn luộc/chín = khoảng 6.3g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_eggs" min="0" step="1" value="0" placeholder="Ví dụ: 2" data-protein="6.3" data-base-amount="1">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_chicken">Ức gà chín</label>
+                    <span class="pc-food-meta">Nhập tổng gram bạn ăn trong ngày. Quy đổi: 100g = khoảng 31g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_chicken" min="0" step="10" value="0" placeholder="Ví dụ: 150" data-protein="31" data-base-amount="100">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_fish">Cá chín</label>
+                    <span class="pc-food-meta">Nhập tổng gram bạn ăn trong ngày. Quy đổi: 100g = khoảng 22g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_fish" min="0" step="10" value="0" placeholder="Ví dụ: 120" data-protein="22" data-base-amount="100">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_beef">Thịt bò nạc chín</label>
+                    <span class="pc-food-meta">Nhập tổng gram bạn ăn trong ngày. Quy đổi: 100g = khoảng 26g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_beef" min="0" step="10" value="0" placeholder="Ví dụ: 100" data-protein="26" data-base-amount="100">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_milk">Sữa</label>
+                    <span class="pc-food-meta">Nhập tổng ml bạn uống trong ngày. Quy đổi: 240ml = khoảng 8g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_milk" min="0" step="50" value="0" placeholder="Ví dụ: 240" data-protein="8" data-base-amount="240">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_yogurt">Sữa chua Greek</label>
+                    <span class="pc-food-meta">Nhập số hũ bạn ăn trong ngày. Quy đổi: 1 hũ 170g = khoảng 17g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_yogurt" min="0" step="1" value="0" placeholder="Ví dụ: 1" data-protein="17" data-base-amount="1">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_tofu">Đậu phụ cứng</label>
+                    <span class="pc-food-meta">Nhập tổng gram bạn ăn trong ngày. Quy đổi: 100g = khoảng 14g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_tofu" min="0" step="10" value="0" placeholder="Ví dụ: 200" data-protein="14" data-base-amount="100">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_beans">Đậu, đỗ, đậu lăng đã nấu</label>
+                    <span class="pc-food-meta">Nhập tổng gram bạn ăn trong ngày. Quy đổi: 100g = khoảng 9g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_beans" min="0" step="10" value="0" placeholder="Ví dụ: 150" data-protein="9" data-base-amount="100">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_whey">Whey protein</label>
+                    <span class="pc-food-meta">Nhập số muỗng bạn dùng trong ngày. Quy đổi: 1 muỗng chuẩn = khoảng 24g protein</span>
+                    <input type="number" class="pc-form-control pc-diet-input" id="pc_diet_whey" min="0" step="0.5" value="0" placeholder="Ví dụ: 1" data-protein="24" data-base-amount="1">
+                </div>
+                <div class="pc-food-card">
+                    <label for="pc_diet_custom">Protein từ món khác</label>
+                    <span class="pc-food-meta">Tự nhập trực tiếp gram protein từ món khác hoặc từ nhãn sản phẩm bạn dùng trong ngày</span>
+                    <input type="number" class="pc-form-control" id="pc_diet_custom" min="0" step="1" value="0" placeholder="Ví dụ: 12">
+                </div>
+            </div>
+
+            <div class="pc-result-item pc-highlight pc-diet-summary">
+                <span class="pc-label">Tổng protein ước tính từ chế độ ăn hiện tại:</span>
+                <span class="pc-val" id="pcDietTotal">0g / ngày</span>
+                <div class="pc-note" id="pcDietCompareNote">Nhập lượng thực phẩm bạn thực sự ăn trong 1 ngày để xem mức đang thiếu hay dư.</div>
+                <div class="pc-note" id="pcDietAccuracyNote">Mức này là ước tính nhanh, không thay thế cho theo dõi khẩu phần chi tiết hoặc tư vấn dinh dưỡng cá nhân hoá.</div>
+            </div>
+
+            <div class="pc-reference-list">
+                Tài liệu đối chiếu:
+                <br>1. <a href="https://fdc.nal.usda.gov/" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a> - cơ sở dữ liệu thành phần dinh dưỡng để kiểm tra protein của từng thực phẩm.
+                <br>2. <a href="https://www.myplate.gov/eathealthy/protein-foods/protein-foods-nutrients-health?post=08132019a" target="_blank" rel="noopener noreferrer">USDA MyPlate - Protein Foods Group</a> - quy đổi khẩu phần household measures như 1 quả trứng, 1/4 cup đậu, 1 ounce thịt/cá.
+                <br>3. <a href="https://www.fda.gov/food/nutrition-facts-label/how-understand-and-use-nutrition-facts-label" target="_blank" rel="noopener noreferrer">FDA - How to Understand and Use the Nutrition Facts Label</a> - dùng để đối chiếu thực phẩm đóng gói vì công thức/nhãn từng hãng có thể lệch so với giá trị trung bình.
+            </div>
+        </div>
+
         <div class="pc-products-section">
             <h4 class="pc-products-title">Bổ sung protein cho chế độ ăn</h4>
             <?php foreach ($product_ids_by_case as $case => $ids) : ?>
@@ -288,6 +435,12 @@ function render_protein_calculator($atts)
             var conditionGroup = document.getElementById('pc_condition_group');
             var activityEl = document.getElementById('pc_activity');
             var productSlots = document.querySelectorAll('.pc-product-slot');
+            var dietEstimator = document.getElementById('pcDietEstimator');
+            var dietInputs = document.querySelectorAll('.pc-diet-input');
+            var customDietInput = document.getElementById('pc_diet_custom');
+            var dietTotalEl = document.getElementById('pcDietTotal');
+            var dietCompareNoteEl = document.getElementById('pcDietCompareNote');
+            var lastProteinTarget = null;
 
             function updateSuggestedProducts() {
                 if (!productSlots.length || !genderEl || !conditionEl || !activityEl) return;
@@ -341,6 +494,88 @@ function render_protein_calculator($atts)
                 updateSuggestedProducts();
             }
 
+            function parsePositiveNumber(value) {
+                var parsed = parseFloat(value);
+                return (!isNaN(parsed) && parsed > 0) ? parsed : 0;
+            }
+
+            function loadDietEstimatorData() {
+                var savedDiet = localStorage.getItem('protein_calculator_diet_data');
+                if (!savedDiet) return;
+
+                try {
+                    var dietData = JSON.parse(savedDiet);
+                    if (dietInputs.length) {
+                        dietInputs.forEach(function(input) {
+                            if (typeof dietData[input.id] !== 'undefined') {
+                                input.value = dietData[input.id];
+                            }
+                        });
+                    }
+
+                    if (customDietInput && typeof dietData[customDietInput.id] !== 'undefined') {
+                        customDietInput.value = dietData[customDietInput.id];
+                    }
+                } catch (e) {
+                    console.error('Lỗi khi tải dữ liệu khẩu phần protein:', e);
+                }
+            }
+
+            function saveDietEstimatorData() {
+                var dietData = {};
+
+                if (dietInputs.length) {
+                    dietInputs.forEach(function(input) {
+                        dietData[input.id] = input.value;
+                    });
+                }
+
+                if (customDietInput) {
+                    dietData[customDietInput.id] = customDietInput.value;
+                }
+
+                localStorage.setItem('protein_calculator_diet_data', JSON.stringify(dietData));
+            }
+
+            function updateDietEstimatorSummary() {
+                if (!dietTotalEl || !dietCompareNoteEl) return;
+
+                var totalProtein = 0;
+
+                if (dietInputs.length) {
+                    dietInputs.forEach(function(input) {
+                        var amount = parsePositiveNumber(input.value);
+                        var proteinPerServing = parsePositiveNumber(input.getAttribute('data-protein'));
+                        var baseAmount = parsePositiveNumber(input.getAttribute('data-base-amount')) || 1;
+                        totalProtein += (amount / baseAmount) * proteinPerServing;
+                    });
+                }
+
+                totalProtein += parsePositiveNumber(customDietInput ? customDietInput.value : 0);
+                totalProtein = Math.round(totalProtein * 10) / 10;
+
+                dietTotalEl.innerText = totalProtein.toFixed(1).replace('.0', '') + 'g / ngày';
+
+                if (!lastProteinTarget) {
+                    dietCompareNoteEl.innerText = 'Hãy tính nhu cầu protein trước, sau đó công cụ sẽ so sánh khẩu phần hiện tại với mục tiêu của bạn.';
+                    return;
+                }
+
+                if (totalProtein < lastProteinTarget.min) {
+                    var missingMin = Math.round((lastProteinTarget.min - totalProtein) * 10) / 10;
+                    dietCompareNoteEl.innerText = 'Bạn đang thiếu khoảng ' + missingMin.toFixed(1).replace('.0', '') + 'g so với ngưỡng tối thiểu ' + lastProteinTarget.min + 'g/ngày. Có thể tăng thêm 1-2 khẩu phần đạm chất lượng cao.';
+                    return;
+                }
+
+                if (totalProtein > lastProteinTarget.max) {
+                    var excess = Math.round((totalProtein - lastProteinTarget.max) * 10) / 10;
+                    dietCompareNoteEl.innerText = 'Bạn đang cao hơn khoảng ' + excess.toFixed(1).replace('.0', '') + 'g so với cận trên ' + lastProteinTarget.max + 'g/ngày. Nên rà lại tổng năng lượng nếu mục tiêu là kiểm soát cân nặng.';
+                    return;
+                }
+
+                dietCompareNoteEl.innerText = 'Ước tính hiện tại đang nằm trong vùng mục tiêu ' + lastProteinTarget.min + ' - ' + lastProteinTarget.max + 'g/ngày.';
+            }
+
             // --- LOCAL STORAGE: LOAD ---
             var saved = localStorage.getItem('protein_calculator_data');
             if (saved) {
@@ -363,6 +598,7 @@ function render_protein_calculator($atts)
                     console.error('Lỗi khi tải dữ liệu đã lưu:', e);
                 }
             }
+            loadDietEstimatorData();
             toggleConditionField();
             syncActivityField();
             if (genderEl) {
@@ -377,7 +613,22 @@ function render_protein_calculator($atts)
             if (activityEl) {
                 activityEl.addEventListener('change', updateSuggestedProducts);
             }
+            if (dietInputs.length) {
+                dietInputs.forEach(function(input) {
+                    input.addEventListener('input', function() {
+                        saveDietEstimatorData();
+                        updateDietEstimatorSummary();
+                    });
+                });
+            }
+            if (customDietInput) {
+                customDietInput.addEventListener('input', function() {
+                    saveDietEstimatorData();
+                    updateDietEstimatorSummary();
+                });
+            }
             updateSuggestedProducts();
+            updateDietEstimatorSummary();
 
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -509,6 +760,12 @@ function render_protein_calculator($atts)
                 us_total_max = Math.round(us_total_max + pregnancyExtra);
                 var meal_min = Math.max(20, Math.round(us_total_min / 3));
                 var meal_max = Math.max(meal_min + 4, Math.round(us_total_max / 3));
+                lastProteinTarget = {
+                    min: vn_total_min,
+                    max: vn_total_max,
+                    usMin: us_total_min,
+                    usMax: us_total_max
+                };
 
                 // Hien thi ket qua
                 document.getElementById('res_vn').innerText = vn_total_min + ' - ' + vn_total_max + 'g / ngày';
@@ -522,6 +779,10 @@ function render_protein_calculator($atts)
                 document.getElementById('res_meal_note').innerText = 'Gợi ý chia 3 bữa chính: khoảng ' + meal_min + ' - ' + meal_max + 'g protein mỗi bữa để hấp thu và phục hồi tốt hơn.';
                 document.getElementById('res_vn_ref_note').innerHTML = 'Nguồn tham khảo: <a href="https://iris.who.int/server/api/core/bitstreams/b7c5ec43-bc59-4b38-b702-3f0e96a06fa1/content" target="_blank" rel="noopener noreferrer">WHO TRS 935</a>.';
                 document.getElementById('res_us_ref_note').innerHTML = 'Nguồn tham khảo: <a href="https://cdn.realfood.gov/DGA.pdf" target="_blank" rel="noopener noreferrer">Dietary Guidelines for Americans</a>.';
+                if (dietEstimator) {
+                    dietEstimator.classList.add('is-visible');
+                }
+                updateDietEstimatorSummary();
                 updateSuggestedProducts();
 
                 var resultBox = document.getElementById('pcResult');
