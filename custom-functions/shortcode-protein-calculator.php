@@ -62,7 +62,7 @@ function render_protein_calculator($atts)
             padding: 0;
             border-radius: 4px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,.10), 0 1px 2px rgba(0,0,0,.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .10), 0 1px 2px rgba(0, 0, 0, .08);
             max-width: 960px;
             margin: 0 auto;
             font-family: "Be Vietnam", sans-serif;
@@ -113,13 +113,27 @@ function render_protein_calculator($atts)
 
         /* ---- Animations ---- */
         @keyframes pcBounceDown {
-            0%, 100% { transform: translateY(0); }
-            50%       { transform: translateY(5px); }
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(5px);
+            }
         }
 
         @keyframes pcFadeSlideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* ---- Section connectors ---- */
@@ -147,6 +161,7 @@ function render_protein_calculator($atts)
             font-size: 12px;
             color: #bbb;
             font-style: italic;
+            width: 100%;
         }
 
         .protein-calc-wrapper .pc-connector.is-active {
@@ -162,6 +177,7 @@ function render_protein_calculator($atts)
             color: var(--product-nuocepkytu-light-green, #00843d);
             font-style: normal;
             font-weight: 500;
+            width: 100%;
         }
 
         .protein-calc-wrapper .pc-connector.is-active:hover {
@@ -408,7 +424,7 @@ function render_protein_calculator($atts)
             border-top: 1px solid #e6e0d5;
         }
 
-        .protein-calc-wrapper .pc-diet-add-form > label {
+        .protein-calc-wrapper .pc-diet-add-form>label {
             display: block;
             font-size: 13px;
             font-weight: 600;
@@ -540,82 +556,82 @@ function render_protein_calculator($atts)
     <div class="protein-calc-wrapper">
 
         <section class="pc-section">
-        <div class="pc-section-hd">
-            <span class="pc-step-badge">1</span>
-            <h3 class="pc-section-title">Tính Nhu Cầu Protein Của Bạn</h3>
-        </div>
-        <form id="proteinCalcForm">
-            <div class="pc-form-group">
-                <label>Giới tính</label>
-                <select class="pc-form-control" id="pc_gender">
-                    <option value="male">Nam</option>
-                    <option value="female">Nữ</option>
-                </select>
+            <div class="pc-section-hd">
+                <span class="pc-step-badge">1</span>
+                <h3 class="pc-section-title">Tính Nhu Cầu Protein Của Bạn</h3>
             </div>
-            <div class="pc-form-group">
-                <label>Độ tuổi</label>
-                <input type="number" class="pc-form-control" id="pc_age" placeholder="Ví dụ: 25" required min="1" max="120">
-            </div>
-            <div class="pc-form-group">
-                <label>Cân nặng (kg)</label>
-                <input type="number" class="pc-form-control" id="pc_weight" placeholder="Ví dụ: 60" required min="10" step="0.1">
-            </div>
-            <div class="pc-form-group">
-                <label>Mức độ vận động</label>
-                <select class="pc-form-control" id="pc_activity">
-                    <option value="sedentary">Ít vận động (Làm văn phòng, ít tập)</option>
-                    <option value="light">Vận động nhẹ (Tập 1-3 ngày/tuần)</option>
-                    <option value="moderate">Vận động vừa (Tập 3-5 ngày/tuần)</option>
-                    <option value="active">Vận động nhiều (Tập 6-7 ngày/tuần)</option>
-                    <option value="very_active">Rất nhiều (VĐV, lao động nặng)</option>
-                </select>
-            </div>
-            <div class="pc-form-group" id="pc_condition_group">
-                <label>Tình trạng đặc biệt</label>
-                <select class="pc-form-control" id="pc_condition">
-                    <option value="normal">Không mang thai</option>
-                    <option value="pregnant_t1">Mẹ bầu 3 tháng đầu</option>
-                    <option value="pregnant_t2">Mẹ bầu 3 tháng giữa</option>
-                    <option value="pregnant_t3">Mẹ bầu 3 tháng cuối</option>
-                </select>
-            </div>
-            <button type="submit" class="button button--nuocepkytu-light-green pc-btn">TÍNH NGAY</button>
-        </form>
+            <form id="proteinCalcForm">
+                <div class="pc-form-group">
+                    <label>Giới tính</label>
+                    <select class="pc-form-control" id="pc_gender">
+                        <option value="male">Nam</option>
+                        <option value="female">Nữ</option>
+                    </select>
+                </div>
+                <div class="pc-form-group">
+                    <label>Độ tuổi</label>
+                    <input type="number" class="pc-form-control" id="pc_age" placeholder="Ví dụ: 25" required min="1" max="120">
+                </div>
+                <div class="pc-form-group">
+                    <label>Cân nặng (kg)</label>
+                    <input type="number" class="pc-form-control" id="pc_weight" placeholder="Ví dụ: 60" required min="10" step="0.1">
+                </div>
+                <div class="pc-form-group">
+                    <label>Mức độ vận động</label>
+                    <select class="pc-form-control" id="pc_activity">
+                        <option value="sedentary">Ít vận động (Làm văn phòng, ít tập)</option>
+                        <option value="light">Vận động nhẹ (Tập 1-3 ngày/tuần)</option>
+                        <option value="moderate">Vận động vừa (Tập 3-5 ngày/tuần)</option>
+                        <option value="active">Vận động nhiều (Tập 6-7 ngày/tuần)</option>
+                        <option value="very_active">Rất nhiều (VĐV, lao động nặng)</option>
+                    </select>
+                </div>
+                <div class="pc-form-group" id="pc_condition_group">
+                    <label>Tình trạng đặc biệt</label>
+                    <select class="pc-form-control" id="pc_condition">
+                        <option value="normal">Không mang thai</option>
+                        <option value="pregnant_t1">Mẹ bầu 3 tháng đầu</option>
+                        <option value="pregnant_t2">Mẹ bầu 3 tháng giữa</option>
+                        <option value="pregnant_t3">Mẹ bầu 3 tháng cuối</option>
+                    </select>
+                </div>
+                <button type="submit" class="button button--nuocepkytu-light-green pc-btn">TÍNH NGAY</button>
+            </form>
 
-        <div id="pcResult" class="pc-result-box">
-            <div class="pc-result-header">Kết Quả Của Bạn</div>
+            <div id="pcResult" class="pc-result-box">
+                <div class="pc-result-header">Kết Quả Của Bạn</div>
 
-            <div class="pc-result-item">
-                <span class="pc-label">Mức phù hợp cho người Việt (tham chiếu WHO)</span>
-                <span class="pc-val" id="res_vn"></span>
-                <div class="pc-note" id="res_vn_activity_note"></div>
-                <div class="pc-note" id="res_vn_age_note"></div>
-                <div class="pc-note" id="res_vn_condition_note"></div>
-                <div class="pc-note" id="res_vn_ref_note"></div>
-            </div>
+                <div class="pc-result-item">
+                    <span class="pc-label">Mức phù hợp cho người Việt (tham chiếu WHO)</span>
+                    <span class="pc-val" id="res_vn"></span>
+                    <div class="pc-note" id="res_vn_activity_note"></div>
+                    <div class="pc-note" id="res_vn_age_note"></div>
+                    <div class="pc-note" id="res_vn_condition_note"></div>
+                    <div class="pc-note" id="res_vn_ref_note"></div>
+                </div>
 
-            <div class="pc-result-item">
-                <span class="pc-label">Khuyến nghị mới — Mỹ 2026–2030</span>
-                <span class="pc-val" id="res_us"></span>
-                <div class="pc-note" id="res_us_goal_note"></div>
-                <div class="pc-note" id="res_us_age_note"></div>
-                <div class="pc-note" id="res_us_condition_note"></div>
-                <div class="pc-note" id="res_meal_note"></div>
-                <div class="pc-note" id="res_us_ref_note"></div>
+                <div class="pc-result-item">
+                    <span class="pc-label">Khuyến nghị mới — Mỹ 2026–2030</span>
+                    <span class="pc-val" id="res_us"></span>
+                    <div class="pc-note" id="res_us_goal_note"></div>
+                    <div class="pc-note" id="res_us_age_note"></div>
+                    <div class="pc-note" id="res_us_condition_note"></div>
+                    <div class="pc-note" id="res_meal_note"></div>
+                    <div class="pc-note" id="res_us_ref_note"></div>
+                </div>
             </div>
-        </div>
         </section>
 
         <div class="pc-connector" id="pcConnector12" data-target="pcDietEstimator">
             <span class="pc-connector-arrow">↓</span>
-            <span class="pc-connector-label">Tính xong → ước tính protein từ khẩu phần ăn của bạn</span>
+            <button class="pc-connector-label">Tính xong → ước tính protein từ khẩu phần ăn của bạn</button>
         </div>
 
         <section id="pcDietEstimator" class="pc-section pc-followup-section">
-        <div class="pc-section-hd">
-            <span class="pc-step-badge">2</span>
-            <h3 class="pc-section-title">Ước Tính Protein Từ Khẩu Phần Ăn</h3>
-        </div>
+            <div class="pc-section-hd">
+                <span class="pc-step-badge">2</span>
+                <h3 class="pc-section-title">Ước Tính Protein Từ Khẩu Phần Ăn</h3>
+            </div>
             <p class="pc-followup-intro">
                 Sau khi biết nhu cầu protein mỗi ngày, bạn có thể tự nhập lượng thực phẩm mình ăn trong 1 ngày để ước tính lượng protein đang nạp.
                 Đây là công cụ ước tính nhanh dựa trên dữ liệu thành phần thực phẩm phổ biến; nên đối chiếu thêm với nhãn dinh dưỡng của sản phẩm bạn thực tế sử dụng.
@@ -671,14 +687,14 @@ function render_protein_calculator($atts)
 
         <div class="pc-connector pc-followup-section" id="pcConnector23" data-target="pcProductsSection">
             <span class="pc-connector-arrow">↓</span>
-            <span class="pc-connector-label">Thêm thực phẩm xong → xem gợi ý sản phẩm phù hợp</span>
+            <button class="pc-connector-label">Thêm thực phẩm xong → xem gợi ý sản phẩm phù hợp</button>
         </div>
 
         <section id="pcProductsSection" class="pc-section pc-followup-section">
-        <div class="pc-section-hd">
-            <span class="pc-step-badge">3</span>
-            <h3 class="pc-section-title">Gợi Ý Sản Phẩm Cho Bạn</h3>
-        </div>
+            <div class="pc-section-hd">
+                <span class="pc-step-badge">3</span>
+                <h3 class="pc-section-title">Gợi Ý Sản Phẩm Cho Bạn</h3>
+            </div>
             <?php foreach ($product_ids_by_case as $case => $ids) : ?>
                 <div class="pc-product-slot<?php echo $case === 'default' ? ' is-active' : ''; ?>" data-product-case="<?php echo esc_attr($case); ?>">
                     <?php
@@ -696,23 +712,26 @@ function render_protein_calculator($atts)
             var form = document.getElementById('proteinCalcForm');
             if (!form) return;
 
-            var genderEl      = document.getElementById('pc_gender');
-            var conditionEl   = document.getElementById('pc_condition');
+            var genderEl = document.getElementById('pc_gender');
+            var conditionEl = document.getElementById('pc_condition');
             var conditionGroup = document.getElementById('pc_condition_group');
-            var activityEl    = document.getElementById('pc_activity');
-            var productSlots  = document.querySelectorAll('.pc-product-slot');
-            var dietEstimator    = document.getElementById('pcDietEstimator');
-            var productsSection  = document.getElementById('pcProductsSection');
-            var dietTotalEl      = document.getElementById('pcDietTotal');
-            var dietCompareVNEl  = document.getElementById('pcDietCompareVN');
-            var dietCompareUSEl  = document.getElementById('pcDietCompareUS');
+            var activityEl = document.getElementById('pc_activity');
+            var productSlots = document.querySelectorAll('.pc-product-slot');
+            var dietEstimator = document.getElementById('pcDietEstimator');
+            var productsSection = document.getElementById('pcProductsSection');
+            var dietTotalEl = document.getElementById('pcDietTotal');
+            var dietCompareVNEl = document.getElementById('pcDietCompareVN');
+            var dietCompareUSEl = document.getElementById('pcDietCompareUS');
             var lastProteinTarget = null;
 
             function showProductsSection() {
                 if (productsSection && dietEntries.length > 0) {
                     productsSection.classList.add('is-visible');
                     var conn23 = document.getElementById('pcConnector23');
-                    if (conn23) { conn23.classList.add('is-visible'); conn23.classList.add('is-active'); }
+                    if (conn23) {
+                        conn23.classList.add('is-visible');
+                        conn23.classList.add('is-active');
+                    }
                 }
             }
 
@@ -724,27 +743,155 @@ function render_protein_calculator($atts)
                     if (!targetId) return;
                     var target = document.getElementById(targetId);
                     if (target && target.classList.contains('is-visible')) {
-                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
                     }
                 });
             });
 
             // ---- Food data ----
-            var FOOD_DATA = [
-                { id: 'eggs',    label: 'Trứng gà',                  meta: 'Quy đổi: 1 quả lớn luộc/chín ≈ 6.3g protein',    unit: 'quả',     protein: 6.3,  base: 1,   step: 1,   placeholder: 'Ví dụ: 2' },
-                { id: 'chicken', label: 'Ức gà chín',                 meta: 'Quy đổi: 100g ≈ 31g protein',                    unit: 'g',       protein: 31,   base: 100, step: 10,  placeholder: 'Ví dụ: 150' },
-                { id: 'fish',    label: 'Cá chín',                    meta: 'Quy đổi: 100g ≈ 22g protein',                    unit: 'g',       protein: 22,   base: 100, step: 10,  placeholder: 'Ví dụ: 120' },
-                { id: 'beef',    label: 'Thịt bò nạc chín',           meta: 'Quy đổi: 100g ≈ 26g protein',                    unit: 'g',       protein: 26,   base: 100, step: 10,  placeholder: 'Ví dụ: 100' },
-                { id: 'pork',    label: 'Thịt heo nạc chín',          meta: 'Quy đổi: 100g ≈ 27g protein',                    unit: 'g',       protein: 27,   base: 100, step: 10,  placeholder: 'Ví dụ: 100' },
-                { id: 'shrimp',  label: 'Tôm chín',                   meta: 'Quy đổi: 100g ≈ 24g protein',                    unit: 'g',       protein: 24,   base: 100, step: 10,  placeholder: 'Ví dụ: 120' },
-                { id: 'milk',    label: 'Sữa',                        meta: 'Quy đổi: 240ml ≈ 8g protein',                    unit: 'ml',      protein: 8,    base: 240, step: 50,  placeholder: 'Ví dụ: 240' },
-                { id: 'soymilk', label: 'Sữa đậu nành',               meta: 'Quy đổi: 240ml ≈ 7g protein',                    unit: 'ml',      protein: 7,    base: 240, step: 50,  placeholder: 'Ví dụ: 240' },
-                { id: 'yogurt',  label: 'Sữa chua Greek',             meta: 'Quy đổi: 1 hũ 170g ≈ 17g protein',              unit: 'hũ',      protein: 17,   base: 1,   step: 1,   placeholder: 'Ví dụ: 1' },
-                { id: 'tofu',    label: 'Đậu phụ cứng',               meta: 'Quy đổi: 100g ≈ 14g protein',                    unit: 'g',       protein: 14,   base: 100, step: 10,  placeholder: 'Ví dụ: 200' },
-                { id: 'beans',   label: 'Đậu, đỗ, đậu lăng đã nấu',  meta: 'Quy đổi: 100g ≈ 9g protein',                     unit: 'g',       protein: 9,    base: 100, step: 10,  placeholder: 'Ví dụ: 150' },
-                { id: 'peanuts', label: 'Đậu phộng / lạc rang',       meta: 'Quy đổi: 30g ≈ 7g protein',                      unit: 'g',       protein: 7,    base: 30,  step: 10,  placeholder: 'Ví dụ: 30' },
-                { id: 'whey',    label: 'Whey protein',               meta: 'Quy đổi: 1 muỗng chuẩn ≈ 24g protein',           unit: 'muỗng',   protein: 24,   base: 1,   step: 0.5, placeholder: 'Ví dụ: 1' },
-                { id: 'custom',  label: 'Protein từ món khác',        meta: 'Tự nhập trực tiếp gram protein từ nhãn sản phẩm', unit: 'g protein', protein: 1, base: 1,   step: 1,   placeholder: 'Ví dụ: 12' }
+            var FOOD_DATA = [{
+                    id: 'eggs',
+                    label: 'Trứng gà',
+                    meta: 'Quy đổi: 1 quả lớn luộc/chín ≈ 6.3g protein',
+                    unit: 'quả',
+                    protein: 6.3,
+                    base: 1,
+                    step: 1,
+                    placeholder: 'Ví dụ: 2'
+                },
+                {
+                    id: 'chicken',
+                    label: 'Ức gà chín',
+                    meta: 'Quy đổi: 100g ≈ 31g protein',
+                    unit: 'g',
+                    protein: 31,
+                    base: 100,
+                    step: 10,
+                    placeholder: 'Ví dụ: 150'
+                },
+                {
+                    id: 'fish',
+                    label: 'Cá chín',
+                    meta: 'Quy đổi: 100g ≈ 22g protein',
+                    unit: 'g',
+                    protein: 22,
+                    base: 100,
+                    step: 10,
+                    placeholder: 'Ví dụ: 120'
+                },
+                {
+                    id: 'beef',
+                    label: 'Thịt bò nạc chín',
+                    meta: 'Quy đổi: 100g ≈ 26g protein',
+                    unit: 'g',
+                    protein: 26,
+                    base: 100,
+                    step: 10,
+                    placeholder: 'Ví dụ: 100'
+                },
+                {
+                    id: 'pork',
+                    label: 'Thịt heo nạc chín',
+                    meta: 'Quy đổi: 100g ≈ 27g protein',
+                    unit: 'g',
+                    protein: 27,
+                    base: 100,
+                    step: 10,
+                    placeholder: 'Ví dụ: 100'
+                },
+                {
+                    id: 'shrimp',
+                    label: 'Tôm chín',
+                    meta: 'Quy đổi: 100g ≈ 24g protein',
+                    unit: 'g',
+                    protein: 24,
+                    base: 100,
+                    step: 10,
+                    placeholder: 'Ví dụ: 120'
+                },
+                {
+                    id: 'milk',
+                    label: 'Sữa',
+                    meta: 'Quy đổi: 240ml ≈ 8g protein',
+                    unit: 'ml',
+                    protein: 8,
+                    base: 240,
+                    step: 50,
+                    placeholder: 'Ví dụ: 240'
+                },
+                {
+                    id: 'soymilk',
+                    label: 'Sữa đậu nành',
+                    meta: 'Quy đổi: 240ml ≈ 7g protein',
+                    unit: 'ml',
+                    protein: 7,
+                    base: 240,
+                    step: 50,
+                    placeholder: 'Ví dụ: 240'
+                },
+                {
+                    id: 'yogurt',
+                    label: 'Sữa chua Greek',
+                    meta: 'Quy đổi: 1 hũ 170g ≈ 17g protein',
+                    unit: 'hũ',
+                    protein: 17,
+                    base: 1,
+                    step: 1,
+                    placeholder: 'Ví dụ: 1'
+                },
+                {
+                    id: 'tofu',
+                    label: 'Đậu phụ cứng',
+                    meta: 'Quy đổi: 100g ≈ 14g protein',
+                    unit: 'g',
+                    protein: 14,
+                    base: 100,
+                    step: 10,
+                    placeholder: 'Ví dụ: 200'
+                },
+                {
+                    id: 'beans',
+                    label: 'Đậu, đỗ, đậu lăng đã nấu',
+                    meta: 'Quy đổi: 100g ≈ 9g protein',
+                    unit: 'g',
+                    protein: 9,
+                    base: 100,
+                    step: 10,
+                    placeholder: 'Ví dụ: 150'
+                },
+                {
+                    id: 'peanuts',
+                    label: 'Đậu phộng / lạc rang',
+                    meta: 'Quy đổi: 30g ≈ 7g protein',
+                    unit: 'g',
+                    protein: 7,
+                    base: 30,
+                    step: 10,
+                    placeholder: 'Ví dụ: 30'
+                },
+                {
+                    id: 'whey',
+                    label: 'Whey protein',
+                    meta: 'Quy đổi: 1 muỗng chuẩn ≈ 24g protein',
+                    unit: 'muỗng',
+                    protein: 24,
+                    base: 1,
+                    step: 0.5,
+                    placeholder: 'Ví dụ: 1'
+                },
+                {
+                    id: 'custom',
+                    label: 'Protein từ món khác',
+                    meta: 'Tự nhập trực tiếp gram protein từ nhãn sản phẩm',
+                    unit: 'g protein',
+                    protein: 1,
+                    base: 1,
+                    step: 1,
+                    placeholder: 'Ví dụ: 12'
+                }
             ];
 
             // ---- Diet entries ----
@@ -762,14 +909,18 @@ function render_protein_calculator($atts)
 
             function getDietTotal() {
                 var total = 0;
-                dietEntries.forEach(function(e) { total += e.protein || 0; });
+                dietEntries.forEach(function(e) {
+                    total += e.protein || 0;
+                });
                 return Math.round(total * 10) / 10;
             }
 
             function syncDropdownDisabled() {
                 if (!foodSelectEl) return;
                 var usedIds = {};
-                dietEntries.forEach(function(e) { if (e.foodId !== 'custom') usedIds[e.foodId] = true; });
+                dietEntries.forEach(function(e) {
+                    if (e.foodId !== 'custom') usedIds[e.foodId] = true;
+                });
                 foodSelectEl.querySelectorAll('option[value]').forEach(function(opt) {
                     if (!opt.value || opt.value === 'custom') return;
                     opt.disabled = !!usedIds[opt.value];
@@ -779,15 +930,19 @@ function render_protein_calculator($atts)
             function renderDietEntries() {
                 var listEl = document.getElementById('pcDietEntriesList');
                 if (!listEl) return;
-                if (!dietEntries.length) { listEl.innerHTML = ''; syncDropdownDisabled(); return; }
+                if (!dietEntries.length) {
+                    listEl.innerHTML = '';
+                    syncDropdownDisabled();
+                    return;
+                }
                 var html = '';
                 dietEntries.forEach(function(entry, idx) {
                     var pVal = Math.round((entry.protein || 0) * 10) / 10;
-                    html += '<div class="pc-diet-entry">'
-                        + '<span class="pc-diet-entry-info">' + escHtml(entry.label) + ': ' + escHtml(String(entry.amount)) + '\u00a0' + escHtml(entry.unit) + '</span>'
-                        + '<span class="pc-diet-entry-protein">\u2248\u00a0' + pVal + 'g protein</span>'
-                        + '<button type="button" class="pc-diet-remove" data-idx="' + idx + '" aria-label="Xo\u00e1">\u00d7</button>'
-                        + '</div>';
+                    html += '<div class="pc-diet-entry">' +
+                        '<span class="pc-diet-entry-info">' + escHtml(entry.label) + ': ' + escHtml(String(entry.amount)) + '\u00a0' + escHtml(entry.unit) + '</span>' +
+                        '<span class="pc-diet-entry-protein">\u2248\u00a0' + pVal + 'g protein</span>' +
+                        '<button type="button" class="pc-diet-remove" data-idx="' + idx + '" aria-label="Xo\u00e1">\u00d7</button>' +
+                        '</div>';
                 });
                 listEl.innerHTML = html;
                 listEl.querySelectorAll('.pc-diet-remove').forEach(function(btn) {
@@ -838,21 +993,30 @@ function render_protein_calculator($atts)
             }
 
             // ---- Food select UI ----
-            var foodSelectEl      = document.getElementById('pcFoodSelect');
-            var foodInputAreaEl   = document.getElementById('pcFoodInputArea');
+            var foodSelectEl = document.getElementById('pcFoodSelect');
+            var foodInputAreaEl = document.getElementById('pcFoodInputArea');
             var selectedFoodNameEl = document.getElementById('pcSelectedFoodName');
             var selectedFoodMetaEl = document.getElementById('pcSelectedFoodMeta');
             var foodAmountInputEl = document.getElementById('pcFoodAmountInput');
-            var foodUnitEl        = document.getElementById('pcFoodUnit');
-            var addFoodBtnEl      = document.getElementById('pcAddFoodBtn');
-            var currentFoodItem   = null;
+            var foodUnitEl = document.getElementById('pcFoodUnit');
+            var addFoodBtnEl = document.getElementById('pcAddFoodBtn');
+            var currentFoodItem = null;
 
             function addFoodEntry() {
                 if (!currentFoodItem) return;
                 var amount = parseFloat(foodAmountInputEl.value);
-                if (!amount || amount <= 0) { foodAmountInputEl.focus(); return; }
+                if (!amount || amount <= 0) {
+                    foodAmountInputEl.focus();
+                    return;
+                }
                 var protein = Math.round((amount / currentFoodItem.base) * currentFoodItem.protein * 10) / 10;
-                dietEntries.push({ foodId: currentFoodItem.id, label: currentFoodItem.label, amount: amount, unit: currentFoodItem.unit, protein: protein });
+                dietEntries.push({
+                    foodId: currentFoodItem.id,
+                    label: currentFoodItem.label,
+                    amount: amount,
+                    unit: currentFoodItem.unit,
+                    protein: protein
+                });
                 saveDietEntries();
                 renderDietEntries();
                 updateDietEstimatorSummary();
@@ -867,9 +1031,18 @@ function render_protein_calculator($atts)
             if (foodSelectEl) {
                 foodSelectEl.addEventListener('change', function() {
                     var selectedId = this.value;
-                    if (!selectedId) { foodInputAreaEl.style.display = 'none'; currentFoodItem = null; return; }
+                    if (!selectedId) {
+                        foodInputAreaEl.style.display = 'none';
+                        currentFoodItem = null;
+                        return;
+                    }
                     var food = null;
-                    for (var i = 0; i < FOOD_DATA.length; i++) { if (FOOD_DATA[i].id === selectedId) { food = FOOD_DATA[i]; break; } }
+                    for (var i = 0; i < FOOD_DATA.length; i++) {
+                        if (FOOD_DATA[i].id === selectedId) {
+                            food = FOOD_DATA[i];
+                            break;
+                        }
+                    }
                     if (!food) return;
                     currentFoodItem = food;
                     selectedFoodNameEl.innerText = food.label;
@@ -885,7 +1058,10 @@ function render_protein_calculator($atts)
 
             if (foodAmountInputEl) {
                 foodAmountInputEl.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') { e.preventDefault(); addFoodEntry(); }
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addFoodEntry();
+                    }
                 });
             }
 
@@ -928,7 +1104,11 @@ function render_protein_calculator($atts)
             function syncActivityField() {
                 if (!genderEl || !conditionEl || !activityEl) return;
                 var isPregnant = genderEl.value === 'female' && conditionEl.value && conditionEl.value !== 'normal';
-                if (isPregnant) { activityEl.value = 'sedentary'; activityEl.disabled = true; return; }
+                if (isPregnant) {
+                    activityEl.value = 'sedentary';
+                    activityEl.disabled = true;
+                    return;
+                }
                 activityEl.disabled = false;
             }
 
@@ -951,23 +1131,31 @@ function render_protein_calculator($atts)
             if (saved) {
                 try {
                     var data = JSON.parse(saved);
-                    if (data.gender)    document.getElementById('pc_gender').value    = data.gender;
-                    if (data.age)       document.getElementById('pc_age').value       = data.age;
-                    if (data.weight)    document.getElementById('pc_weight').value    = data.weight;
-                    if (data.activity)  document.getElementById('pc_activity').value  = data.activity;
+                    if (data.gender) document.getElementById('pc_gender').value = data.gender;
+                    if (data.age) document.getElementById('pc_age').value = data.age;
+                    if (data.weight) document.getElementById('pc_weight').value = data.weight;
+                    if (data.activity) document.getElementById('pc_activity').value = data.activity;
                     if (data.condition) document.getElementById('pc_condition').value = data.condition;
                     if (data.weight && data.age) {
-                        setTimeout(function() { var btn = form.querySelector('button[type="submit"]'); if (btn) btn.click(); }, 50);
+                        setTimeout(function() {
+                            var btn = form.querySelector('button[type="submit"]');
+                            if (btn) btn.click();
+                        }, 50);
                     }
-                } catch (e) { console.error('L\u1ed7i khi t\u1ea3i d\u1eef li\u1ec7u \u0111\u00e3 l\u01b0u:', e); }
+                } catch (e) {
+                    console.error('L\u1ed7i khi t\u1ea3i d\u1eef li\u1ec7u \u0111\u00e3 l\u01b0u:', e);
+                }
             }
 
             toggleConditionField();
             syncActivityField();
 
-            if (genderEl)    genderEl.addEventListener('change', toggleConditionField);
-            if (conditionEl) conditionEl.addEventListener('change', function() { syncActivityField(); updateSuggestedProducts(); });
-            if (activityEl)  activityEl.addEventListener('change', updateSuggestedProducts);
+            if (genderEl) genderEl.addEventListener('change', toggleConditionField);
+            if (conditionEl) conditionEl.addEventListener('change', function() {
+                syncActivityField();
+                updateSuggestedProducts();
+            });
+            if (activityEl) activityEl.addEventListener('change', updateSuggestedProducts);
 
             updateSuggestedProducts();
 
@@ -975,11 +1163,11 @@ function render_protein_calculator($atts)
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
 
-                var weight    = parseFloat(document.getElementById('pc_weight').value);
-                var activity  = document.getElementById('pc_activity').value;
+                var weight = parseFloat(document.getElementById('pc_weight').value);
+                var activity = document.getElementById('pc_activity').value;
                 var condition = document.getElementById('pc_condition').value;
-                var age       = parseInt(document.getElementById('pc_age').value, 10);
-                var gender    = document.getElementById('pc_gender').value;
+                var age = parseInt(document.getElementById('pc_age').value, 10);
+                var gender = document.getElementById('pc_gender').value;
 
                 if (gender === 'female' && condition !== 'normal') {
                     activity = 'sedentary';
@@ -987,50 +1175,95 @@ function render_protein_calculator($atts)
                 }
                 if (!weight || weight <= 0) return;
 
-                localStorage.setItem('protein_calculator_data', JSON.stringify({ gender: gender, age: age, weight: weight, activity: activity, condition: condition }));
+                localStorage.setItem('protein_calculator_data', JSON.stringify({
+                    gender: gender,
+                    age: age,
+                    weight: weight,
+                    activity: activity,
+                    condition: condition
+                }));
 
                 var activityMap = {
-                    sedentary:   { vnMin: 0.8, vnMax: 1.0, label: '\u00CDt v\u1eadn \u0111\u1ed9ng',   detail: 'N\u00ean duy tr\u00ec \u0111\u1ea1m \u1edf m\u1ee9c c\u01a1 b\u1ea3n \u0111\u1ec3 b\u1ea3o to\u00e0n kh\u1ed1i c\u01a1 v\u00e0 ph\u1ee5c h\u1ed3i h\u1eb1ng ng\u00e0y.' },
-                    light:       { vnMin: 1.0, vnMax: 1.2, label: 'V\u1eadn \u0111\u1ed9ng nh\u1eb9',   detail: 'Nhu c\u1ea7u \u0111\u1ea1m t\u0103ng nh\u1eb9 \u0111\u1ec3 h\u1ed7 tr\u1ee3 ph\u1ee5c h\u1ed3i sau c\u00e1c bu\u1ed5i t\u1eadp/\u0111i b\u1ed9 nh\u1eb9.' },
-                    moderate:    { vnMin: 1.2, vnMax: 1.4, label: 'V\u1eadn \u0111\u1ed9ng v\u1eeba',   detail: 'M\u1ee9c ph\u00f9 h\u1ee3p cho ng\u01b0\u1eddi t\u1eadp \u0111\u1ec1u \u0111\u1eb7n 3-5 bu\u1ed5i/tu\u1ea7n, c\u1ea7n ph\u1ee5c h\u1ed3i c\u01a1 t\u1ed1t h\u01a1n.' },
-                    active:      { vnMin: 1.4, vnMax: 1.6, label: 'V\u1eadn \u0111\u1ed9ng nhi\u1ec1u',  detail: 'Ph\u00f9 h\u1ee3p ng\u01b0\u1eddi t\u1eadp n\u1eb7ng, c\u1ea7n t\u0103ng \u0111\u1ea1m \u0111\u1ec3 duy tr\u00ec v\u00e0 ph\u00e1t tri\u1ec3n kh\u1ed1i c\u01a1.' },
-                    very_active: { vnMin: 1.6, vnMax: 1.8, label: 'R\u1ea5t nhi\u1ec1u',              detail: 'D\u00e0nh cho v\u1eadn \u0111\u1ed9ng vi\u00ean ho\u1eb7c lao \u0111\u1ed9ng th\u1ec3 l\u1ef1c cao, nhu c\u1ea7u ph\u1ee5c h\u1ed3i r\u1ea5t l\u1edbn.' }
+                    sedentary: {
+                        vnMin: 0.8,
+                        vnMax: 1.0,
+                        label: '\u00CDt v\u1eadn \u0111\u1ed9ng',
+                        detail: 'N\u00ean duy tr\u00ec \u0111\u1ea1m \u1edf m\u1ee9c c\u01a1 b\u1ea3n \u0111\u1ec3 b\u1ea3o to\u00e0n kh\u1ed1i c\u01a1 v\u00e0 ph\u1ee5c h\u1ed3i h\u1eb1ng ng\u00e0y.'
+                    },
+                    light: {
+                        vnMin: 1.0,
+                        vnMax: 1.2,
+                        label: 'V\u1eadn \u0111\u1ed9ng nh\u1eb9',
+                        detail: 'Nhu c\u1ea7u \u0111\u1ea1m t\u0103ng nh\u1eb9 \u0111\u1ec3 h\u1ed7 tr\u1ee3 ph\u1ee5c h\u1ed3i sau c\u00e1c bu\u1ed5i t\u1eadp/\u0111i b\u1ed9 nh\u1eb9.'
+                    },
+                    moderate: {
+                        vnMin: 1.2,
+                        vnMax: 1.4,
+                        label: 'V\u1eadn \u0111\u1ed9ng v\u1eeba',
+                        detail: 'M\u1ee9c ph\u00f9 h\u1ee3p cho ng\u01b0\u1eddi t\u1eadp \u0111\u1ec1u \u0111\u1eb7n 3-5 bu\u1ed5i/tu\u1ea7n, c\u1ea7n ph\u1ee5c h\u1ed3i c\u01a1 t\u1ed1t h\u01a1n.'
+                    },
+                    active: {
+                        vnMin: 1.4,
+                        vnMax: 1.6,
+                        label: 'V\u1eadn \u0111\u1ed9ng nhi\u1ec1u',
+                        detail: 'Ph\u00f9 h\u1ee3p ng\u01b0\u1eddi t\u1eadp n\u1eb7ng, c\u1ea7n t\u0103ng \u0111\u1ea1m \u0111\u1ec3 duy tr\u00ec v\u00e0 ph\u00e1t tri\u1ec3n kh\u1ed1i c\u01a1.'
+                    },
+                    very_active: {
+                        vnMin: 1.6,
+                        vnMax: 1.8,
+                        label: 'R\u1ea5t nhi\u1ec1u',
+                        detail: 'D\u00e0nh cho v\u1eadn \u0111\u1ed9ng vi\u00ean ho\u1eb7c lao \u0111\u1ed9ng th\u1ec3 l\u1ef1c cao, nhu c\u1ea7u ph\u1ee5c h\u1ed3i r\u1ea5t l\u1edbn.'
+                    }
                 };
                 var activityInfo = activityMap[activity] || activityMap.sedentary;
                 var vn_min = activityInfo.vnMin;
                 var vn_max = activityInfo.vnMax;
-                var vnAgeDetail = '', usAgeDetail = '';
+                var vnAgeDetail = '',
+                    usAgeDetail = '';
                 var vnConditionDetail = 'Kh\u00f4ng c\u00f3 \u0111i\u1ec1u ch\u1ec9nh \u0111\u1eb7c bi\u1ec7t.';
                 var usConditionDetail = 'Kh\u00f4ng c\u00f3 \u0111i\u1ec1u ch\u1ec9nh \u0111\u1eb7c bi\u1ec7t.';
 
                 if (age < 18) {
-                    vn_min = Math.max(vn_min, 1.0); vn_max = Math.max(vn_max, 1.3);
+                    vn_min = Math.max(vn_min, 1.0);
+                    vn_max = Math.max(vn_max, 1.3);
                     vnAgeDetail = 'Nh\u00f3m d\u01b0\u1edbi 18 tu\u1ed5i: \u01b0u ti\u00ean \u0111\u1ea1m ch\u1ea5t l\u01b0\u1ee3ng \u0111\u1ec3 h\u1ed7 tr\u1ee3 t\u0103ng tr\u01b0\u1edfng, kh\u00f4ng n\u00ean c\u1eaft gi\u1ea3m \u0111\u1ea1m qu\u00e1 th\u1ea5p.';
                     usAgeDetail = 'Khuy\u1ebfn ngh\u1ecb M\u1ef9 ch\u1ee7 y\u1ebfu \u00e1p d\u1ee5ng cho ng\u01b0\u1eddi tr\u01b0\u1edfng th\u00e0nh, v\u1edbi tr\u1ebb em c\u1ea7n theo h\u01b0\u1edbng d\u1eabn ri\u00eang theo tu\u1ed5i.';
                 } else if (age <= 49) {
                     vnAgeDetail = 'Nh\u00f3m 18-49 tu\u1ed5i: \u00e1p d\u1ee5ng tr\u1ef1c ti\u1ebfp theo m\u1ee9c v\u1eadn \u0111\u1ed9ng \u0111\u1ec3 duy tr\u00ec s\u1ee9c kh\u1ecfe v\u00e0 th\u00e0nh ph\u1ea7n c\u01a1 th\u1ec3.';
                     usAgeDetail = 'Nh\u00f3m tr\u01b0\u1edfng th\u00e0nh: c\u00f3 th\u1ec3 d\u00f9ng m\u1ee9c 1.2-1.6g/kg khi c\u1ea7n t\u1ed1i \u01b0u c\u01a1 b\u1eafp ho\u1eb7c ki\u1ec3m so\u00e1t c\u00e2n n\u1eb7ng.';
                 } else if (age <= 64) {
-                    vn_min += 0.1; vn_max += 0.2;
+                    vn_min += 0.1;
+                    vn_max += 0.2;
                     vnAgeDetail = 'Nh\u00f3m 50-64 tu\u1ed5i: t\u0103ng nh\u1eb9 \u0111\u1ea1m \u0111\u1ec3 h\u1ed7 tr\u1ee3 ch\u1ed1ng m\u1ea5t c\u01a1 li\u00ean quan tu\u1ed5i t\u00e1c.';
                     usAgeDetail = 'Tu\u1ed5i trung ni\u00ean: c\u00f3 th\u1ec3 \u01b0u ti\u00ean m\u1ee9c g\u1ea7n c\u1eadn tr\u00ean khi v\u1eadn \u0111\u1ed9ng th\u01b0\u1eddng xuy\u00ean ho\u1eb7c \u0111ang gi\u1ea3m m\u1ee1.';
                 } else {
-                    vn_min += 0.2; vn_max += 0.3;
+                    vn_min += 0.2;
+                    vn_max += 0.3;
                     vnAgeDetail = 'Nh\u00f3m t\u1eeb 65 tu\u1ed5i: n\u00ean t\u0103ng \u0111\u1ea1m v\u00e0 chia \u0111\u1ec1u trong ng\u00e0y \u0111\u1ec3 h\u1ed7 tr\u1ee3 v\u1eadn \u0111\u1ed9ng v\u00e0 h\u1ea1n ch\u1ebf suy gi\u1ea3m c\u01a1.';
                     usAgeDetail = 'Nh\u00f3m l\u1edbn tu\u1ed5i: n\u00ean d\u00f9ng m\u1ee9c cao v\u1eeba ph\u1ea3i, \u0111\u1ed3ng th\u1eddi theo d\u00f5i ch\u1ee9c n\u0103ng th\u1eadn v\u00e0 b\u1ec7nh n\u1ec1n.';
                 }
 
-                var us_min = 1.2, us_max = 1.6;
-                if (activity === 'active') { us_max = 1.7; }
-                else if (activity === 'very_active') { us_max = 1.8; }
+                var us_min = 1.2,
+                    us_max = 1.6;
+                if (activity === 'active') {
+                    us_max = 1.7;
+                } else if (activity === 'very_active') {
+                    us_max = 1.8;
+                }
 
                 var pregnancyExtra = 0;
                 if (condition !== 'normal' && gender === 'female') {
-                    if (condition === 'pregnant_t1')      { pregnancyExtra = 1; }
-                    else if (condition === 'pregnant_t2') { pregnancyExtra = 9; }
-                    else if (condition === 'pregnant_t3') { pregnancyExtra = 31; }
-                    vn_min = Math.max(vn_min, 1.1); vn_max = Math.max(vn_max, 1.3);
-                    us_min = Math.max(us_min, 1.1); us_max = Math.max(us_max, 1.6);
+                    if (condition === 'pregnant_t1') {
+                        pregnancyExtra = 1;
+                    } else if (condition === 'pregnant_t2') {
+                        pregnancyExtra = 9;
+                    } else if (condition === 'pregnant_t3') {
+                        pregnancyExtra = 31;
+                    }
+                    vn_min = Math.max(vn_min, 1.1);
+                    vn_max = Math.max(vn_max, 1.3);
+                    us_min = Math.max(us_min, 1.1);
+                    us_max = Math.max(us_max, 1.6);
                     vnConditionDetail = 'M\u1eb9 b\u1ea7u \u0111\u01b0\u1ee3c c\u1ed9ng th\u00eam ' + pregnancyExtra + 'g/ng\u00e0y theo tam c\u00e1 nguy\u1ec7t, \u0111\u1ed3ng th\u1eddi \u01b0u ti\u00ean ngu\u1ed3n \u0111\u1ea1m d\u1ec5 ti\u00eau v\u00e0 an to\u00e0n th\u1ef1c ph\u1ea9m.';
                     usConditionDetail = 'V\u1edbi thai k\u1ef3, n\u00ean \u01b0u ti\u00ean \u0111\u1ea1t \u00edt nh\u1ea5t ng\u01b0\u1ee1ng n\u1ec1n 1.1g/kg/ng\u00e0y v\u00e0 theo d\u00f5i t\u0103ng c\u00e2n thai k\u1ef3.';
                 } else if (condition !== 'normal' && gender !== 'female') {
@@ -1045,19 +1278,24 @@ function render_protein_calculator($atts)
                 var meal_min = Math.max(20, Math.round(us_total_min / 3));
                 var meal_max = Math.max(meal_min + 4, Math.round(us_total_max / 3));
 
-                lastProteinTarget = { min: vn_total_min, max: vn_total_max, usMin: us_total_min, usMax: us_total_max };
+                lastProteinTarget = {
+                    min: vn_total_min,
+                    max: vn_total_max,
+                    usMin: us_total_min,
+                    usMax: us_total_max
+                };
 
-                document.getElementById('res_vn').innerText           = vn_total_min + ' - ' + vn_total_max + 'g / ng\u00e0y';
-                document.getElementById('res_us').innerText           = us_total_min + ' - ' + us_total_max + 'g / ng\u00e0y';
+                document.getElementById('res_vn').innerText = vn_total_min + ' - ' + vn_total_max + 'g / ng\u00e0y';
+                document.getElementById('res_us').innerText = us_total_min + ' - ' + us_total_max + 'g / ng\u00e0y';
                 document.getElementById('res_vn_activity_note').innerText = activityInfo.label + ': ' + activityInfo.detail;
-                document.getElementById('res_vn_age_note').innerText  = vnAgeDetail;
+                document.getElementById('res_vn_age_note').innerText = vnAgeDetail;
                 document.getElementById('res_vn_condition_note').innerText = vnConditionDetail;
                 document.getElementById('res_us_goal_note').innerText = 'M\u1ef9 2026-2030: 1.2g/kg cho duy tr\u00ec s\u1ee9c kh\u1ecfe v\u00e0 1.6g/kg (ho\u1eb7c cao h\u01a1n \u1edf ng\u01b0\u1eddi r\u1ea5t n\u0103ng \u0111\u1ed9ng) cho m\u1ee5c ti\u00eau t\u0103ng c\u01a1/gi\u1ea3m m\u1ee1.';
-                document.getElementById('res_us_age_note').innerText  = usAgeDetail;
+                document.getElementById('res_us_age_note').innerText = usAgeDetail;
                 document.getElementById('res_us_condition_note').innerText = usConditionDetail;
-                document.getElementById('res_meal_note').innerText    = 'G\u1ee3i \u00fd chia 3 b\u1eefa ch\u00ednh: kho\u1ea3ng ' + meal_min + ' - ' + meal_max + 'g protein m\u1ed7i b\u1eefa \u0111\u1ec3 h\u1ea5p thu v\u00e0 ph\u1ee5c h\u1ed3i t\u1ed1t h\u01a1n.';
-                document.getElementById('res_vn_ref_note').innerHTML  = 'Ngu\u1ed3n tham kh\u1ea3o: <a href="https://iris.who.int/server/api/core/bitstreams/b7c5ec43-bc59-4b38-b702-3f0e96a06fa1/content" target="_blank" rel="noopener noreferrer">WHO TRS 935</a>.';
-                document.getElementById('res_us_ref_note').innerHTML  = 'Ngu\u1ed3n tham kh\u1ea3o: <a href="https://cdn.realfood.gov/DGA.pdf" target="_blank" rel="noopener noreferrer">Dietary Guidelines for Americans</a>.';
+                document.getElementById('res_meal_note').innerText = 'G\u1ee3i \u00fd chia 3 b\u1eefa ch\u00ednh: kho\u1ea3ng ' + meal_min + ' - ' + meal_max + 'g protein m\u1ed7i b\u1eefa \u0111\u1ec3 h\u1ea5p thu v\u00e0 ph\u1ee5c h\u1ed3i t\u1ed1t h\u01a1n.';
+                document.getElementById('res_vn_ref_note').innerHTML = 'Ngu\u1ed3n tham kh\u1ea3o: <a href="https://iris.who.int/server/api/core/bitstreams/b7c5ec43-bc59-4b38-b702-3f0e96a06fa1/content" target="_blank" rel="noopener noreferrer">WHO TRS 935</a>.';
+                document.getElementById('res_us_ref_note').innerHTML = 'Ngu\u1ed3n tham kh\u1ea3o: <a href="https://cdn.realfood.gov/DGA.pdf" target="_blank" rel="noopener noreferrer">Dietary Guidelines for Americans</a>.';
 
                 if (dietEstimator) dietEstimator.classList.add('is-visible');
                 var conn12 = document.getElementById('pcConnector12');
@@ -1067,7 +1305,10 @@ function render_protein_calculator($atts)
 
                 var resultBox = document.getElementById('pcResult');
                 resultBox.style.display = 'block';
-                resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                resultBox.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest'
+                });
             });
         });
     </script>
