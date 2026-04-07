@@ -1296,7 +1296,7 @@ nav .menu li a:focus {
 }
 
 .wdr_bulk_table_discount .woocommerce-Price-amount {
-    font-size: 15px !important;
+    font-size: 20px !important;
     line-height: 1 !important;
     color: var(--default-color-dark-blue);
     font-weight: bold;
