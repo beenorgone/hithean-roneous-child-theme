@@ -107,16 +107,6 @@ foreach ($general_includes as $include) {
     }
 }
 
-if (is_admin() && wp_doing_ajax()) {
-    $hithean_order_item_actions = ['woocommerce_add_order_item', 'woocommerce_remove_order_item', 'woocommerce_save_order_items'];
-    $hithean_request_action = isset($_REQUEST['action']) ? sanitize_key(wp_unslash($_REQUEST['action'])) : '';
-    $hithean_order_id = absint(wp_unslash($_REQUEST['order_id'] ?? $_REQUEST['post'] ?? $_REQUEST['id'] ?? 0));
-
-    if (in_array($hithean_request_action, $hithean_order_item_actions, true) && $hithean_order_id > 0 && get_post_type($hithean_order_id) === 'shop_order') {
-        require_once __DIR__ . '/custom-functions/edit-order-page.php';
-    }
-}
-
 if (is_admin() && file_exists(__DIR__ . '/custom-functions/meta-key-rename-tool.php')) {
     require_once(__DIR__ . '/custom-functions/meta-key-rename-tool.php');
 }
