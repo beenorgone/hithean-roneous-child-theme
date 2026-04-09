@@ -138,6 +138,7 @@ function render_protein_calculator($atts)
 
         /* ---- Section connectors ---- */
         .protein-calc-wrapper .pc-connector {
+            width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -145,6 +146,9 @@ function render_protein_calculator($atts)
             background: var(--default-color-beige, #f7f6f2);
             border-top: 1px solid #e6e0d5;
             border-bottom: 1px solid #e6e0d5;
+            border-right: 0;
+            border-left: 0;
+            cursor: pointer;
             gap: 3px;
             text-align: center;
             transition: background .15s;
@@ -161,7 +165,6 @@ function render_protein_calculator($atts)
             font-size: 12px;
             color: #bbb;
             font-style: italic;
-            width: 100%;
         }
 
         .protein-calc-wrapper .pc-connector.is-active {
@@ -177,7 +180,6 @@ function render_protein_calculator($atts)
             color: var(--product-nuocepkytu-light-green, #00843d);
             font-style: normal;
             font-weight: 500;
-            width: 100%;
         }
 
         .protein-calc-wrapper .pc-connector.is-active:hover {
@@ -622,10 +624,10 @@ function render_protein_calculator($atts)
             </div>
         </section>
 
-        <div class="pc-connector" id="pcConnector12" data-target="pcDietEstimator">
+        <button class="pc-connector" id="pcConnector12" data-target="pcDietEstimator">
             <span class="pc-connector-arrow">↓</span>
-            <button class="pc-connector-label">Tính xong → ước tính protein từ khẩu phần ăn của bạn</button>
-        </div>
+            <span class="pc-connector-label">Tính xong → ước tính protein từ khẩu phần ăn của bạn</span>
+        </button>
 
         <section id="pcDietEstimator" class="pc-section pc-followup-section">
             <div class="pc-section-hd">
@@ -685,10 +687,10 @@ function render_protein_calculator($atts)
             </div>
         </section>
 
-        <div class="pc-connector pc-followup-section" id="pcConnector23" data-target="pcProductsSection">
+        <button class="pc-connector pc-followup-section" id="pcConnector23" data-target="pcProductsSection">
             <span class="pc-connector-arrow">↓</span>
-            <button class="pc-connector-label">Thêm thực phẩm xong → xem gợi ý sản phẩm phù hợp</button>
-        </div>
+            <span class="pc-connector-label">Thêm thực phẩm xong → xem gợi ý sản phẩm phù hợp</span>
+        </button>
 
         <section id="pcProductsSection" class="pc-section pc-followup-section">
             <div class="pc-section-hd">
