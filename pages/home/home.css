@@ -22,13 +22,13 @@
 /* Yeast Hero */
 
 #section-hero-protein .b-hero-left-filled-column {
-    order: 1;
-    padding: 0 20px 150px 20px;
+    order: 0;
+    padding: 20px 20px 150px 20px;
     text-align: center;
 }
 
 #section-hero-protein .b-hero-left-blank-column {
-    order: 0;
+    order: 1;
 }
 
 #section-hero-protein .b-hero-title {
@@ -97,7 +97,7 @@
 }
 
 #section-hero-protein {
-    background-image: url(https://hithean.com/wp-content/uploads/2025/12/Bot-dam-The-An-Organics-Yeast-Hero-Protein-Powder-Original-103.jpg);
+    background-image: url(https://hithean.com/wp-content/uploads/2026/04/Bot-dam-The-An-Organics-Yeast-Hero-Protein-Powder-Original-115.jpg);
     aspect-ratio: 0.67 / 1;
     background-size: cover;
     background-position: center;
@@ -112,15 +112,15 @@
 
 @media only screen and (min-width: 1000px) {
     #section-hero-protein .b-hero-left-filled-column {
-    order: 0;
-    padding: 100px 50px;
-    text-align: left;
+        order: 0;
+        padding: 100px 50px;
+        text-align: left;
     }
 
     #section-hero-protein .b-hero-left-blank-column {
         order: 1;
     }
-    
+
     #section-hero-overnight .b-hero-left {
         flex-direction: row;
         justify-content: center;
@@ -141,7 +141,7 @@
     }
 
     #section-hero-protein {
-        background-image: url(https://hithean.com/wp-content/uploads/2025/12/Bot-dam-The-An-Organics-Yeast-Hero-Protein-Powder-Original-103.jpg) !important;
+        background-image: url(https://hithean.com/wp-content/uploads/2026/04/Bot-dam-The-An-Organics-Yeast-Hero-Protein-Powder-Original-116.jpg) !important;
         background-size: cover;
         aspect-ratio: 1.78 / 1;
     }
@@ -185,7 +185,6 @@
         padding-bottom: 70px;
     }
 }
-
 
 /*-------------------------------*\
   FOOTER
