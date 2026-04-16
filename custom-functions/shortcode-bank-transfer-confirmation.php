@@ -4,240 +4,424 @@
  * Shortcode: [order_paid_confirmation]
  * Purpose: Admin/Manager tool for searching orders and confirming bank transfers.
  */
-
-// ==============================
-// 🔹 MAIN SHORTCODE
-// ==============================
 add_shortcode('order_paid_confirmation', 'order_paid_confirmation_shortcode');
 function order_paid_confirmation_shortcode()
 {
     if (!current_user_can('manage_woocommerce')) {
-        return ''; // Restrict to Admin / Shop Manager only
+        return '';
     }
 
     ob_start();
-
     render_order_paid_confirmation_ui();
     render_order_paid_confirmation_script();
-
     return ob_get_clean();
 }
 
-// ==============================
-// 🔹 FRONT-END HTML LAYOUT
-// ==============================
 function render_order_paid_confirmation_ui()
 { ?>
-    <div class="order-paid-confirmation">
-        <h2>Xác nhận thanh toán đơn hàng</h2>
+    <div class="order-paid-confirmation btc-ui">
+        <div class="btc-panel">
+            <h2>Xác nhận thanh toán đơn hàng</h2>
+            <p>Tìm đơn hàng, xem kết quả dạng bảng và chỉ mở popup khi bấm vào các nút thao tác.</p>
+        </div>
 
-        <!-- 🔍 Search Box -->
-        <?php render_search_ui(); ?>
+        <div class="btc-panel btc-search-panel">
+            <p><input type="text" id="order_search" placeholder="Nhập mã đơn (nhiều mã: cách nhau bằng dấu phẩy hoặc khoảng trắng)"></p>
+            <div class="btc-actions-row">
+                <button type="button" id="btn_search_order" class="button--small button--green">Tìm kiếm</button>
+                <button type="button" id="clear_results_btn" class="button--small button--red">Xóa kết quả</button>
+            </div>
+        </div>
 
-        <!-- 📋 Search Results -->
-        <p id="order_results" style="margin-top: 30px;"></p>
+        <div id="btc_notice" class="btc-notice" aria-live="polite"></div>
+        <div id="order_results" class="btc-panel" style="display:none;"></div>
+    </div>
 
-        <!-- Hidden holder for movable form -->
-        <div id="order_details_holder" style="display:none;">
-            <?php render_order_details_ui(); ?>
+    <div id="btc_payment_modal" class="btc-modal" hidden>
+        <div class="btc-modal__backdrop" data-modal-close="1"></div>
+        <div class="btc-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="btc_modal_title">
+            <button type="button" class="btc-modal__close" data-modal-close="1" aria-label="Đóng">&times;</button>
+            <h3 id="btc_modal_title">Xác nhận chuyển khoản</h3>
+            <div class="btc-modal__summary">
+                <label>Thông tin đơn hàng</label>
+                <textarea id="selected_order_info" rows="3" readonly></textarea>
+            </div>
+
+            <div class="btc-form-grid">
+                <div>
+                    <label>Tài khoản nhận</label>
+                    <select id="bank_account">
+                        <option value="Vietinbank 113600098383">Vietinbank 113600098383 / TK công ty</option>
+                        <option value="ACB 11090087">ACB 11090087</option>
+                        <option value="ACB 8700507">ACB 8700507</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Ngày nhận CK</label>
+                    <input type="date" id="paid_date">
+                </div>
+
+                <div>
+                    <label>Số tiền nhận</label>
+                    <input type="number" id="amount_received" min="0" step="1000">
+                </div>
+
+                <div>
+                    <label>Người chuyển khoản</label>
+                    <select id="payer">
+                        <option value="customer">Khách hàng</option>
+                        <option value="shipper">Shipper TT COD</option>
+                        <option value="self">Nhân viên TT COD</option>
+                    </select>
+                </div>
+
+                <div id="cod_note_section" class="btc-form-span" style="display:none;">
+                    <label>Ghi chú</label>
+                    <textarea id="cod_note"></textarea>
+                </div>
+            </div>
+
+            <div class="btc-actions-row">
+                <button type="button" class="button--small button--white" data-modal-close="1">Hủy</button>
+                <button class="button--small button button--green" type="button" id="btn_confirm_payment">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="btc_sms_modal" class="btc-modal" hidden>
+        <div class="btc-modal__backdrop" data-sms-modal-close="1"></div>
+        <div class="btc-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="btc_sms_modal_title">
+            <button type="button" class="btc-modal__close" data-sms-modal-close="1" aria-label="Đóng">&times;</button>
+            <h3 id="btc_sms_modal_title">Gửi SMS xác nhận chuyển khoản</h3>
+            <div class="btc-modal__summary">
+                <label>Thông tin đơn hàng</label>
+                <textarea id="sms_order_info" rows="3" readonly></textarea>
+            </div>
+            <div class="btc-form-grid">
+                <div class="btc-form-span">
+                    <label>Số điện thoại khách hàng</label>
+                    <input type="text" id="sms_customer_phone" class="btc-copy-field" readonly title="Bấm để copy số điện thoại">
+                </div>
+                <div class="btc-form-span">
+                    <p><strong>BƯỚC 1:</strong> Copy số điện thoại khách hàng.</p>
+                    <p><strong>BƯỚC 2:</strong> Bấm mở Google Messages.</p>
+                    <p><strong>BƯỚC 3:</strong> Copy một trong các nội dung SMS bên dưới để gửi.</p>
+                </div>
+                <div class="btc-form-span">
+                    <a class="button--black" href="https://messages.google.com/web/conversations/new" target="_blank" rel="noopener noreferrer">Mở Google Messages</a>
+                </div>
+                <div class="btc-form-span">
+                    <label>Nội dung SMS: Đã nhận CK</label>
+                    <textarea id="sms_template_paid" class="btc-copy-field" rows="3" readonly title="Bấm để copy nội dung SMS"></textarea>
+                </div>
+                <div class="btc-form-span">
+                    <label>Nội dung SMS: Thu hồi SMS</label>
+                    <textarea id="sms_template_recall" class="btc-copy-field" rows="3" readonly title="Bấm để copy nội dung SMS"></textarea>
+                </div>
+            </div>
         </div>
     </div>
 <?php
 }
 
-// ==============================
-// 🔹 SEARCH UI
-// ==============================
-function render_search_ui()
-{ ?>
-    <div>
-        <p><input type="text" id="order_search" placeholder="Nhập mã đơn (nhiều mã: cách nhau bằng dấu phẩy hoặc khoảng trắng)"></p>
-        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
-            <button type="button" id="btn_search_order" class="button--small button--green">Tìm kiếm</button>
-            <button type="button" id="clear_results_btn" class="button--small button--red">Xóa kết quả</button>
-        </div>
-    </div>
-<?php
-}
-
-// ==============================
-// 🔹 ORDER DETAILS UI
-// ==============================
-function render_order_details_ui()
-{ ?>
-    <div id="order_details" style="display: none; border: 2px solid var(--default-color-grey-2); padding: 20px; margin-top: 12px;">
-        <h3>Xác nhận thông tin thanh toán</h3>
-        <div style="padding-left: 20px; padding-left: 20px;display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end;">
-            <div style="display: flex; flex-direction: column; min-width: 320px; flex: 1 1 100%;">
-                <label>Thông tin đơn hàng:</label>
-                <textarea id="selected_order_info" rows="2" readonly style="resize: vertical;"></textarea>
-            </div>
-
-            <!-- Bank Account -->
-            <div>
-                <label>Tài khoản nhận:</label>
-                <select id="bank_account">
-                    <option value="Vietinbank 113600098383">Vietinbank 113600098383 / TK công ty</option>
-                    <option value="ACB 11090087">ACB 11090087</option>
-                    <option value="ACB 8700507">ACB 8700507</option>
-                </select>
-            </div>
-
-            <!-- Paid Date -->
-            <div><label>Ngày nhận CK:</label><input type="date" id="paid_date"></div>
-
-            <!-- Amount -->
-            <div><label>Số tiền nhận:</label><input type="number" id="amount_received"></div>
-
-            <!-- Payer -->
-            <div>
-                <label>Người chuyển khoản:</label>
-                <select id="payer">
-                    <option value="customer">Khách hàng</option>
-                    <option value="shipper">Shipper TT COD</option>
-                    <option value="self">Nhân viên TT COD</option>
-                </select>
-            </div>
-
-            <!-- COD Note -->
-            <div id="cod_note_section" style="display: none;">
-                <label>Ghi chú:</label>
-                <textarea id="cod_note"></textarea>
-            </div>
-
-            <button class="button--small button" type="button" id="btn_confirm_payment">Xác nhận</button>
-        </div>
-    </div>
-<?php
-}
-
-// ==============================
-// 🔹 JAVASCRIPT HANDLERS
-// ==============================
 function render_order_paid_confirmation_script()
-{ ?>
+{
+    $config = [
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'searchNonce' => wp_create_nonce('search_order_ajax_nonce'),
+        'confirmNonce' => wp_create_nonce('confirm_order_payment_nonce'),
+    ];
+?>
+    <style>
+        .btc-ui { display: grid; gap: 16px; }
+        .btc-panel, .btc-notice { background: #fff; border: 1px solid #d6dee7; border-radius: 14px; padding: 16px; }
+        .btc-panel h2, .btc-panel p { margin: 0; }
+        .btc-panel p + p { margin-top: 8px; }
+        .btc-search-panel { display: grid; gap: 12px; }
+        .btc-search-panel input,
+        .btc-modal textarea,
+        .btc-modal input,
+        .btc-modal select { width: 100%; border: 1px solid #c9d3df; border-radius: 10px; padding: 10px 12px; background: #fff; }
+        .btc-actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btc-notice { display: none; }
+        .btc-notice.is-visible { display: block; }
+        .btc-notice.is-success { border-color: #b8ddc7; background: #edf8f1; color: #1f6b3a; }
+        .btc-notice.is-error { border-color: #efc0c0; background: #fff2f2; color: #9c2f2f; }
+        .btc-table-wrap { overflow-x: auto; }
+        .btc-table { width: 100%; min-width: 980px; border-collapse: collapse; }
+        .btc-table th, .btc-table td { padding: 12px; border-bottom: 1px solid #e5ebf1; vertical-align: top; text-align: left; }
+        .btc-table th { background: #f6f8fb; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: #5b6470; }
+        .btc-table tr:hover td { background: #fbfcfe; }
+        .btc-table ul { margin: 0; padding-left: 18px; }
+        .btc-table__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btc-copy-field { cursor: copy; }
+        .btc-modal[hidden] { display: none; }
+        .btc-modal { position: fixed; inset: 0; z-index: 9999; }
+        .btc-modal__backdrop { position: absolute; inset: 0; background: rgba(17, 24, 39, .55); }
+        .btc-modal__dialog { position: relative; width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; margin: 16px auto; background: #fff; border-radius: 16px; padding: 22px; box-shadow: 0 18px 60px rgba(0,0,0,.22); }
+        .btc-modal__close { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; font-size: 30px; line-height: 1; cursor: pointer; }
+        .btc-modal__summary, .btc-modal__dialog h3 { margin-bottom: 16px; }
+        .btc-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+        .btc-form-span { grid-column: 1 / -1; }
+        body.btc-modal-open { overflow: hidden; }
+        @media (max-width: 767px) {
+            .btc-form-grid { grid-template-columns: 1fr; }
+            .btc-modal__dialog { width: calc(100vw - 20px); margin: 10px auto; padding: 18px; }
+        }
+    </style>
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            function resetOrderDetailsPosition() {
-                var holder = document.getElementById('order_details_holder');
-                var details = document.getElementById('order_details');
-                if (!holder || !details) return;
-                holder.appendChild(details);
-                details.style.display = 'none';
-                details.removeAttribute('data-order-id');
+        var btcConfig = <?php echo wp_json_encode($config); ?>;
+        document.addEventListener('DOMContentLoaded', function() {
+            var state = { selectedOrderId: '', lastSearch: '' };
+            var noticeEl = document.getElementById('btc_notice');
+            var resultsEl = document.getElementById('order_results');
+            var modalEl = document.getElementById('btc_payment_modal');
+            var smsModalEl = document.getElementById('btc_sms_modal');
+            var summaryEl = document.getElementById('selected_order_info');
+            var smsSummaryEl = document.getElementById('sms_order_info');
+            var smsPhoneEl = document.getElementById('sms_customer_phone');
+            var smsPaidTemplateEl = document.getElementById('sms_template_paid');
+            var smsRecallTemplateEl = document.getElementById('sms_template_recall');
+            var payerEl = document.getElementById('payer');
+            var codNoteSection = document.getElementById('cod_note_section');
+            var confirmBtn = document.getElementById('btn_confirm_payment');
+            var searchBtn = document.getElementById('btn_search_order');
+            var searchInput = document.getElementById('order_search');
+
+            function showNotice(message, type) {
+                noticeEl.textContent = message || '';
+                noticeEl.className = 'btc-notice is-visible ' + (type === 'success' ? 'is-success' : 'is-error');
             }
 
-            window.resetOrderDetailsPosition = resetOrderDetailsPosition;
-
-            // Bind Search Button
-            var btnSearch = document.getElementById('btn_search_order');
-            if (btnSearch) {
-                btnSearch.addEventListener('click', searchOrder);
+            function clearNotice() {
+                noticeEl.textContent = '';
+                noticeEl.className = 'btc-notice';
             }
 
-            // Bind Enter Key for Search
-            var inputSearch = document.getElementById('order_search');
-            if (inputSearch) {
-                inputSearch.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') searchOrder();
+            function setButtonLoading(button, isLoading, loadingText, idleText) {
+                if (!button) return;
+                button.disabled = !!isLoading;
+                button.textContent = isLoading ? loadingText : idleText;
+            }
+
+            function copyText(value) {
+                if (!value) {
+                    showNotice('Không có nội dung để copy.', 'error');
+                    return;
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(value).then(function() {
+                        showNotice('Đã copy nội dung.', 'success');
+                    }).catch(function() {
+                        showNotice('Không thể copy tự động. Vui lòng thử lại.', 'error');
+                    });
+                    return;
+                }
+
+                var tempInput = document.createElement('textarea');
+                tempInput.value = value;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+
+                try {
+                    document.execCommand('copy');
+                    showNotice('Đã copy nội dung.', 'success');
+                } catch (error) {
+                    showNotice('Không thể copy tự động. Vui lòng thử lại.', 'error');
+                }
+
+                document.body.removeChild(tempInput);
+            }
+
+            function toggleCodNote() {
+                codNoteSection.style.display = (payerEl.value === 'shipper' || payerEl.value === 'self') ? 'block' : 'none';
+                if (codNoteSection.style.display === 'none') {
+                    document.getElementById('cod_note').value = '';
+                }
+            }
+
+            function openModal(buttonEl) {
+                state.selectedOrderId = buttonEl.getAttribute('data-order-id') || '';
+                summaryEl.value = buttonEl.getAttribute('data-order-basic-info') || '';
+                document.getElementById('amount_received').value = buttonEl.getAttribute('data-order-total-raw') || '';
+                document.getElementById('paid_date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('bank_account').selectedIndex = 0;
+                payerEl.value = 'customer';
+                document.getElementById('cod_note').value = '';
+                toggleCodNote();
+                modalEl.hidden = false;
+                document.body.classList.add('btc-modal-open');
+            }
+
+            function closeModal() {
+                state.selectedOrderId = '';
+                modalEl.hidden = true;
+                document.body.classList.remove('btc-modal-open');
+            }
+
+            function openSmsModal(buttonEl) {
+                var phone = buttonEl.getAttribute('data-sms-phone') || '';
+                var paidTemplate = buttonEl.getAttribute('data-sms-paid') || '';
+                var recallTemplate = buttonEl.getAttribute('data-sms-recall') || '';
+
+                if (window.matchMedia('(max-width: 767px)').matches) {
+                    if (!phone || !paidTemplate) {
+                        showNotice('Không có đủ thông tin để gửi SMS.', 'error');
+                        return;
+                    }
+                    window.location.href = 'sms:' + phone + '?body=' + encodeURIComponent(paidTemplate);
+                    return;
+                }
+
+                smsSummaryEl.value = buttonEl.getAttribute('data-order-basic-info') || '';
+                smsPhoneEl.value = phone;
+                smsPaidTemplateEl.value = paidTemplate;
+                smsRecallTemplateEl.value = recallTemplate;
+                smsModalEl.hidden = false;
+                document.body.classList.add('btc-modal-open');
+            }
+
+            function closeSmsModal() {
+                smsModalEl.hidden = true;
+                document.body.classList.remove('btc-modal-open');
+            }
+
+            function renderResults(html) {
+                resultsEl.innerHTML = html || '';
+                resultsEl.style.display = html ? 'block' : 'none';
+            }
+
+            function searchOrder(keepNotice) {
+                var searchKey = searchInput.value.trim();
+                if (!searchKey) {
+                    showNotice('Vui lòng nhập mã đơn hàng hoặc số điện thoại!', 'error');
+                    return;
+                }
+
+                if (!keepNotice) {
+                    clearNotice();
+                }
+
+                state.lastSearch = searchKey;
+                setButtonLoading(searchBtn, true, 'Đang tìm...', 'Tìm kiếm');
+
+                jQuery.post(btcConfig.ajaxUrl, {
+                    action: 'search_order_ajax',
+                    search: searchKey,
+                    nonce: btcConfig.searchNonce
+                }, function(response) {
+                    if (response && response.success && response.data) {
+                        renderResults(response.data.html || '');
+                        if (!keepNotice) {
+                            showNotice(response.data.message || 'Đã tải kết quả tìm kiếm.', 'success');
+                        }
+                    } else {
+                        renderResults('');
+                        showNotice(response && response.data && response.data.message ? response.data.message : 'Không tìm thấy đơn hàng.', 'error');
+                    }
+                }).fail(function() {
+                    renderResults('');
+                    showNotice('Yêu cầu tìm kiếm thất bại. Vui lòng thử lại.', 'error');
+                }).always(function() {
+                    setButtonLoading(searchBtn, false, 'Đang tìm...', 'Tìm kiếm');
                 });
             }
 
-            // Bind Clear Button
-            var btnClear = document.getElementById('clear_results_btn');
-            if (btnClear) {
-                btnClear.addEventListener('click', function() {
-                    document.getElementById('order_search').value = '';
-                    document.getElementById('order_results').innerHTML = '';
-                    resetOrderDetailsPosition();
+            function confirmPayment() {
+                var bankAccount = document.getElementById('bank_account').value;
+                var paidDate = document.getElementById('paid_date').value;
+                var amountReceived = document.getElementById('amount_received').value;
+                var payer = payerEl.value;
+                var codNote = document.getElementById('cod_note').value;
+
+                if (!state.selectedOrderId || !paidDate || !bankAccount) {
+                    showNotice('Vui lòng nhập đầy đủ thông tin!', 'error');
+                    return;
+                }
+
+                clearNotice();
+                setButtonLoading(confirmBtn, true, 'Đang xác nhận...', 'Xác nhận');
+
+                jQuery.post(btcConfig.ajaxUrl, {
+                    action: 'confirm_order_payment',
+                    order_id: state.selectedOrderId,
+                    bank_account: bankAccount,
+                    paid_date: paidDate,
+                    amount_received: amountReceived,
+                    payer: payer,
+                    cod_note: codNote,
+                    nonce: btcConfig.confirmNonce
+                }, function(response) {
+                    if (response && response.success && response.data) {
+                        closeModal();
+                        showNotice(response.data.message || 'Đã cập nhật đơn hàng.', 'success');
+                        if (state.lastSearch) {
+                            searchOrder(true);
+                        }
+                    } else {
+                        showNotice(response && response.data && response.data.message ? response.data.message : 'Không thể cập nhật đơn hàng.', 'error');
+                    }
+                }).fail(function() {
+                    showNotice('Yêu cầu xác nhận thất bại. Vui lòng thử lại.', 'error');
+                }).always(function() {
+                    setButtonLoading(confirmBtn, false, 'Đang xác nhận...', 'Xác nhận');
                 });
             }
 
-            // Bind Confirm Payment Button
-            var btnConfirm = document.getElementById('btn_confirm_payment');
-            if (btnConfirm) {
-                btnConfirm.addEventListener('click', confirmPayment);
-            }
-
-            // Bind Payer Change
-            var payerSelect = document.getElementById('payer');
-            if (payerSelect) {
-                payerSelect.addEventListener('change', function() {
-                    document.getElementById('cod_note_section').style.display = (this.value === 'shipper' || this.value === 'self') ? 'block' : 'none';
+            searchBtn.addEventListener('click', function() { searchOrder(false); });
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchOrder(false);
+                }
+            });
+            document.getElementById('clear_results_btn').addEventListener('click', function() {
+                searchInput.value = '';
+                renderResults('');
+                closeModal();
+                clearNotice();
+                state.lastSearch = '';
+            });
+            confirmBtn.addEventListener('click', confirmPayment);
+            payerEl.addEventListener('change', toggleCodNote);
+            resultsEl.addEventListener('click', function(e) {
+                var confirmButton = e.target.closest('[data-open-confirm-modal="1"]');
+                var smsButton = e.target.closest('[data-open-sms-modal="1"]');
+                if (confirmButton) {
+                    openModal(confirmButton);
+                }
+                if (smsButton) {
+                    openSmsModal(smsButton);
+                }
+            });
+            Array.prototype.forEach.call(document.querySelectorAll('[data-modal-close="1"]'), function(el) {
+                el.addEventListener('click', closeModal);
+            });
+            Array.prototype.forEach.call(document.querySelectorAll('[data-sms-modal-close="1"]'), function(el) {
+                el.addEventListener('click', closeSmsModal);
+            });
+            Array.prototype.forEach.call(document.querySelectorAll('.btc-copy-field'), function(el) {
+                el.addEventListener('click', function() {
+                    this.focus();
+                    this.select();
+                    copyText(this.value);
                 });
-            }
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !modalEl.hidden) {
+                    closeModal();
+                }
+                if (e.key === 'Escape' && !smsModalEl.hidden) {
+                    closeSmsModal();
+                }
+            });
         });
-
-        function searchOrder() {
-            var searchKey = document.getElementById('order_search').value;
-            if (!searchKey) {
-                alert("Vui lòng nhập mã đơn hàng hoặc số điện thoại!");
-                return;
-            }
-            if (typeof resetOrderDetailsPosition === 'function') {
-                resetOrderDetailsPosition();
-            }
-            var data = {
-                action: 'search_order_ajax',
-                search: searchKey
-            };
-            jQuery.post('<?php echo admin_url('admin-ajax.php'); ?>', data, function(response) {
-                document.getElementById('order_results').innerHTML = response;
-            });
-        }
-
-        function selectOrder(buttonEl) {
-            var orderID = buttonEl.getAttribute('data-order-id');
-            var orderBasicInfo = buttonEl.getAttribute('data-order-basic-info') || '';
-            var details = document.getElementById('order_details');
-            var slot = document.getElementById('order-confirm-slot-' + orderID);
-            if (!details || !slot) return;
-
-            details.style.display = 'block';
-            details.setAttribute('data-order-id', orderID);
-            document.getElementById('selected_order_info').value = orderBasicInfo;
-            slot.appendChild(details);
-
-            var today = new Date().toISOString().split('T')[0];
-            document.getElementById('paid_date').value = today;
-        }
-
-        function confirmPayment() {
-            var orderID = document.getElementById('order_details').getAttribute('data-order-id');
-            var bankAccount = document.getElementById('bank_account').value;
-            var paidDate = document.getElementById('paid_date').value;
-            var amountReceived = document.getElementById('amount_received').value;
-            var payer = document.getElementById('payer').value;
-            var codNote = document.getElementById('cod_note').value;
-
-            if (!orderID || !paidDate || !bankAccount) {
-                alert("Vui lòng nhập đầy đủ thông tin!");
-                return;
-            }
-
-            var data = {
-                action: 'confirm_order_payment',
-                order_id: orderID,
-                bank_account: bankAccount,
-                paid_date: paidDate,
-                amount_received: amountReceived,
-                payer: payer,
-                cod_note: codNote
-            };
-
-            jQuery.post('<?php echo admin_url('admin-ajax.php'); ?>', data, function(response) {
-                alert(response);
-                var lastSearch = document.getElementById('order_search').value;
-                if (lastSearch) searchOrder();
-            });
-        }
     </script>
 <?php
 }
 
-// ==============================
-// 🔹 AJAX HANDLER: SEARCH ORDER
-// ==============================
 add_action('wp_ajax_search_order_ajax', 'handle_search_order_ajax');
 
 function parse_order_search_tokens($raw_search)
@@ -294,15 +478,19 @@ function resolve_order_from_search_code($token)
 
 function handle_search_order_ajax()
 {
-    if (!current_user_can('manage_woocommerce')) wp_die('Bạn không có quyền thực hiện thao tác này.');
+    check_ajax_referer('search_order_ajax_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => 'Bạn không có quyền thực hiện thao tác này.'], 403);
+    }
 
     $search = sanitize_text_field($_POST['search'] ?? '');
-    if (empty($search)) wp_die('Vui lòng nhập mã đơn hàng.');
+    if (empty($search)) {
+        wp_send_json_error(['message' => 'Vui lòng nhập mã đơn hàng.'], 400);
+    }
 
     $tokens = parse_order_search_tokens($search);
     if (empty($tokens)) {
-        echo '<p>Không tìm thấy đơn hàng.</p>';
-        wp_die();
+        wp_send_json_error(['message' => 'Không tìm thấy đơn hàng.'], 404);
     }
 
     $orders = [];
@@ -324,34 +512,44 @@ function handle_search_order_ajax()
     }
 
     if (empty($orders)) {
-        echo '<p>Không tìm thấy đơn hàng.</p>';
-        wp_die();
+        wp_send_json_error(['message' => 'Không tìm thấy đơn hàng.'], 404);
     }
 
+    ob_start();
     render_order_search_result($orders);
-    wp_die();
+    $html = ob_get_clean();
+
+    wp_send_json_success([
+        'html' => $html,
+        'message' => sprintf('Đã tìm thấy %d đơn hàng.', count($orders)),
+    ]);
 }
 
-// ==============================
-// 🔹 DISPLAY ORDER SEARCH RESULT
-// ==============================
 function render_order_search_result($orders)
 {
-    echo '<div><h3>Đơn hàng tìm được</h3><p>Chọn đúng thẻ đơn hàng để xác nhận thanh toán:</p></div><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; align-items: start;">';
+    echo '<div><h3>Đơn hàng tìm được</h3><p>Chọn đúng đơn hàng rồi bấm "Xác nhận chuyển khoản" hoặc "Gửi SMS" để thao tác.</p></div>';
+    echo '<div class="btc-table-wrap"><table class="btc-table"><thead><tr>';
+    echo '<th>Đơn hàng</th><th>Khách hàng</th><th>SĐT</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th>Xử lý</th><th>Sản phẩm</th><th>Thao tác</th>';
+    echo '</tr></thead><tbody>';
     foreach ($orders as $order) render_single_order_info($order);
-    echo '</div>';
+    echo '</tbody></table></div>';
 }
 
 function render_single_order_info($order)
 {
     $order_id = $order->get_id();
-    $billing_name = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
+    $billing_name = trim($order->get_billing_first_name() . ' ' . $order->get_billing_last_name());
     $order_total = wc_price($order->get_total());
     $order_date = wc_format_datetime($order->get_date_created());
     $payment_method = $order->get_payment_method_title();
     $billing_phone = $order->get_billing_phone();
     $order_status = wc_get_order_status_name($order->get_status());
     $handling_status = get_post_meta($order_id, 'order_handling_status', true) ?: '';
+    $paid_date = $order->get_meta('order_paid_date');
+    $bank_account = $order->get_meta('order_bank_account_received');
+    $new_order_id = function_exists('change_order_number') ? change_order_number($order_id) : $order_id;
+    $sms_paid = "The An da nhan duoc thanh toan don $new_order_id. Don hang se som duoc giao toi ban. Cam on ban da tin mua An (Tin nhan tu dong)";
+    $sms_recall = "The An xin phep thu hoi tin nhan loi. Rat xin loi vi da lam phien ban (Tin nhan tu dong)";
     $basic_info = sprintf(
         'Đơn #%d | Khách: %s | SĐT: %s | Tổng: %s | Trạng thái: %s',
         (int) $order_id,
@@ -361,39 +559,41 @@ function render_single_order_info($order)
         trim($order_status)
     );
 
-    echo '<div style="border: 2px solid var(--default-color-grey-2); border-radius: 10px; padding: 14px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">';
-    echo '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">';
-    echo '<div><strong style="font-size:16px;">#' . intval($order_id) . '</strong> - ' . esc_html($billing_name) . '</div>';
-    echo '<button type="button" class="button--small button--green" onclick="selectOrder(this)" data-order-id="' . intval($order_id) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Chọn đơn này</button>';
-    echo '</div>';
-    echo '<div style="line-height:1.7;">';
-    echo '<strong>Ngày đặt:</strong> ' . esc_html($order_date) . '<br>';
-    echo '<strong>Tổng tiền:</strong> ' . $order_total . '<br>';
-    echo '<strong>Phương thức thanh toán:</strong> <span class="text-highlight-green">' . esc_html($payment_method) . '</span><br>';
-    echo '<strong>Trạng thái đơn hàng:</strong> <span class="text-highlight-green">' . esc_html($order_status) . '</span><br>';
-    echo '<strong>Tình trạng xử lý:</strong> ' . esc_html($handling_status) . '<br>';
-    echo '<strong>SĐT:</strong> ' . esc_html($billing_phone) . '<br>';
-
-    if ($order->get_items()) {
-        echo '<strong>Sản phẩm:</strong><ul>';
-        foreach ($order->get_items() as $item) {
-            echo '<li>' . esc_html($item->get_name()) . ' x ' . intval($item->get_quantity()) . '</li>';
+    echo '<tr>';
+    echo '<td><strong>#' . intval($order_id) . '</strong><br><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank">Chỉnh sửa đơn hàng</a></td>';
+    echo '<td>' . esc_html($billing_name) . '</td>';
+    echo '<td>' . esc_html($billing_phone) . '</td>';
+    echo '<td>' . esc_html($order_date) . '</td>';
+    echo '<td>' . $order_total . '</td>';
+    echo '<td>' . esc_html($payment_method);
+    if ($paid_date || $bank_account) {
+        echo '<br><small>';
+        if ($paid_date) {
+            echo 'Ngày nhận: ' . esc_html($paid_date);
         }
-        echo '</ul>';
+        if ($paid_date && $bank_account) {
+            echo ' | ';
+        }
+        if ($bank_account) {
+            echo 'TK nhận: ' . esc_html($bank_account);
+        }
+        echo '</small>';
     }
-
-    $edit_url = admin_url('post.php?post=' . intval($order_id) . '&action=edit');
-    echo '<a href="' . esc_url($edit_url) . '" target="_blank">Chỉnh sửa đơn hàng</a>';
-
-    echo '</div>';
-    render_sms_buttons($order);
-    echo '<div id="order-confirm-slot-' . intval($order_id) . '" style="margin-top: 12px;"></div>';
-    echo '</div>';
+    echo '</td>';
+    echo '<td>' . esc_html($order_status) . '</td>';
+    echo '<td>' . esc_html(is_array($handling_status) ? implode(', ', $handling_status) : $handling_status) . '</td>';
+    echo '<td><ul>';
+    foreach ($order->get_items() as $item) {
+        echo '<li>' . esc_html($item->get_name()) . ' x ' . intval($item->get_quantity()) . '</li>';
+    }
+    echo '</ul></td>';
+    echo '<td><div class="btc-table__actions">';
+    echo '<button type="button" class="button--small button--green" data-open-confirm-modal="1" data-order-id="' . intval($order_id) . '" data-order-total-raw="' . esc_attr(wc_format_decimal($order->get_total(), 0)) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Xác nhận chuyển khoản</button>';
+    echo '<button type="button" class="button--small button--white" data-open-sms-modal="1" data-order-basic-info="' . esc_attr($basic_info) . '" data-sms-phone="' . esc_attr($billing_phone) . '" data-sms-paid="' . esc_attr($sms_paid) . '" data-sms-recall="' . esc_attr($sms_recall) . '">Gửi SMS</button>';
+    echo '</div></td>';
+    echo '</tr>';
 }
 
-// ==============================
-// 🔹 RENDER SMS BUTTONS
-// ==============================
 function render_sms_buttons($order)
 {
     $phone = $order->get_billing_phone();
@@ -425,13 +625,13 @@ function render_sms_buttons($order)
     }
 }
 
-// ==============================
-// 🔹 AJAX HANDLER: CONFIRM PAYMENT
-// ==============================
 add_action('wp_ajax_confirm_order_payment', 'handle_confirm_order_payment');
 function handle_confirm_order_payment()
 {
-    if (!current_user_can('manage_woocommerce')) wp_die('Bạn không có quyền thực hiện thao tác này.');
+    check_ajax_referer('confirm_order_payment_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => 'Bạn không có quyền thực hiện thao tác này.'], 403);
+    }
 
     $order_id = intval($_POST['order_id']);
     $bank_account = sanitize_text_field($_POST['bank_account']);
@@ -441,15 +641,16 @@ function handle_confirm_order_payment()
     $cod_note = sanitize_textarea_field($_POST['cod_note']);
 
     $order = wc_get_order($order_id);
-    if (!$order) wp_die('Đơn hàng không tồn tại.');
+    if (!$order) {
+        wp_send_json_error(['message' => 'Đơn hàng không tồn tại.'], 404);
+    }
 
     process_order_payment($order, $bank_account, $paid_date, $amount_received, $payer, $cod_note);
-    wp_die("Đã cập nhật đơn hàng. Bank: " . $order->get_meta('order_bank_account_received') . " | Date: " . $order->get_meta('order_paid_date'));
+    wp_send_json_success([
+        'message' => 'Đã cập nhật đơn hàng. Bank: ' . esc_html($order->get_meta('order_bank_account_received')) . ' | Date: ' . esc_html($order->get_meta('order_paid_date')),
+    ]);
 }
 
-// ==============================
-// 🔹 CORE PAYMENT PROCESSOR
-// ==============================
 function process_order_payment($order, $bank_account, $paid_date, $amount_received, $payer, $cod_note)
 {
     $order_id = $order->get_id();
