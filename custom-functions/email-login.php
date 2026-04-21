@@ -1,7 +1,14 @@
 <?php
-add_action('init', function () {
-    if (!session_id()) session_start();
-});
+
+function roneous_child_maybe_start_email_login_session()
+{
+    if (session_status() === PHP_SESSION_ACTIVE || headers_sent()) {
+        return;
+    }
+
+    session_start();
+}
+add_action('after_setup_theme', 'roneous_child_maybe_start_email_login_session', 0);
 
 add_shortcode('email_otp_login', function () {
     ob_start();
@@ -144,4 +151,3 @@ add_shortcode('email_otp_login', function () {
             }
         }
     });
-
