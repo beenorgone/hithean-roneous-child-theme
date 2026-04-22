@@ -7,3 +7,21 @@ button#place_order {
     float: none !important;
     margin-top: 20px;
 }
+
+.woocommerce form .form-row .input-text,
+.woocommerce-page form .form-row .input-text,
+.woocommerce form .form-row select,
+.woocommerce-cart table.shop_table th,
+.woocommerce-cart table.shop_table td {
+    font-size: 16px;
+}
+
+.woocommerce {
+    max-width: 1200px;
+    margin: auto;
+}
+
+.woocommerce form.checkout_coupon,
+.woocommerce-cart form.checkout_coupon {
+    padding: 15px 10px;
+}

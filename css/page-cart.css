@@ -137,7 +137,7 @@
 }
 
 .woocommerce-cart .shop_table.cart .actions > button[name="update_cart"] {
-    transition: opacity 0.2s ease;
+    display: none !important;
 }
 
 .woocommerce-cart.cart-is-updating .shop_table.cart .actions > button[name="update_cart"] {
@@ -244,6 +244,32 @@
     width: 100% !important;
 }
 
+@media (max-width: 767px) {
+    .woocommerce-cart .cart-collaterals .wc-proceed-to-checkout {
+        background: rgba(255, 255, 255, 0.96);
+        border-top: 1px solid rgba(34, 34, 34, 0.08);
+        bottom: 0;
+        left: 0;
+        padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+        position: fixed;
+        right: 0;
+        z-index: 99;
+    }
+
+    .woocommerce-cart .wc-proceed-to-checkout .checkout-button {
+        box-shadow: 0 10px 30px rgba(28, 76, 195, 0.18);
+        font-size: 14px !important;
+        line-height: 30px !important;
+        margin: 0 !important;
+        min-height: 30px !important;
+        padding: 0 16px !important;
+    }
+
+    .woocommerce-cart .cart-collaterals {
+        margin-bottom: 62px;
+    }
+}
+
 @media (min-width: 992px) {
     .woocommerce-cart .cart-collaterals .cart_totals {
         position: sticky;
@@ -305,6 +331,10 @@
     }
 
     .woocommerce-cart .shop_table.cart .product-thumbnail::before {
+        display: none;
+    }
+
+    .woocommerce-cart .shop_table.cart .product-name::before {
         display: none;
     }
 
