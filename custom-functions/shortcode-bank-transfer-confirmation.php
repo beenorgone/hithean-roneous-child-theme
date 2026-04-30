@@ -148,26 +148,44 @@ function render_order_paid_confirmation_script()
         .btc-notice.is-visible { display: block; }
         .btc-notice.is-success { border-color: #b8ddc7; background: #edf8f1; color: #1f6b3a; }
         .btc-notice.is-error { border-color: #efc0c0; background: #fff2f2; color: #9c2f2f; }
-        .btc-table-wrap { overflow-x: auto; }
-        .btc-table { width: 100%; min-width: 980px; border-collapse: collapse; }
+        .btc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .btc-table { width: 100%; min-width: 980px; border-collapse: collapse; table-layout: auto; }
         .btc-table th, .btc-table td { padding: 12px; border-bottom: 1px solid #e5ebf1; vertical-align: top; text-align: left; }
         .btc-table th { background: #f6f8fb; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: #5b6470; }
         .btc-table tr:hover td { background: #fbfcfe; }
         .btc-table ul { margin: 0; padding-left: 18px; }
+        .btc-table__muted { display: block; margin-top: 4px; color: #5b6470; }
         .btc-table__actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .btc-copy-field { cursor: copy; }
         .btc-modal[hidden] { display: none; }
-        .btc-modal { position: fixed; inset: 0; z-index: 9999; }
+        .btc-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
         .btc-modal__backdrop { position: absolute; inset: 0; background: rgba(17, 24, 39, .55); }
-        .btc-modal__dialog { position: relative; width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; margin: 16px auto; background: #fff; border-radius: 16px; padding: 22px; box-shadow: 0 18px 60px rgba(0,0,0,.22); }
+        .btc-modal__dialog { position: relative; width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; margin: 0; background: #fff; border-radius: 16px; padding: 22px; box-shadow: 0 18px 60px rgba(0,0,0,.22); }
         .btc-modal__close { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; font-size: 30px; line-height: 1; cursor: pointer; }
         .btc-modal__summary, .btc-modal__dialog h3 { margin-bottom: 16px; }
         .btc-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
         .btc-form-span { grid-column: 1 / -1; }
         body.btc-modal-open { overflow: hidden; }
         @media (max-width: 767px) {
+            .btc-table-wrap { overflow-x: visible; }
+            .btc-table,
+            .btc-table thead,
+            .btc-table tbody,
+            .btc-table tr,
+            .btc-table th,
+            .btc-table td { display: block; width: 100%; }
+            .btc-table { min-width: 0; border-collapse: separate; border-spacing: 0; }
+            .btc-table thead { display: none; }
+            .btc-table tbody { display: grid; gap: 12px; }
+            .btc-table tr { border: 1px solid #d6dee7; border-radius: 14px; background: #fff; overflow: hidden; }
+            .btc-table td { border-bottom: 1px solid #e5ebf1; padding: 12px 14px; }
+            .btc-table td:last-child { border-bottom: 0; }
+            .btc-table td::before { content: attr(data-label); display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #5b6470; letter-spacing: .03em; }
+            .btc-table__actions { flex-direction: column; }
+            .btc-table__actions > * { width: 100%; text-align: center; }
             .btc-form-grid { grid-template-columns: 1fr; }
-            .btc-modal__dialog { width: calc(100vw - 20px); margin: 10px auto; padding: 18px; }
+            .btc-modal { padding: 10px; }
+            .btc-modal__dialog { width: calc(100vw - 20px); padding: 18px; }
         }
     </style>
     <script>
@@ -529,7 +547,7 @@ function render_order_search_result($orders)
 {
     echo '<div><h3>Đơn hàng tìm được</h3><p>Chọn đúng đơn hàng rồi bấm "Xác nhận chuyển khoản" hoặc "Gửi SMS" để thao tác.</p></div>';
     echo '<div class="btc-table-wrap"><table class="btc-table"><thead><tr>';
-    echo '<th>Đơn hàng</th><th>Khách hàng</th><th>SĐT</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th>Xử lý</th><th>Sản phẩm</th><th>Thao tác</th>';
+    echo '<th>Mã đơn</th><th>Khách hàng</th><th>Đơn hàng</th><th>Trạng thái</th><th>Sản phẩm</th><th>Thao tác</th>';
     echo '</tr></thead><tbody>';
     foreach ($orders as $order) render_single_order_info($order);
     echo '</tbody></table></div>';
@@ -560,14 +578,11 @@ function render_single_order_info($order)
     );
 
     echo '<tr>';
-    echo '<td><strong>#' . intval($order_id) . '</strong><br><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank">Chỉnh sửa đơn hàng</a></td>';
-    echo '<td>' . esc_html($billing_name) . '</td>';
-    echo '<td>' . esc_html($billing_phone) . '</td>';
-    echo '<td>' . esc_html($order_date) . '</td>';
-    echo '<td>' . $order_total . '</td>';
-    echo '<td>' . esc_html($payment_method);
+    echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><br><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank">Chỉnh sửa đơn hàng</a></td>';
+    echo '<td data-label="Khách hàng">' . esc_html($billing_name) . '<span class="btc-table__muted">' . esc_html($billing_phone) . '</span></td>';
+    echo '<td data-label="Đơn hàng"><strong>' . $order_total . '</strong><span class="btc-table__muted">' . esc_html($order_date) . '</span><span class="btc-table__muted">' . esc_html($payment_method) . '</span>';
     if ($paid_date || $bank_account) {
-        echo '<br><small>';
+        echo '<small class="btc-table__muted">';
         if ($paid_date) {
             echo 'Ngày nhận: ' . esc_html($paid_date);
         }
@@ -580,14 +595,13 @@ function render_single_order_info($order)
         echo '</small>';
     }
     echo '</td>';
-    echo '<td>' . esc_html($order_status) . '</td>';
-    echo '<td>' . esc_html(is_array($handling_status) ? implode(', ', $handling_status) : $handling_status) . '</td>';
-    echo '<td><ul>';
+    echo '<td data-label="Trạng thái">' . esc_html($order_status) . '<span class="btc-table__muted">' . esc_html(is_array($handling_status) ? implode(', ', $handling_status) : $handling_status) . '</span></td>';
+    echo '<td data-label="Sản phẩm"><ul>';
     foreach ($order->get_items() as $item) {
         echo '<li>' . esc_html($item->get_name()) . ' x ' . intval($item->get_quantity()) . '</li>';
     }
     echo '</ul></td>';
-    echo '<td><div class="btc-table__actions">';
+    echo '<td data-label="Thao tác"><div class="btc-table__actions">';
     echo '<button type="button" class="button--small button--green" data-open-confirm-modal="1" data-order-id="' . intval($order_id) . '" data-order-total-raw="' . esc_attr(wc_format_decimal($order->get_total(), 0)) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Xác nhận chuyển khoản</button>';
     echo '<button type="button" class="button--small button--white" data-open-sms-modal="1" data-order-basic-info="' . esc_attr($basic_info) . '" data-sms-phone="' . esc_attr($billing_phone) . '" data-sms-paid="' . esc_attr($sms_paid) . '" data-sms-recall="' . esc_attr($sms_recall) . '">Gửi SMS</button>';
     echo '</div></td>';
