@@ -20,6 +20,7 @@
     let lastState = null;
     let countdownTimer = null;
     let openedAutomatically = window.sessionStorage.getItem('thean_lw_auto_opened') === '1';
+    let formUnlocked = false;
 
     function post(action, data) {
         const body = new URLSearchParams(Object.assign({ action: action, nonce: TheanLuckyWheel.nonce }, data || {}));
@@ -179,6 +180,7 @@
                 currentToken = node.getAttribute('data-token') || '';
                 currentSegmentIndex = Number(node.getAttribute('data-segment-index') || 0);
                 updateSelectedPrize();
+                formUnlocked = true;
                 form.hidden = false;
                 saveBtn.hidden = true;
                 spinToSegment(currentSegmentIndex);
@@ -196,6 +198,7 @@
 
     function renderState(state) {
         lastState = state;
+        root.setAttribute('data-has-results', state.prizes && state.prizes.length ? '1' : '0');
         trigger.querySelector('.thean-lw-trigger__text').textContent = contextTriggerText();
         spins.textContent = 'Còn ' + state.spins_left + '/' + state.max_spins + ' lượt quay';
 
@@ -208,7 +211,7 @@
         } else {
             spinBtn.hidden = state.spins_left <= 0;
             saveBtn.hidden = !(state.prizes && state.prizes.length);
-            form.hidden = !(currentToken || (state.spins_left <= 0 && state.prizes && state.prizes.length));
+            form.hidden = !(formUnlocked && currentToken);
         }
 
         if (state.prizes && state.prizes.length) {
@@ -232,6 +235,7 @@
         post('thean_lw_spin').then(function (data) {
             currentToken = data.claim_token;
             currentSegmentIndex = Number(data.prize.segment_index || 0);
+            formUnlocked = false;
             spinToSegment(currentSegmentIndex);
 
             window.setTimeout(function () {
@@ -303,6 +307,7 @@
             return;
         }
 
+        formUnlocked = true;
         form.hidden = false;
         saveBtn.hidden = true;
         setMessage('Nhập email hoặc số điện thoại để nhận mã.');

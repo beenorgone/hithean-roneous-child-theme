@@ -132,7 +132,7 @@ function thean_lw_render_widget(): void
                     <div class="thean-lw-content">
                         <p class="thean-lw-kicker">Ưu đãi riêng cho lượt ghé này</p>
                         <h2 id="thean-lw-title">Quay để giữ mã trong <?php echo esc_html((string) thean_lw_coupon_hold_hours()); ?> giờ</h2>
-                        <p class="thean-lw-copy">Bạn có tối đa 3 lượt quay. Mỗi kết quả sẽ được giữ lại. Sau đó chọn 1 ưu đãi phù hợp nhất rồi để lại email hoặc số điện thoại để nhận mã.</p>
+                        <p class="thean-lw-copy">Tối đa 3 lượt quay. Chọn 1 ưu đãi rồi nhập email hoặc số điện thoại để nhận mã.</p>
                         <p class="thean-lw-spins" data-thean-lw-spins>Đang tải...</p>
                         <div class="thean-lw-result-list" data-thean-lw-result-list hidden></div>
                         <form class="thean-lw-form" data-thean-lw-form hidden>
