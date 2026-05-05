@@ -56,9 +56,35 @@ function thean_lw_sanitize_settings($input): array
         $rewards = thean_lw_default_rewards();
     }
 
+    $vertical = sanitize_key((string) ($input['trigger_vertical'] ?? 'bottom'));
+    if (!in_array($vertical, ['top', 'bottom'], true)) {
+        $vertical = 'bottom';
+    }
+
+    $horizontal = sanitize_key((string) ($input['trigger_horizontal'] ?? 'right'));
+    if (!in_array($horizontal, ['left', 'right'], true)) {
+        $horizontal = 'right';
+    }
+
+    $display = sanitize_key((string) ($input['trigger_display'] ?? 'icon_text'));
+    if (!in_array($display, ['icon_text', 'icon_only', 'text_only'], true)) {
+        $display = 'icon_text';
+    }
+
+    $hold_hours = trim((string) ($input['coupon_hold_hours'] ?? ''));
+    if ($hold_hours !== '') {
+        $hold_hours = (string) max(1, min(168, (int) $hold_hours));
+    }
+
     return [
         'enabled' => empty($input['enabled']) ? 0 : 1,
         'offer_slugs' => sanitize_textarea_field((string) ($input['offer_slugs'] ?? '')),
+        'trigger_vertical' => $vertical,
+        'trigger_horizontal' => $horizontal,
+        'trigger_display' => $display,
+        'coupon_hold_hours' => $hold_hours,
+        'sheets_webhook_url' => esc_url_raw((string) ($input['sheets_webhook_url'] ?? '')),
+        'sheets_webhook_secret' => sanitize_text_field((string) ($input['sheets_webhook_secret'] ?? '')),
         'rewards_json' => wp_json_encode($rewards, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
     ];
 }
@@ -94,6 +120,50 @@ function thean_lw_render_admin_page(): void
                     <td>
                         <textarea class="large-text" rows="4" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[offer_slugs]"><?php echo esc_textarea((string) $settings['offer_slugs']); ?></textarea>
                         <p class="description">Mỗi dòng một slug. Ví dụ: <code>uu-dai</code>, <code>khuyen-mai</code>, <code>sale</code>.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Vị trí nút</th>
+                    <td>
+                        <fieldset style="display:flex;gap:24px;flex-wrap:wrap;">
+                            <label>
+                                Căn dọc
+                                <select name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_vertical]">
+                                    <option value="top" <?php selected($settings['trigger_vertical'], 'top'); ?>>Top</option>
+                                    <option value="bottom" <?php selected($settings['trigger_vertical'], 'bottom'); ?>>Bottom</option>
+                                </select>
+                            </label>
+                            <label>
+                                Căn ngang
+                                <select name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_horizontal]">
+                                    <option value="left" <?php selected($settings['trigger_horizontal'], 'left'); ?>>Left</option>
+                                    <option value="right" <?php selected($settings['trigger_horizontal'], 'right'); ?>>Right</option>
+                                </select>
+                            </label>
+                            <label>
+                                Hiển thị
+                                <select name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_display]">
+                                    <option value="icon_text" <?php selected($settings['trigger_display'], 'icon_text'); ?>>Icon + text</option>
+                                    <option value="icon_only" <?php selected($settings['trigger_display'], 'icon_only'); ?>>Icon only</option>
+                                    <option value="text_only" <?php selected($settings['trigger_display'], 'text_only'); ?>>Text only</option>
+                                </select>
+                            </label>
+                        </fieldset>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Số giờ giữ mã</th>
+                    <td>
+                        <input type="number" min="1" max="168" step="1" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[coupon_hold_hours]" value="<?php echo esc_attr((string) $settings['coupon_hold_hours']); ?>">
+                        <p class="description">Để trống để dùng mặc định tối ưu cho e-commerce: <strong>24 giờ</strong>.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Google Sheets webhook</th>
+                    <td>
+                        <input class="large-text" type="url" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[sheets_webhook_url]" value="<?php echo esc_attr((string) $settings['sheets_webhook_url']); ?>" placeholder="https://script.google.com/macros/s/.../exec">
+                        <p class="description">Dán URL Web App của Google Apps Script để tự động append lead vào file Google Sheets bạn chỉ định.</p>
+                        <input class="regular-text" type="text" style="margin-top:10px" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[sheets_webhook_secret]" value="<?php echo esc_attr((string) $settings['sheets_webhook_secret']); ?>" placeholder="Webhook secret (optional)">
                     </td>
                 </tr>
                 <tr>

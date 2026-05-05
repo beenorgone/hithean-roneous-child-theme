@@ -9,13 +9,18 @@ define('THEAN_LW_STATE_PREFIX', 'thean_lw_state_');
 define('THEAN_LW_SESSION_COOKIE', 'thean_lw_session');
 define('THEAN_LW_NONCE_ACTION', 'thean_lw_nonce');
 define('THEAN_LW_MAX_SPINS', 3);
-define('THEAN_LW_COUPON_TTL', DAY_IN_SECONDS);
 
 function thean_lw_default_settings(): array
 {
     return [
         'enabled' => 1,
         'offer_slugs' => "uu-dai\nkhuyen-mai\nsale",
+        'trigger_vertical' => 'bottom',
+        'trigger_horizontal' => 'right',
+        'trigger_display' => 'icon_text',
+        'coupon_hold_hours' => '',
+        'sheets_webhook_url' => '',
+        'sheets_webhook_secret' => '',
         'rewards_json' => wp_json_encode(thean_lw_default_rewards(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
     ];
 }
@@ -120,6 +125,46 @@ function thean_lw_offer_slugs(): array
     return $cache;
 }
 
+function thean_lw_coupon_hold_hours(): int
+{
+    $hours = trim((string) thean_lw_get_settings()['coupon_hold_hours']);
+    if ($hours === '') {
+        return 24;
+    }
+
+    return max(1, min(168, (int) $hours));
+}
+
+function thean_lw_coupon_ttl(): int
+{
+    return thean_lw_coupon_hold_hours() * HOUR_IN_SECONDS;
+}
+
+function thean_lw_sheets_webhook_url(): string
+{
+    return esc_url_raw((string) thean_lw_get_settings()['sheets_webhook_url']);
+}
+
+function thean_lw_sheets_webhook_secret(): string
+{
+    return (string) thean_lw_get_settings()['sheets_webhook_secret'];
+}
+
+function thean_lw_trigger_config(): array
+{
+    $settings = thean_lw_get_settings();
+
+    $vertical = in_array($settings['trigger_vertical'], ['top', 'bottom'], true) ? $settings['trigger_vertical'] : 'bottom';
+    $horizontal = in_array($settings['trigger_horizontal'], ['left', 'right'], true) ? $settings['trigger_horizontal'] : 'right';
+    $display = in_array($settings['trigger_display'], ['icon_text', 'icon_only', 'text_only'], true) ? $settings['trigger_display'] : 'icon_text';
+
+    return [
+        'vertical' => $vertical,
+        'horizontal' => $horizontal,
+        'display' => $display,
+    ];
+}
+
 function thean_lw_normalize_reward(array $reward): ?array
 {
     $id = sanitize_key((string) ($reward['id'] ?? ''));
@@ -178,12 +223,31 @@ function thean_lw_rewards(): array
     }
 
     if (empty($cache)) {
-        foreach (thean_lw_default_rewards() as $reward) {
-            $cache[] = $reward;
-        }
+        $cache = thean_lw_default_rewards();
     }
 
     return $cache;
+}
+
+function thean_lw_active_rewards(): array
+{
+    $segments = [];
+
+    foreach (thean_lw_rewards() as $reward) {
+        if (empty($reward['active']) || (int) $reward['frequency'] <= 0) {
+            continue;
+        }
+
+        $segments[] = $reward;
+    }
+
+    if (empty($segments)) {
+        foreach (thean_lw_default_rewards() as $reward) {
+            $segments[] = $reward;
+        }
+    }
+
+    return array_values($segments);
 }
 
 function thean_lw_is_feature_ajax_request(): bool

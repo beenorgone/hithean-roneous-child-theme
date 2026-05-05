@@ -9,18 +9,20 @@
     const spinBtn = root.querySelector('[data-thean-lw-spin]');
     const saveBtn = root.querySelector('[data-thean-lw-save]');
     const form = root.querySelector('[data-thean-lw-form]');
-    const result = root.querySelector('[data-thean-lw-result]');
+    const list = root.querySelector('[data-thean-lw-result-list]');
     const coupon = root.querySelector('[data-thean-lw-coupon]');
     const spins = root.querySelector('[data-thean-lw-spins]');
     const message = root.querySelector('[data-thean-lw-message]');
     const wheel = root.querySelector('.thean-lw-wheel');
 
     let currentToken = '';
+    let currentSegmentIndex = 0;
     let lastState = null;
+    let countdownTimer = null;
     let openedAutomatically = window.sessionStorage.getItem('thean_lw_auto_opened') === '1';
 
     function post(action, data) {
-        const body = new URLSearchParams(Object.assign({ action, nonce: TheanLuckyWheel.nonce }, data || {}));
+        const body = new URLSearchParams(Object.assign({ action: action, nonce: TheanLuckyWheel.nonce }, data || {}));
         return fetch(TheanLuckyWheel.ajaxUrl, {
             method: 'POST',
             credentials: 'same-origin',
@@ -51,38 +53,51 @@
     }
 
     function contextTriggerText() {
-        if (TheanLuckyWheel.context === 'cart') return 'Giữ ưu đãi 24h';
+        if (TheanLuckyWheel.context === 'cart') return 'Giữ ưu đãi ' + TheanLuckyWheel.couponHoldHours + 'h';
         if (TheanLuckyWheel.context === 'product') return 'Quay ưu đãi cho đơn này';
         return 'Nhận ưu đãi hôm nay';
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, function (char) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char];
+        });
+    }
+
+    function escapeAttr(value) {
+        return escapeHtml(value).replace(/`/g, '&#096;');
     }
 
     function renderCoupon(state) {
         if (!state || !state.coupon_code) {
             coupon.hidden = true;
+            coupon.innerHTML = '';
             return;
         }
 
-        const expires = Number(state.coupon_expires || 0) * 1000;
         coupon.hidden = false;
         coupon.innerHTML = [
             '<strong>Mã ưu đãi của bạn</strong>',
             '<span class="thean-lw-code">' + escapeHtml(state.coupon_code) + '</span>',
-            '<p data-thean-lw-countdown></p>',
+            '<p class="thean-lw-coupon__time" data-thean-lw-countdown></p>',
             '<div class="thean-lw-actions">',
-            '<button class="button thean-lw-secondary" type="button" data-thean-lw-copy>Sao chép mã</button>',
-            TheanLuckyWheel.isCart ? '<button class="button" type="button" data-thean-lw-apply>Áp dụng vào giỏ</button>' : '<a class="button" href="' + escapeAttr(TheanLuckyWheel.cartUrl) + '">Dùng trong giỏ hàng</a>',
+            '<button class="thean-lw-btn thean-lw-btn--secondary" type="button" data-thean-lw-copy>Sao chép mã</button>',
+            TheanLuckyWheel.isCart ? '<button class="thean-lw-btn thean-lw-btn--primary" type="button" data-thean-lw-apply>Áp dụng vào giỏ</button>' : '<a class="thean-lw-btn thean-lw-btn--primary" href="' + escapeAttr(TheanLuckyWheel.cartUrl) + '">Dùng trong giỏ hàng</a>',
             '</div>'
         ].join('');
 
         const copyBtn = coupon.querySelector('[data-thean-lw-copy]');
+        const applyBtn = coupon.querySelector('[data-thean-lw-apply]');
+
         if (copyBtn) {
             copyBtn.addEventListener('click', function () {
-                navigator.clipboard && navigator.clipboard.writeText(state.coupon_code);
-                setMessage('Đã sao chép mã.');
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(state.coupon_code);
+                }
+                setMessage('Đã sao chép mã ưu đãi.');
             });
         }
 
-        const applyBtn = coupon.querySelector('[data-thean-lw-apply]');
         if (applyBtn) {
             applyBtn.addEventListener('click', function () {
                 applyBtn.disabled = true;
@@ -96,22 +111,87 @@
             });
         }
 
-        updateCountdown(expires);
+        updateCountdown(Number(state.coupon_expires || 0) * 1000);
     }
 
-    function updateCountdown(expires) {
+    function updateCountdown(expiresAt) {
         const target = coupon.querySelector('[data-thean-lw-countdown]');
         if (!target) return;
 
+        if (countdownTimer) {
+            window.clearInterval(countdownTimer);
+        }
+
         function tick() {
-            const diff = Math.max(0, expires - Date.now());
+            const diff = Math.max(0, expiresAt - Date.now());
             const hours = Math.floor(diff / 3600000);
             const minutes = Math.floor((diff % 3600000) / 60000);
-            target.textContent = diff > 0 ? 'Mã có hiệu lực trong ' + hours + ' giờ ' + minutes + ' phút.' : 'Mã ưu đãi đã hết hạn.';
+            target.textContent = diff > 0
+                ? 'Mã có hiệu lực trong ' + hours + ' giờ ' + minutes + ' phút.'
+                : 'Mã ưu đãi đã hết hạn.';
         }
 
         tick();
-        window.setInterval(tick, 60000);
+        countdownTimer = window.setInterval(tick, 60000);
+    }
+
+    function spinToSegment(segmentIndex) {
+        if (!wheel) return;
+
+        const segmentCount = Math.max(1, Number(root.getAttribute('data-segments') || 1));
+        const segmentAngle = 360 / segmentCount;
+        const targetAngle = 360 - ((segmentIndex * segmentAngle) + (segmentAngle / 2));
+        const extraTurns = 5 * 360;
+        const finalAngle = extraTurns + targetAngle;
+
+        wheel.style.setProperty('--lw-final-rotation', finalAngle + 'deg');
+        root.classList.add('is-spinning');
+    }
+
+    function stopSpin() {
+        root.classList.remove('is-spinning');
+    }
+
+    function renderPrizeList(prizes) {
+        if (!prizes || !prizes.length) {
+            list.hidden = true;
+            list.innerHTML = '';
+            return;
+        }
+
+        list.hidden = false;
+        list.innerHTML = [
+            '<p class="thean-lw-result-list__title">Các ưu đãi bạn đã quay được</p>',
+            prizes.map(function (prize, index) {
+                const selected = prize.claim_token === currentToken || (!currentToken && prize.selected);
+                return [
+                    '<button class="thean-lw-prize-choice" type="button" data-token="', escapeAttr(prize.claim_token), '" data-segment-index="', escapeAttr(prize.segment_index), '" aria-pressed="', selected ? 'true' : 'false', '">',
+                    '<span class="thean-lw-prize-choice__index">Lượt ', String(index + 1), '</span>',
+                    '<strong>', escapeHtml(prize.label), '</strong>',
+                    prize.claimed ? '<span class="thean-lw-prize-choice__meta">Đã dùng để tạo mã</span>' : '<span class="thean-lw-prize-choice__meta">Chọn ưu đãi này</span>',
+                    '</button>'
+                ].join('');
+            }).join('')
+        ].join('');
+
+        list.querySelectorAll('[data-token]').forEach(function (node) {
+            node.addEventListener('click', function () {
+                currentToken = node.getAttribute('data-token') || '';
+                currentSegmentIndex = Number(node.getAttribute('data-segment-index') || 0);
+                updateSelectedPrize();
+                form.hidden = false;
+                saveBtn.hidden = true;
+                spinToSegment(currentSegmentIndex);
+                window.setTimeout(stopSpin, 2600);
+                setMessage('Đã chọn ưu đãi. Nhập email hoặc số điện thoại để nhận mã.');
+            });
+        });
+    }
+
+    function updateSelectedPrize() {
+        list.querySelectorAll('[data-token]').forEach(function (node) {
+            node.setAttribute('aria-pressed', node.getAttribute('data-token') === currentToken ? 'true' : 'false');
+        });
     }
 
     function renderState(state) {
@@ -119,47 +199,28 @@
         trigger.querySelector('.thean-lw-trigger__text').textContent = contextTriggerText();
         spins.textContent = 'Còn ' + state.spins_left + '/' + state.max_spins + ' lượt quay';
 
+        renderCoupon(state);
+
         if (state.coupon_code) {
-            result.hidden = true;
-            form.hidden = true;
             spinBtn.hidden = true;
             saveBtn.hidden = true;
-            renderCoupon(state);
-            return;
+            form.hidden = true;
+        } else {
+            spinBtn.hidden = state.spins_left <= 0;
+            saveBtn.hidden = !(state.prizes && state.prizes.length);
+            form.hidden = !(currentToken || (state.spins_left <= 0 && state.prizes && state.prizes.length));
         }
-
-        renderCoupon(state);
-        spinBtn.hidden = state.spins_left <= 0;
-        saveBtn.hidden = true;
 
         if (state.prizes && state.prizes.length) {
-            const latest = state.prizes[state.prizes.length - 1];
-            currentToken = latest.claim_token;
-            result.hidden = false;
-            result.innerHTML = '<span>Ưu đãi đã quay được</span>' + state.prizes.map(function (prize, index) {
-                const selected = prize.claim_token === currentToken ? ' aria-pressed="true"' : '';
-                return '<button class="thean-lw-prize-choice" type="button" data-token="' + escapeAttr(prize.claim_token) + '"' + selected + '>' + escapeHtml(prize.label) + '</button>';
-            }).join('');
-            result.querySelectorAll('[data-token]').forEach(function (button) {
-                button.addEventListener('click', function () {
-                    currentToken = button.getAttribute('data-token') || '';
-                    result.querySelectorAll('[data-token]').forEach(function (node) {
-                        node.setAttribute('aria-pressed', node === button ? 'true' : 'false');
-                    });
-                    form.hidden = false;
-                    saveBtn.hidden = true;
-                    setMessage('Đã chọn ưu đãi. Nhập email hoặc số điện thoại để nhận mã.');
-                });
-            });
-            saveBtn.hidden = false;
+            const selected = state.prizes.find(function (prize) { return prize.selected; }) || state.prizes[state.prizes.length - 1];
+            currentToken = currentToken || selected.claim_token;
+            currentSegmentIndex = Number(selected.segment_index || 0);
+            renderPrizeList(state.prizes);
+            updateSelectedPrize();
         } else {
-            result.hidden = true;
-        }
-
-        if (state.spins_left <= 0 && state.prizes && state.prizes.length) {
-            form.hidden = false;
-            spinBtn.hidden = true;
-            saveBtn.hidden = true;
+            currentToken = '';
+            currentSegmentIndex = 0;
+            renderPrizeList([]);
         }
     }
 
@@ -167,48 +228,63 @@
         spinBtn.disabled = true;
         saveBtn.hidden = true;
         setMessage('');
-        root.classList.add('is-spinning');
-        if (wheel) {
-            wheel.style.transform = 'rotate(' + (720 + Math.floor(Math.random() * 360)) + 'deg)';
-        }
 
         post('thean_lw_spin').then(function (data) {
             currentToken = data.claim_token;
+            currentSegmentIndex = Number(data.prize.segment_index || 0);
+            spinToSegment(currentSegmentIndex);
+
             window.setTimeout(function () {
-                root.classList.remove('is-spinning');
-                result.hidden = false;
-                result.innerHTML = '<span>Bạn vừa quay được</span><strong>' + escapeHtml(data.prize.label) + '</strong>';
-                spins.textContent = 'Còn ' + data.spins_left + '/' + TheanLuckyWheel.maxSpins + ' lượt quay';
+                stopSpin();
+                if (lastState && Array.isArray(lastState.prizes)) {
+                    lastState.prizes = lastState.prizes.concat([{
+                        label: data.prize.label,
+                        claim_token: data.claim_token,
+                        claimed: false,
+                        selected: true,
+                        segment_index: currentSegmentIndex
+                    }]);
+                    lastState.spins_used = data.spins_used;
+                    lastState.spins_left = data.spins_left;
+                    lastState.max_spins = data.max_spins;
+                    renderState(lastState);
+                }
+
                 saveBtn.hidden = false;
-                spinBtn.hidden = data.spins_left <= 0;
+                spinBtn.disabled = false;
                 if (data.spins_left <= 0) {
                     form.hidden = false;
                     saveBtn.hidden = true;
                 }
-                spinBtn.disabled = false;
-            }, 900);
+                setMessage('Đã thêm một kết quả mới. Bạn có thể quay tiếp hoặc chọn 1 ưu đãi để lưu.');
+            }, 2600);
         }).catch(function (error) {
-            root.classList.remove('is-spinning');
-            setMessage(error.message);
+            stopSpin();
             spinBtn.disabled = false;
-            if (lastState && lastState.prizes && lastState.prizes.length) {
-                form.hidden = false;
-            }
+            setMessage(error.message);
         });
     }
 
     function claim(event) {
         event.preventDefault();
+        const submit = form.querySelector('[type="submit"]');
         const contact = form.querySelector('[name="contact"]').value;
         const website = form.querySelector('[name="website"]').value;
-        const submit = form.querySelector('[type="submit"]');
+
+        if (!currentToken) {
+            setMessage('Hãy chọn một ưu đãi trước khi nhận mã.');
+            return;
+        }
+
         submit.disabled = true;
         setMessage('');
 
         post('thean_lw_claim', {
             claim_token: currentToken,
             contact: contact,
-            website: website
+            website: website,
+            context: TheanLuckyWheel.context,
+            source_url: TheanLuckyWheel.currentUrl
         }).then(function (state) {
             renderState(state);
             setMessage('Mã ưu đãi đã được tạo.');
@@ -219,29 +295,28 @@
         });
     }
 
-    function escapeHtml(value) {
-        return String(value).replace(/[&<>"']/g, function (char) {
-            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char];
-        });
-    }
-
-    function escapeAttr(value) {
-        return escapeHtml(value).replace(/`/g, '&#096;');
-    }
-
     trigger.addEventListener('click', openModal);
     spinBtn.addEventListener('click', spin);
     saveBtn.addEventListener('click', function () {
+        if (!currentToken) {
+            setMessage('Hãy chọn một ưu đãi trước.');
+            return;
+        }
+
         form.hidden = false;
         saveBtn.hidden = true;
         setMessage('Nhập email hoặc số điện thoại để nhận mã.');
     });
     form.addEventListener('submit', claim);
+
     root.querySelectorAll('[data-thean-lw-close]').forEach(function (node) {
         node.addEventListener('click', closeModal);
     });
+
     document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') closeModal();
+        if (event.key === 'Escape') {
+            closeModal();
+        }
     });
 
     post('thean_lw_status').then(function (state) {
