@@ -107,7 +107,7 @@ function thean_lw_render_widget(): void
         data-display="<?php echo esc_attr($trigger['display']); ?>"
         data-segments="<?php echo esc_attr((string) count($segments)); ?>"
     >
-        <button class="thean-lw-trigger" type="button" aria-haspopup="dialog">
+        <button class="thean-lw-trigger <?php echo esc_attr($trigger['custom_class']); ?>" type="button" aria-haspopup="dialog">
             <span class="thean-lw-trigger__icon">%</span>
             <span class="thean-lw-trigger__text">Nhận ưu đãi hôm nay</span>
         </button>
@@ -121,8 +121,12 @@ function thean_lw_render_widget(): void
                         <div class="thean-lw-pointer" aria-hidden="true"></div>
                         <div class="thean-lw-wheel" aria-hidden="true" style="--segments: <?php echo esc_attr((string) count($segments)); ?>;">
                             <?php foreach ($segments as $index => $segment) : ?>
-                                <span class="thean-lw-wheel__label" style="--segment-index: <?php echo esc_attr((string) $index); ?>;"><?php echo esc_html($segment['label']); ?></span>
+                                <span class="thean-lw-wheel__label" style="--segment-index: <?php echo esc_attr((string) $index); ?>;"><?php echo esc_html(thean_lw_reward_wheel_label($segment)); ?></span>
                             <?php endforeach; ?>
+                        </div>
+                        <div class="thean-lw-actions thean-lw-actions--wheel">
+                            <button class="thean-lw-btn thean-lw-btn--primary" type="button" data-thean-lw-spin>Quay ngay</button>
+                            <button class="thean-lw-btn thean-lw-btn--secondary" type="button" data-thean-lw-save hidden>Chọn ưu đãi</button>
                         </div>
                     </div>
                     <div class="thean-lw-content">
@@ -131,10 +135,6 @@ function thean_lw_render_widget(): void
                         <p class="thean-lw-copy">Bạn có tối đa 3 lượt quay. Mỗi kết quả sẽ được giữ lại. Sau đó chọn 1 ưu đãi phù hợp nhất rồi để lại email hoặc số điện thoại để nhận mã.</p>
                         <p class="thean-lw-spins" data-thean-lw-spins>Đang tải...</p>
                         <div class="thean-lw-result-list" data-thean-lw-result-list hidden></div>
-                        <div class="thean-lw-actions">
-                            <button class="thean-lw-btn thean-lw-btn--primary" type="button" data-thean-lw-spin>Quay ngay</button>
-                            <button class="thean-lw-btn thean-lw-btn--secondary" type="button" data-thean-lw-save hidden>Chọn ưu đãi đang bôi sáng</button>
-                        </div>
                         <form class="thean-lw-form" data-thean-lw-form hidden>
                             <label for="thean-lw-contact">Email hoặc số điện thoại</label>
                             <input id="thean-lw-contact" name="contact" type="text" inputmode="email" autocomplete="email tel" placeholder="email@example.com hoặc 09..." required>

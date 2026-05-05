@@ -82,6 +82,7 @@ function thean_lw_sanitize_settings($input): array
         'trigger_vertical' => $vertical,
         'trigger_horizontal' => $horizontal,
         'trigger_display' => $display,
+        'trigger_custom_class' => sanitize_html_class((string) ($input['trigger_custom_class'] ?? '')),
         'coupon_hold_hours' => $hold_hours,
         'sheets_webhook_url' => esc_url_raw((string) ($input['sheets_webhook_url'] ?? '')),
         'sheets_webhook_secret' => sanitize_text_field((string) ($input['sheets_webhook_secret'] ?? '')),
@@ -147,6 +148,10 @@ function thean_lw_render_admin_page(): void
                                     <option value="icon_only" <?php selected($settings['trigger_display'], 'icon_only'); ?>>Icon only</option>
                                     <option value="text_only" <?php selected($settings['trigger_display'], 'text_only'); ?>>Text only</option>
                                 </select>
+                            </label>
+                            <label>
+                                CSS class cho nút
+                                <input type="text" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_custom_class]" value="<?php echo esc_attr((string) $settings['trigger_custom_class']); ?>" placeholder="my-custom-trigger">
                             </label>
                         </fieldset>
                     </td>

@@ -65,8 +65,8 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    width: min(920px, calc(100vw - 28px));
-    max-height: calc(100vh - 28px);
+    width: min(860px, calc(100vw - 20px));
+    max-height: calc(100vh - 20px);
     overflow: auto;
     transform: translate(-50%, -50%);
     border-radius: 8px;
@@ -92,17 +92,18 @@
 
 .thean-lw-grid {
     display: grid;
-    grid-template-columns: minmax(300px, 0.95fr) 1.05fr;
-    gap: 28px;
-    padding: 34px;
-    align-items: center;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    gap: 18px;
+    padding: 20px;
+    align-items: start;
 }
 
 .thean-lw-wheel-wrap {
     position: relative;
     display: grid;
     place-items: center;
-    padding-top: 22px;
+    gap: 10px;
+    padding-top: 18px;
 }
 
 .thean-lw-pointer {
@@ -122,7 +123,7 @@
 
 .thean-lw-wheel {
     --lw-final-rotation: 0deg;
-    width: min(340px, 78vw);
+    width: min(250px, 58vw);
     aspect-ratio: 1;
     border: 10px solid #fff;
     border-radius: 50%;
@@ -157,15 +158,17 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 38%;
+    width: 30%;
     color: #fff;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    line-height: 1.3;
+    line-height: 1.1;
     text-align: center;
     transform-origin: 0 0;
-    transform: rotate(calc((360deg / var(--segments, 5)) * var(--segment-index))) translate(14%, -132%);
+    transform: rotate(calc((360deg / var(--segments, 5)) * var(--segment-index))) translate(6%, -132%);
     z-index: 1;
+    white-space: nowrap;
+    letter-spacing: 0;
 }
 
 .thean-lw-wheel__label:nth-child(2n) {
@@ -185,10 +188,10 @@
 }
 
 .thean-lw h2 {
-    margin: 0 34px 10px 0;
+    margin: 0 20px 6px 0;
     color: var(--lw-ink);
-    font-size: 28px;
-    line-height: 1.18;
+    font-size: 22px;
+    line-height: 1.14;
 }
 
 .thean-lw-copy,
@@ -202,8 +205,8 @@
 
 .thean-lw-result-list,
 .thean-lw-coupon {
-    margin: 16px 0;
-    padding: 14px;
+    margin: 10px 0;
+    padding: 10px 12px;
     border: 1px solid var(--lw-line);
     border-radius: 8px;
     background: #f8fbf9;
@@ -219,7 +222,7 @@
     display: block;
     width: 100%;
     margin-top: 8px;
-    padding: 12px;
+    padding: 10px 12px;
     border: 1px solid var(--lw-line);
     border-radius: 6px;
     background: #fff;
@@ -231,7 +234,7 @@
 .thean-lw-prize-choice strong,
 .thean-lw-coupon strong {
     display: block;
-    font-size: 16px;
+    font-size: 15px;
 }
 
 .thean-lw-prize-choice__index {
@@ -252,6 +255,15 @@
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.thean-lw-actions--wheel {
+    width: min(250px, 58vw);
+    justify-content: center;
+}
+
+.thean-lw-actions--wheel .thean-lw-btn {
+    width: 100%;
 }
 
 .thean-lw-btn {
@@ -280,7 +292,7 @@
 }
 
 .thean-lw-form {
-    margin-top: 16px;
+    margin-top: 10px;
 }
 
 .thean-lw-form label {
@@ -330,13 +342,79 @@
         text-overflow: ellipsis;
     }
 
+    .thean-lw-panel {
+        width: calc(100vw - 16px);
+        max-height: calc(100vh - 16px);
+    }
+
     .thean-lw-grid {
-        grid-template-columns: 1fr;
-        gap: 18px;
-        padding: 24px 18px;
+        grid-template-columns: 152px minmax(0, 1fr);
+        gap: 12px;
+        padding: 16px 14px;
     }
 
     .thean-lw h2 {
-        font-size: 22px;
+        font-size: 16px;
+        margin-right: 14px;
+    }
+
+    .thean-lw-copy,
+    .thean-lw-spins,
+    .thean-lw-message,
+    .thean-lw-form-note,
+    .thean-lw-prize-choice__meta {
+        font-size: 12px;
+    }
+
+    .thean-lw-kicker {
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+
+    .thean-lw-wheel {
+        width: 150px;
+        border-width: 7px;
+    }
+
+    .thean-lw-wheel-wrap {
+        padding-top: 14px;
+        align-content: start;
+    }
+
+    .thean-lw-pointer {
+        border-left-width: 10px;
+        border-right-width: 10px;
+        border-bottom-width: 18px;
+    }
+
+    .thean-lw-wheel__label {
+        width: 26%;
+        font-size: 9px;
+        transform: rotate(calc((360deg / var(--segments, 5)) * var(--segment-index))) translate(8%, -138%);
+    }
+
+    .thean-lw-actions--wheel {
+        width: 150px;
+        gap: 8px;
+    }
+
+    .thean-lw-btn {
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .thean-lw-result-list,
+    .thean-lw-coupon {
+        padding: 8px 10px;
+    }
+
+    .thean-lw-prize-choice {
+        padding: 8px 10px;
+    }
+
+    .thean-lw-prize-choice strong,
+    .thean-lw-coupon strong {
+        font-size: 13px;
     }
 }

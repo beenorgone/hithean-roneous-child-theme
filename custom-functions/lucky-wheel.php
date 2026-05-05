@@ -18,6 +18,7 @@ function thean_lw_default_settings(): array
         'trigger_vertical' => 'bottom',
         'trigger_horizontal' => 'right',
         'trigger_display' => 'icon_text',
+        'trigger_custom_class' => '',
         'coupon_hold_hours' => '',
         'sheets_webhook_url' => '',
         'sheets_webhook_secret' => '',
@@ -162,7 +163,26 @@ function thean_lw_trigger_config(): array
         'vertical' => $vertical,
         'horizontal' => $horizontal,
         'display' => $display,
+        'custom_class' => sanitize_html_class((string) $settings['trigger_custom_class']),
     ];
+}
+
+function thean_lw_reward_wheel_label(array $reward): string
+{
+    if (!empty($reward['wheel_label'])) {
+        return sanitize_text_field((string) $reward['wheel_label']);
+    }
+
+    switch ($reward['type']) {
+        case 'percent':
+            return (string) round((float) $reward['amount']) . '%';
+        case 'fixed_cart':
+            return round(((float) $reward['amount']) / 1000) . 'K';
+        case 'free_shipping':
+            return 'Freeship';
+    }
+
+    return sanitize_text_field((string) $reward['label']);
 }
 
 function thean_lw_normalize_reward(array $reward): ?array
