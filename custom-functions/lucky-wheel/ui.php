@@ -110,7 +110,7 @@ function thean_lw_render_widget(): void
     >
         <button class="thean-lw-trigger <?php echo esc_attr($trigger['custom_class']); ?>" type="button" aria-haspopup="dialog">
             <span class="thean-lw-trigger__icon">%</span>
-            <span class="thean-lw-trigger__text">Nhận ưu đãi hôm nay</span>
+            <span class="thean-lw-trigger__text">Vòng quay may mắn</span>
         </button>
 
         <div class="thean-lw-modal" role="dialog" aria-modal="true" aria-labelledby="thean-lw-title" hidden>

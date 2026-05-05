@@ -362,13 +362,18 @@
 }
 
 @media (max-width: 720px) {
-    .thean-lw[data-vertical="bottom"] .thean-lw-trigger { bottom: 14px; }
-    .thean-lw[data-vertical="top"] .thean-lw-trigger { top: 14px; }
-    .thean-lw[data-horizontal="right"] .thean-lw-trigger { right: 12px; }
-    .thean-lw[data-horizontal="left"] .thean-lw-trigger { left: 12px; }
+    .thean-lw .thean-lw-trigger {
+        left: 50%;
+        right: auto;
+        top: auto;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+        transform: translateX(-50%);
+        border-radius: 5px;
+        max-width: calc(100vw - 24px);
+    }
 
     .thean-lw-trigger__text {
-        max-width: 150px;
+        max-width: 160px;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
