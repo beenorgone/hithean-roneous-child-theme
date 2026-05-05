@@ -366,10 +366,15 @@
         left: 50%;
         right: auto;
         top: auto;
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 55px);
         transform: translateX(-50%);
         border-radius: 5px;
         max-width: calc(100vw - 24px);
+    }
+
+    .thean-lw[data-context="cart"] .thean-lw-trigger,
+    .thean-lw[data-context="product"] .thean-lw-trigger {
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 110px);
     }
 
     .thean-lw-trigger__text {
