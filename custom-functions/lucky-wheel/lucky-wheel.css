@@ -229,7 +229,10 @@
 }
 
 .thean-lw-prize-choice {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
     width: 100%;
     margin-top: 6px;
     padding: 8px 10px;
@@ -243,18 +246,39 @@
 
 .thean-lw-prize-choice strong,
 .thean-lw-coupon strong {
-    display: block;
     font-size: 15px;
     line-height: 1.45;
 }
 
+.thean-lw-prize-choice strong {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 .thean-lw-prize-choice__index {
-    display: inline-block;
-    margin-bottom: 2px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
     color: var(--lw-green);
     font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
+}
+
+.thean-lw-prize-choice__meta {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    max-width: 110px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    line-height: 1.25;
+    text-align: right;
 }
 
 .thean-lw-prize-choice[aria-pressed="true"] {
@@ -439,12 +463,13 @@
 
     .thean-lw-prize-choice {
         padding: 7px 8px;
+        gap: 6px;
     }
 
     .thean-lw-prize-choice strong,
     .thean-lw-coupon strong {
         font-size: 13px;
-        line-height: 1.5;
+        line-height: 1.25;
     }
 
     .thean-lw-result-list__title {
@@ -454,5 +479,10 @@
 
     .thean-lw-prize-choice__index {
         font-size: 10px;
+    }
+
+    .thean-lw-prize-choice__meta {
+        max-width: 84px;
+        font-size: 11px;
     }
 }
