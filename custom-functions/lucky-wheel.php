@@ -87,6 +87,24 @@ function thean_lw_feature_url(): string
     return get_stylesheet_directory_uri() . '/custom-functions/lucky-wheel';
 }
 
+function thean_lw_asset(string $basename): array
+{
+    $extension = pathinfo($basename, PATHINFO_EXTENSION);
+    $filename = basename($basename, '.' . $extension);
+    $min_file = $filename . '.min.' . $extension;
+    $min_path = thean_lw_feature_dir() . '/' . $min_file;
+    $source_path = thean_lw_feature_dir() . '/' . $basename;
+    $resolved_file = is_file($min_path) ? $min_file : $basename;
+    $resolved_path = is_file($min_path) ? $min_path : $source_path;
+
+    return [
+        'file' => $resolved_file,
+        'path' => $resolved_path,
+        'url' => thean_lw_feature_url() . '/' . $resolved_file,
+        'version' => is_file($resolved_path) ? (string) filemtime($resolved_path) : thean_theme_code_version(),
+    ];
+}
+
 function thean_lw_can_manage(): bool
 {
     return current_user_can('manage_woocommerce') || current_user_can('manage_options');
