@@ -119,6 +119,9 @@ $general_includes = [
     'custom-functions/blogpost-metabox.php',
     'custom-functions/product-metabox.php',
 
+    /* WOO UI */
+    'custom-functions/lucky-wheel.php',
+
     /* ORDER */
     'custom-functions/order-metabox.php',
     'custom-functions/order-number.php',
