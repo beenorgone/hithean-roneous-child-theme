@@ -67,15 +67,16 @@ function thean_lw_enqueue_assets(): void
         return;
     }
 
-    $css_path = thean_lw_feature_dir() . '/lucky-wheel.css';
-    $js_path = thean_lw_feature_dir() . '/lucky-wheel.js';
+    $css_asset = thean_lw_asset('lucky-wheel.css');
+    $js_asset = thean_lw_asset('lucky-wheel.js');
 
-    if (!is_file($css_path) || !is_file($js_path)) {
+    if (!is_file($css_asset['path']) || !is_file($js_asset['path'])) {
         return;
     }
 
-    wp_enqueue_style('thean-lucky-wheel', thean_lw_feature_url() . '/lucky-wheel.css', [], filemtime($css_path));
-    wp_enqueue_script('thean-lucky-wheel', thean_lw_feature_url() . '/lucky-wheel.js', [], filemtime($js_path), true);
+    wp_enqueue_style('thean-lucky-wheel', $css_asset['url'], [], $css_asset['version']);
+    wp_enqueue_script('thean-lucky-wheel', $js_asset['url'], [], $js_asset['version'], true);
+    wp_script_add_data('thean-lucky-wheel', 'defer', true);
     wp_localize_script('thean-lucky-wheel', 'TheanLuckyWheel', [
         'ajaxUrl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce(THEAN_LW_NONCE_ACTION),
