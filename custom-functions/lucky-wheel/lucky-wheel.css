@@ -253,9 +253,8 @@
 .thean-lw-prize-choice strong {
     flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .thean-lw-prize-choice__index {
@@ -273,9 +272,7 @@
     display: inline-flex;
     align-items: center;
     max-width: 110px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
     font-size: 12px;
     line-height: 1.25;
     text-align: right;
