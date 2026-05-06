@@ -4,6 +4,29 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!function_exists('thean_lw_asset')) {
+    function thean_lw_asset(string $basename): array
+    {
+        $extension = pathinfo($basename, PATHINFO_EXTENSION);
+        $filename = basename($basename, '.' . $extension);
+        $min_file = $filename . '.min.' . $extension;
+        $feature_dir = function_exists('thean_lw_feature_dir') ? thean_lw_feature_dir() : get_stylesheet_directory() . '/custom-functions/lucky-wheel';
+        $feature_url = function_exists('thean_lw_feature_url') ? thean_lw_feature_url() : get_stylesheet_directory_uri() . '/custom-functions/lucky-wheel';
+        $min_path = $feature_dir . '/' . $min_file;
+        $source_path = $feature_dir . '/' . $basename;
+        $resolved_file = is_file($min_path) ? $min_file : $basename;
+        $resolved_path = is_file($min_path) ? $min_path : $source_path;
+        $fallback_version = function_exists('thean_theme_code_version') ? thean_theme_code_version() : (string) time();
+
+        return [
+            'file' => $resolved_file,
+            'path' => $resolved_path,
+            'url' => $feature_url . '/' . $resolved_file,
+            'version' => is_file($resolved_path) ? (string) filemtime($resolved_path) : $fallback_version,
+        ];
+    }
+}
+
 function thean_lw_boot_ui(): void
 {
     add_action('wp_enqueue_scripts', 'thean_lw_enqueue_assets');
@@ -98,7 +121,7 @@ function thean_lw_render_widget(): void
 
     $trigger = thean_lw_trigger_config();
     $segments = thean_lw_active_rewards();
-    ?>
+?>
     <div
         id="thean-lw-root"
         class="thean-lw"
@@ -106,51 +129,51 @@ function thean_lw_render_widget(): void
         data-vertical="<?php echo esc_attr($trigger['vertical']); ?>"
         data-horizontal="<?php echo esc_attr($trigger['horizontal']); ?>"
         data-display="<?php echo esc_attr($trigger['display']); ?>"
-        data-segments="<?php echo esc_attr((string) count($segments)); ?>"
-    >
+        data-segments="<?php echo esc_attr((string) count($segments)); ?>">
         <button class="thean-lw-trigger <?php echo esc_attr($trigger['custom_class']); ?>" type="button" aria-haspopup="dialog">
             <span class="thean-lw-trigger__icon">%</span>
-            <span class="thean-lw-trigger__text">Vòng quay may mắn</span>
-        </button>
+            <dív class="thean-lw-trigger__text">Vòng quay may mắn
+    </div>
+    </button>
 
-        <div class="thean-lw-modal" role="dialog" aria-modal="true" aria-labelledby="thean-lw-title" hidden>
-            <div class="thean-lw-backdrop" data-thean-lw-close></div>
-            <div class="thean-lw-panel">
-                <button class="thean-lw-close" type="button" data-thean-lw-close aria-label="Đóng">×</button>
-                <div class="thean-lw-grid">
-                    <div class="thean-lw-wheel-wrap">
-                        <div class="thean-lw-pointer" aria-hidden="true"></div>
-                        <div class="thean-lw-wheel" aria-hidden="true" style="--segments: <?php echo esc_attr((string) count($segments)); ?>;">
-                            <?php foreach ($segments as $index => $segment) : ?>
-                                <span class="thean-lw-wheel__label" style="--segment-index: <?php echo esc_attr((string) $index); ?>;"><?php echo esc_html(thean_lw_reward_wheel_label($segment)); ?></span>
-                            <?php endforeach; ?>
-                        </div>
-                        <div class="thean-lw-actions thean-lw-actions--wheel">
-                            <button class="thean-lw-btn thean-lw-btn--primary" type="button" data-thean-lw-spin>Quay ngay</button>
-                            <button class="thean-lw-btn thean-lw-btn--secondary" type="button" data-thean-lw-save hidden>Chọn ưu đãi</button>
-                        </div>
+    <div class="thean-lw-modal" role="dialog" aria-modal="true" aria-labelledby="thean-lw-title" hidden>
+        <div class="thean-lw-backdrop" data-thean-lw-close></div>
+        <div class="thean-lw-panel">
+            <button class="thean-lw-close" type="button" data-thean-lw-close aria-label="Đóng">×</button>
+            <div class="thean-lw-grid">
+                <div class="thean-lw-wheel-wrap">
+                    <div class="thean-lw-pointer" aria-hidden="true"></div>
+                    <div class="thean-lw-wheel" aria-hidden="true" style="--segments: <?php echo esc_attr((string) count($segments)); ?>;">
+                        <?php foreach ($segments as $index => $segment) : ?>
+                            <span class="thean-lw-wheel__label" style="--segment-index: <?php echo esc_attr((string) $index); ?>;"><?php echo esc_html(thean_lw_reward_wheel_label($segment)); ?></span>
+                        <?php endforeach; ?>
                     </div>
-                    <div class="thean-lw-content">
-                        <p class="thean-lw-kicker">Ưu đãi riêng cho lượt ghé này</p>
-                        <h2 id="thean-lw-title">Quay để giữ mã trong <?php echo esc_html((string) thean_lw_coupon_hold_hours()); ?> giờ</h2>
-                        <p class="thean-lw-copy">Tối đa 3 lượt quay. Chọn 1 ưu đãi rồi nhập email hoặc số điện thoại để nhận mã.</p>
-                        <p class="thean-lw-spins" data-thean-lw-spins>Đang tải...</p>
-                        <div class="thean-lw-result-list" data-thean-lw-result-list hidden></div>
-                        <form class="thean-lw-form" data-thean-lw-form hidden>
-                            <label for="thean-lw-contact">Email hoặc số điện thoại</label>
-                            <input id="thean-lw-contact" name="contact" type="text" inputmode="email" autocomplete="email tel" placeholder="email@example.com hoặc 09..." required>
-                            <input class="thean-lw-hp" name="website" type="text" tabindex="-1" autocomplete="off">
-                            <button class="thean-lw-btn thean-lw-btn--primary" type="submit">Nhận mã ưu đãi</button>
-                            <p class="thean-lw-form-note">Mã chỉ được tạo sau bước này và có hiệu lực trong <?php echo esc_html((string) thean_lw_coupon_hold_hours()); ?> giờ.</p>
-                        </form>
-                        <div class="thean-lw-coupon" data-thean-lw-coupon hidden></div>
-                        <p class="thean-lw-message" data-thean-lw-message role="status"></p>
+                    <div class="thean-lw-actions thean-lw-actions--wheel">
+                        <button class="thean-lw-btn thean-lw-btn--primary" type="button" data-thean-lw-spin>Quay ngay</button>
+                        <button class="thean-lw-btn thean-lw-btn--secondary" type="button" data-thean-lw-save hidden>Chọn ưu đãi</button>
                     </div>
+                </div>
+                <div class="thean-lw-content">
+                    <p class="thean-lw-kicker">Ưu đãi riêng cho lượt ghé này</p>
+                    <h2 id="thean-lw-title">Quay để giữ mã trong <?php echo esc_html((string) thean_lw_coupon_hold_hours()); ?> giờ</h2>
+                    <p class="thean-lw-copy">Tối đa 3 lượt quay. Chọn 1 ưu đãi rồi nhập email hoặc số điện thoại để nhận mã.</p>
+                    <p class="thean-lw-spins" data-thean-lw-spins>Đang tải...</p>
+                    <div class="thean-lw-result-list" data-thean-lw-result-list hidden></div>
+                    <form class="thean-lw-form" data-thean-lw-form hidden>
+                        <label for="thean-lw-contact">Email hoặc số điện thoại</label>
+                        <input id="thean-lw-contact" name="contact" type="text" inputmode="email" autocomplete="email tel" placeholder="email@example.com hoặc 09..." required>
+                        <input class="thean-lw-hp" name="website" type="text" tabindex="-1" autocomplete="off">
+                        <button class="thean-lw-btn thean-lw-btn--primary" type="submit">Nhận mã ưu đãi</button>
+                        <p class="thean-lw-form-note">Mã chỉ được tạo sau bước này và có hiệu lực trong <?php echo esc_html((string) thean_lw_coupon_hold_hours()); ?> giờ.</p>
+                    </form>
+                    <div class="thean-lw-coupon" data-thean-lw-coupon hidden></div>
+                    <p class="thean-lw-message" data-thean-lw-message role="status"></p>
                 </div>
             </div>
         </div>
     </div>
-    <?php
+    </div>
+<?php
 }
 
 function thean_lw_ajax_status(): void
