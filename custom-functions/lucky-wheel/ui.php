@@ -108,7 +108,7 @@ function thean_lw_render_widget(): void
         data-display="<?php echo esc_attr($trigger['display']); ?>"
         data-segments="<?php echo esc_attr((string) count($segments)); ?>"
     >
-        <button class="thean-lw-trigger <?php echo esc_attr($trigger['custom_class']); ?>" type="button" aria-haspopup="dialog">
+        <button class="thean-lw-trigger <?php echo esc_attr($trigger['custom_class']); ?>" type="button" aria-haspopup="dialog" disabled>
             <span class="thean-lw-trigger__icon">%</span>
             <span class="thean-lw-trigger__text">Nhận ưu đãi hôm nay</span>
         </button>
@@ -126,7 +126,7 @@ function thean_lw_render_widget(): void
                             <?php endforeach; ?>
                         </div>
                         <div class="thean-lw-actions thean-lw-actions--wheel">
-                            <button class="thean-lw-btn thean-lw-btn--primary" type="button" data-thean-lw-spin>Quay ngay</button>
+                            <button class="thean-lw-btn thean-lw-btn--primary" type="button" data-thean-lw-spin disabled>Quay ngay</button>
                             <button class="thean-lw-btn thean-lw-btn--secondary" type="button" data-thean-lw-save hidden>Chọn ưu đãi</button>
                         </div>
                     </div>

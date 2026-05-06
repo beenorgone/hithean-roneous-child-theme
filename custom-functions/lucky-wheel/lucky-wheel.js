@@ -33,6 +33,17 @@
     let formUnlocked = false;
     const segmentCount = Math.max(1, Number(root.getAttribute('data-segments') || 1));
 
+    function setInteractiveReady(isReady) {
+        trigger.disabled = !isReady;
+
+        if (!isReady) {
+            spinBtn.disabled = true;
+            return;
+        }
+
+        updateSpinButton(lastState || { spins_left: TheanLuckyWheel.maxSpins || 3 });
+    }
+
     function post(action, data) {
         const body = new URLSearchParams(Object.assign({ action: action, nonce: TheanLuckyWheel.nonce }, data || {}));
         return fetch(TheanLuckyWheel.ajaxUrl, {
@@ -295,6 +306,8 @@
         });
     }
 
+    setInteractiveReady(false);
+
     trigger.addEventListener('click', openModal);
     spinBtn.addEventListener('click', spin);
     saveBtn.addEventListener('click', function () {
@@ -365,12 +378,14 @@
 
     post('thean_lw_status').then(function (state) {
         renderState(state);
+        setInteractiveReady(true);
         if (!openedAutomatically && !state.coupon_code && TheanLuckyWheel.context !== 'cart') {
             window.sessionStorage.setItem('thean_lw_auto_opened', '1');
             openedAutomatically = true;
             window.setTimeout(openModal, TheanLuckyWheel.context === 'offer' ? 900 : 2200);
         }
     }).catch(function () {
+        setInteractiveReady(true);
         spins.textContent = '';
     });
 })();
