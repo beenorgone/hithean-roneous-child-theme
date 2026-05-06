@@ -15,10 +15,6 @@
     const message = root.querySelector('[data-thean-lw-message]');
     const wheel = root.querySelector('.thean-lw-wheel');
 
-    if (!modal || !trigger || !spinBtn || !saveBtn || !form || !list || !coupon || !spins || !message) {
-        return;
-    }
-
     let currentToken = '';
     let currentSegmentIndex = 0;
     let lastState = null;
@@ -48,19 +44,19 @@
     }
 
     function openModal() {
-        if (!modal) return;
         modal.hidden = false;
         document.documentElement.classList.add('thean-lw-open');
     }
 
     function closeModal() {
-        if (!modal) return;
         modal.hidden = true;
         document.documentElement.classList.remove('thean-lw-open');
     }
 
     function contextTriggerText() {
-        return 'Vòng quay may mắn';
+        if (TheanLuckyWheel.context === 'cart') return 'Giữ ưu đãi ' + TheanLuckyWheel.couponHoldHours + 'h';
+        if (TheanLuckyWheel.context === 'product') return 'Quay ưu đãi cho đơn này';
+        return 'Nhận ưu đãi hôm nay';
     }
 
     function escapeHtml(value) {
@@ -170,7 +166,7 @@
             prizes.map(function (prize, index) {
                 const selected = prize.claim_token === currentToken || (!currentToken && prize.selected);
                 return [
-                    '<button class="thean-lw-prize-choice" type="button" data-token="', escapeAttr(prize.claim_token), '" data-segment-index="', escapeAttr(prize.segment_index), '" aria-pressed="', selected ? 'true' : 'false', '" title="', escapeAttr(prize.label), '">',
+                    '<button class="thean-lw-prize-choice" type="button" data-token="', escapeAttr(prize.claim_token), '" data-segment-index="', escapeAttr(prize.segment_index), '" aria-pressed="', selected ? 'true' : 'false', '">',
                     '<span class="thean-lw-prize-choice__index">Lượt ', String(index + 1), '</span>',
                     '<strong>', escapeHtml(prize.label), '</strong>',
                     prize.claimed ? '<span class="thean-lw-prize-choice__meta">Đã dùng để tạo mã</span>' : '<span class="thean-lw-prize-choice__meta">Chọn ưu đãi này</span>',
@@ -203,10 +199,7 @@
     function renderState(state) {
         lastState = state;
         root.setAttribute('data-has-results', state.prizes && state.prizes.length ? '1' : '0');
-        const triggerText = trigger.querySelector('.thean-lw-trigger__text');
-        if (triggerText) {
-            triggerText.textContent = contextTriggerText();
-        }
+        trigger.querySelector('.thean-lw-trigger__text').textContent = contextTriggerText();
         spins.textContent = 'Còn ' + state.spins_left + '/' + state.max_spins + ' lượt quay';
 
         renderCoupon(state);
@@ -279,15 +272,8 @@
     function claim(event) {
         event.preventDefault();
         const submit = form.querySelector('[type="submit"]');
-        const contactField = form.querySelector('[name="contact"]');
-        const honeypotField = form.querySelector('[name="website"]');
-        const contact = contactField ? contactField.value : '';
-        const website = honeypotField ? honeypotField.value : '';
-
-        if (!submit) {
-            setMessage('Biểu mẫu chưa sẵn sàng. Vui lòng tải lại trang.');
-            return;
-        }
+        const contact = form.querySelector('[name="contact"]').value;
+        const website = form.querySelector('[name="website"]').value;
 
         if (!currentToken) {
             setMessage('Hãy chọn một ưu đãi trước khi nhận mã.');
@@ -346,8 +332,6 @@
             window.setTimeout(openModal, TheanLuckyWheel.context === 'offer' ? 900 : 2200);
         }
     }).catch(function () {
-        if (spins) {
-            spins.textContent = '';
-        }
+        spins.textContent = '';
     });
 })();
