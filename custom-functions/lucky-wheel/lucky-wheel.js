@@ -169,7 +169,6 @@
                     '<button class="thean-lw-prize-choice" type="button" data-token="', escapeAttr(prize.claim_token), '" data-segment-index="', escapeAttr(prize.segment_index), '" aria-pressed="', selected ? 'true' : 'false', '">',
                     '<span class="thean-lw-prize-choice__index">Lượt ', String(index + 1), '</span>',
                     '<strong>', escapeHtml(prize.label), '</strong>',
-                    prize.claimed ? '<span class="thean-lw-prize-choice__meta">Đã dùng để tạo mã</span>' : '<span class="thean-lw-prize-choice__meta">Chọn ưu đãi này</span>',
                     '</button>'
                 ].join('');
             }).join('')
