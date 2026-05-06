@@ -195,11 +195,23 @@
         });
     }
 
+    function updateSpinButton(state) {
+        if (state && Number(state.spins_left || 0) <= 0) {
+            spinBtn.disabled = true;
+            spinBtn.textContent = 'Đã quay đủ 3 lần hôm nay';
+            return;
+        }
+
+        spinBtn.disabled = false;
+        spinBtn.textContent = 'Quay ngay';
+    }
+
     function renderState(state) {
         lastState = state;
         root.setAttribute('data-has-results', state.prizes && state.prizes.length ? '1' : '0');
         trigger.querySelector('.thean-lw-trigger__text').textContent = contextTriggerText();
         spins.textContent = 'Còn ' + state.spins_left + '/' + state.max_spins + ' lượt quay';
+        updateSpinButton(state);
 
         renderCoupon(state);
 
@@ -208,7 +220,7 @@
             saveBtn.hidden = true;
             form.hidden = true;
         } else {
-            spinBtn.hidden = state.spins_left <= 0;
+            spinBtn.hidden = false;
             saveBtn.hidden = !(state.prizes && state.prizes.length);
             form.hidden = !(formUnlocked && currentToken);
         }
@@ -227,6 +239,12 @@
     }
 
     function spin() {
+        if (lastState && Number(lastState.spins_left || 0) <= 0) {
+            updateSpinButton(lastState);
+            setMessage('Bạn đã quay đủ 3 lần cho hôm nay.');
+            return;
+        }
+
         spinBtn.disabled = true;
         saveBtn.hidden = true;
         setMessage('');
@@ -263,6 +281,16 @@
             }, 2600);
         }).catch(function (error) {
             stopSpin();
+            if (error.message && error.message.indexOf('dùng hết lượt quay') !== -1) {
+                if (!lastState) {
+                    lastState = { spins_left: 0, max_spins: TheanLuckyWheel.maxSpins || 3, prizes: [] };
+                }
+                lastState.spins_left = 0;
+                updateSpinButton(lastState);
+                setMessage('Bạn đã quay đủ 3 lần cho hôm nay.');
+                return;
+            }
+
             spinBtn.disabled = false;
             setMessage(error.message);
         });
