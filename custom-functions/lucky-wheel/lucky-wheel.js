@@ -55,7 +55,7 @@
 
     function contextTriggerText() {
         if (TheanLuckyWheel.context === 'cart') return 'Giữ ưu đãi ' + TheanLuckyWheel.couponHoldHours + 'h';
-        if (TheanLuckyWheel.context === 'product') return 'Nhận ưu đãi ...';
+        if (TheanLuckyWheel.context === 'product') return 'Nhận ưu đãi hôm nay';
         return 'Nhận ưu đãi hôm nay';
     }
 
