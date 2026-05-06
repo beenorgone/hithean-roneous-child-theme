@@ -28,7 +28,7 @@
     font-weight: 700;
 }
 
-.thean-lw[data-vertical="bottom"] .thean-lw-trigger { bottom: 22px; }
+.thean-lw[data-vertical="bottom"] .thean-lw-trigger { bottom: 120px; }
 .thean-lw[data-vertical="top"] .thean-lw-trigger { top: 22px; }
 .thean-lw[data-horizontal="right"] .thean-lw-trigger { right: 18px; }
 .thean-lw[data-horizontal="left"] .thean-lw-trigger { left: 18px; }
@@ -229,7 +229,10 @@
 }
 
 .thean-lw-prize-choice {
-    display: block;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
     width: 100%;
     margin-top: 6px;
     padding: 8px 10px;
@@ -243,18 +246,29 @@
 
 .thean-lw-prize-choice strong,
 .thean-lw-coupon strong {
-    display: block;
     font-size: 15px;
     line-height: 1.45;
 }
 
+.thean-lw-prize-choice strong {
+    min-width: 0;
+    white-space: normal;
+    word-break: break-word;
+}
+
 .thean-lw-prize-choice__index {
-    display: inline-block;
-    margin-bottom: 2px;
+    display: inline-flex;
+    align-items: center;
     color: var(--lw-green);
     font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
+}
+
+.thean-lw-prize-choice__meta {
+    white-space: normal;
+    line-height: 1.3;
+    text-align: right;
 }
 
 .thean-lw-prize-choice[aria-pressed="true"] {
@@ -341,16 +355,28 @@
 }
 
 @media (max-width: 720px) {
-    .thean-lw[data-vertical="bottom"] .thean-lw-trigger { bottom: 14px; }
-    .thean-lw[data-vertical="top"] .thean-lw-trigger { top: 14px; }
-    .thean-lw[data-horizontal="right"] .thean-lw-trigger { right: 12px; }
-    .thean-lw[data-horizontal="left"] .thean-lw-trigger { left: 12px; }
+    .thean-lw .thean-lw-trigger {
+        left: 50%;
+        right: auto;
+        top: auto;
+        bottom: 60px;
+        transform: translateX(-50%);
+        border-radius: 5px;
+        width: auto;
+        max-width: calc(100vw - 16px);
+        min-width: 0;
+    }
+
+    .thean-lw[data-context="cart"] .thean-lw-trigger,
+    .thean-lw[data-context="product"] .thean-lw-trigger {
+        bottom: 120px;
+    }
 
     .thean-lw-trigger__text {
-        max-width: 150px;
-        overflow: hidden;
+        max-width: none;
+        overflow: visible;
         white-space: nowrap;
-        text-overflow: ellipsis;
+        text-overflow: clip;
     }
 
     .thean-lw-panel {
@@ -454,5 +480,14 @@
 
     .thean-lw-prize-choice__index {
         font-size: 10px;
+    }
+
+    .thean-lw-prize-choice {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .thean-lw-prize-choice__meta {
+        grid-column: 2;
+        text-align: left;
     }
 }
