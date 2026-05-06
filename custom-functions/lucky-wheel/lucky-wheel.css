@@ -363,7 +363,7 @@
         transform: translateX(-50%);
         border-radius: 5px;
         width: auto;
-        max-width: calc(100vw - 16px);
+        max-width: none;
         min-width: 0;
     }
 
