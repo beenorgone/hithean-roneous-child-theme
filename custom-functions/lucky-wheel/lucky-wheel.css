@@ -282,6 +282,12 @@
     flex-wrap: wrap;
 }
 
+.thean-lw-footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
 .thean-lw-actions--wheel {
     width: min(250px, 58vw);
     justify-content: center;
@@ -314,6 +320,11 @@
 .thean-lw-btn--secondary {
     background: #fff;
     color: var(--lw-green);
+}
+
+.thean-lw-btn--dismiss {
+    min-height: 36px;
+    padding: 7px 12px;
 }
 
 .thean-lw-form {
@@ -489,5 +500,9 @@
     .thean-lw-prize-choice__meta {
         grid-column: 2;
         text-align: left;
+    }
+
+    .thean-lw-footer-actions {
+        margin-top: 10px;
     }
 }
