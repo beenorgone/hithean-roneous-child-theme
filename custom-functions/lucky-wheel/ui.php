@@ -108,7 +108,7 @@ function thean_lw_render_widget(): void
         data-display="<?php echo esc_attr($trigger['display']); ?>"
         data-segments="<?php echo esc_attr((string) count($segments)); ?>"
     >
-        <button class="thean-lw-trigger <?php echo esc_attr($trigger['custom_class']); ?>" type="button" aria-haspopup="dialog" disabled>
+        <button class="thean-lw-trigger <?php echo esc_attr($trigger['custom_class']); ?>" type="button" aria-haspopup="dialog">
             <span class="thean-lw-trigger__icon">%</span>
             <span class="thean-lw-trigger__text">Nhận ưu đãi hôm nay</span>
         </button>

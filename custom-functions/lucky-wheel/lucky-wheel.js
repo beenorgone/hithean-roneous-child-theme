@@ -34,8 +34,6 @@
     const segmentCount = Math.max(1, Number(root.getAttribute('data-segments') || 1));
 
     function setInteractiveReady(isReady) {
-        trigger.disabled = !isReady;
-
         if (!isReady) {
             spinBtn.disabled = true;
             return;
