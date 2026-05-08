@@ -21,7 +21,7 @@
     const closeNodes = root.querySelectorAll('[data-thean-lw-close]');
     const html = document.documentElement;
 
-    if (!modal || !trigger || !spinBtn || !saveBtn || !form || !list || !coupon || !spins || !message || !submitBtn || !contactInput || !honeypotInput) {
+    if (!modal || !trigger || !spinBtn || !form || !list || !coupon || !spins || !message || !submitBtn || !contactInput || !honeypotInput) {
         return;
     }
 
@@ -182,7 +182,7 @@
         }
 
         spinBtn.disabled = false;
-        spinBtn.textContent = 'Quay ngay';
+        spinBtn.textContent = state && state.prizes && state.prizes.length ? 'Quay tiếp' : 'Quay ngay';
     }
 
     function renderState(state) {
@@ -198,11 +198,9 @@
 
         if (state.coupon_code) {
             spinBtn.hidden = true;
-            saveBtn.hidden = true;
             form.hidden = true;
         } else {
             spinBtn.hidden = false;
-            saveBtn.hidden = !(state.prizes && state.prizes.length);
             form.hidden = !(formUnlocked && currentToken);
         }
 
@@ -227,7 +225,6 @@
         }
 
         spinBtn.disabled = true;
-        saveBtn.hidden = true;
         setMessage('');
 
         post('thean_lw_spin').then(function (data) {
@@ -252,11 +249,9 @@
                     renderState(lastState);
                 }
 
-                saveBtn.hidden = false;
                 spinBtn.disabled = false;
                 if (data.spins_left <= 0) {
                     form.hidden = false;
-                    saveBtn.hidden = true;
                 }
                 setMessage('Đã thêm một kết quả mới. Bạn có thể quay tiếp hoặc chọn 1 ưu đãi để lưu.');
             }, 2600);
@@ -308,17 +303,6 @@
 
     trigger.addEventListener('click', openModal);
     spinBtn.addEventListener('click', spin);
-    saveBtn.addEventListener('click', function () {
-        if (!currentToken) {
-            setMessage('Hãy chọn một ưu đãi trước.');
-            return;
-        }
-
-        formUnlocked = true;
-        form.hidden = false;
-        saveBtn.hidden = true;
-        setMessage('Nhập email hoặc số điện thoại để nhận mã.');
-    });
     form.addEventListener('submit', claim);
 
     list.addEventListener('click', function (event) {
@@ -332,7 +316,6 @@
         updateSelectedPrize();
         formUnlocked = true;
         form.hidden = false;
-        saveBtn.hidden = true;
         spinToSegment(currentSegmentIndex);
         window.setTimeout(stopSpin, 2600);
         setMessage('Đã chọn ưu đãi. Nhập email hoặc số điện thoại để nhận mã.');

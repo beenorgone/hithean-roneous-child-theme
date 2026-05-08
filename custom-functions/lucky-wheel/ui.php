@@ -127,7 +127,6 @@ function thean_lw_render_widget(): void
                         </div>
                         <div class="thean-lw-actions thean-lw-actions--wheel">
                             <button class="thean-lw-btn thean-lw-btn--primary" type="button" data-thean-lw-spin disabled>Quay ngay</button>
-                            <button class="thean-lw-btn thean-lw-btn--secondary" type="button" data-thean-lw-save hidden>Chọn ưu đãi</button>
                         </div>
                     </div>
                     <div class="thean-lw-content">
