@@ -180,7 +180,7 @@ function render_order_paid_confirmation_script()
             .btc-table tr { border: 1px solid #d6dee7; border-radius: 14px; background: #fff; overflow: hidden; }
             .btc-table td { border-bottom: 1px solid #e5ebf1; padding: 12px 14px; }
             .btc-table td:last-child { border-bottom: 0; }
-            .btc-table td::before { content: attr(data-label); display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #5b6470; letter-spacing: .03em; }
+            .btc-table td::before { content: attr(data-label); display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: #5b6470; letter-spacing: .03em; }
             .btc-table__actions { flex-direction: column; }
             .btc-table__actions > * { width: 100%; text-align: center; }
             .btc-form-grid { grid-template-columns: 1fr; }
