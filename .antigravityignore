@@ -1,0 +1,86 @@
+# VCS and editor metadata
+.git/
+.hg/
+.svn/
+.vscode/
+.idea/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Dependencies and package caches
+node_modules/
+vendor/
+.venv/
+venv/
+.npm/
+.pnpm-store/
+
+# Build, cache, and generated output
+dist/
+build/
+coverage/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+output/
+tmp/
+temp/
+
+# Logs and runtime files
+*.log
+error_log
+debug.log
+
+# Local env and credentials
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.crt
+*.cer
+custom-functions/firebase_credentials.json
+
+# Database dumps and backups
+*.sql
+*.sql.gz
+*.dump
+*.bak
+*.backup
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Bulky media/binary assets
+*.ai
+*.psd
+*.sketch
+*.fig
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.mp3
+*.wav
+*.flac
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.avif
+*.ico
+
+# WordPress generated/user content
+wp-content/cache/
+wp-content/uploads/
+uploads/
+cache/
