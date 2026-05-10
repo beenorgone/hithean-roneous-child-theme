@@ -9,6 +9,7 @@ define('THEAN_LW_STATE_PREFIX', 'thean_lw_state_');
 define('THEAN_LW_SESSION_COOKIE', 'thean_lw_session');
 define('THEAN_LW_NONCE_ACTION', 'thean_lw_nonce');
 define('THEAN_LW_MAX_SPINS', 3);
+define('THEAN_LW_CLAIM_COOLDOWN', 2 * DAY_IN_SECONDS);
 
 function thean_lw_default_settings(): array
 {

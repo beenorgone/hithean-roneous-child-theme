@@ -17,6 +17,8 @@ function thean_lw_boot_ui(): void
     add_action('wp_ajax_nopriv_thean_lw_claim', 'thean_lw_ajax_claim');
     add_action('wp_ajax_thean_lw_apply_coupon', 'thean_lw_ajax_apply_coupon');
     add_action('wp_ajax_nopriv_thean_lw_apply_coupon', 'thean_lw_ajax_apply_coupon');
+
+    add_filter('woocommerce_coupon_is_valid', 'thean_lw_validate_single_lucky_wheel_coupon', 10, 3);
 }
 thean_lw_boot_ui();
 
@@ -140,7 +142,7 @@ function thean_lw_render_widget(): void
                             <input id="thean-lw-contact" name="contact" type="text" inputmode="email" autocomplete="email tel" placeholder="email@example.com hoặc 09..." required>
                             <input class="thean-lw-hp" name="website" type="text" tabindex="-1" autocomplete="off">
                             <button class="thean-lw-btn thean-lw-btn--primary" type="submit">Nhận mã ưu đãi</button>
-                            <p class="thean-lw-form-note">Mã chỉ được tạo sau bước này và có hiệu lực trong <?php echo esc_html((string) thean_lw_coupon_hold_hours()); ?> giờ.</p>
+                            <p class="thean-lw-form-note">Mã chỉ được tạo sau bước này, có hiệu lực trong <?php echo esc_html((string) thean_lw_coupon_hold_hours()); ?> giờ và mỗi email/tài khoản/số điện thoại chỉ nhận mã mới sau 48 giờ.</p>
                         </form>
                         <div class="thean-lw-coupon" data-thean-lw-coupon hidden></div>
                         <p class="thean-lw-message" data-thean-lw-message role="status"></p>
@@ -253,7 +255,26 @@ function thean_lw_ajax_claim(): void
         wp_send_json_error(['message' => 'Phiên này trông chưa đủ tin cậy để tạo mã.'], 429);
     }
 
-    $contact_hash = hash('sha256', $contact['type'] . ':' . $contact['value']);
+    if (!empty($state['coupon_code'])) {
+        wp_send_json_success(thean_lw_public_state());
+    }
+
+    $claim_identities = thean_lw_claim_identities($contact);
+    $active_coupon_remaining = thean_lw_active_claim_coupon_remaining($claim_identities);
+    if ($active_coupon_remaining > 0) {
+        wp_send_json_error([
+            'message' => 'Email, tài khoản hoặc số điện thoại này đang có mã Lucky Wheel chưa hết hạn. Vui lòng dùng mã hiện tại hoặc thử lại sau ' . thean_lw_format_duration($active_coupon_remaining) . '.',
+        ], 429);
+    }
+
+    $cooldown_remaining = thean_lw_claim_cooldown_remaining($claim_identities);
+    if ($cooldown_remaining > 0) {
+        wp_send_json_error([
+            'message' => 'Mỗi email, tài khoản hoặc số điện thoại chỉ được nhận mã mới sau 48 giờ. Vui lòng thử lại sau ' . thean_lw_format_duration($cooldown_remaining) . '.',
+        ], 429);
+    }
+
+    $contact_hash = thean_lw_claim_identity_hash($contact['type'], $contact['value']);
     if (
         !thean_lw_rate_limit('claim_session_' . thean_lw_session_id(), 2, DAY_IN_SECONDS) ||
         !thean_lw_rate_limit('claim_ip_' . thean_lw_client_ip_hash(), 5, HOUR_IN_SECONDS) ||
@@ -262,19 +283,16 @@ function thean_lw_ajax_claim(): void
         wp_send_json_error(['message' => 'Bạn đã yêu cầu quá nhiều mã ưu đãi. Vui lòng thử lại sau.'], 429);
     }
 
-    if (!empty($state['coupon_code'])) {
-        wp_send_json_success(thean_lw_public_state());
-    }
-
     $reward = thean_lw_reward_by_id((string) $state['prizes'][$token]['reward_id']);
     if (!$reward) {
         wp_send_json_error(['message' => 'Không tìm thấy cấu hình ưu đãi.'], 500);
     }
 
-    $coupon = thean_lw_create_coupon($reward, $contact);
+    $coupon = thean_lw_create_coupon($reward, $contact, $claim_identities);
     if (is_wp_error($coupon)) {
         wp_send_json_error(['message' => $coupon->get_error_message()], 500);
     }
+    thean_lw_set_claim_locks($claim_identities);
 
     $state['prizes'][$token]['claimed'] = true;
     $state['selected_token'] = $token;
@@ -313,6 +331,10 @@ function thean_lw_ajax_apply_coupon(): void
         wp_send_json_error(['message' => 'Chưa có mã ưu đãi để áp dụng.'], 400);
     }
 
+    if (thean_lw_cart_has_other_lucky_wheel_coupon($code)) {
+        wp_send_json_error(['message' => 'Mỗi đơn hàng chỉ được dùng 1 mã Lucky Wheel.'], 409);
+    }
+
     if (!WC()->cart->has_discount($code)) {
         WC()->cart->apply_coupon($code);
         WC()->cart->calculate_totals();
@@ -323,6 +345,65 @@ function thean_lw_ajax_apply_coupon(): void
         'cart_url' => wc_get_cart_url(),
         'checkout_url' => wc_get_checkout_url(),
     ]);
+}
+
+function thean_lw_validate_single_lucky_wheel_coupon($valid, $coupon, $discount)
+{
+    if (!$valid || !thean_lw_is_lucky_wheel_coupon($coupon)) {
+        return $valid;
+    }
+
+    if (thean_lw_cart_has_other_lucky_wheel_coupon($coupon->get_code())) {
+        throw new Exception('Mỗi đơn hàng chỉ được dùng 1 mã Lucky Wheel.');
+    }
+
+    return $valid;
+}
+
+function thean_lw_cart_has_other_lucky_wheel_coupon(string $coupon_code): bool
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        return false;
+    }
+
+    $current_code = thean_lw_format_coupon_code($coupon_code);
+
+    foreach (WC()->cart->get_applied_coupons() as $applied_code) {
+        $applied_code = thean_lw_format_coupon_code((string) $applied_code);
+        if ($applied_code === $current_code) {
+            continue;
+        }
+
+        if (thean_lw_is_lucky_wheel_coupon($applied_code)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function thean_lw_format_coupon_code(string $coupon_code): string
+{
+    if (function_exists('wc_format_coupon_code')) {
+        return wc_format_coupon_code($coupon_code);
+    }
+
+    return strtolower(trim($coupon_code));
+}
+
+function thean_lw_is_lucky_wheel_coupon($coupon): bool
+{
+    if (!class_exists('WC_Coupon')) {
+        return false;
+    }
+
+    if (!$coupon instanceof WC_Coupon) {
+        $coupon = new WC_Coupon((string) $coupon);
+    }
+
+    $code = strtoupper((string) $coupon->get_code());
+
+    return strpos($code, 'LW-') === 0 || (string) $coupon->get_meta('_thean_lw_reward_id', true) !== '';
 }
 
 function thean_lw_verify_ajax(): void
@@ -497,7 +578,7 @@ function thean_lw_normalize_contact(string $raw)
     if (is_email($raw)) {
         return [
             'type' => 'email',
-            'value' => sanitize_email($raw),
+            'value' => strtolower(sanitize_email($raw)),
         ];
     }
 
@@ -516,7 +597,208 @@ function thean_lw_normalize_contact(string $raw)
     return false;
 }
 
-function thean_lw_create_coupon(array $reward, array $contact)
+function thean_lw_claim_identities(array $contact): array
+{
+    $identities = [
+        [
+            'type' => $contact['type'],
+            'value' => $contact['value'],
+            'hash' => thean_lw_claim_identity_hash($contact['type'], $contact['value']),
+        ],
+    ];
+
+    $user_id = get_current_user_id();
+    if ($user_id > 0) {
+        $identities[] = [
+            'type' => 'user',
+            'value' => (string) $user_id,
+            'hash' => thean_lw_claim_identity_hash('user', (string) $user_id),
+        ];
+
+        $user = get_userdata($user_id);
+        if ($user && is_email($user->user_email)) {
+            $email = strtolower(sanitize_email($user->user_email));
+            $identities[] = [
+                'type' => 'email',
+                'value' => $email,
+                'hash' => thean_lw_claim_identity_hash('email', $email),
+            ];
+        }
+
+        $billing_phone = thean_lw_normalize_contact((string) get_user_meta($user_id, 'billing_phone', true));
+        if ($billing_phone && $billing_phone['type'] === 'phone') {
+            $identities[] = [
+                'type' => 'phone',
+                'value' => $billing_phone['value'],
+                'hash' => thean_lw_claim_identity_hash('phone', $billing_phone['value']),
+            ];
+        }
+    }
+
+    $unique = [];
+    foreach ($identities as $identity) {
+        $unique[$identity['hash']] = $identity;
+    }
+
+    return array_values($unique);
+}
+
+function thean_lw_claim_identity_hash(string $type, string $value): string
+{
+    return hash('sha256', sanitize_key($type) . ':' . strtolower(trim($value)));
+}
+
+function thean_lw_claim_lock_key(array $identity): string
+{
+    return 'thean_lw_claim_lock_' . md5((string) $identity['hash']);
+}
+
+function thean_lw_claim_cooldown_remaining(array $identities): int
+{
+    $now = time();
+    $remaining = 0;
+
+    foreach ($identities as $identity) {
+        $expires = (int) get_transient(thean_lw_claim_lock_key($identity));
+        if ($expires > $now) {
+            $remaining = max($remaining, $expires - $now);
+            continue;
+        }
+
+        $created_at = thean_lw_latest_claim_time($identity);
+        if ($created_at > 0) {
+            $remaining = max($remaining, max(0, ($created_at + THEAN_LW_CLAIM_COOLDOWN) - $now));
+        }
+    }
+
+    return $remaining;
+}
+
+function thean_lw_active_claim_coupon_remaining(array $identities): int
+{
+    if (!class_exists('WC_Coupon')) {
+        return 0;
+    }
+
+    $remaining = 0;
+
+    foreach (thean_lw_claim_coupon_ids($identities, 20) as $coupon_id) {
+        $coupon = new WC_Coupon($coupon_id);
+        if (!$coupon->get_id() || !$coupon->get_code()) {
+            continue;
+        }
+
+        $expires = $coupon->get_date_expires();
+        if (!$expires) {
+            $remaining = max($remaining, THEAN_LW_CLAIM_COOLDOWN);
+            continue;
+        }
+
+        $expires_at = $expires->getTimestamp();
+        if ($expires_at > time()) {
+            $remaining = max($remaining, $expires_at - time());
+        }
+    }
+
+    return $remaining;
+}
+
+function thean_lw_latest_claim_time(array $identity): int
+{
+    $coupon_ids = thean_lw_claim_coupon_ids([$identity], 1, [
+        [
+            'column' => 'post_date_gmt',
+            'after' => gmdate('Y-m-d H:i:s', time() - THEAN_LW_CLAIM_COOLDOWN),
+            'inclusive' => true,
+        ],
+    ]);
+
+    if (empty($coupon_ids[0])) {
+        return 0;
+    }
+
+    return (int) get_post_time('U', true, (int) $coupon_ids[0]);
+}
+
+function thean_lw_claim_coupon_ids(array $identities, int $limit = 1, array $date_query = []): array
+{
+    $meta_query = [
+        'relation' => 'OR',
+    ];
+
+    foreach ($identities as $identity) {
+        $meta_query[] = [
+            'key' => '_thean_lw_identity_hash',
+            'value' => (string) $identity['hash'],
+        ];
+
+        if ($identity['type'] === 'user') {
+            $meta_query[] = [
+                'key' => '_thean_lw_user_id',
+                'value' => (string) $identity['value'],
+            ];
+        } elseif (in_array($identity['type'], ['email', 'phone'], true)) {
+            $meta_query[] = [
+                'relation' => 'AND',
+                [
+                    'key' => '_thean_lw_contact_type',
+                    'value' => (string) $identity['type'],
+                ],
+                [
+                    'key' => '_thean_lw_contact_value',
+                    'value' => (string) $identity['value'],
+                ],
+            ];
+        }
+    }
+
+    $args = [
+        'post_type' => 'shop_coupon',
+        'post_status' => 'any',
+        'fields' => 'ids',
+        'posts_per_page' => max(1, $limit),
+        'orderby' => 'date',
+        'order' => 'DESC',
+        'meta_query' => [
+            'relation' => 'AND',
+            [
+                'key' => '_thean_lw_reward_id',
+                'compare' => 'EXISTS',
+            ],
+            $meta_query,
+        ],
+        'no_found_rows' => true,
+        'suppress_filters' => true,
+    ];
+
+    if ($date_query) {
+        $args['date_query'] = $date_query;
+    }
+
+    return array_map('intval', get_posts($args));
+}
+
+function thean_lw_set_claim_locks(array $identities): void
+{
+    $expires = time() + THEAN_LW_CLAIM_COOLDOWN;
+
+    foreach ($identities as $identity) {
+        set_transient(thean_lw_claim_lock_key($identity), $expires, THEAN_LW_CLAIM_COOLDOWN);
+    }
+}
+
+function thean_lw_format_duration(int $seconds): string
+{
+    $seconds = max(0, $seconds);
+    $hours = (int) ceil($seconds / HOUR_IN_SECONDS);
+    if ($hours <= 1) {
+        return 'khoảng 1 giờ';
+    }
+
+    return 'khoảng ' . $hours . ' giờ';
+}
+
+function thean_lw_create_coupon(array $reward, array $contact, array $claim_identities = [])
 {
     if (!class_exists('WC_Coupon')) {
         return new WP_Error('missing_wc', 'WooCommerce chưa sẵn sàng để tạo coupon.');
@@ -533,6 +815,16 @@ function thean_lw_create_coupon(array $reward, array $contact)
     $coupon->update_meta_data('_thean_lw_reward_id', $reward['id']);
     $coupon->update_meta_data('_thean_lw_contact_type', $contact['type']);
     $coupon->update_meta_data('_thean_lw_contact_value', $contact['value']);
+    $coupon->update_meta_data('_thean_lw_claimed_at', time());
+
+    $user_id = get_current_user_id();
+    if ($user_id > 0) {
+        $coupon->update_meta_data('_thean_lw_user_id', (string) $user_id);
+    }
+
+    foreach ($claim_identities as $identity) {
+        $coupon->add_meta_data('_thean_lw_identity_hash', (string) $identity['hash'], false);
+    }
 
     if ((float) $reward['min_cart'] > 0) {
         $coupon->set_minimum_amount((string) $reward['min_cart']);
