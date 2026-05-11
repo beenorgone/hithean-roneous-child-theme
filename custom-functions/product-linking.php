@@ -668,7 +668,6 @@ function hithean_product_linking_enqueue_assets()
     display: inline-flex;
     font-family: "Be Vietnam", sans-serif;
     font-size: 14px;
-    font-weight: 600;
     justify-content: center;
     line-height: 1.2;
     min-height: 40px;
@@ -686,12 +685,14 @@ function hithean_product_linking_enqueue_assets()
     color: var(--default-color-dark-brown, #2e1203);
     text-decoration: none;
     transform: translateY(-1px);
+    font-weight: 600;
 }
 
 .hithean-product-linking .hithean-product-linking__option.is-active {
     background: var(--default-color-light-blue, #74A8D8);
     border-color: var(--default-color-light-blue, #74A8D8);
     color: var(--default-color-dark-blue);
+    font-weight: 600;
 }
 
 .hithean-product-linking .hithean-product-linking__option.is-out-of-stock:not(.is-active) {
