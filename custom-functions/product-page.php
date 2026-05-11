@@ -30,7 +30,7 @@ function add_custom_product_tabs($tabs)
 
     foreach ($global_tabs as $global_tab) {
         $slug = generate_slug($global_tab->post_title);
-        $tabs[$global_tab->ID] = [
+        $tabs[$slug] = [
             'id'       => 'tab-' . $slug,
             'title'    => $global_tab->post_title,
             'callback' => 'display_product_tab_content',
@@ -63,7 +63,7 @@ function add_custom_product_tabs($tabs)
                 while ($assigned_tabs->have_posts()) {
                     $assigned_tabs->the_post();
                     $slug = generate_slug(get_the_title());
-                    $tabs[get_the_ID()] = [
+                    $tabs[$slug] = [
                         'id'       => 'tab-' . $slug,
                         'title'    => get_the_title(),
                         'callback' => 'display_product_tab_content',
@@ -101,7 +101,7 @@ function add_custom_product_tabs($tabs)
         while ($product_assigned_tabs->have_posts()) {
             $product_assigned_tabs->the_post();
             $slug = generate_slug(get_the_title());
-            $tabs[get_the_ID()] = [
+            $tabs[$slug] = [
                 'id'       => 'tab-' . $slug,
                 'title'    => get_the_title(),
                 'callback' => 'display_product_tab_content',
@@ -127,9 +127,11 @@ function add_custom_product_tabs($tabs)
         $field_value = get_post_meta($product->get_id(), $field_key, true);
 
         if (!empty($field_value)) {
-            $tabs[$field_key] = array(
+            $slug = generate_slug($info['title']);
+            $tabs[$slug] = array(
                 'id'       => 'tab-' . $slug,
                 'title'    => $info['title'],
+                'meta_key' => $field_key,
                 'callback' => 'display_custom_product_field_tab_content',
                 'priority' => $info['priority'],
             );
@@ -163,7 +165,7 @@ function add_custom_product_tabs($tabs)
         while ($assigned_tabs_custom->have_posts()) {
             $assigned_tabs_custom->the_post();
             $slug = generate_slug(get_the_title());
-            $tabs[get_the_ID()] = [
+            $tabs[$slug] = [
                 'id'       => 'tab-' . $slug,
                 'title'    => get_the_title(),
                 'callback' => 'display_product_tab_content',
@@ -179,7 +181,7 @@ function add_custom_product_tabs($tabs)
     if (!is_wp_error($thuong_hieu_term) && !empty($thuong_hieu_term)) {
         $thuong_hieu_description = term_description($thuong_hieu_term[0]->term_id, 'thuong-hieu');
         if (!empty($thuong_hieu_description)) {
-            $tabs['thuong_hieu'] = array(
+            $tabs['thuong-hieu'] = array(
                 'id'       => 'tab-thuong-hieu',
                 'title'    => 'Thương hiệu',
                 'callback' => 'display_thuong_hieu_tab_content',
@@ -217,10 +219,11 @@ function add_custom_product_tabs($tabs)
 function display_custom_product_field_tab_content($key, $tab)
 {
     global $product;
-    $field_value = get_post_meta($product->get_id(), $key, true);
+    $meta_key = isset($tab['meta_key']) ? $tab['meta_key'] : $key;
+    $field_value = get_post_meta($product->get_id(), $meta_key, true);
     if (!empty($field_value)) {
         // echo '<h2>' . esc_html($tab['title']) . '</h2>';  // Output the tab title as an <h2> tag
-        echo '<h2 id="' . esc_attr($tab['id']) . '" class="tab-title">' . esc_html($tab['title']) . '</h2>';  // Output the tab title as an <h2> tag
+        echo '<h2 class="tab-title">' . esc_html($tab['title']) . '</h2>';  // Output the tab title as an <h2> tag
         echo '<div class="tab-content">' . wpautop(do_shortcode($field_value)) . '</div>';  // Process shortcodes and format text
     }
 }
@@ -229,7 +232,7 @@ function display_custom_product_field_tab_content($key, $tab)
 function display_product_tab_content($key, $tab)
 {
     //    echo '<h2>' . esc_html($tab['title']) . '</h2>';
-    echo '<h2 id="' . esc_attr($tab['id']) . '" class="tab-title">' . esc_html($tab['title']) . '</h2>';
+    echo '<h2 class="tab-title">' . esc_html($tab['title']) . '</h2>';
     echo '<div class="tab-content">' . wpautop(do_shortcode($tab['content'])) . '</div>';
 }
 
@@ -240,7 +243,7 @@ function display_thuong_hieu_tab_content()
     if (!is_wp_error($thuong_hieu_term) && !empty($thuong_hieu_term)) {
         $thuong_hieu_description = term_description($thuong_hieu_term[0]->term_id, 'thuong-hieu');
         //        echo '<h2>Thương hiệu</h2>';  // Output the tab title as an <h2> tag
-        echo '<h2 id="tab-thuong-hieu" class="tab-title">Thương hiệu</h2>';  // Output the tab title as an <h2> tag
+        echo '<h2 class="tab-title">Thương hiệu</h2>';  // Output the tab title as an <h2> tag
         echo '<div class="tab-content">' . wpautop(do_shortcode($thuong_hieu_description)) . '</div>';  // Process shortcodes and format text
     }
 }
