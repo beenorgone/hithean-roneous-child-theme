@@ -689,9 +689,9 @@ function hithean_product_linking_enqueue_assets()
 }
 
 .hithean-product-linking .hithean-product-linking__option.is-active {
-    background: var(--default-color-light-blue, #74A8D8);
-    border-color: var(--default-color-light-blue, #74A8D8);
-    color: var(--default-color-dark-blue);
+    background: var(--default-color-dark-blue);
+    border-color: var(--default-color-dark-blue);
+    color: var(--default-color-white);
     font-weight: 600;
 }
 
