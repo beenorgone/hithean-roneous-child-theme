@@ -591,6 +591,8 @@ function hithean_product_linking_render_group($options, $product_id, $field, $la
 
 function hithean_product_linking_render()
 {
+    static $rendered_product_ids = [];
+
     global $product;
 
     if (!$product instanceof WC_Product) {
@@ -598,18 +600,26 @@ function hithean_product_linking_render()
     }
 
     $product_id = $product->get_id();
+
+    if (isset($rendered_product_ids[$product_id])) {
+        return;
+    }
+
     $options = hithean_product_linking_get_options($product_id);
 
     if (empty($options)) {
         return;
     }
 
+    $rendered_product_ids[$product_id] = true;
+
     echo '<section class="hithean-product-linking" aria-label="' . esc_attr__('Lựa chọn sản phẩm', 'roneous') . '">';
     hithean_product_linking_render_group($options, $product_id, 'flavor', __('Hương vị', 'roneous'));
     hithean_product_linking_render_group($options, $product_id, 'serving', __('Quy cách', 'roneous'));
     echo '</section>';
 }
-add_action('woocommerce_before_add_to_cart_form', 'hithean_product_linking_render', 5);
+add_action('woocommerce_before_add_to_cart_button', 'hithean_product_linking_render', 1);
+add_action('woocommerce_single_product_summary', 'hithean_product_linking_render', 29);
 
 function hithean_product_linking_enqueue_assets()
 {
