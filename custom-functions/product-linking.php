@@ -637,6 +637,7 @@ function hithean_product_linking_enqueue_assets()
 .hithean-product-linking__group {
     display: grid;
     gap: 8px;
+    margin-bottom: 20px;
 }
 
 .hithean-product-linking__label {
@@ -688,9 +689,9 @@ function hithean_product_linking_enqueue_assets()
 }
 
 .hithean-product-linking .hithean-product-linking__option.is-active {
-    background: var(--default-color-dark-brown, #2e1203);
-    border-color: var(--default-color-dark-brown, #2e1203);
-    color: #fff;
+    background: var(--default-color-light-blue, #74A8D8);
+    border-color: var(--default-color-light-blue, #74A8D8);
+    color: var(--default-color-white, #fff);
 }
 
 .hithean-product-linking .hithean-product-linking__option.is-out-of-stock:not(.is-active) {
