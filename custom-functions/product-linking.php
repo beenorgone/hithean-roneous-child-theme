@@ -4,11 +4,12 @@ defined('ABSPATH') || exit;
 
 const HITHEAN_PRODUCT_LINKING_CACHE_GROUP = 'hithean_product_linking';
 const HITHEAN_PRODUCT_LINKING_DROPDOWN_THRESHOLD = 4;
-const HITHEAN_PRODUCT_LINKING_CSV_META_KEY = 'hithean_product_links_csv';
+const HITHEAN_PRODUCT_LINKING_CSV_META_KEY = 'product_linking_list';
+const HITHEAN_PRODUCT_LINKING_LEGACY_CSV_META_KEY = 'hithean_product_links_csv';
 
 /**
  * Product linking is configured by CSV custom field, not metabox.
- * Meta key: hithean_product_links_csv
+ * Meta key: product_linking_list
  * CSV rows: product_id,flavor,serving
  * Header row is optional.
  */
@@ -58,6 +59,310 @@ function hithean_product_linking_parse_csv($csv_data)
     return $rows;
 }
 
+add_action('wp_ajax_hithean_product_linking_search', 'hithean_product_linking_ajax_product_search');
+function hithean_product_linking_ajax_product_search()
+{
+    if (!current_user_can('edit_posts')) {
+        wp_send_json_error();
+    }
+
+    $term = isset($_GET['term']) ? sanitize_text_field(wp_unslash($_GET['term'])) : '';
+
+    if (strlen($term) < 2) {
+        wp_send_json_success([]);
+    }
+
+    $query = new WP_Query([
+        'post_type'      => ['product', 'product_variation'],
+        'post_status'    => 'publish',
+        'posts_per_page' => 20,
+        's'              => $term,
+        'fields'         => 'ids',
+    ]);
+
+    $results = [];
+
+    foreach ($query->posts as $post_id) {
+        $product = wc_get_product($post_id);
+
+        if (!$product instanceof WC_Product) {
+            continue;
+        }
+
+        $parent_id = $product->get_parent_id();
+        $product_id = $parent_id ? $parent_id : $post_id;
+        $display_id = $parent_id ? $post_id : $product_id;
+
+        $results[] = [
+            'id'    => $product_id,
+            'name'  => $product->get_name(),
+            'label' => sprintf('#%d - %s', $display_id, $product->get_formatted_name()),
+        ];
+    }
+
+    wp_send_json_success($results);
+}
+
+add_filter('rwmb_meta_boxes', 'hithean_product_linking_register_csv_field');
+function hithean_product_linking_register_csv_field($meta_boxes)
+{
+    if (!class_exists('RW_Meta_Box')) {
+        return $meta_boxes;
+    }
+
+    $meta_boxes[] = [
+        'id'         => 'hithean_product_linking_csv_box',
+        'title'      => 'Nhóm lựa chọn sản phẩm',
+        'post_types' => ['product'],
+        'context'    => 'normal',
+        'priority'   => 'high',
+        'fields'     => [
+            [
+                'name'        => 'CSV sản phẩm liên kết',
+                'id'          => HITHEAN_PRODUCT_LINKING_CSV_META_KEY,
+                'type'        => 'textarea',
+                'placeholder' => "Mỗi dòng: Product ID, Hương vị, Quy cách\n123, Bơ Matcha, 400g\n124, Overnight, 400g",
+                'desc'        => implode('<br>', [
+                    '<strong>Định dạng mỗi dòng</strong>: <code>Product ID, Hương vị, Quy cách</code>',
+                    '<strong>Ví dụ</strong>: <code>123, Bơ Matcha, 400g</code>',
+                    'Nếu có dưới 4 sản phẩm: hiển thị clickable pills. Từ 4 sản phẩm trở lên: hiển thị dropdown.',
+                    'Nhập cùng một danh sách ở ít nhất một sản phẩm trong nhóm. Nên có cả ID của sản phẩm hiện tại để nhãn đang chọn hiển thị đúng.',
+                ]),
+            ],
+            [
+                'type' => 'custom_html',
+                'std'  => hithean_product_linking_render_builder_tool(),
+            ],
+        ],
+    ];
+
+    return $meta_boxes;
+}
+
+function hithean_product_linking_render_builder_tool()
+{
+    $ajax_url = admin_url('admin-ajax.php');
+
+    ob_start();
+    ?>
+    <style>
+        .hithean-product-linking-builder {
+            margin-top: 12px;
+            padding: 14px;
+            border: 1px solid #dcdcde;
+            background: #f6f7f7;
+            border-radius: 4px;
+        }
+
+        .hithean-product-linking-builder h4 {
+            margin: 0 0 10px;
+        }
+
+        .hithean-product-linking-builder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            align-items: end;
+        }
+
+        .hithean-product-linking-field {
+            position: relative;
+        }
+
+        .hithean-product-linking-field label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .hithean-product-linking-field input {
+            width: 100%;
+            min-height: 34px;
+            padding: 0 8px;
+            border: 1px solid #8c8f94;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .hithean-product-linking-search-results {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 100%;
+            z-index: 20;
+            max-height: 220px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #8c8f94;
+            border-top: 0;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .hithean-product-linking-search-item {
+            padding: 8px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f1;
+        }
+
+        .hithean-product-linking-search-item:hover {
+            background: #f0f6fc;
+        }
+
+        .hithean-product-linking-builder-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .hithean-product-linking-builder-note {
+            color: #50575e;
+            font-size: 12px;
+        }
+    </style>
+
+    <div class="hithean-product-linking-builder" data-ajax-url="<?php echo esc_url($ajax_url); ?>">
+        <h4>Tạo nhanh dòng sản phẩm liên kết</h4>
+        <div class="hithean-product-linking-builder-grid">
+            <div class="hithean-product-linking-field">
+                <label>Tìm sản phẩm</label>
+                <input type="text" data-product-linking-search placeholder="Gõ tên sản phẩm...">
+                <input type="hidden" data-field="product_id">
+                <div class="hithean-product-linking-search-results"></div>
+            </div>
+            <div class="hithean-product-linking-field">
+                <label>Hương vị</label>
+                <input type="text" data-field="flavor" placeholder="Bơ Matcha">
+            </div>
+            <div class="hithean-product-linking-field">
+                <label>Quy cách</label>
+                <input type="text" data-field="serving" placeholder="400g">
+            </div>
+        </div>
+        <div class="hithean-product-linking-builder-actions">
+            <button type="button" class="button button-primary" data-add-product-linking-row>Thêm vào CSV</button>
+            <span class="hithean-product-linking-builder-note">Tool này sẽ tự chèn đúng format vào ô CSV bên trên.</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            if (window.hitheanProductLinkingBuilderInit) {
+                return;
+            }
+            window.hitheanProductLinkingBuilderInit = true;
+
+            const csvEscape = function(value) {
+                value = String(value || '');
+                return /[",\n\r]/.test(value) ? '"' + value.replace(/"/g, '""') + '"' : value;
+            };
+
+            const bindSearch = function(builder) {
+                const ajaxUrl = builder.getAttribute('data-ajax-url');
+                const input = builder.querySelector('[data-product-linking-search]');
+                const hidden = builder.querySelector('[data-field="product_id"]');
+                const results = builder.querySelector('.hithean-product-linking-search-results');
+                let timer = null;
+
+                if (!input || !hidden || !results) {
+                    return;
+                }
+
+                input.addEventListener('input', function() {
+                    const term = input.value.trim();
+                    hidden.value = '';
+
+                    if (term.length < 2) {
+                        results.style.display = 'none';
+                        results.innerHTML = '';
+                        return;
+                    }
+
+                    clearTimeout(timer);
+                    timer = setTimeout(function() {
+                        fetch(ajaxUrl + '?action=hithean_product_linking_search&term=' + encodeURIComponent(term))
+                            .then(function(response) {
+                                return response.json();
+                            })
+                            .then(function(response) {
+                                results.innerHTML = '';
+
+                                if (!response.success || !response.data.length) {
+                                    results.style.display = 'none';
+                                    return;
+                                }
+
+                                response.data.forEach(function(item) {
+                                    const row = document.createElement('div');
+                                    row.className = 'hithean-product-linking-search-item';
+                                    row.textContent = item.label;
+                                    row.addEventListener('click', function() {
+                                        input.value = item.name;
+                                        hidden.value = item.id;
+                                        results.style.display = 'none';
+                                    });
+                                    results.appendChild(row);
+                                });
+
+                                results.style.display = 'block';
+                            });
+                    }, 300);
+                });
+
+                document.addEventListener('click', function(event) {
+                    if (!builder.contains(event.target)) {
+                        results.style.display = 'none';
+                    }
+                });
+            };
+
+            const appendLine = function(builder) {
+                const textarea = document.getElementById('<?php echo esc_js(HITHEAN_PRODUCT_LINKING_CSV_META_KEY); ?>');
+
+                if (!textarea) {
+                    alert('Không tìm thấy ô CSV sản phẩm liên kết.');
+                    return;
+                }
+
+                const productId = builder.querySelector('[data-field="product_id"]').value.trim();
+                const flavor = builder.querySelector('[data-field="flavor"]').value.trim();
+                const serving = builder.querySelector('[data-field="serving"]').value.trim();
+
+                if (!productId) {
+                    alert('Cần chọn sản phẩm trước khi thêm.');
+                    return;
+                }
+
+                const line = [productId, flavor, serving].map(csvEscape).join(',');
+                textarea.value = textarea.value.trim() ? textarea.value + "\n" + line : line;
+                textarea.dispatchEvent(new Event('change'));
+
+                builder.querySelectorAll('input').forEach(function(input) {
+                    input.value = '';
+                });
+            };
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('.hithean-product-linking-builder').forEach(function(builder) {
+                    bindSearch(builder);
+
+                    const addButton = builder.querySelector('[data-add-product-linking-row]');
+                    if (addButton) {
+                        addButton.addEventListener('click', function() {
+                            appendLine(builder);
+                        });
+                    }
+                });
+            });
+        })();
+    </script>
+    <?php
+
+    return ob_get_clean();
+}
+
 function hithean_product_linking_clear_cache($post_id)
 {
     if ('product' !== get_post_type($post_id)) {
@@ -73,7 +378,7 @@ add_action('save_post_product', 'hithean_product_linking_clear_cache');
 function hithean_product_linking_get_csv_source_product_id($product_id)
 {
     $product_id = absint($product_id);
-    $csv_data = get_post_meta($product_id, HITHEAN_PRODUCT_LINKING_CSV_META_KEY, true);
+    $csv_data = hithean_product_linking_get_csv_data($product_id);
 
     if (trim((string) $csv_data) !== '') {
         return $product_id;
@@ -82,25 +387,51 @@ function hithean_product_linking_get_csv_source_product_id($product_id)
     $query = new WP_Query([
         'post_type'              => 'product',
         'post_status'            => ['publish', 'private', 'draft'],
-        'posts_per_page'         => 1,
+        'posts_per_page'         => 20,
         'fields'                 => 'ids',
         'no_found_rows'          => true,
         'update_post_meta_cache' => false,
         'update_post_term_cache' => false,
         'meta_query'             => [
+            'relation' => 'OR',
             [
                 'key'     => HITHEAN_PRODUCT_LINKING_CSV_META_KEY,
+                'value'   => (string) $product_id,
+                'compare' => 'LIKE',
+            ],
+            [
+                'key'     => HITHEAN_PRODUCT_LINKING_LEGACY_CSV_META_KEY,
                 'value'   => (string) $product_id,
                 'compare' => 'LIKE',
             ],
         ],
     ]);
 
-    if (empty($query->posts)) {
-        return 0;
+    foreach ($query->posts as $candidate_id) {
+        $rows = hithean_product_linking_parse_csv(hithean_product_linking_get_csv_data((int) $candidate_id));
+        $ids = array_map('intval', wp_list_pluck($rows, 'id'));
+
+        if (in_array($product_id, $ids, true)) {
+            return (int) $candidate_id;
+        }
     }
 
-    return (int) $query->posts[0];
+    return 0;
+}
+
+function hithean_product_linking_get_csv_data($product_id)
+{
+    if (function_exists('rwmb_meta')) {
+        $csv_data = rwmb_meta(HITHEAN_PRODUCT_LINKING_CSV_META_KEY, [], $product_id);
+    } else {
+        $csv_data = get_post_meta($product_id, HITHEAN_PRODUCT_LINKING_CSV_META_KEY, true);
+    }
+
+    if (trim((string) $csv_data) !== '') {
+        return (string) $csv_data;
+    }
+
+    return (string) get_post_meta($product_id, HITHEAN_PRODUCT_LINKING_LEGACY_CSV_META_KEY, true);
 }
 
 function hithean_product_linking_find_group_ids($product_id)
@@ -119,7 +450,7 @@ function hithean_product_linking_find_group_ids($product_id)
         return [];
     }
 
-    $csv_rows = hithean_product_linking_parse_csv(get_post_meta($source_product_id, HITHEAN_PRODUCT_LINKING_CSV_META_KEY, true));
+    $csv_rows = hithean_product_linking_parse_csv(hithean_product_linking_get_csv_data($source_product_id));
     $group_ids = wp_list_pluck($csv_rows, 'id');
     $group_ids[] = absint($product_id);
     $group_ids = array_values(array_unique(array_filter($group_ids)));
@@ -149,7 +480,7 @@ function hithean_product_linking_get_options($product_id)
 
     $source_product_id = hithean_product_linking_get_csv_source_product_id($product_id);
     $csv_rows = $source_product_id
-        ? hithean_product_linking_parse_csv(get_post_meta($source_product_id, HITHEAN_PRODUCT_LINKING_CSV_META_KEY, true))
+        ? hithean_product_linking_parse_csv(hithean_product_linking_get_csv_data($source_product_id))
         : [];
     $row_by_product_id = [];
 
