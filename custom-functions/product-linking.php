@@ -444,22 +444,22 @@ function hithean_product_linking_render_global_builder_tool()
                 <input type="text" data-field="group" placeholder="yeast-hero">
             </div>
             <div class="hithean-product-linking-field">
-                <label>Tên option 1</label>
-                <input type="text" data-field="label_1" value="Hương vị">
-            </div>
-            <div class="hithean-product-linking-field">
-                <label>Tên option 2</label>
-                <input type="text" data-field="label_2" value="Quy cách">
-            </div>
-            <div class="hithean-product-linking-field">
-                <label>Tìm sản phẩm</label>
+                <label>Sản phẩm</label>
                 <input type="text" data-product-linking-search placeholder="Gõ tên sản phẩm...">
                 <input type="hidden" data-field="product_id">
                 <div class="hithean-product-linking-search-results"></div>
             </div>
             <div class="hithean-product-linking-field">
+                <label>Tên option 1</label>
+                <input type="text" data-field="label_1" value="Hương vị">
+            </div>
+            <div class="hithean-product-linking-field">
                 <label>value_1</label>
                 <input type="text" data-field="flavor" placeholder="Giá trị option 1">
+            </div>
+            <div class="hithean-product-linking-field">
+                <label>Tên option 2</label>
+                <input type="text" data-field="label_2" value="Quy cách">
             </div>
             <div class="hithean-product-linking-field">
                 <label>value_2</label>
