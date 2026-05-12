@@ -187,8 +187,8 @@ function hithean_product_linking_register_settings_page()
 {
     add_submenu_page(
         'edit.php?post_type=product',
-        'Product Linking',
-        'Product Linking',
+        'Liên kết sản phẩm',
+        'Liên kết sản phẩm',
         'manage_woocommerce',
         'hithean-product-linking',
         'hithean_product_linking_render_settings_page'
@@ -204,7 +204,7 @@ function hithean_product_linking_render_settings_page()
     $csv_data = hithean_product_linking_get_global_csv_data();
     ?>
     <div class="wrap">
-        <h1>Product Linking</h1>
+        <h1>Liên kết sản phẩm</h1>
         <p>Cấu hình tập trung các nhóm sản phẩm thay thế nhau theo kiểu flavor/serving. Tên option có thể tùy chỉnh theo từng nhóm.</p>
 
         <form method="post" action="options.php">
@@ -228,13 +228,13 @@ function hithean_product_linking_render_settings_page()
                 </tr>
             </table>
 
-            <?php submit_button('Lưu Product Linking'); ?>
+            <?php submit_button('Lưu liên kết sản phẩm'); ?>
         </form>
 
         <hr>
         <h2>Dọn custom fields phiên bản cũ</h2>
         <p>Công cụ này xóa các post meta cũ không còn được dùng sau khi chuyển sang cấu hình tập trung.</p>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Xóa các custom fields Product Linking cũ khỏi database?');">
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('Xóa các custom fields liên kết sản phẩm cũ khỏi database?');">
             <?php wp_nonce_field('hithean_product_linking_cleanup_legacy_meta'); ?>
             <input type="hidden" name="action" value="hithean_product_linking_cleanup_legacy_meta">
             <?php submit_button('Xóa custom fields cũ', 'delete', 'submit', false); ?>
@@ -280,7 +280,7 @@ function hithean_product_linking_cleanup_legacy_meta()
     add_settings_error(
         HITHEAN_PRODUCT_LINKING_OPTION_KEY,
         'legacy_meta_deleted',
-        sprintf('Đã xóa %d custom field cũ của Product Linking.', $count),
+        sprintf('Đã xóa %d custom field cũ của Liên kết sản phẩm.', $count),
         'updated'
     );
     set_transient('settings_errors', get_settings_errors(), 30);
