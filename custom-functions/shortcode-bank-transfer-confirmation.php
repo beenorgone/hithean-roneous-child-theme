@@ -578,7 +578,7 @@ function render_single_order_info($order)
     );
 
     echo '<tr>';
-    echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><br><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank">Chỉnh sửa đơn hàng</a></td>';
+    echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><br><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank">✏️ Chỉnh sửa đơn hàng</a></td>';
     echo '<td data-label="Khách hàng">' . esc_html($billing_name) . '<span class="btc-table__muted">' . esc_html($billing_phone) . '</span></td>';
     echo '<td data-label="Đơn hàng"><strong>' . $order_total . '</strong><span class="btc-table__muted">' . esc_html($order_date) . '</span><span class="btc-table__muted">' . esc_html($payment_method) . '</span>';
     if ($paid_date || $bank_account) {

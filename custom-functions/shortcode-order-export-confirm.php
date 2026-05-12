@@ -87,7 +87,7 @@ function shortcode_list_unconfirmed_exports()
         echo '<div class="order-card" style="border:1px solid #ccc;border-radius:8px;padding:15px;background:#fff;">';
         echo '<h4 style="margin-top: 10px;">Đơn hàng #' . esc_html($order_id) . '</h4>';
         echo '<p>Trạng thái: <strong>' . esc_html($status) . '</strong> - ';
-        echo '<a href="' . esc_url($edit_link) . '" target="_blank">Chỉnh sửa đơn</a></p>';
+        echo '<a href="' . esc_url($edit_link) . '" target="_blank">✏️ Chỉnh sửa đơn</a></p>';
 
         echo '<ul style="margin:0;padding-left:18px;">';
         foreach ($order->get_items() as $item) {
@@ -198,7 +198,7 @@ function shortcode_list_uploaded_not_shipped_exports()
         echo '<div class="order-card" style="border:1px solid #ccc;border-radius:8px;padding:15px;background:#fff;">';
         echo '<h4 style="margin-top: 10px;">Đơn hàng #' . esc_html($order_id) . '</h4>';
         echo '<p>Trạng thái: <strong>' . esc_html($status) . '</strong> - ';
-        echo '<a href="' . esc_url($edit_link) . '" target="_blank">Chỉnh sửa đơn</a></p>';
+        echo '<a href="' . esc_url($edit_link) . '" target="_blank">✏️ Chỉnh sửa đơn</a></p>';
 
         echo '<ul style="margin:0;padding-left:18px;">';
         foreach ($order->get_items() as $item) {
