@@ -180,9 +180,11 @@ function child_theme_should_load_post_editor_tools(): bool
     return $post_id > 0;
 }
 
+/*
 if (child_theme_should_load_post_editor_tools()) {
     require_once(__DIR__ . '/custom-functions/editor-tools/editor-tools.php');
 }
+*/
 
 add_action('wp', function (): void {
     if (!is_singular()) {
