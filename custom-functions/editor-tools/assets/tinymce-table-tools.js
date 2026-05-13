@@ -424,12 +424,6 @@
             ].join(';');
         }
 
-        function cssPropertyName(property) {
-            return property.replace(/[A-Z]/g, function (letter) {
-                return '-' + letter.toLowerCase();
-            });
-        }
-
         function defaultInlineStyleValue(property) {
             if (property === 'backgroundColor') {
                 return 'transparent';
@@ -438,8 +432,22 @@
             return 'inherit';
         }
 
+        function inlineFormatName(property) {
+            return 'ivar_' + property.replace(/[A-Z]/g, function (letter) {
+                return '_' + letter.toLowerCase();
+            });
+        }
+
+        editor.on('init', function () {
+            editor.formatter.register('ivar_color', { inline: 'span', styles: { color: '%value' }, exact: true });
+            editor.formatter.register('ivar_background_color', { inline: 'span', styles: { 'background-color': '%value' }, exact: true });
+            editor.formatter.register('ivar_font_size', { inline: 'span', styles: { 'font-size': '%value' }, exact: true });
+            editor.formatter.register('ivar_font_family', { inline: 'span', styles: { 'font-family': '%value' }, exact: true });
+            editor.formatter.register('ivar_font_weight', { inline: 'span', styles: { 'font-weight': '%value' }, exact: true });
+            editor.formatter.register('ivar_font_style', { inline: 'span', styles: { 'font-style': '%value' }, exact: true });
+        });
+
         function applySelectedTextStyle(property, value) {
-            var selectedHtml = editor.selection.getContent({ format: 'html' });
             var selectedText = editor.selection.getContent({ format: 'text' });
             var styleValue = value || defaultInlineStyleValue(property);
 
@@ -448,12 +456,7 @@
                 return;
             }
 
-            editor.insertContent(
-                '<span style="' + escapeHtml(cssPropertyName(property)) + ':' + escapeHtml(styleValue) + ';">' +
-                selectedHtml +
-                '</span>'
-            );
-
+            editor.formatter.apply(inlineFormatName(property), { value: styleValue });
             editor.nodeChanged();
         }
 

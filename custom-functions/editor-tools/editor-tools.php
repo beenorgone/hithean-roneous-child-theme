@@ -197,6 +197,22 @@ if (!function_exists('ivar_editor_tools_allowed_post_html')) {
 }
 add_filter('wp_kses_allowed_html', 'ivar_editor_tools_allowed_post_html', 10, 2);
 
+if (!function_exists('ivar_editor_tools_remove_tinymce_bookmarks')) {
+    function ivar_editor_tools_remove_tinymce_bookmarks(string $content): string
+    {
+        if (strpos($content, 'mce_SELRES_') === false && strpos($content, 'data-mce-type="bookmark"') === false) {
+            return $content;
+        }
+
+        $content = preg_replace('/<span\b(?=[^>]*\bdata-mce-type=(["\'])bookmark\1)(?=[^>]*\bmce_SELRES_(?:start|end)\b)[^>]*>.*?<\/span>/is', '', $content);
+        $content = str_replace("\xEF\xBB\xBF", '', (string) $content);
+
+        return (string) $content;
+    }
+}
+add_filter('content_save_pre', 'ivar_editor_tools_remove_tinymce_bookmarks', 1);
+add_filter('the_content', 'ivar_editor_tools_remove_tinymce_bookmarks', 1);
+
 if (!function_exists('ivar_editor_tools_dom_inner_html')) {
     function ivar_editor_tools_dom_inner_html($node): string
     {
