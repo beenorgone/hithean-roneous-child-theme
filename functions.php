@@ -155,6 +155,53 @@ if (is_admin() && file_exists(__DIR__ . '/custom-functions/meta-key-rename-tool.
     require_once(__DIR__ . '/custom-functions/meta-key-rename-tool.php');
 }
 
+function child_theme_should_load_post_editor_tools(): bool
+{
+    if (!is_admin()) {
+        return false;
+    }
+
+    $admin_page = isset($_SERVER['PHP_SELF']) ? basename((string) wp_unslash($_SERVER['PHP_SELF'])) : '';
+    if (!in_array($admin_page, ['post.php', 'post-new.php'], true)) {
+        return false;
+    }
+
+    if ($admin_page === 'post-new.php') {
+        return true;
+    }
+
+    $post_id = 0;
+    if (isset($_GET['post'])) {
+        $post_id = absint($_GET['post']);
+    } elseif (isset($_POST['post_ID'])) {
+        $post_id = absint($_POST['post_ID']);
+    }
+
+    return $post_id > 0;
+}
+
+if (child_theme_should_load_post_editor_tools()) {
+    require_once(__DIR__ . '/custom-functions/editor-tools/editor-tools.php');
+}
+
+add_action('wp', function (): void {
+    if (!is_singular()) {
+        return;
+    }
+
+    $post = get_post();
+    if (!$post instanceof WP_Post) {
+        return;
+    }
+
+    $post_content = (string) $post->post_content;
+    if (stripos($post_content, '<table') === false && strpos($post_content, 'ivar-content-button') === false) {
+        return;
+    }
+
+    require_once(__DIR__ . '/custom-functions/editor-tools/editor-tools.php');
+});
+
 // Conditionally load admin-specific files
 function load_custom_admin_files()
 {
