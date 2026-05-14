@@ -1,4 +1,86 @@
 <?php
+if (!defined('ABSPATH')) exit;
+
+if (!function_exists('hithean_upload_internal_order_image')) {
+    /**
+     * Store internal order evidence images without generating every registered
+     * theme/WooCommerce thumbnail size. These images are admin proof only.
+     */
+    function hithean_upload_internal_order_image(array $file, int $parent_post_id, string $target_filename, int $max_dimension = 1000)
+    {
+        if (!empty($file['error']) || empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+            return new WP_Error('invalid_upload', 'File upload không hợp lệ');
+        }
+
+        $ext = strtolower(pathinfo($target_filename, PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+            return new WP_Error('invalid_type', 'Chỉ hỗ trợ JPG, JPEG, PNG');
+        }
+
+        $mime = wp_check_filetype($target_filename);
+        if (empty($mime['type']) || !in_array($mime['type'], ['image/jpeg', 'image/png'], true)) {
+            return new WP_Error('invalid_mime', 'Định dạng ảnh không hợp lệ');
+        }
+
+        $editor = wp_get_image_editor($file['tmp_name']);
+        if (!is_wp_error($editor)) {
+            $size = $editor->get_size();
+            if (!empty($size['width']) && !empty($size['height']) && max($size['width'], $size['height']) > $max_dimension) {
+                $editor->resize($max_dimension, $max_dimension, false);
+            }
+
+            if (method_exists($editor, 'set_quality')) {
+                $editor->set_quality(82);
+            }
+
+            $editor->save($file['tmp_name'], $mime['type']);
+            clearstatcache(true, $file['tmp_name']);
+            $file['size'] = filesize($file['tmp_name']);
+        }
+
+        $file['name'] = sanitize_file_name($target_filename);
+        $file['type'] = $mime['type'];
+
+        $upload = wp_handle_sideload($file, [
+            'test_form' => false,
+            'mimes' => [
+                'jpg|jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+            ],
+        ]);
+
+        if (!empty($upload['error'])) {
+            return new WP_Error('upload_failed', $upload['error']);
+        }
+
+        $attachment_id = wp_insert_attachment([
+            'post_mime_type' => $upload['type'],
+            'post_title' => sanitize_text_field(pathinfo($upload['file'], PATHINFO_FILENAME)),
+            'post_content' => '',
+            'post_status' => 'inherit',
+            'post_parent' => $parent_post_id,
+        ], $upload['file'], $parent_post_id, true);
+
+        if (is_wp_error($attachment_id)) {
+            return $attachment_id;
+        }
+
+        update_attached_file($attachment_id, $upload['file']);
+
+        $image_size = @getimagesize($upload['file']);
+        if ($image_size) {
+            update_post_meta($attachment_id, '_wp_attachment_metadata', [
+                'width' => (int) $image_size[0],
+                'height' => (int) $image_size[1],
+                'file' => _wp_relative_upload_path($upload['file']),
+                'sizes' => [],
+            ]);
+        }
+
+        return $attachment_id;
+    }
+}
+
 // ===== Shortcode Upload Ảnh =====
 function shortcode_upload_export_images_form()
 {
@@ -250,6 +332,9 @@ add_shortcode('list_uploaded_not_shipped_exports', 'shortcode_list_uploaded_not_
 
 // Upload ảnh
 add_action('wp_ajax_ajax_upload_images', function () {
+    check_ajax_referer('ajax_upload_images_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
+
     $order_id = intval($_POST['ueif_order_id']);
     if (!$order_id || empty($_FILES['ueif_images'])) {
         wp_send_json_error("Thiếu dữ liệu");
@@ -273,54 +358,7 @@ add_action('wp_ajax_ajax_upload_images', function () {
             $timestamp = date('Ymd-His');
             $filename = sprintf('order-export-image-%d-%s-%d.%s', $order_id, $timestamp, $i + 1, $ext);
 
-            $tmp_path = $files['tmp_name'][$i];
-
-            // ✅ Resize ảnh nếu lớn hơn 1000px
-            $image_info = getimagesize($tmp_path);
-            $width = $image_info[0];
-            $height = $image_info[1];
-
-            if ($width > 1000 || $height > 1000) {
-                // Load ảnh theo kiểu
-                switch ($image_info['mime']) {
-                    case 'image/jpeg':
-                        $src = imagecreatefromjpeg($tmp_path);
-                        break;
-                    case 'image/png':
-                        $src = imagecreatefrompng($tmp_path);
-                        break;
-                    default:
-                        continue 2;
-                }
-
-                // Tính kích thước mới
-                if ($width >= $height) {
-                    $new_width = 1000;
-                    $new_height = intval($height * (1000 / $width));
-                } else {
-                    $new_height = 1000;
-                    $new_width = intval($width * (1000 / $height));
-                }
-
-                $dst = imagecreatetruecolor($new_width, $new_height);
-                imagecopyresampled($dst, $src, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
-
-                // Ghi đè tạm file đã resize
-                switch ($image_info['mime']) {
-                    case 'image/jpeg':
-                        imagejpeg($dst, $tmp_path, 85); // chất lượng 85%
-                        break;
-                    case 'image/png':
-                        imagepng($dst, $tmp_path, 6);
-                        break;
-                }
-
-                imagedestroy($src);
-                imagedestroy($dst);
-            }
-
-            // Gán tên mới
-            $_FILES['upload_file'] = [
+            $upload_file = [
                 'name'     => $filename,
                 'type'     => $files['type'][$i],
                 'tmp_name' => $files['tmp_name'][$i],
@@ -328,7 +366,7 @@ add_action('wp_ajax_ajax_upload_images', function () {
                 'size'     => $files['size'][$i],
             ];
 
-            $attach_id = media_handle_upload('upload_file', $order_id);
+            $attach_id = hithean_upload_internal_order_image($upload_file, $order_id, $filename);
             if (!is_wp_error($attach_id)) {
                 $uploaded_urls[] = wp_get_attachment_url($attach_id);
             }
@@ -346,6 +384,9 @@ add_action('wp_ajax_ajax_upload_images', function () {
 
 // Xác nhận xuất kho
 add_action('wp_ajax_ajax_confirm_export', function () {
+    check_ajax_referer('ajax_confirm_export_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
+
     $order_id = intval($_POST['uexe_order_id']);
     $order = wc_get_order($order_id);
     if (!$order) wp_send_json_error("Không tìm thấy đơn");
@@ -362,6 +403,8 @@ add_action('wp_footer', function () {
     if (!is_user_logged_in() || !current_user_can('manage_woocommerce')) return;
     ?>
     <script>
+        var ueifNonce = "<?php echo esc_js(wp_create_nonce('ajax_upload_images_nonce')); ?>";
+        var uexeNonce = "<?php echo esc_js(wp_create_nonce('ajax_confirm_export_nonce')); ?>";
         document.addEventListener("DOMContentLoaded", function() {
             // Upload ảnh
             const uploadForm = document.querySelector('#upload-export-form');
@@ -376,6 +419,7 @@ add_action('wp_footer', function () {
 
                     const formData = new FormData(uploadForm);
                     formData.append("action", "ajax_upload_images");
+                    formData.append("nonce", ueifNonce);
 
                     fetch("<?php echo admin_url('admin-ajax.php'); ?>", {
                             method: "POST",
@@ -406,6 +450,7 @@ add_action('wp_footer', function () {
                     e.preventDefault();
                     const formData = new FormData(form);
                     formData.append("action", "ajax_confirm_export");
+                    formData.append("nonce", uexeNonce);
                     fetch("<?php echo admin_url('admin-ajax.php'); ?>", {
                             method: "POST",
                             body: formData
