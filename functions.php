@@ -97,6 +97,7 @@ add_action('after_setup_theme', 'custom_theme_menus');
 $general_includes = [
     //'custom-functions/test.php',
     //'custom-functions/hpos-order-check.php',
+    'custom-functions/backend-optimize.php',
     'custom-functions/functional.php',
     'custom-functions/theme-code-cache.php',
     'custom-functions/woocommerce-settings.php',
@@ -437,3 +438,4 @@ function hroneous_render_custom_email_order_details($order, $sent_to_admin, $pla
         trailingslashit(get_stylesheet_directory()) . 'woocommerce/'
     );
 }
+

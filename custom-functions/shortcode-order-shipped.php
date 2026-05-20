@@ -49,6 +49,8 @@ function ost_render_image_thumbs($image_urls) {
         );
         $html .= '<a href="' . $u . '" target="_blank" style="margin:2px; display:inline-block;">' . $img_tag . '</a>';
     }
+    $urls_json = esc_attr(wp_json_encode(array_values($image_urls)));
+    $html .= '<br><button type="button" class="ost-dl-all-btn" data-urls="' . $urls_json . '" style="margin-top:4px;font-size:11px;padding:2px 7px;cursor:pointer;">&#8659; Tải tất cả ảnh</button>';
     return $html;
 }
 
@@ -61,58 +63,131 @@ function ost_render_order_links($ids) {
     return implode(', ', $links);
 }
 
+// Phân giải từ khóa tìm kiếm thành danh sách order IDs
+function ost_resolve_search_to_order_ids($search) {
+    $token = trim($search);
+    if ($token === '') return [];
+
+    // Email
+    if (strpos($token, '@') !== false) {
+        return wc_get_orders([
+            'billing_email' => sanitize_email($token),
+            'limit'  => 100,
+            'return' => 'ids',
+        ]) ?: [];
+    }
+
+    $digits = preg_replace('/\D/', '', $token);
+
+    // Phone (9+ digits) — thử trước khi vào order ID
+    if (strlen($digits) >= 9) {
+        $found = wc_get_orders([
+            'billing_phone' => $token,
+            'limit'  => 100,
+            'return' => 'ids',
+        ]);
+        if (!empty($found)) return $found;
+    }
+
+    // Order ID — normalize giống resolve_order_from_search_code() trong bank-transfer:
+    // strip "#", prefix "P0"/"P1"; thử số gốc, bỏ 1 chữ (suffix 1 digit), bỏ 2 chữ (suffix 2 digits)
+    $code = strtoupper($token);
+    $code = str_replace('#', '', $code);
+    if (strpos($code, 'P0') === 0 || strpos($code, 'P1') === 0) {
+        $code = substr($code, 2);
+    }
+    $normalized = preg_replace('/\D+/', '', $code);
+
+    if ($normalized === '') return [];
+
+    // Thử: số gốc, bỏ 1 chữ số cuối (suffix 1 digit), bỏ 2 chữ số cuối (suffix 2 digits)
+    $attempts = [$normalized];
+    if (strlen($normalized) > 1) $attempts[] = substr($normalized, 0, -1);
+    if (strlen($normalized) > 2) $attempts[] = substr($normalized, 0, -2);
+
+    foreach ($attempts as $candidate) {
+        if (!is_numeric($candidate) || (int) $candidate <= 0) continue;
+        $order = wc_get_order((int) $candidate);
+        if ($order) return [$order->get_id()];
+    }
+
+    return [];
+}
+
 /**
  * CORE LOGIC - HITHEAN VERSION
  * Mapping lại các Meta Key
  */
 
-function ost_get_orders_data($from_date, $to_date, $filter_shipper) {
+function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids = null) {
     global $wpdb;
 
     // --- MAPPING META KEYS (Cấu hình Hithean) ---
-    $key_ship_date = 'order_ship_date';       // Cũ: export_date
-    $key_shipper   = 'order_shipper';         // Cũ: shipper
-    $key_ship_code = 'order_ship_code';       // Cũ: ship_code
-    $key_export_by = 'order_export_by';       // Cũ: export_by
-    $key_paid_date = 'order_paid_date';       // Cũ: paid_date
-    $key_bank_acc  = 'order_bank_account_received'; // Cũ: bank_account_received
-    $key_handling  = 'order_handling_status'; // Cũ: handling_status
-    
-    // Các key này có thể có $prefix hoặc không, tạm để mặc định
-    $key_images    = 'warehouse_export_images'; 
+    $key_ship_date = 'order_ship_date';
+    $key_shipper   = 'order_shipper';
+    $key_ship_code = 'order_ship_code';
+    $key_export_by = 'order_export_by';
+    $key_paid_date = 'order_paid_date';
+    $key_bank_acc  = 'order_bank_account_received';
+    $key_handling  = 'order_handling_status';
+    $key_images    = 'warehouse_export_images';
     $key_confirm   = 'export_confirmed_by';
     // ---------------------------------------------
 
-    // 1. Query ID & Ngày giao hàng
-    $results = $wpdb->get_results($wpdb->prepare(
-        "SELECT post_id, meta_value as ship_date 
-         FROM {$wpdb->postmeta} 
-         WHERE meta_key = %s AND meta_value BETWEEN %s AND %s 
-         LIMIT 500",
-        $key_ship_date, $from_date, $to_date
-    ));
-
-    if (empty($results)) {
-        return ['status' => 'empty'];
-    }
-
     $dates_map = [];
-    $order_ids = [];
-    foreach ($results as $row) {
-        $order_ids[] = $row->post_id;
-        $dates_map[$row->post_id] = $row->ship_date;
+
+    // 1. Query ID & Ngày giao hàng
+    if ($search_ids !== null) {
+        if (empty($search_ids)) return ['status' => 'empty'];
+        $order_ids = array_map('intval', $search_ids);
+
+        if ($from_date && $to_date) {
+            $placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
+            $date_results = $wpdb->get_results($wpdb->prepare(
+                "SELECT post_id, meta_value as ship_date FROM {$wpdb->postmeta}
+                 WHERE meta_key = %s AND meta_value BETWEEN %s AND %s
+                 AND post_id IN ($placeholders)",
+                $key_ship_date, $from_date, $to_date, ...$order_ids
+            ));
+            $order_ids = [];
+            foreach ($date_results as $row) {
+                $order_ids[] = $row->post_id;
+                $dates_map[$row->post_id] = $row->ship_date;
+            }
+        }
+
+        if (empty($order_ids)) return ['status' => 'empty'];
+    } else {
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT post_id, meta_value as ship_date
+             FROM {$wpdb->postmeta}
+             WHERE meta_key = %s AND meta_value BETWEEN %s AND %s
+             LIMIT 500",
+            $key_ship_date, $from_date, $to_date
+        ));
+
+        if (empty($results)) {
+            return ['status' => 'empty'];
+        }
+
+        $order_ids = [];
+        foreach ($results as $row) {
+            $order_ids[] = $row->post_id;
+            $dates_map[$row->post_id] = $row->ship_date;
+        }
     }
 
     // 2. Bulk Meta Query
     $meta_keys_to_fetch = [
-        $key_shipper, 
-        $key_images, 
-        $key_confirm, 
-        $key_export_by, 
-        $key_ship_code, 
-        $key_paid_date, 
-        $key_bank_acc, 
-        $key_handling
+        $key_shipper,
+        $key_images,
+        $key_confirm,
+        $key_export_by,
+        $key_ship_code,
+        $key_paid_date,
+        $key_bank_acc,
+        $key_handling,
+        $key_ship_date,
     ];
     // Chuẩn bị string cho SQL IN clause
     $placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
@@ -147,7 +222,7 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper) {
         if ($filter_shipper && $filter_shipper !== '__none' && stripos($shipper, $filter_shipper) === false) continue;
 
         // -- Prepare Data --
-        $ship_date = isset($dates_map[$id]) ? $dates_map[$id] : 'N/A';
+        $ship_date = $dates_map[$id] ?? ($meta[$key_ship_date][0] ?? 'N/A');
         $report_key = $ship_date . '||' . $shipper;
         $images = ost_get_order_images($meta[$key_images][0] ?? '');
         $confirmed_user_id = $meta[$key_confirm][0] ?? '';
@@ -312,20 +387,27 @@ add_shortcode('order_shipped_table', function () {
     </style>
 
     <h2>Đơn Xuất Kho (Hithean)</h2>
-    <form id="order-filter-form" style="margin-bottom: 20px;display: flex;flex-wrap: wrap;gap: 20px;align-items: center;border: 1px solid #2ecc71;padding: 10px;border-radius: 5px; background: #fff;">
-        <label><strong>Lọc theo Ngày xuất kho:</strong></label>
-        Từ <input type="date" name="filter_export_date_from" />
-        đến <input type="date" name="filter_export_date_to" />
+    <form id="order-filter-form" style="margin-bottom: 20px;display: flex;flex-wrap: wrap;gap: 12px 20px;align-items: center;border: 1px solid #2ecc71;padding: 10px;border-radius: 5px; background: #fff;">
+        <div style="width:100%;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <label><strong>Tìm theo ID / SĐT / Email:</strong></label>
+            <input type="text" name="filter_search" placeholder="VD: 12345 hoặc 0912345678 hoặc email@..." style="flex:1;min-width:240px;" />
+            <small style="color:#888;font-style:italic;">Nếu có từ khóa, không cần chọn ngày.</small>
+        </div>
+        <div style="width:100%;border-top:1px dashed #ccc;padding-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+            <label><strong>Ngày xuất kho:</strong></label>
+            Từ <input type="date" name="filter_export_date_from" />
+            đến <input type="date" name="filter_export_date_to" />
 
-        <label><strong>Shipper:</strong></label>
-        <select name="filter_shipper" style="width: auto;">
-            <option value="">-- Tất cả --</option>
-            <option value="__none">-- Không có --</option>
-            <?php foreach (ost_get_shippers() as $key => $label): ?>
-                <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
-            <?php endforeach; ?>
-        </select>
-        <button type="submit" class="button--green" style="cursor:pointer;">Lọc đơn hàng</button>
+            <label><strong>Shipper:</strong></label>
+            <select name="filter_shipper" style="width: auto;">
+                <option value="">-- Tất cả --</option>
+                <option value="__none">-- Không có --</option>
+                <?php foreach (ost_get_shippers() as $key => $label): ?>
+                    <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="button--green" style="cursor:pointer;">Lọc đơn hàng</button>
+        </div>
     </form>
 
     <div id="order-results-container">
@@ -342,13 +424,31 @@ add_shortcode('order_shipped_table', function () {
             const reportBox = $('#report-summary-box');
             let xhr;
 
+            $('#order-results-container').on('click', '.ost-dl-all-btn', function() {
+                var urls = [];
+                try { urls = JSON.parse($(this).attr('data-urls') || '[]'); } catch(e) {}
+                urls.forEach(function(url, i) {
+                    setTimeout(function() {
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.download = '';
+                        a.target = '_blank';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }, i * 400);
+                });
+            });
+
             form.on('submit', function(e) {
                 e.preventDefault();
                 const params = {};
                 form.serializeArray().forEach(d => params[d.name] = d.value);
 
-                if (!params.filter_export_date_from || !params.filter_export_date_to) {
-                    resultBox.html('<p style="color:red;">Vui lòng chọn đủ khoảng ngày!</p>');
+                const hasSearch = (params.filter_search || '').trim() !== '';
+                const hasDates = params.filter_export_date_from && params.filter_export_date_to;
+                if (!hasSearch && !hasDates) {
+                    resultBox.html('<p style="color:red;">Vui lòng nhập từ khóa tìm kiếm hoặc chọn khoảng ngày!</p>');
                     return;
                 }
 
@@ -385,14 +485,24 @@ add_action('wp_ajax_ajax_load_order_shipped', 'ajax_load_order_shipped');
 function ajax_load_order_shipped() {
     if (!current_user_can('manage_woocommerce') && !current_user_can('administrator')) wp_die();
 
-    $from = sanitize_text_field($_POST['filter_export_date_from'] ?? '');
-    $to = sanitize_text_field($_POST['filter_export_date_to'] ?? '');
+    $from    = sanitize_text_field($_POST['filter_export_date_from'] ?? '');
+    $to      = sanitize_text_field($_POST['filter_export_date_to'] ?? '');
     $shipper = sanitize_text_field($_POST['filter_shipper'] ?? '');
+    $search  = sanitize_text_field($_POST['filter_search'] ?? '');
 
-    if (!$from || !$to) wp_die('Thiếu dữ liệu ngày.');
+    $search_ids = null;
+    if ($search !== '') {
+        $search_ids = ost_resolve_search_to_order_ids($search);
+        if (empty($search_ids)) {
+            echo json_encode(['report_html' => '', 'table_html' => '<p>Không tìm thấy đơn hàng nào khớp với từ khóa tìm kiếm.</p>']);
+            wp_die();
+        }
+    } elseif (!$from || !$to) {
+        wp_die('Thiếu dữ liệu ngày.');
+    }
 
     // Gọi hàm xử lý logic chính
-    $data = ost_get_orders_data($from, $to, $shipper);
+    $data = ost_get_orders_data($from, $to, $shipper, $search_ids);
 
     if ($data['status'] === 'empty') {
         echo json_encode(['report_html' => '', 'table_html' => '<p>Không có đơn hàng nào.</p>']);

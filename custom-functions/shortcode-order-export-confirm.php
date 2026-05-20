@@ -97,8 +97,14 @@ function shortcode_upload_export_images_form()
             <input type="number" name="ueif_order_id" id="ueif_order_id" required style="width:100%;max-width:500px;border-radius:5px;border:2px solid #ccc !important;">
         </p>
         <p>
-            <label for="ueif_images">Ảnh xuất kho (tối đa 5 ảnh):</label><br>
+            <label for="ueif_images">Ảnh xuất kho:</label><br>
             <input type="file" name="ueif_images[]" id="ueif_images" multiple accept="image/*" required style="width:100%;max-width:500px;border-radius:5px;border:2px solid #ccc!important;">
+            <span id="ueif-images-notice" style="display:inline-block;margin-top:8px;padding:8px 14px;background:#fff3cd;border:2px solid #f0ad4e;border-radius:6px;color:#7a4f00;font-weight:600;font-size:0.9em;">
+                ⚠️ Chỉ được chọn tối đa <strong>5 ảnh</strong> mỗi lần upload
+            </span>
+            <span id="ueif-images-error" style="display:none;margin-top:8px;padding:8px 14px;background:#f8d7da;border:2px solid #dc3545;border-radius:6px;color:#721c24;font-weight:600;font-size:0.9em;">
+                ❌ Bạn đã chọn quá 5 ảnh! Vui lòng chọn lại tối đa 5 ảnh.
+            </span>
         </p>
         <p>
             <button type="submit" class="button button-primary">Upload ảnh xuất kho</button>
@@ -345,6 +351,11 @@ add_action('wp_ajax_ajax_upload_images', function () {
     require_once ABSPATH . 'wp-admin/includes/image.php';
 
     $files = $_FILES['ueif_images'];
+
+    if (count($files['name']) > 5) {
+        wp_send_json_error('❌ Chỉ được upload tối đa 5 ảnh mỗi lần. Vui lòng chọn lại.');
+    }
+
     $uploaded_urls = [];
 
     for ($i = 0; $i < count($files['name']); $i++) {
@@ -409,8 +420,30 @@ add_action('wp_footer', function () {
             // Upload ảnh
             const uploadForm = document.querySelector('#upload-export-form');
             if (uploadForm) {
+                const imageInput = document.querySelector('#ueif_images');
+                const noticeEl   = document.querySelector('#ueif-images-notice');
+                const errorEl    = document.querySelector('#ueif-images-error');
+
+                imageInput.addEventListener('change', function() {
+                    if (imageInput.files.length > 5) {
+                        imageInput.value = '';
+                        noticeEl.style.display = 'none';
+                        errorEl.style.display  = 'inline-block';
+                    } else {
+                        errorEl.style.display  = 'none';
+                        noticeEl.style.display = 'inline-block';
+                    }
+                });
+
                 uploadForm.addEventListener("submit", function(e) {
                     e.preventDefault();
+
+                    if (imageInput.files.length > 5) {
+                        errorEl.style.display  = 'inline-block';
+                        noticeEl.style.display = 'none';
+                        imageInput.value = '';
+                        return;
+                    }
 
                     const btn = uploadForm.querySelector('button[type="submit"]');
                     const originalText = btn.textContent;
