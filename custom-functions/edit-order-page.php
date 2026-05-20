@@ -43,7 +43,7 @@ function hithean_display_order_item_seal_checkbox($item_id, $item, $product)
         return;
     }
 
-    echo '<label style="display:inline-flex;align-items:center;gap:4px;margin:4px 0 0;font-weight:700;"><input type="checkbox"> Tem niêm phong</label>';
+    echo '<label style="display:inline-flex;align-items:center;gap:4px;margin:4px 0 0;font-weight:700;"><input type="checkbox">TEM NIÊM PHONG</label>';
 }
 
 if (!function_exists('wr_order_item_edit_lock_user_is_restricted')) {

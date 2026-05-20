@@ -38,7 +38,7 @@ if (!function_exists('hithean_invoice_product_has_the_an_organics_brand')) {
 if (!function_exists('hithean_invoice_render_seal_checkbox')) {
     function hithean_invoice_render_seal_checkbox()
     {
-        return '<label style="display:block;margin-top:4px;font-weight:700;"><input type="checkbox"> Tem niêm phong</label>';
+        return '<label style="display:block;margin-top:4px;font-weight:700;"><input type="checkbox">TEM NIÊM PHONG</label>';
     }
 }
 ?>
