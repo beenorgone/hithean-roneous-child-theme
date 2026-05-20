@@ -226,7 +226,7 @@ function load_custom_admin_files()
         require_once __DIR__ . '/custom-functions/orders-admin.php';
         require_once __DIR__ . '/custom-functions/order-search.php';
 
-        if ($screen_id === 'shop_order') {
+        if (in_array($screen_id, ['shop_order', 'woocommerce_page_wc-orders'], true)) {
             require_once __DIR__ . '/custom-functions/edit-order-page.php';
         }
     }

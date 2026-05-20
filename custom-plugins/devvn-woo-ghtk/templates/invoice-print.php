@@ -2,6 +2,45 @@
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
+
+if (!function_exists('hithean_invoice_product_has_the_an_organics_brand')) {
+    function hithean_invoice_product_has_the_an_organics_brand($product)
+    {
+        if (!$product instanceof WC_Product) {
+            return false;
+        }
+
+        $product_ids = array_filter(array_unique([
+            (int) $product->get_id(),
+            (int) $product->get_parent_id(),
+        ]));
+
+        foreach ($product_ids as $product_id) {
+            $terms = wp_get_post_terms($product_id, 'thuong-hieu');
+            if (is_wp_error($terms) || empty($terms)) {
+                continue;
+            }
+
+            foreach ($terms as $term) {
+                if (
+                    strtolower((string) $term->slug) === 'the-an-organics'
+                    || strtolower((string) $term->name) === 'the an organics'
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+}
+
+if (!function_exists('hithean_invoice_render_seal_checkbox')) {
+    function hithean_invoice_render_seal_checkbox()
+    {
+        return '<label style="display:block;margin-top:4px;font-weight:700;"><input type="checkbox"> Tem niêm phong</label>';
+    }
+}
 ?>
 <html>
 
@@ -543,9 +582,11 @@ if (!defined('ABSPATH')) {
                                                 : $item->get_name();
                                             // Lấy số lượng
                                             $quantity = $item->get_quantity();
+                                            $product = $item->get_product();
+                                            $seal_checkbox = hithean_invoice_product_has_the_an_organics_brand($product) ? hithean_invoice_render_seal_checkbox() : '';
                                     ?>
                                             <tr>
-                                                <td><?php echo $product_name; ?></td>
+                                                <td><?php echo $product_name; ?><?php echo $seal_checkbox; ?></td>
                                                 <td class="big bold"><?php echo $quantity; ?></td>
                                             </tr>
                                         <?php endforeach; ?>
