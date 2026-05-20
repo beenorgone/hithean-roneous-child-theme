@@ -423,15 +423,19 @@ add_action('wp_footer', function () {
                 const imageInput = document.querySelector('#ueif_images');
                 const noticeEl   = document.querySelector('#ueif-images-notice');
                 const errorEl    = document.querySelector('#ueif-images-error');
+                const submitBtn  = uploadForm.querySelector('button[type="submit"]');
 
                 imageInput.addEventListener('change', function() {
                     if (imageInput.files.length > 5) {
-                        imageInput.value = '';
                         noticeEl.style.display = 'none';
                         errorEl.style.display  = 'inline-block';
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.5';
                     } else {
                         errorEl.style.display  = 'none';
                         noticeEl.style.display = 'inline-block';
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '';
                     }
                 });
 
@@ -441,7 +445,6 @@ add_action('wp_footer', function () {
                     if (imageInput.files.length > 5) {
                         errorEl.style.display  = 'inline-block';
                         noticeEl.style.display = 'none';
-                        imageInput.value = '';
                         return;
                     }
 
