@@ -16,10 +16,7 @@ function thean_lw_default_settings(): array
     return [
         'enabled' => 1,
         'offer_slugs' => "uu-dai\nkhuyen-mai\nsale",
-        'trigger_vertical' => 'bottom',
-        'trigger_horizontal' => 'right',
-        'trigger_display' => 'icon_text',
-        'trigger_custom_class' => '',
+        'trigger_rules' => wp_json_encode(thean_lw_default_trigger_rules(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
         'coupon_hold_hours' => '',
         'sheets_webhook_url' => '',
         'sheets_webhook_secret' => '',
@@ -76,6 +73,67 @@ function thean_lw_default_rewards(): array
             'active' => true,
         ],
     ];
+}
+
+function thean_lw_default_trigger_rules(): array
+{
+    return [
+        ['url_pattern' => '*', 'vertical' => 'bottom', 'horizontal' => 'right', 'display' => 'icon_text', 'custom_class' => ''],
+    ];
+}
+
+function thean_lw_normalize_trigger_rule(array $rule): ?array
+{
+    $pattern = trim((string) ($rule['url_pattern'] ?? ''));
+    if ($pattern === '') {
+        return null;
+    }
+
+    $vertical = in_array($rule['vertical'] ?? '', ['top', 'bottom'], true) ? $rule['vertical'] : 'bottom';
+    $horizontal = in_array($rule['horizontal'] ?? '', ['left', 'right'], true) ? $rule['horizontal'] : 'right';
+    $display = in_array($rule['display'] ?? '', ['icon_text', 'icon_only', 'text_only'], true) ? $rule['display'] : 'icon_text';
+    $custom_class = sanitize_html_class((string) ($rule['custom_class'] ?? ''));
+
+    return [
+        'url_pattern' => $pattern,
+        'vertical' => $vertical,
+        'horizontal' => $horizontal,
+        'display' => $display,
+        'custom_class' => $custom_class,
+    ];
+}
+
+function thean_lw_get_trigger_rules(): array
+{
+    $decoded = json_decode((string) thean_lw_get_settings()['trigger_rules'], true);
+    if (!is_array($decoded) || empty($decoded)) {
+        return thean_lw_default_trigger_rules();
+    }
+
+    $rules = [];
+    foreach ($decoded as $rule) {
+        if (!is_array($rule)) {
+            continue;
+        }
+        $normalized = thean_lw_normalize_trigger_rule($rule);
+        if ($normalized !== null) {
+            $rules[] = $normalized;
+        }
+    }
+
+    return empty($rules) ? thean_lw_default_trigger_rules() : $rules;
+}
+
+function thean_lw_url_pattern_matches(string $pattern, string $path): bool
+{
+    if ($pattern === '*') {
+        return true;
+    }
+
+    $path = rtrim($path, '/') ?: '/';
+    $pattern = rtrim($pattern, '/') ?: '/';
+
+    return fnmatch($pattern, $path, FNM_CASEFOLD);
 }
 
 function thean_lw_feature_dir(): string
@@ -172,17 +230,27 @@ function thean_lw_sheets_webhook_secret(): string
 
 function thean_lw_trigger_config(): array
 {
-    $settings = thean_lw_get_settings();
+    $rules = thean_lw_get_trigger_rules();
+    $uri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '/';
+    $path = rtrim('/' . ltrim((string) parse_url($uri, PHP_URL_PATH), '/'), '/') ?: '/';
 
-    $vertical = in_array($settings['trigger_vertical'], ['top', 'bottom'], true) ? $settings['trigger_vertical'] : 'bottom';
-    $horizontal = in_array($settings['trigger_horizontal'], ['left', 'right'], true) ? $settings['trigger_horizontal'] : 'right';
-    $display = in_array($settings['trigger_display'], ['icon_text', 'icon_only', 'text_only'], true) ? $settings['trigger_display'] : 'icon_text';
+    foreach ($rules as $rule) {
+        if (thean_lw_url_pattern_matches((string) $rule['url_pattern'], $path)) {
+            return [
+                'vertical' => $rule['vertical'],
+                'horizontal' => $rule['horizontal'],
+                'display' => $rule['display'],
+                'custom_class' => $rule['custom_class'],
+            ];
+        }
+    }
 
+    $default = thean_lw_default_trigger_rules()[0];
     return [
-        'vertical' => $vertical,
-        'horizontal' => $horizontal,
-        'display' => $display,
-        'custom_class' => sanitize_html_class((string) $settings['trigger_custom_class']),
+        'vertical' => $default['vertical'],
+        'horizontal' => $default['horizontal'],
+        'display' => $default['display'],
+        'custom_class' => $default['custom_class'],
     ];
 }
 

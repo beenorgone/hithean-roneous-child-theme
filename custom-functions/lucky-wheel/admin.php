@@ -56,19 +56,22 @@ function thean_lw_sanitize_settings($input): array
         $rewards = thean_lw_default_rewards();
     }
 
-    $vertical = sanitize_key((string) ($input['trigger_vertical'] ?? 'bottom'));
-    if (!in_array($vertical, ['top', 'bottom'], true)) {
-        $vertical = 'bottom';
+    $decoded_rules = json_decode(wp_unslash((string) ($input['trigger_rules'] ?? '')), true);
+    $trigger_rules = [];
+    if (is_array($decoded_rules)) {
+        foreach ($decoded_rules as $rule) {
+            if (!is_array($rule)) {
+                continue;
+            }
+            $normalized = thean_lw_normalize_trigger_rule($rule);
+            if ($normalized !== null) {
+                $trigger_rules[] = $normalized;
+            }
+        }
     }
-
-    $horizontal = sanitize_key((string) ($input['trigger_horizontal'] ?? 'right'));
-    if (!in_array($horizontal, ['left', 'right'], true)) {
-        $horizontal = 'right';
-    }
-
-    $display = sanitize_key((string) ($input['trigger_display'] ?? 'icon_text'));
-    if (!in_array($display, ['icon_text', 'icon_only', 'text_only'], true)) {
-        $display = 'icon_text';
+    if (empty($trigger_rules)) {
+        add_settings_error(THEAN_LW_OPTION_KEY, 'invalid_trigger_rules', 'Trigger Rules JSON không hợp lệ. Đã dùng cấu hình mặc định.');
+        $trigger_rules = thean_lw_default_trigger_rules();
     }
 
     $hold_hours = trim((string) ($input['coupon_hold_hours'] ?? ''));
@@ -79,10 +82,7 @@ function thean_lw_sanitize_settings($input): array
     return [
         'enabled' => empty($input['enabled']) ? 0 : 1,
         'offer_slugs' => sanitize_textarea_field((string) ($input['offer_slugs'] ?? '')),
-        'trigger_vertical' => $vertical,
-        'trigger_horizontal' => $horizontal,
-        'trigger_display' => $display,
-        'trigger_custom_class' => sanitize_html_class((string) ($input['trigger_custom_class'] ?? '')),
+        'trigger_rules' => wp_json_encode($trigger_rules, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
         'coupon_hold_hours' => $hold_hours,
         'sheets_webhook_url' => esc_url_raw((string) ($input['sheets_webhook_url'] ?? '')),
         'sheets_webhook_secret' => sanitize_text_field((string) ($input['sheets_webhook_secret'] ?? '')),
@@ -124,36 +124,14 @@ function thean_lw_render_admin_page(): void
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">Vị trí nút</th>
+                    <th scope="row">Vị trí nút theo URL</th>
                     <td>
-                        <fieldset style="display:flex;gap:24px;flex-wrap:wrap;">
-                            <label>
-                                Căn dọc
-                                <select name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_vertical]">
-                                    <option value="top" <?php selected($settings['trigger_vertical'], 'top'); ?>>Top</option>
-                                    <option value="bottom" <?php selected($settings['trigger_vertical'], 'bottom'); ?>>Bottom</option>
-                                </select>
-                            </label>
-                            <label>
-                                Căn ngang
-                                <select name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_horizontal]">
-                                    <option value="left" <?php selected($settings['trigger_horizontal'], 'left'); ?>>Left</option>
-                                    <option value="right" <?php selected($settings['trigger_horizontal'], 'right'); ?>>Right</option>
-                                </select>
-                            </label>
-                            <label>
-                                Hiển thị
-                                <select name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_display]">
-                                    <option value="icon_text" <?php selected($settings['trigger_display'], 'icon_text'); ?>>Icon + text</option>
-                                    <option value="icon_only" <?php selected($settings['trigger_display'], 'icon_only'); ?>>Icon only</option>
-                                    <option value="text_only" <?php selected($settings['trigger_display'], 'text_only'); ?>>Text only</option>
-                                </select>
-                            </label>
-                            <label>
-                                CSS class cho nút
-                                <input type="text" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_custom_class]" value="<?php echo esc_attr((string) $settings['trigger_custom_class']); ?>" placeholder="my-custom-trigger">
-                            </label>
-                        </fieldset>
+                        <textarea class="large-text code" rows="12" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_rules]"><?php echo esc_textarea((string) $settings['trigger_rules']); ?></textarea>
+                        <p class="description">
+                            Mảng JSON các rule theo thứ tự ưu tiên — rule đầu tiên khớp URL sẽ được dùng.<br>
+                            Fields: <code>url_pattern</code>, <code>vertical</code> (<code>top</code>/<code>bottom</code>), <code>horizontal</code> (<code>left</code>/<code>right</code>), <code>display</code> (<code>icon_text</code>/<code>icon_only</code>/<code>text_only</code>), <code>custom_class</code>.<br>
+                            <code>url_pattern</code> hỗ trợ wildcard <code>*</code>. Ví dụ: <code>/gio-hang*</code> khớp trang giỏ hàng, <code>*</code> là catch-all.
+                        </p>
                     </td>
                 </tr>
                 <tr>

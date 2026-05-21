@@ -147,7 +147,7 @@ function thean_lw_render_widget(): void
                         <div class="thean-lw-coupon" data-thean-lw-coupon hidden></div>
                         <p class="thean-lw-message" data-thean-lw-message role="status"></p>
                         <div class="thean-lw-footer-actions">
-                            <button class="thean-lw-btn thean-lw-btn--secondary thean-lw-btn--dismiss" type="button" data-thean-lw-close>Tắt vòng quay</button>
+                            <button class="thean-lw-btn thean-lw-btn--secondary thean-lw-btn--dismiss" type="button" data-thean-lw-dismiss>Tắt vòng quay</button>
                         </div>
                     </div>
                 </div>

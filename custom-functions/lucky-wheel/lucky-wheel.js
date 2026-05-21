@@ -19,6 +19,7 @@
     const contactInput = form ? form.querySelector('[name="contact"]') : null;
     const honeypotInput = form ? form.querySelector('[name="website"]') : null;
     const closeNodes = root.querySelectorAll('[data-thean-lw-close]');
+    const dismissBtn = root.querySelector('[data-thean-lw-dismiss]');
     const html = document.documentElement;
 
     if (!modal || !trigger || !spinBtn || !form || !list || !coupon || !spins || !message || !submitBtn || !contactInput || !honeypotInput) {
@@ -30,6 +31,7 @@
     let lastState = null;
     let countdownTimer = null;
     let openedAutomatically = window.sessionStorage.getItem('thean_lw_auto_opened') === '1';
+    let dismissed = window.sessionStorage.getItem('thean_lw_dismissed') === '1';
     let formUnlocked = false;
     const segmentCount = Math.max(1, Number(root.getAttribute('data-segments') || 1));
 
@@ -351,6 +353,14 @@
         node.addEventListener('click', closeModal);
     });
 
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', function () {
+            window.sessionStorage.setItem('thean_lw_dismissed', '1');
+            dismissed = true;
+            closeModal();
+        });
+    }
+
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             closeModal();
@@ -360,7 +370,7 @@
     post('thean_lw_status').then(function (state) {
         renderState(state);
         setInteractiveReady(true);
-        if (!openedAutomatically && !state.coupon_code && TheanLuckyWheel.context !== 'cart') {
+        if (!openedAutomatically && !dismissed && !state.coupon_code && TheanLuckyWheel.context !== 'cart') {
             window.sessionStorage.setItem('thean_lw_auto_opened', '1');
             openedAutomatically = true;
             window.setTimeout(openModal, TheanLuckyWheel.context === 'offer' ? 900 : 2200);
