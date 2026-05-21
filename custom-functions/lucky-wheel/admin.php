@@ -128,7 +128,7 @@ function thean_lw_render_admin_page(): void
                     <td>
                         <textarea class="large-text code" rows="12" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[trigger_rules]"><?php echo esc_textarea((string) $settings['trigger_rules']); ?></textarea>
                         <p class="description">
-                            Mảng JSON các rule theo thứ tự ưu tiên — rule đầu tiên khớp URL sẽ được dùng.<br>
+                            Mảng JSON các rule — rule sau override rule trước (last-match wins, giống CSS). Đặt catch-all <code>*</code> đầu tiên, rule cụ thể hơn ở sau.<br>
                             <strong>Vị trí cơ bản:</strong> <code>vertical</code> (<code>top</code>/<code>bottom</code>), <code>horizontal</code> (<code>left</code>/<code>right</code>), <code>display</code> (<code>icon_text</code>/<code>icon_only</code>/<code>text_only</code>), <code>custom_class</code>.<br>
                             <strong>Offset desktop</strong> (tùy chọn, giá trị CSS): <code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code>. Ví dụ: <code>"bottom": "80px"</code>.<br>
                             <strong>Offset mobile ≤720px</strong> (tùy chọn): <code>mobile_top</code>, <code>mobile_bottom</code>, <code>mobile_left</code>, <code>mobile_right</code>. Khi set <code>mobile_left</code>/<code>mobile_right</code>, centering transform tự động tắt.<br>

@@ -251,24 +251,19 @@ function thean_lw_trigger_config(): array
     $uri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '/';
     $path = rtrim('/' . ltrim((string) parse_url($uri, PHP_URL_PATH), '/'), '/') ?: '/';
 
+    // Last-match wins: đặt catch-all (*) đầu, rule cụ thể hơn ở sau sẽ override
+    $matched = null;
     foreach ($rules as $rule) {
         if (thean_lw_url_pattern_matches((string) $rule['url_pattern'], $path)) {
-            return [
-                'vertical' => $rule['vertical'],
-                'horizontal' => $rule['horizontal'],
-                'display' => $rule['display'],
-                'custom_class' => $rule['custom_class'],
-            ];
+            $matched = $rule;
         }
     }
 
-    $default = thean_lw_default_trigger_rules()[0];
-    return [
-        'vertical' => $default['vertical'],
-        'horizontal' => $default['horizontal'],
-        'display' => $default['display'],
-        'custom_class' => $default['custom_class'],
-    ];
+    if ($matched !== null) {
+        return $matched;
+    }
+
+    return thean_lw_default_trigger_rules()[0];
 }
 
 function thean_lw_reward_wheel_label(array $reward): string
