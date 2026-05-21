@@ -287,20 +287,26 @@ function hithean_sticky_atc_js()
         var $stickyBtn  = $bar.find('.sticky-atc-bar__btn');
         var $origBtn    = $('form.cart button.single_add_to_cart_button').first();
         var btnOrigText = $stickyBtn.text().trim();
-        var ajaxUrl     = '<?php echo esc_url(add_query_arg('wc-ajax', 'add_to_cart', home_url('/'))); ?>';
-        var $toast      = $('<div class="sticky-atc-toast" role="status" aria-live="polite"></div>').appendTo('body');
-        var toastTimer  = null;
+        var ajaxUrl  = '<?php echo esc_url(add_query_arg('wc-ajax', 'add_to_cart', home_url('/'))); ?>';
+        var cartUrl  = '<?php echo esc_url(wc_get_cart_url()); ?>';
+        var $toast   = $('<div class="sticky-atc-toast" role="status" aria-live="polite"><span class="sticky-atc-toast__msg"></span></div>').appendTo('body');
+        var toastTimer = null;
 
-        function showToast(msg, type) {
+        function showToast(msg, type, cta) {
             clearTimeout(toastTimer);
+            $toast.find('.sticky-atc-toast__cta').remove();
             $toast.removeClass('sticky-atc-toast--success sticky-atc-toast--error is-visible')
-                  .text(msg)
-                  .addClass('sticky-atc-toast--' + type);
+                  .find('.sticky-atc-toast__msg').text(msg);
+            $toast.addClass('sticky-atc-toast--' + type);
+            if (cta) {
+                $('<a class="sticky-atc-toast__cta">')
+                    .attr('href', cta.url)
+                    .text(cta.label)
+                    .appendTo($toast);
+            }
             void $toast[0].offsetWidth;
             $toast.addClass('is-visible');
-            toastTimer = setTimeout(function() {
-                $toast.removeClass('is-visible');
-            }, 3000);
+            toastTimer = setTimeout(function() { $toast.removeClass('is-visible'); }, 4000);
         }
 
         $stickyBtn.on('click', function() {
@@ -331,7 +337,7 @@ function hithean_sticky_atc_js()
                 } else {
                     $(document.body).trigger('wc_fragment_refresh');
                     $(document.body).trigger('added_to_cart', [response.fragments, response.cart_hash, $stickyBtn]);
-                    showToast('Đã thêm vào giỏ hàng!', 'success');
+                    showToast('Đã thêm vào giỏ hàng!', 'success', { url: cartUrl, label: 'Xem giỏ hàng' });
                 }
             }).fail(function(xhr) {
                 // WC sometimes responds with 200 but non-JSON — parse manually before showing error
@@ -339,7 +345,7 @@ function hithean_sticky_atc_js()
                     var res = JSON.parse(xhr.responseText);
                     if (!res.error) {
                         $(document.body).trigger('wc_fragment_refresh');
-                        showToast('Đã thêm vào giỏ hàng!', 'success');
+                        showToast('Đã thêm vào giỏ hàng!', 'success', { url: cartUrl, label: 'Xem giỏ hàng' });
                         return;
                     }
                 } catch (e) {}

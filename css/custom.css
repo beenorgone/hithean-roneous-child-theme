@@ -1930,6 +1930,19 @@ nav .menu li a:focus {
     transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
+.sticky-atc-toast__cta {
+    color: #fff;
+    font-weight: 700;
+    text-decoration: underline;
+    margin-left: 10px;
+    white-space: nowrap;
+}
+
+.sticky-atc-toast__cta:hover {
+    color: #fff;
+    opacity: 0.85;
+}
+
 .sticky-atc-toast.is-visible {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
