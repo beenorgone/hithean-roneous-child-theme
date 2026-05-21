@@ -248,6 +248,125 @@ function display_thuong_hieu_tab_content()
     }
 }
 
+/*---------------------------------------*\
+  STICKY ADD TO CART BAR (MOBILE)
+\*---------------------------------------*/
+
+add_action('woocommerce_after_add_to_cart_form', 'hithean_sticky_atc_bar');
+
+function hithean_sticky_atc_bar()
+{
+    global $product;
+    if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) {
+        return;
+    }
+
+    $max = $product->get_max_purchase_quantity();
+    $max_attr = $max > 0 ? $max : 9999;
+    ?>
+    <div class="sticky-atc-bar" aria-label="<?php esc_attr_e('Thêm vào giỏ hàng', 'woocommerce'); ?>">
+        <div class="sticky-atc-bar__qty">
+            <button class="sticky-atc-bar__qty-btn sticky-atc-bar__qty-btn--minus" type="button" aria-label="Giảm số lượng">−</button>
+            <input class="sticky-atc-bar__qty-input" type="number" value="1" min="1" max="<?php echo esc_attr($max_attr); ?>" />
+            <button class="sticky-atc-bar__qty-btn sticky-atc-bar__qty-btn--plus" type="button" aria-label="Tăng số lượng">+</button>
+        </div>
+        <button class="sticky-atc-bar__btn button alt" type="button">
+            <?php echo esc_html($product->single_add_to_cart_text()); ?>
+        </button>
+    </div>
+    <?php
+}
+
+add_action('wp_footer', 'hithean_sticky_atc_js');
+
+function hithean_sticky_atc_js()
+{
+    if (!is_singular('product')) {
+        return;
+    }
+    ?>
+    <script>
+    jQuery(function($) {
+        var $bar = $('.sticky-atc-bar');
+        if (!$bar.length) return;
+
+        var $qtyInput   = $bar.find('.sticky-atc-bar__qty-input');
+        var $stickyBtn  = $bar.find('.sticky-atc-bar__btn');
+        var $origBtn    = $('form.cart button.single_add_to_cart_button').first();
+        var btnOrigText = $stickyBtn.text().trim();
+        var ajaxUrl     = '<?php echo esc_url(add_query_arg('wc-ajax', 'add_to_cart', home_url('/'))); ?>';
+        var $toast      = $('<div class="sticky-atc-toast" role="status" aria-live="polite"></div>').appendTo('body');
+        var toastTimer  = null;
+
+        function getMin() { return parseInt($qtyInput.attr('min')) || 1; }
+        function getMax() { return parseInt($qtyInput.attr('max')) || 9999; }
+
+        function showToast(msg, type) {
+            clearTimeout(toastTimer);
+            $toast.removeClass('sticky-atc-toast--success sticky-atc-toast--error is-visible')
+                  .text(msg)
+                  .addClass('sticky-atc-toast--' + type);
+            // Force reflow so transition fires
+            void $toast[0].offsetWidth;
+            $toast.addClass('is-visible');
+            toastTimer = setTimeout(function() {
+                $toast.removeClass('is-visible');
+            }, 3000);
+        }
+
+        $bar.on('click', '.sticky-atc-bar__qty-btn--minus', function() {
+            var val = parseInt($qtyInput.val()) || 1;
+            if (val > getMin()) $qtyInput.val(val - 1);
+        });
+
+        $bar.on('click', '.sticky-atc-bar__qty-btn--plus', function() {
+            var val = parseInt($qtyInput.val()) || 1;
+            if (val < getMax()) $qtyInput.val(val + 1);
+        });
+
+        $stickyBtn.on('click', function() {
+            if ($stickyBtn.hasClass('disabled') || $stickyBtn.prop('disabled')) return;
+
+            var $form = $('form.cart');
+            var formData = $form.serializeArray();
+            // Override quantity with sticky bar value
+            $.each(formData, function(i, field) {
+                if (field.name === 'quantity') { field.value = parseInt($qtyInput.val()) || 1; }
+            });
+            formData.push({ name: 'add-to-cart', value: $form.find('[name="add-to-cart"]').val() || $form.data('product_id') });
+
+            $stickyBtn.prop('disabled', true).text('Đang thêm...');
+
+            $.post(ajaxUrl, $.param(formData), function(response) {
+                if (response && response.error) {
+                    showToast('Không thể thêm sản phẩm', 'error');
+                } else {
+                    $(document.body).trigger('wc_fragment_refresh');
+                    $(document.body).trigger('added_to_cart', [response.fragments, response.cart_hash, $stickyBtn]);
+                    showToast('Đã thêm vào giỏ hàng!', 'success');
+                }
+            }, 'json').fail(function() {
+                showToast('Có lỗi xảy ra, vui lòng thử lại', 'error');
+            }).always(function() {
+                $stickyBtn.prop('disabled', false).text(btnOrigText);
+            });
+        });
+
+        // Mirror disabled state from original button (e.g. variable product, no variation selected)
+        function syncDisabled() {
+            var isDisabled = $origBtn.prop('disabled') || $origBtn.hasClass('disabled');
+            $stickyBtn.toggleClass('disabled', isDisabled).prop('disabled', isDisabled);
+        }
+
+        if ($origBtn.length && window.MutationObserver) {
+            new MutationObserver(syncDisabled).observe($origBtn[0], { attributes: true });
+        }
+        syncDisabled();
+    });
+    </script>
+    <?php
+}
+
 // Unset tabs
 function unset_tabs($tabs)
 {
