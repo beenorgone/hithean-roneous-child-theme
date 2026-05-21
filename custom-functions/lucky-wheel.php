@@ -82,6 +82,15 @@ function thean_lw_default_trigger_rules(): array
     ];
 }
 
+function thean_lw_sanitize_css_value(string $value): string
+{
+    $value = trim(sanitize_text_field($value));
+    if ($value !== '' && !preg_match('/^[0-9a-zA-Z%.\- ]+$/', $value)) {
+        return '';
+    }
+    return $value;
+}
+
 function thean_lw_normalize_trigger_rule(array $rule): ?array
 {
     $pattern = trim((string) ($rule['url_pattern'] ?? ''));
@@ -100,6 +109,14 @@ function thean_lw_normalize_trigger_rule(array $rule): ?array
         'horizontal' => $horizontal,
         'display' => $display,
         'custom_class' => $custom_class,
+        'top' => thean_lw_sanitize_css_value((string) ($rule['top'] ?? '')),
+        'bottom' => thean_lw_sanitize_css_value((string) ($rule['bottom'] ?? '')),
+        'left' => thean_lw_sanitize_css_value((string) ($rule['left'] ?? '')),
+        'right' => thean_lw_sanitize_css_value((string) ($rule['right'] ?? '')),
+        'mobile_top' => thean_lw_sanitize_css_value((string) ($rule['mobile_top'] ?? '')),
+        'mobile_bottom' => thean_lw_sanitize_css_value((string) ($rule['mobile_bottom'] ?? '')),
+        'mobile_left' => thean_lw_sanitize_css_value((string) ($rule['mobile_left'] ?? '')),
+        'mobile_right' => thean_lw_sanitize_css_value((string) ($rule['mobile_right'] ?? '')),
     ];
 }
 

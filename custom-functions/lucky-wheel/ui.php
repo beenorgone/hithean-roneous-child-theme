@@ -100,6 +100,32 @@ function thean_lw_render_widget(): void
 
     $trigger = thean_lw_trigger_config();
     $segments = thean_lw_active_rewards();
+
+    $css_vars = [];
+    foreach (['top' => '--lw-t-top', 'bottom' => '--lw-t-bottom', 'left' => '--lw-t-left', 'right' => '--lw-t-right'] as $key => $var) {
+        if (!empty($trigger[$key])) {
+            $css_vars[$var] = $trigger[$key];
+        }
+    }
+    foreach (['mobile_top' => '--lw-t-top-m', 'mobile_bottom' => '--lw-t-bottom-m', 'mobile_left' => '--lw-t-left-m', 'mobile_right' => '--lw-t-right-m'] as $key => $var) {
+        if (!empty($trigger[$key])) {
+            $css_vars[$var] = $trigger[$key];
+        }
+    }
+    if (!empty($trigger['mobile_left']) || !empty($trigger['mobile_right'])) {
+        $css_vars['--lw-t-transform-m'] = 'none';
+        if (!empty($trigger['mobile_right']) && empty($trigger['mobile_left'])) {
+            $css_vars['--lw-t-left-m'] = 'auto';
+        }
+    }
+    $inline_style = '';
+    if (!empty($css_vars)) {
+        $parts = [];
+        foreach ($css_vars as $prop => $val) {
+            $parts[] = $prop . ':' . $val;
+        }
+        $inline_style = implode(';', $parts);
+    }
     ?>
     <div
         id="thean-lw-root"
@@ -109,6 +135,7 @@ function thean_lw_render_widget(): void
         data-horizontal="<?php echo esc_attr($trigger['horizontal']); ?>"
         data-display="<?php echo esc_attr($trigger['display']); ?>"
         data-segments="<?php echo esc_attr((string) count($segments)); ?>"
+        <?php if ($inline_style !== '') : ?>style="<?php echo esc_attr($inline_style); ?>"<?php endif; ?>
     >
         <button class="thean-lw-trigger <?php echo esc_attr($trigger['custom_class']); ?>" type="button" aria-haspopup="dialog">
             <span class="thean-lw-trigger__icon">%</span>
