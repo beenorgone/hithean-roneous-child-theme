@@ -272,13 +272,11 @@ function hithean_sticky_atc_js()
     $max_attr = $max > 0 ? $max : 9999;
     $btn_text = esc_html($product->single_add_to_cart_text());
     ?>
-    <div class="sticky-atc-bar" aria-label="Thêm vào giỏ hàng">
-        <div class="sticky-atc-bar__qty">
-            <button class="sticky-atc-bar__qty-btn sticky-atc-bar__qty-btn--minus" type="button" aria-label="Giảm số lượng">−</button>
-            <input class="sticky-atc-bar__qty-input" type="number" value="1" min="1" max="<?php echo esc_attr($max_attr); ?>" />
-            <button class="sticky-atc-bar__qty-btn sticky-atc-bar__qty-btn--plus" type="button" aria-label="Tăng số lượng">+</button>
+    <div class="woocommerce sticky-atc-bar" aria-label="Thêm vào giỏ hàng">
+        <div class="quantity sticky-atc-bar__qty">
+            <input class="input-text qty text sticky-atc-bar__qty-input" type="number" step="1" value="1" min="1" max="<?php echo esc_attr($max_attr); ?>" />
         </div>
-        <button class="sticky-atc-bar__btn button alt" type="button"><?php echo $btn_text; ?></button>
+        <button class="single_add_to_cart_button button alt sticky-atc-bar__btn" type="button"><?php echo $btn_text; ?></button>
     </div>
     <script>
     jQuery(function($) {
@@ -293,15 +291,11 @@ function hithean_sticky_atc_js()
         var $toast      = $('<div class="sticky-atc-toast" role="status" aria-live="polite"></div>').appendTo('body');
         var toastTimer  = null;
 
-        function getMin() { return parseInt($qtyInput.attr('min')) || 1; }
-        function getMax() { return parseInt($qtyInput.attr('max')) || 9999; }
-
         function showToast(msg, type) {
             clearTimeout(toastTimer);
             $toast.removeClass('sticky-atc-toast--success sticky-atc-toast--error is-visible')
                   .text(msg)
                   .addClass('sticky-atc-toast--' + type);
-            // Force reflow so transition fires
             void $toast[0].offsetWidth;
             $toast.addClass('is-visible');
             toastTimer = setTimeout(function() {
@@ -309,30 +303,29 @@ function hithean_sticky_atc_js()
             }, 3000);
         }
 
-        $bar.on('click', '.sticky-atc-bar__qty-btn--minus', function() {
-            var val = parseInt($qtyInput.val()) || 1;
-            if (val > getMin()) $qtyInput.val(val - 1);
-        });
-
-        $bar.on('click', '.sticky-atc-bar__qty-btn--plus', function() {
-            var val = parseInt($qtyInput.val()) || 1;
-            if (val < getMax()) $qtyInput.val(val + 1);
-        });
-
         $stickyBtn.on('click', function() {
             if ($stickyBtn.hasClass('disabled') || $stickyBtn.prop('disabled')) return;
 
-            var $form = $('form.cart');
-            var formData = $form.serializeArray();
-            // Override quantity with sticky bar value
-            $.each(formData, function(i, field) {
-                if (field.name === 'quantity') { field.value = parseInt($qtyInput.val()) || 1; }
+            var $form     = $('form.cart');
+            var productId = $form.find('[name="add-to-cart"]').val() || $form.data('product_id');
+            var formData  = $form.serializeArray().filter(function(f) { return f.name !== 'add-to-cart'; });
+
+            // Ensure quantity comes from sticky bar
+            var hasQty = false;
+            $.each(formData, function(i, f) {
+                if (f.name === 'quantity') { f.value = parseInt($qtyInput.val()) || 1; hasQty = true; }
             });
-            formData.push({ name: 'add-to-cart', value: $form.find('[name="add-to-cart"]').val() || $form.data('product_id') });
+            if (!hasQty) formData.push({ name: 'quantity', value: parseInt($qtyInput.val()) || 1 });
+            formData.push({ name: 'product_id', value: productId });
 
             $stickyBtn.prop('disabled', true).text('Đang thêm...');
 
-            $.post(ajaxUrl, $.param(formData), function(response) {
+            $.ajax({
+                url: ajaxUrl,
+                type: 'POST',
+                data: $.param(formData),
+                dataType: 'json',
+            }).done(function(response) {
                 if (response && response.error) {
                     showToast('Không thể thêm sản phẩm', 'error');
                 } else {
@@ -340,7 +333,16 @@ function hithean_sticky_atc_js()
                     $(document.body).trigger('added_to_cart', [response.fragments, response.cart_hash, $stickyBtn]);
                     showToast('Đã thêm vào giỏ hàng!', 'success');
                 }
-            }, 'json').fail(function() {
+            }).fail(function(xhr) {
+                // WC sometimes responds with 200 but non-JSON — parse manually before showing error
+                try {
+                    var res = JSON.parse(xhr.responseText);
+                    if (!res.error) {
+                        $(document.body).trigger('wc_fragment_refresh');
+                        showToast('Đã thêm vào giỏ hàng!', 'success');
+                        return;
+                    }
+                } catch (e) {}
                 showToast('Có lỗi xảy ra, vui lòng thử lại', 'error');
             }).always(function() {
                 $stickyBtn.prop('disabled', false).text(btnOrigText);

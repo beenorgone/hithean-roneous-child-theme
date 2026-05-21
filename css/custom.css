@@ -1888,55 +1888,19 @@ nav .menu li a:focus {
     }
 
     .sticky-atc-bar__qty {
-        display: flex;
-        align-items: center;
-        border: 2px solid var(--default-color-dark-blue);
-        height: 39px;
         flex-shrink: 0;
     }
 
-    .sticky-atc-bar__qty-btn {
-        width: 36px;
-        height: 100%;
-        background: none;
-        border: none;
-        font-size: 20px;
-        line-height: 1;
-        cursor: pointer;
-        color: var(--default-color-dark-blue);
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
     .sticky-atc-bar__qty-input {
-        width: 44px;
-        height: 100%;
-        border: none;
-        border-left: 1px solid var(--default-color-dark-blue);
-        border-right: 1px solid var(--default-color-dark-blue);
+        width: 60px;
         text-align: center;
-        font-size: 16px;
-        -moz-appearance: textfield;
-        appearance: textfield;
-    }
-
-    .sticky-atc-bar__qty-input::-webkit-inner-spin-button,
-    .sticky-atc-bar__qty-input::-webkit-outer-spin-button {
-        -webkit-appearance: none;
+        margin-bottom: 0 !important;
     }
 
     .sticky-atc-bar__btn {
         flex: 1;
-        height: 39px;
-        background: var(--default-color-dark-blue);
-        color: #fff;
-        border: none;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        border-radius: 0;
+        height: 45px;
+        margin: 0;
     }
 
     .sticky-atc-bar__btn:disabled,
@@ -1944,6 +1908,7 @@ nav .menu li a:focus {
         opacity: 0.5;
         cursor: not-allowed;
     }
+
 }
 
 /* Toast notification */
