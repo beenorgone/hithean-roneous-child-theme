@@ -276,7 +276,7 @@ function hithean_sticky_atc_js()
         <div class="quantity sticky-atc-bar__qty">
             <input class="input-text qty text sticky-atc-bar__qty-input" type="number" step="1" value="1" min="1" max="<?php echo esc_attr($max_attr); ?>" />
         </div>
-        <button class="single_add_to_cart_button button alt sticky-atc-bar__btn" type="button"><?php echo $btn_text; ?></button>
+        <button class="single_add_to_cart_button button alt sticky-atc-bar__btn" type="button" style="margin-bottom: 0 !important;"><?php echo $btn_text; ?></button>
     </div>
     <script>
     jQuery(function($) {
