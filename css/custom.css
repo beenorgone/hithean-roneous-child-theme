@@ -1901,6 +1901,9 @@ nav .menu li a:focus {
         flex: 1;
         height: 45px;
         margin: 0;
+        background: var(--default-color-dark-blue) !important;
+        color: #fff !important;
+        border-color: var(--default-color-dark-blue) !important;
     }
 
     .sticky-atc-bar__btn:disabled,
