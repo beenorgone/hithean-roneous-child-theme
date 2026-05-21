@@ -252,31 +252,6 @@ function display_thuong_hieu_tab_content()
   STICKY ADD TO CART BAR (MOBILE)
 \*---------------------------------------*/
 
-add_action('woocommerce_after_add_to_cart_form', 'hithean_sticky_atc_bar');
-
-function hithean_sticky_atc_bar()
-{
-    global $product;
-    if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) {
-        return;
-    }
-
-    $max = $product->get_max_purchase_quantity();
-    $max_attr = $max > 0 ? $max : 9999;
-    ?>
-    <div class="sticky-atc-bar" aria-label="<?php esc_attr_e('Thêm vào giỏ hàng', 'woocommerce'); ?>">
-        <div class="sticky-atc-bar__qty">
-            <button class="sticky-atc-bar__qty-btn sticky-atc-bar__qty-btn--minus" type="button" aria-label="Giảm số lượng">−</button>
-            <input class="sticky-atc-bar__qty-input" type="number" value="1" min="1" max="<?php echo esc_attr($max_attr); ?>" />
-            <button class="sticky-atc-bar__qty-btn sticky-atc-bar__qty-btn--plus" type="button" aria-label="Tăng số lượng">+</button>
-        </div>
-        <button class="sticky-atc-bar__btn button alt" type="button">
-            <?php echo esc_html($product->single_add_to_cart_text()); ?>
-        </button>
-    </div>
-    <?php
-}
-
 add_action('wp_footer', 'hithean_sticky_atc_js');
 
 function hithean_sticky_atc_js()
@@ -284,7 +259,27 @@ function hithean_sticky_atc_js()
     if (!is_singular('product')) {
         return;
     }
+
+    global $product;
+    if (!$product instanceof WC_Product) {
+        $product = wc_get_product(get_the_ID());
+    }
+    if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) {
+        return;
+    }
+
+    $max      = $product->get_max_purchase_quantity();
+    $max_attr = $max > 0 ? $max : 9999;
+    $btn_text = esc_html($product->single_add_to_cart_text());
     ?>
+    <div class="sticky-atc-bar" aria-label="Thêm vào giỏ hàng">
+        <div class="sticky-atc-bar__qty">
+            <button class="sticky-atc-bar__qty-btn sticky-atc-bar__qty-btn--minus" type="button" aria-label="Giảm số lượng">−</button>
+            <input class="sticky-atc-bar__qty-input" type="number" value="1" min="1" max="<?php echo esc_attr($max_attr); ?>" />
+            <button class="sticky-atc-bar__qty-btn sticky-atc-bar__qty-btn--plus" type="button" aria-label="Tăng số lượng">+</button>
+        </div>
+        <button class="sticky-atc-bar__btn button alt" type="button"><?php echo $btn_text; ?></button>
+    </div>
     <script>
     jQuery(function($) {
         var $bar = $('.sticky-atc-bar');
