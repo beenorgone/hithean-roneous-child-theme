@@ -118,6 +118,7 @@ $general_includes = [
     'custom-functions/shortcode-embed.php',
     'custom-functions/shortcode-order-shipped.php',
     'custom-functions/shortcode-order-export-confirm.php',
+    'custom-functions/admin-settings-tools.php',
     'custom-functions/product-tab-post-type.php',
     'custom-functions/blogpost-metabox.php',
     'custom-functions/product-metabox.php',

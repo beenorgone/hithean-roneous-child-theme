@@ -81,6 +81,19 @@ if (!function_exists('hithean_upload_internal_order_image')) {
     }
 }
 
+function hithean_get_export_upload_checklist(): array
+{
+    $default = implode("\n", [
+        'Ảnh chụp đầy đủ sản phẩm',
+        'Số lượng khớp với đơn',
+        'Hàng không bị hư hỏng, rò rỉ, móp méo',
+        'Ảnh chụp rõ mã đơn hoặc tên khách hàng',
+        'Nhãn hàng The An Organics đã dán TEM NIÊM PHONG',
+    ]);
+    $raw = get_option('hithean_export_upload_checklist', $default);
+    return array_values(array_filter(array_map('trim', explode("\n", $raw))));
+}
+
 // ===== Shortcode Upload Ảnh =====
 function shortcode_upload_export_images_form()
 {
@@ -409,13 +422,30 @@ add_action('wp_ajax_ajax_confirm_export', function () {
 });
 
 
-// ===== Enqueue JS =====
+// ===== Enqueue JS + Modal =====
 add_action('wp_footer', function () {
     if (!is_user_logged_in() || !current_user_can('manage_woocommerce')) return;
+
+    $checklist = hithean_get_export_upload_checklist();
     ?>
+    <?php if (!empty($checklist)): ?>
+    <div id="ueif-checklist-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:999999;justify-content:center;align-items:center;">
+        <div style="background:#fff;border-radius:10px;padding:28px 30px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.25);">
+            <h3 style="margin:0 0 6px;font-size:1.1em;">📋 Kiểm tra trước khi upload ảnh</h3>
+            <p style="margin:0 0 18px;color:#666;font-size:0.88em;">Xác nhận đầy đủ tất cả mục dưới đây trước khi upload:</p>
+            <div id="ueif-checklist-items"></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;border-top:1px solid #eee;padding-top:16px;">
+                <button type="button" id="ueif-modal-cancel-btn" style="padding:8px 18px;border:1px solid #ccc;border-radius:4px;background:#f5f5f5;cursor:pointer;font-size:14px;">Hủy</button>
+                <button type="button" id="ueif-modal-confirm-btn" style="padding:8px 18px;background:#0073aa;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:14px;opacity:0.5;" disabled>✅ Xác nhận &amp; Upload</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
     <script>
         var ueifNonce = "<?php echo esc_js(wp_create_nonce('ajax_upload_images_nonce')); ?>";
         var uexeNonce = "<?php echo esc_js(wp_create_nonce('ajax_confirm_export_nonce')); ?>";
+        var ueifChecklist = <?php echo wp_json_encode($checklist); ?>;
+
         document.addEventListener("DOMContentLoaded", function() {
             // Upload ảnh
             const uploadForm = document.querySelector('#upload-export-form');
@@ -439,15 +469,7 @@ add_action('wp_footer', function () {
                     }
                 });
 
-                uploadForm.addEventListener("submit", function(e) {
-                    e.preventDefault();
-
-                    if (imageInput.files.length > 5) {
-                        errorEl.style.display  = 'inline-block';
-                        noticeEl.style.display = 'none';
-                        return;
-                    }
-
+                function doUpload() {
                     const btn = uploadForm.querySelector('button[type="submit"]');
                     const originalText = btn.textContent;
                     btn.disabled = true;
@@ -458,27 +480,91 @@ add_action('wp_footer', function () {
                     formData.append("nonce", ueifNonce);
 
                     fetch("<?php echo admin_url('admin-ajax.php'); ?>", {
-                            method: "POST",
-                            body: formData
-                        })
-                        .then(r => r.json())
-                        .then(res => {
-                            alert(res.data);
-                            if (res.success) {
-                                uploadForm.reset();
-                            }
-                        })
-                        .catch(() => {
-                            alert("Lỗi kết nối. Vui lòng thử lại.");
-                        })
-                        .finally(() => {
-                            btn.disabled = false;
-                            btn.textContent = originalText;
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(r => r.json())
+                    .then(res => {
+                        alert(res.data);
+                        if (res.success) {
+                            uploadForm.reset();
+                        }
+                    })
+                    .catch(() => {
+                        alert("Lỗi kết nối. Vui lòng thử lại.");
+                    })
+                    .finally(() => {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                    });
+                }
+
+                uploadForm.addEventListener("submit", function(e) {
+                    e.preventDefault();
+
+                    if (imageInput.files.length > 5) {
+                        errorEl.style.display  = 'inline-block';
+                        noticeEl.style.display = 'none';
+                        return;
+                    }
+
+                    const modal = document.getElementById('ueif-checklist-modal');
+                    if (modal && ueifChecklist.length > 0) {
+                        const container = document.getElementById('ueif-checklist-items');
+                        container.innerHTML = '';
+                        ueifChecklist.forEach(function(item, idx) {
+                            const div = document.createElement('div');
+                            div.style.cssText = 'margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;';
+                            const cb = document.createElement('input');
+                            cb.type = 'checkbox';
+                            cb.id = 'ueif-chk-' + idx;
+                            cb.style.cssText = 'margin-top:3px;flex-shrink:0;width:16px;height:16px;cursor:pointer;';
+                            const lbl = document.createElement('label');
+                            lbl.htmlFor = 'ueif-chk-' + idx;
+                            lbl.textContent = item;
+                            lbl.style.cssText = 'cursor:pointer;font-size:14px;line-height:1.5;';
+                            div.appendChild(cb);
+                            div.appendChild(lbl);
+                            container.appendChild(div);
+                            cb.addEventListener('change', function() {
+                                const allChecked = Array.from(container.querySelectorAll('input[type="checkbox"]')).every(function(c) { return c.checked; });
+                                const confirmBtn = document.getElementById('ueif-modal-confirm-btn');
+                                confirmBtn.disabled = !allChecked;
+                                confirmBtn.style.opacity = allChecked ? '1' : '0.5';
+                            });
                         });
+                        document.getElementById('ueif-modal-confirm-btn').disabled = true;
+                        document.getElementById('ueif-modal-confirm-btn').style.opacity = '0.5';
+                        modal.style.display = 'flex';
+                    } else {
+                        doUpload();
+                    }
                 });
+
+                const modalConfirmBtn = document.getElementById('ueif-modal-confirm-btn');
+                if (modalConfirmBtn) {
+                    modalConfirmBtn.addEventListener('click', function() {
+                        document.getElementById('ueif-checklist-modal').style.display = 'none';
+                        doUpload();
+                    });
+                }
+
+                const modalCancelBtn = document.getElementById('ueif-modal-cancel-btn');
+                if (modalCancelBtn) {
+                    modalCancelBtn.addEventListener('click', function() {
+                        document.getElementById('ueif-checklist-modal').style.display = 'none';
+                    });
+                }
+
+                const modal = document.getElementById('ueif-checklist-modal');
+                if (modal) {
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            modal.style.display = 'none';
+                        }
+                    });
+                }
             }
-
-
 
             // Xác nhận xuất kho
             document.querySelectorAll("form.export-confirm-form").forEach(form => {
@@ -488,18 +574,16 @@ add_action('wp_footer', function () {
                     formData.append("action", "ajax_confirm_export");
                     formData.append("nonce", uexeNonce);
                     fetch("<?php echo admin_url('admin-ajax.php'); ?>", {
-                            method: "POST",
-                            body: formData
-                        })
-                        .then(r => r.json())
-                        .then(res => {
-                            alert(res.data);
-                            if (res.success) {
-                                // form.closest(".order-card").style.display = "none";
-                                // Đổi nút thành "Đã xác nhận" thay vì ẩn card
-                                form.outerHTML = '<p><strong style="color:green;">✅ Đã xác nhận</strong></p>';
-                            }
-                        });
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(r => r.json())
+                    .then(res => {
+                        alert(res.data);
+                        if (res.success) {
+                            form.outerHTML = '<p><strong style="color:green;">✅ Đã xác nhận</strong></p>';
+                        }
+                    });
                 });
             });
         });
