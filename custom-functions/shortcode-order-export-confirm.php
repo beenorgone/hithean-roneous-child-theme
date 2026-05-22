@@ -512,6 +512,37 @@ add_action('wp_footer', function () {
                     if (modal && ueifChecklist.length > 0) {
                         const container = document.getElementById('ueif-checklist-items');
                         container.innerHTML = '';
+
+                        const selectAllDiv = document.createElement('div');
+                        selectAllDiv.style.cssText = 'margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;';
+                        const selectAllCb = document.createElement('input');
+                        selectAllCb.type = 'checkbox';
+                        selectAllCb.id = 'ueif-chk-all';
+                        selectAllCb.style.cssText = 'flex-shrink:0;width:16px;height:16px;cursor:pointer;';
+                        const selectAllLbl = document.createElement('label');
+                        selectAllLbl.htmlFor = 'ueif-chk-all';
+                        selectAllLbl.textContent = 'Tích tất cả';
+                        selectAllLbl.style.cssText = 'cursor:pointer;font-size:14px;font-weight:600;';
+                        selectAllDiv.appendChild(selectAllCb);
+                        selectAllDiv.appendChild(selectAllLbl);
+                        container.appendChild(selectAllDiv);
+
+                        function updateConfirmBtn() {
+                            const items = container.querySelectorAll('input[type="checkbox"]:not(#ueif-chk-all)');
+                            const allChecked = Array.from(items).every(function(c) { return c.checked; });
+                            const confirmBtn = document.getElementById('ueif-modal-confirm-btn');
+                            confirmBtn.disabled = !allChecked;
+                            confirmBtn.style.opacity = allChecked ? '1' : '0.5';
+                            selectAllCb.checked = allChecked;
+                        }
+
+                        selectAllCb.addEventListener('change', function() {
+                            container.querySelectorAll('input[type="checkbox"]:not(#ueif-chk-all)').forEach(function(cb) {
+                                cb.checked = selectAllCb.checked;
+                            });
+                            updateConfirmBtn();
+                        });
+
                         ueifChecklist.forEach(function(item, idx) {
                             const div = document.createElement('div');
                             div.style.cssText = 'margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;';
@@ -526,13 +557,9 @@ add_action('wp_footer', function () {
                             div.appendChild(cb);
                             div.appendChild(lbl);
                             container.appendChild(div);
-                            cb.addEventListener('change', function() {
-                                const allChecked = Array.from(container.querySelectorAll('input[type="checkbox"]')).every(function(c) { return c.checked; });
-                                const confirmBtn = document.getElementById('ueif-modal-confirm-btn');
-                                confirmBtn.disabled = !allChecked;
-                                confirmBtn.style.opacity = allChecked ? '1' : '0.5';
-                            });
+                            cb.addEventListener('change', updateConfirmBtn);
                         });
+
                         document.getElementById('ueif-modal-confirm-btn').disabled = true;
                         document.getElementById('ueif-modal-confirm-btn').style.opacity = '0.5';
                         modal.style.display = 'flex';
