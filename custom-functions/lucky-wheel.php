@@ -284,9 +284,47 @@ function thean_lw_reward_wheel_label(array $reward): string
             return round(((float) $reward['amount']) / 1000) . 'K';
         case 'free_shipping':
             return 'Freeship';
+        case 'shipping_cap':
+            return 'Ship-' . round(((float) $reward['amount']) / 1000) . 'K';
+        case 'buy_x_get_y':
+            return 'A+B';
+        case 'taxonomy_quantity_discount':
+            return ((string) ($reward['discount_mode'] ?? '') === 'percent')
+                ? (string) round((float) $reward['amount']) . '%'
+                : round(((float) $reward['amount']) / 1000) . 'K';
     }
 
     return sanitize_text_field((string) $reward['label']);
+}
+
+function thean_lw_normalize_positive_ids($raw): array
+{
+    $ids = is_array($raw) ? $raw : [$raw];
+    $normalized = [];
+
+    foreach ($ids as $id) {
+        $id = absint($id);
+        if ($id > 0) {
+            $normalized[] = $id;
+        }
+    }
+
+    return array_values(array_unique($normalized));
+}
+
+function thean_lw_normalize_term_slugs($raw): array
+{
+    $slugs = is_array($raw) ? $raw : preg_split('/[\s,]+/', (string) $raw);
+    $normalized = [];
+
+    foreach ($slugs as $slug) {
+        $slug = sanitize_title((string) $slug);
+        if ($slug !== '') {
+            $normalized[] = $slug;
+        }
+    }
+
+    return array_values(array_unique($normalized));
 }
 
 function thean_lw_normalize_reward(array $reward): ?array
@@ -295,32 +333,75 @@ function thean_lw_normalize_reward(array $reward): ?array
     $label = sanitize_text_field((string) ($reward['label'] ?? ''));
     $type = sanitize_key((string) ($reward['type'] ?? ''));
 
-    if ($id === '' || $label === '' || !in_array($type, ['percent', 'fixed_cart', 'free_shipping'], true)) {
+    if ($id === '' || $label === '' || !in_array($type, ['percent', 'fixed_cart', 'free_shipping', 'shipping_cap', 'buy_x_get_y', 'taxonomy_quantity_discount'], true)) {
         return null;
     }
 
     $amount = isset($reward['amount']) ? (float) $reward['amount'] : 0.0;
     $frequency = max(0, (int) ($reward['frequency'] ?? 0));
     $min_cart = max(0, (float) ($reward['min_cart'] ?? 0));
+    $max_value = max(0, (float) ($reward['max_value'] ?? 0));
     $active = !empty($reward['active']);
+    $wheel_label = sanitize_text_field((string) ($reward['wheel_label'] ?? ''));
 
     if ($type === 'percent') {
         $amount = min(max($amount, 0), 100);
-    } elseif ($type === 'fixed_cart') {
+    } elseif (in_array($type, ['fixed_cart', 'shipping_cap'], true)) {
         $amount = max($amount, 0);
-    } else {
+    } elseif ($type === 'free_shipping' || $type === 'buy_x_get_y') {
         $amount = 0.0;
+    } elseif ($type === 'taxonomy_quantity_discount') {
+        $discount_mode = in_array($reward['discount_mode'] ?? '', ['fixed', 'percent'], true) ? (string) $reward['discount_mode'] : 'fixed';
+        $amount = $discount_mode === 'percent' ? min(max($amount, 0), 100) : max($amount, 0);
     }
 
-    return [
+    if ($type === 'shipping_cap' && $amount <= 0) {
+        return null;
+    }
+
+    $normalized = [
         'id' => $id,
         'label' => $label,
         'type' => $type,
         'amount' => $amount,
         'frequency' => $frequency,
         'min_cart' => $min_cart,
+        'max_value' => $max_value,
         'active' => $active,
     ];
+
+    if ($wheel_label !== '') {
+        $normalized['wheel_label'] = $wheel_label;
+    }
+
+    if ($type === 'buy_x_get_y') {
+        $buy_product_ids = thean_lw_normalize_positive_ids($reward['buy_product_ids'] ?? []);
+        $gift_product_id = absint($reward['gift_product_id'] ?? 0);
+
+        if (empty($buy_product_ids) || $gift_product_id <= 0) {
+            return null;
+        }
+
+        $normalized['buy_product_ids'] = $buy_product_ids;
+        $normalized['buy_qty'] = max(1, (int) ($reward['buy_qty'] ?? 1));
+        $normalized['gift_product_id'] = $gift_product_id;
+        $normalized['gift_qty'] = max(1, (int) ($reward['gift_qty'] ?? 1));
+    } elseif ($type === 'taxonomy_quantity_discount') {
+        $taxonomy = in_array($reward['taxonomy'] ?? '', ['product_cat', 'product_tag'], true) ? (string) $reward['taxonomy'] : 'product_cat';
+        $term_slugs = thean_lw_normalize_term_slugs($reward['term_slugs'] ?? []);
+        $discount_mode = in_array($reward['discount_mode'] ?? '', ['fixed', 'percent'], true) ? (string) $reward['discount_mode'] : 'fixed';
+
+        if (empty($term_slugs) || $amount <= 0) {
+            return null;
+        }
+
+        $normalized['taxonomy'] = $taxonomy;
+        $normalized['term_slugs'] = $term_slugs;
+        $normalized['min_qty'] = max(1, (int) ($reward['min_qty'] ?? 1));
+        $normalized['discount_mode'] = $discount_mode;
+    }
+
+    return $normalized;
 }
 
 function thean_lw_rewards(): array

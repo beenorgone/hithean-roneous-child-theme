@@ -156,11 +156,16 @@ function thean_lw_render_admin_page(): void
                     <td>
                         <textarea class="large-text code" rows="18" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[rewards_json]"><?php echo esc_textarea((string) $settings['rewards_json']); ?></textarea>
                         <p class="description">
-                            Field hỗ trợ: <code>id</code>, <code>label</code>, <code>type</code>, <code>amount</code>, <code>frequency</code>, <code>min_cart</code>, <code>active</code>.
+                            Field hỗ trợ: <code>id</code>, <code>label</code>, <code>type</code>, <code>amount</code>, <code>frequency</code>, <code>min_cart</code>, <code>max_value</code>, <code>wheel_label</code>, <code>active</code>.
                             <br>
-                            <code>type</code> nhận các giá trị: <code>percent</code>, <code>fixed_cart</code>, <code>free_shipping</code>.
+                            <code>type</code> nhận các giá trị: <code>percent</code>, <code>fixed_cart</code>, <code>free_shipping</code>, <code>shipping_cap</code>, <code>buy_x_get_y</code>, <code>taxonomy_quantity_discount</code>.
                             <br>
                             <code>frequency</code> là tần suất tương đối. Giá trị càng cao thì phần thưởng càng xuất hiện nhiều.
+                            <br>
+                            Ví dụ nâng cao:
+                            <code>{"type":"shipping_cap","amount":30000}</code>,
+                            <code>{"type":"buy_x_get_y","buy_product_ids":[123],"buy_qty":1,"gift_product_id":456,"gift_qty":1,"max_value":50000}</code>,
+                            <code>{"type":"taxonomy_quantity_discount","taxonomy":"product_cat","term_slugs":["tra"],"min_qty":3,"discount_mode":"percent","amount":10,"max_value":50000}</code>.
                         </p>
                     </td>
                 </tr>

@@ -19,6 +19,10 @@ function thean_lw_boot_ui(): void
     add_action('wp_ajax_nopriv_thean_lw_apply_coupon', 'thean_lw_ajax_apply_coupon');
 
     add_filter('woocommerce_coupon_is_valid', 'thean_lw_validate_single_lucky_wheel_coupon', 10, 3);
+    add_action('woocommerce_applied_coupon', 'thean_lw_handle_applied_coupon', 10, 1);
+    add_action('woocommerce_removed_coupon', 'thean_lw_handle_removed_coupon', 10, 1);
+    add_action('woocommerce_before_calculate_totals', 'thean_lw_sync_bogo_cart_items', 20, 1);
+    add_action('woocommerce_cart_calculate_fees', 'thean_lw_apply_advanced_reward_fees', 30, 1);
 }
 thean_lw_boot_ui();
 
@@ -384,7 +388,397 @@ function thean_lw_validate_single_lucky_wheel_coupon($valid, $coupon, $discount)
         throw new Exception('Mỗi đơn hàng chỉ được dùng 1 mã Lucky Wheel.');
     }
 
+    $reward = thean_lw_coupon_reward($coupon);
+    if ($reward && !thean_lw_cart_matches_advanced_reward($reward)) {
+        throw new Exception(thean_lw_advanced_reward_error_message($reward));
+    }
+
     return $valid;
+}
+
+function thean_lw_coupon_reward($coupon): ?array
+{
+    if (!class_exists('WC_Coupon')) {
+        return null;
+    }
+
+    if (!$coupon instanceof WC_Coupon) {
+        $coupon = new WC_Coupon((string) $coupon);
+    }
+
+    $raw_config = (string) $coupon->get_meta('_thean_lw_reward_config', true);
+    if ($raw_config !== '') {
+        $decoded = json_decode($raw_config, true);
+        if (is_array($decoded)) {
+            $normalized = thean_lw_normalize_reward($decoded);
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+    }
+
+    $reward_id = (string) $coupon->get_meta('_thean_lw_reward_id', true);
+    if ($reward_id === '') {
+        return null;
+    }
+
+    foreach (thean_lw_rewards() as $reward) {
+        if ((string) $reward['id'] === $reward_id) {
+            return $reward;
+        }
+    }
+
+    return null;
+}
+
+function thean_lw_is_advanced_reward(array $reward): bool
+{
+    return in_array((string) ($reward['type'] ?? ''), ['shipping_cap', 'buy_x_get_y', 'taxonomy_quantity_discount'], true);
+}
+
+function thean_lw_cart_matches_advanced_reward(array $reward): bool
+{
+    if (!thean_lw_is_advanced_reward($reward) || !function_exists('WC') || !WC()->cart) {
+        return true;
+    }
+
+    if ((float) ($reward['min_cart'] ?? 0) > 0 && (float) WC()->cart->get_subtotal() < (float) $reward['min_cart']) {
+        return false;
+    }
+
+    if ($reward['type'] === 'buy_x_get_y') {
+        return thean_lw_cart_buy_qty($reward) >= (int) $reward['buy_qty'];
+    }
+
+    if ($reward['type'] === 'taxonomy_quantity_discount') {
+        return thean_lw_cart_taxonomy_qty($reward) >= (int) $reward['min_qty'];
+    }
+
+    return true;
+}
+
+function thean_lw_advanced_reward_error_message(array $reward): string
+{
+    if ((float) ($reward['min_cart'] ?? 0) > 0 && function_exists('WC') && WC()->cart && (float) WC()->cart->get_subtotal() < (float) $reward['min_cart']) {
+        return 'Giỏ hàng chưa đạt giá trị tối thiểu để dùng mã Lucky Wheel này.';
+    }
+
+    if (($reward['type'] ?? '') === 'buy_x_get_y') {
+        return 'Giỏ hàng chưa có đủ sản phẩm mua kèm để nhận quà Lucky Wheel.';
+    }
+
+    if (($reward['type'] ?? '') === 'taxonomy_quantity_discount') {
+        return 'Giỏ hàng chưa có đủ số lượng sản phẩm trong nhóm áp dụng mã Lucky Wheel.';
+    }
+
+    return 'Giỏ hàng chưa đủ điều kiện áp dụng mã Lucky Wheel này.';
+}
+
+function thean_lw_cart_item_product_ids(array $cart_item): array
+{
+    $ids = [];
+    $product_id = absint($cart_item['product_id'] ?? 0);
+    $variation_id = absint($cart_item['variation_id'] ?? 0);
+
+    if ($product_id > 0) {
+        $ids[] = $product_id;
+    }
+    if ($variation_id > 0) {
+        $ids[] = $variation_id;
+    }
+
+    return array_values(array_unique($ids));
+}
+
+function thean_lw_cart_buy_qty(array $reward): int
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        return 0;
+    }
+
+    $target_ids = array_map('absint', (array) ($reward['buy_product_ids'] ?? []));
+    $quantity = 0;
+
+    foreach (WC()->cart->get_cart() as $cart_item) {
+        if (!empty($cart_item['thean_lw_bogo_gift'])) {
+            continue;
+        }
+
+        if (!array_intersect($target_ids, thean_lw_cart_item_product_ids($cart_item))) {
+            continue;
+        }
+
+        $quantity += (int) ($cart_item['quantity'] ?? 0);
+    }
+
+    return $quantity;
+}
+
+function thean_lw_cart_taxonomy_qty(array $reward): int
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        return 0;
+    }
+
+    $taxonomy = (string) ($reward['taxonomy'] ?? 'product_cat');
+    $term_slugs = array_filter(array_map('sanitize_title', (array) ($reward['term_slugs'] ?? [])));
+    if (!in_array($taxonomy, ['product_cat', 'product_tag'], true) || empty($term_slugs)) {
+        return 0;
+    }
+
+    $quantity = 0;
+    foreach (WC()->cart->get_cart() as $cart_item) {
+        if (!empty($cart_item['thean_lw_bogo_gift'])) {
+            continue;
+        }
+
+        $product_id = absint($cart_item['product_id'] ?? 0);
+        if ($product_id <= 0 || !has_term($term_slugs, $taxonomy, $product_id)) {
+            continue;
+        }
+
+        $quantity += (int) ($cart_item['quantity'] ?? 0);
+    }
+
+    return $quantity;
+}
+
+function thean_lw_handle_applied_coupon(string $coupon_code): void
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        return;
+    }
+
+    $coupon = new WC_Coupon($coupon_code);
+    $reward = thean_lw_coupon_reward($coupon);
+    if ($reward && $reward['type'] === 'buy_x_get_y') {
+        thean_lw_sync_bogo_cart_items(WC()->cart);
+    }
+}
+
+function thean_lw_handle_removed_coupon(string $coupon_code): void
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        return;
+    }
+
+    thean_lw_remove_bogo_gift_items(thean_lw_format_coupon_code($coupon_code));
+}
+
+function thean_lw_sync_bogo_cart_items($cart): void
+{
+    static $syncing = false;
+
+    if ($syncing || !thean_lw_cart_is_usable($cart)) {
+        return;
+    }
+
+    $syncing = true;
+
+    foreach (thean_lw_applied_lucky_wheel_rewards($cart) as $entry) {
+        $reward = $entry['reward'];
+        if (($reward['type'] ?? '') !== 'buy_x_get_y') {
+            continue;
+        }
+
+        $coupon_code = (string) $entry['code'];
+        if (thean_lw_cart_buy_qty($reward) < (int) $reward['buy_qty']) {
+            $cart->remove_coupon($coupon_code);
+            thean_lw_remove_bogo_gift_items(thean_lw_format_coupon_code($coupon_code));
+            continue;
+        }
+
+        thean_lw_ensure_bogo_gift_item($cart, $coupon_code, $reward);
+    }
+
+    $syncing = false;
+}
+
+function thean_lw_cart_is_usable($cart): bool
+{
+    return is_object($cart) && method_exists($cart, 'get_cart') && method_exists($cart, 'get_applied_coupons');
+}
+
+function thean_lw_applied_lucky_wheel_rewards($cart): array
+{
+    $entries = [];
+    if (!thean_lw_cart_is_usable($cart) || !class_exists('WC_Coupon')) {
+        return $entries;
+    }
+
+    foreach ($cart->get_applied_coupons() as $coupon_code) {
+        $coupon = new WC_Coupon((string) $coupon_code);
+        if (!thean_lw_is_lucky_wheel_coupon($coupon)) {
+            continue;
+        }
+
+        $reward = thean_lw_coupon_reward($coupon);
+        if (!$reward) {
+            continue;
+        }
+
+        $entries[] = [
+            'code' => thean_lw_format_coupon_code((string) $coupon_code),
+            'coupon' => $coupon,
+            'reward' => $reward,
+        ];
+    }
+
+    return $entries;
+}
+
+function thean_lw_ensure_bogo_gift_item($cart, string $coupon_code, array $reward): void
+{
+    $gift_qty = max(1, (int) ($reward['gift_qty'] ?? 1));
+    $coupon_code = thean_lw_format_coupon_code($coupon_code);
+    $existing_qty = 0;
+
+    foreach ($cart->get_cart() as $cart_item) {
+        if (empty($cart_item['thean_lw_bogo_gift']) || (string) ($cart_item['thean_lw_coupon_code'] ?? '') !== $coupon_code) {
+            continue;
+        }
+
+        $existing_qty += (int) ($cart_item['quantity'] ?? 0);
+    }
+
+    if ($existing_qty >= $gift_qty) {
+        return;
+    }
+
+    $product = wc_get_product(absint($reward['gift_product_id']));
+    if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) {
+        return;
+    }
+
+    $product_id = $product->is_type('variation') ? $product->get_parent_id() : $product->get_id();
+    $variation_id = $product->is_type('variation') ? $product->get_id() : 0;
+    $cart->add_to_cart($product_id, $gift_qty - $existing_qty, $variation_id, [], [
+        'thean_lw_bogo_gift' => true,
+        'thean_lw_coupon_code' => $coupon_code,
+        'thean_lw_reward_id' => (string) $reward['id'],
+    ]);
+}
+
+function thean_lw_remove_bogo_gift_items(string $coupon_code = ''): void
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        return;
+    }
+
+    $coupon_code = thean_lw_format_coupon_code($coupon_code);
+    foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+        if (empty($cart_item['thean_lw_bogo_gift'])) {
+            continue;
+        }
+
+        if ($coupon_code !== '' && (string) ($cart_item['thean_lw_coupon_code'] ?? '') !== $coupon_code) {
+            continue;
+        }
+
+        WC()->cart->remove_cart_item($cart_item_key);
+    }
+}
+
+function thean_lw_apply_advanced_reward_fees($cart): void
+{
+    if (!thean_lw_cart_is_usable($cart) || is_admin() && !wp_doing_ajax()) {
+        return;
+    }
+
+    foreach (thean_lw_applied_lucky_wheel_rewards($cart) as $entry) {
+        $reward = $entry['reward'];
+        if (!thean_lw_is_advanced_reward($reward) || !thean_lw_cart_matches_advanced_reward($reward)) {
+            continue;
+        }
+
+        $amount = thean_lw_advanced_reward_discount_amount($cart, $reward, (string) $entry['code']);
+        if ($amount <= 0) {
+            continue;
+        }
+
+        $cart->add_fee(sprintf('Lucky Wheel - %s', (string) $reward['label']), -1 * $amount, false);
+    }
+}
+
+function thean_lw_advanced_reward_discount_amount($cart, array $reward, string $coupon_code): float
+{
+    $amount = 0.0;
+
+    if ($reward['type'] === 'shipping_cap') {
+        $amount = min((float) $reward['amount'], thean_lw_cart_shipping_total($cart));
+    } elseif ($reward['type'] === 'buy_x_get_y') {
+        $amount = thean_lw_bogo_gift_discount_amount($cart, $reward, $coupon_code);
+    } elseif ($reward['type'] === 'taxonomy_quantity_discount') {
+        $subtotal = thean_lw_taxonomy_matching_subtotal($cart, $reward);
+        if ((string) $reward['discount_mode'] === 'percent') {
+            $amount = $subtotal * ((float) $reward['amount'] / 100);
+        } else {
+            $amount = min((float) $reward['amount'], $subtotal);
+        }
+    }
+
+    $max_value = (float) ($reward['max_value'] ?? 0);
+    if ($max_value > 0) {
+        $amount = min($amount, $max_value);
+    }
+
+    return max(0.0, (float) wc_format_decimal($amount, wc_get_price_decimals()));
+}
+
+function thean_lw_cart_shipping_total($cart): float
+{
+    if (method_exists($cart, 'get_shipping_total')) {
+        return max(0.0, (float) $cart->get_shipping_total());
+    }
+
+    return max(0.0, (float) ($cart->shipping_total ?? 0));
+}
+
+function thean_lw_bogo_gift_discount_amount($cart, array $reward, string $coupon_code): float
+{
+    $coupon_code = thean_lw_format_coupon_code($coupon_code);
+    $remaining_qty = max(1, (int) ($reward['gift_qty'] ?? 1));
+    $amount = 0.0;
+
+    foreach ($cart->get_cart() as $cart_item) {
+        if ($remaining_qty <= 0 || empty($cart_item['thean_lw_bogo_gift']) || (string) ($cart_item['thean_lw_coupon_code'] ?? '') !== $coupon_code) {
+            continue;
+        }
+
+        $quantity = min($remaining_qty, (int) ($cart_item['quantity'] ?? 0));
+        $line_subtotal = (float) ($cart_item['line_subtotal'] ?? 0);
+        $item_qty = max(1, (int) ($cart_item['quantity'] ?? 1));
+        $amount += ($line_subtotal / $item_qty) * $quantity;
+        $remaining_qty -= $quantity;
+    }
+
+    return $amount;
+}
+
+function thean_lw_taxonomy_matching_subtotal($cart, array $reward): float
+{
+    $taxonomy = (string) ($reward['taxonomy'] ?? 'product_cat');
+    $term_slugs = array_filter(array_map('sanitize_title', (array) ($reward['term_slugs'] ?? [])));
+    $subtotal = 0.0;
+
+    if (!in_array($taxonomy, ['product_cat', 'product_tag'], true) || empty($term_slugs)) {
+        return 0.0;
+    }
+
+    foreach ($cart->get_cart() as $cart_item) {
+        if (!empty($cart_item['thean_lw_bogo_gift'])) {
+            continue;
+        }
+
+        $product_id = absint($cart_item['product_id'] ?? 0);
+        if ($product_id <= 0 || !has_term($term_slugs, $taxonomy, $product_id)) {
+            continue;
+        }
+
+        $subtotal += (float) ($cart_item['line_subtotal'] ?? 0);
+    }
+
+    return $subtotal;
 }
 
 function thean_lw_cart_has_other_lucky_wheel_coupon(string $coupon_code): bool
@@ -840,6 +1234,8 @@ function thean_lw_create_coupon(array $reward, array $contact, array $claim_iden
     $coupon->set_individual_use(true);
     $coupon->set_date_expires((new WC_DateTime())->setTimestamp(time() + thean_lw_coupon_ttl()));
     $coupon->update_meta_data('_thean_lw_reward_id', $reward['id']);
+    $coupon->update_meta_data('_thean_lw_reward_type', $reward['type']);
+    $coupon->update_meta_data('_thean_lw_reward_config', wp_json_encode($reward, JSON_UNESCAPED_UNICODE));
     $coupon->update_meta_data('_thean_lw_contact_type', $contact['type']);
     $coupon->update_meta_data('_thean_lw_contact_value', $contact['value']);
     $coupon->update_meta_data('_thean_lw_claimed_at', time());
@@ -874,6 +1270,12 @@ function thean_lw_create_coupon(array $reward, array $contact, array $claim_iden
             $coupon->set_discount_type('fixed_cart');
             $coupon->set_amount('0');
             $coupon->set_free_shipping(true);
+            break;
+        case 'shipping_cap':
+        case 'buy_x_get_y':
+        case 'taxonomy_quantity_discount':
+            $coupon->set_discount_type('fixed_cart');
+            $coupon->set_amount('0');
             break;
     }
 
