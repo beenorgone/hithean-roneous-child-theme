@@ -90,6 +90,16 @@
         return escapeHtml(value).replace(/`/g, '&#096;');
     }
 
+    function selectedPrizeFromState(state) {
+        if (!state || !Array.isArray(state.prizes) || !state.prizes.length) {
+            return null;
+        }
+
+        return state.prizes.find(function (prize) {
+            return prize.claim_token === currentToken || (!currentToken && prize.selected);
+        }) || state.prizes[state.prizes.length - 1];
+    }
+
     function renderCoupon(state) {
         if (!state || !state.coupon_code) {
             coupon.hidden = true;
@@ -97,10 +107,19 @@
             return;
         }
 
+        const selectedPrize = selectedPrizeFromState(state);
+        const selectedIndex = selectedPrize && Array.isArray(state.prizes)
+            ? state.prizes.indexOf(selectedPrize) + 1
+            : 0;
+        const selectedNotice = selectedIndex > 0
+            ? '<p class="thean-lw-coupon__selected">Mã này sẽ áp dụng ưu đãi trong lượt quay số ' + String(selectedIndex) + ' bạn đã chọn</p>'
+            : '';
+
         coupon.hidden = false;
         coupon.innerHTML = [
             '<strong>Mã ưu đãi của bạn</strong>',
             '<span class="thean-lw-code">' + escapeHtml(state.coupon_code) + '</span>',
+            selectedNotice,
             '<p class="thean-lw-coupon__time" data-thean-lw-countdown></p>',
             '<div class="thean-lw-actions">',
             '<button class="thean-lw-btn thean-lw-btn--secondary" type="button" data-thean-lw-copy>Sao chép mã</button>',
@@ -160,8 +179,10 @@
             '<p class="thean-lw-result-list__title">Các ưu đãi bạn đã quay được</p>',
             prizes.map(function (prize, index) {
                 const selected = prize.claim_token === currentToken || (!currentToken && prize.selected);
+                const locked = lastState && lastState.coupon_code;
+                const dismissed = locked && !selected;
                 return [
-                    '<button class="thean-lw-prize-choice" type="button" data-token="', escapeAttr(prize.claim_token), '" data-segment-index="', escapeAttr(prize.segment_index), '" aria-pressed="', selected ? 'true' : 'false', '">',
+                    '<button class="thean-lw-prize-choice" type="button" data-token="', escapeAttr(prize.claim_token), '" data-segment-index="', escapeAttr(prize.segment_index), '" aria-pressed="', selected ? 'true' : 'false', '" data-dismissed="', dismissed ? 'true' : 'false', '"', locked ? ' disabled' : '', '>',
                     '<span class="thean-lw-prize-choice__index">Lượt ', String(index + 1), '</span>',
                     '<strong>', escapeHtml(prize.label), '</strong>',
                     '</button>'
@@ -193,8 +214,20 @@
         if (triggerText) {
             triggerText.textContent = contextTriggerText();
         }
-        spins.textContent = 'Còn ' + state.spins_left + '/' + state.max_spins + ' lượt quay';
+        spins.textContent = 'Tối đa 3 lượt quay, chọn 1 ưu đãi rồi nhập email hoặc số điện thoại để nhận mã';
         updateSpinButton(state);
+
+        if (state.prizes && state.prizes.length) {
+            const selected = selectedPrizeFromState(state);
+            currentToken = currentToken || selected.claim_token;
+            currentSegmentIndex = Number(selected.segment_index || 0);
+            renderPrizeList(state.prizes);
+            updateSelectedPrize();
+        } else {
+            currentToken = '';
+            currentSegmentIndex = 0;
+            renderPrizeList([]);
+        }
 
         renderCoupon(state);
 
@@ -204,18 +237,6 @@
         } else {
             spinBtn.hidden = false;
             form.hidden = !(formUnlocked && currentToken);
-        }
-
-        if (state.prizes && state.prizes.length) {
-            const selected = state.prizes.find(function (prize) { return prize.selected; }) || state.prizes[state.prizes.length - 1];
-            currentToken = currentToken || selected.claim_token;
-            currentSegmentIndex = Number(selected.segment_index || 0);
-            renderPrizeList(state.prizes);
-            updateSelectedPrize();
-        } else {
-            currentToken = '';
-            currentSegmentIndex = 0;
-            renderPrizeList([]);
         }
     }
 
