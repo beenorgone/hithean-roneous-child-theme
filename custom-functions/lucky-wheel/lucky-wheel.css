@@ -197,7 +197,6 @@
     line-height: 1.18;
 }
 
-.thean-lw-copy,
 .thean-lw-spins,
 .thean-lw-form-note,
 .thean-lw-message,
@@ -206,10 +205,6 @@
 .thean-lw-prize-choice__meta {
     color: var(--lw-muted);
     line-height: 1.45;
-}
-
-.thean-lw-copy {
-    line-height: 1.55;
 }
 
 .thean-lw-spins {
@@ -258,6 +253,7 @@
 
 .thean-lw-prize-choice strong,
 .thean-lw-coupon strong {
+    margin-right: 15px;
     font-size: 15px;
     line-height: 1.45;
 }
@@ -340,6 +336,15 @@
     color: #fff;
     cursor: pointer;
     font-weight: 700;
+    text-decoration: none;
+}
+
+.thean-lw a.thean-lw-btn,
+.thean-lw a.thean-lw-btn:hover,
+.thean-lw a.thean-lw-btn:focus,
+.thean-lw a.thean-lw-btn:active,
+.thean-lw a.thean-lw-btn:visited {
+    color: #fff;
     text-decoration: none;
 }
 
@@ -446,7 +451,6 @@
         line-height: 1.2;
     }
 
-    .thean-lw-copy,
     .thean-lw-spins,
     .thean-lw-message,
     .thean-lw-form-note,
