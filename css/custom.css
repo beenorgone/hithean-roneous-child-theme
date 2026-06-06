@@ -839,21 +839,21 @@ input[type="submit"],
 
 .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
 .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
-.single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before {
-    content: "NEW";
+.single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before,
+.woocommerce span.onsale {
     position: absolute;
-    top: 10px;
-    left: 10px;
     z-index: 3;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: 64px;
     height: 34px;
+    min-height: 34px;
     padding: 0 14px;
+    box-sizing: border-box;
     border-radius: 5px;
     background: linear-gradient(135deg, var(--default-color-pink) 0%, var(--default-color-red) 100%);
-    box-shadow: 0 8px 18px rgb(191 31 51 / 28%);
+    box-shadow: none;
     color: var(--default-color-white);
     font-family: "Oswald", sans-serif;
     font-size: 16px;
@@ -861,6 +861,14 @@ input[type="submit"],
     line-height: 1;
     letter-spacing: 0;
     pointer-events: none;
+}
+
+.woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
+.woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
+.single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before {
+    content: "NEW";
+    top: 10px;
+    left: 10px;
 }
 
 .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link .onsale,
@@ -871,13 +879,20 @@ input[type="submit"],
 @media screen and (max-width: 480px) {
     .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
     .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
+    .single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before,
+    .woocommerce span.onsale {
+        min-width: 54px;
+        height: 30px;
+        min-height: 30px;
+        padding: 0 10px;
+        font-size: 14px;
+    }
+
+    .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
+    .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
     .single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before {
         top: 8px;
         left: 8px;
-        min-width: 54px;
-        height: 30px;
-        padding: 0 10px;
-        font-size: 14px;
     }
 
     .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link .onsale,
