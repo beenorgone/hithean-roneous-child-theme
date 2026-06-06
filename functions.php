@@ -31,15 +31,15 @@ if (!function_exists('roneous_child_enqueue_styles')) {
         if (is_page('an-new-chapter')) {
             wp_enqueue_style(
                 'hithean-an-new-chapter-style',
-                get_stylesheet_directory_uri() . '/pages/home/an-new-chapter/an-new-chapter.css',
+                get_stylesheet_directory_uri() . '/pages/an-new-chapter/an-new-chapter.css',
                 array('hithean-custom-style'),
-                filemtime(get_stylesheet_directory() . '/pages/home/an-new-chapter/an-new-chapter.css')
+                filemtime(get_stylesheet_directory() . '/pages/an-new-chapter/an-new-chapter.css')
             );
             wp_enqueue_script(
                 'hithean-an-new-chapter-script',
-                get_stylesheet_directory_uri() . '/pages/home/an-new-chapter/an-new-chapter.js',
+                get_stylesheet_directory_uri() . '/pages/an-new-chapter/an-new-chapter.js',
                 array(),
-                filemtime(get_stylesheet_directory() . '/pages/home/an-new-chapter/an-new-chapter.js'),
+                filemtime(get_stylesheet_directory() . '/pages/an-new-chapter/an-new-chapter.js'),
                 true
             );
         }
