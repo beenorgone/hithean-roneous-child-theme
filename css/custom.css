@@ -829,6 +829,46 @@ input[type="submit"],
     padding-right: 30px !important;
 }
 
+/* Product Loop NEW Badge */
+.woocommerce .product_tag-new .image-box {
+    position: relative;
+}
+
+.woocommerce .product_tag-new .image-box > a:first-of-type::before {
+    content: "NEW";
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 3px;
+    background: var(--default-color-dark-blue);
+    box-shadow: 0 6px 14px rgb(0 71 186 / 24%);
+    color: var(--default-color-white);
+    font-family: "Oswald", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0;
+    pointer-events: none;
+}
+
+@media screen and (max-width: 480px) {
+    .woocommerce .product_tag-new .image-box > a:first-of-type::before {
+        top: 8px;
+        left: 8px;
+        min-width: 42px;
+        height: 24px;
+        padding: 0 8px;
+        font-size: 12px;
+    }
+}
+
 /* Messages */
 .woocommerce .woocommerce-message,
 .woocommerce .woocommerce-thankyou-order-received,
