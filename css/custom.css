@@ -829,12 +829,14 @@ input[type="submit"],
     padding-right: 30px !important;
 }
 
-/* Product Loop NEW Badge */
-.woocommerce .product_tag-new .image-box {
+/* Product NEW Badge */
+.woocommerce .products .product_tag-new,
+.single-product .product_tag-new .woocommerce-product-gallery {
     position: relative;
 }
 
-.woocommerce .product_tag-new .image-box > a:first-of-type::before {
+.woocommerce .products .product_tag-new > a:first-of-type::before,
+.single-product .product_tag-new .woocommerce-product-gallery::before {
     content: "NEW";
     position: absolute;
     top: 10px;
@@ -858,14 +860,28 @@ input[type="submit"],
     pointer-events: none;
 }
 
+.woocommerce .products .product_tag-new > a:first-of-type {
+    position: relative;
+    display: block;
+}
+
+.woocommerce .products .product_tag-new > a:first-of-type .onsale {
+    top: 44px;
+}
+
 @media screen and (max-width: 480px) {
-    .woocommerce .product_tag-new .image-box > a:first-of-type::before {
+    .woocommerce .products .product_tag-new > a:first-of-type::before,
+    .single-product .product_tag-new .woocommerce-product-gallery::before {
         top: 8px;
         left: 8px;
         min-width: 42px;
         height: 24px;
         padding: 0 8px;
         font-size: 12px;
+    }
+
+    .woocommerce .products .product_tag-new > a:first-of-type .onsale {
+        top: 38px;
     }
 }
 

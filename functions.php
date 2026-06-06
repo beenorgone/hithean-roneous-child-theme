@@ -21,12 +21,18 @@ if (!function_exists('roneous_child_enqueue_styles')) {
             get_stylesheet_directory_uri() . '/style.css',
             array($parent_style)
         );
+        wp_enqueue_style(
+            'hithean-custom-style',
+            get_stylesheet_directory_uri() . '/css/custom.css',
+            array('roneous-child-style'),
+            filemtime(get_stylesheet_directory() . '/css/custom.css')
+        );
 
         if (function_exists('is_cart') && is_cart()) {
             wp_enqueue_style(
                 'roneous-child-cart-style',
                 get_stylesheet_directory_uri() . '/css/page-cart.css',
-                array('roneous-child-style'),
+                array('hithean-custom-style'),
                 filemtime(get_stylesheet_directory() . '/css/page-cart.css')
             );
 
