@@ -602,7 +602,7 @@ function render_single_order_info($order)
     }
     echo '</ul></td>';
     echo '<td data-label="Thao tác"><div class="btc-table__actions">';
-    echo '<button type="button" class="button--small button--green" data-open-confirm-modal="1" data-order-id="' . intval($order_id) . '" data-order-total-raw="' . esc_attr(wc_format_decimal($order->get_total(), 0)) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Xác nhận chuyển khoản</button>';
+    echo '<button type="button" class="button--small button--green" data-open-confirm-modal="1" data-order-id="' . intval($order_id) . '" data-order-total-raw="' . esc_attr(wc_format_decimal($order->get_total(), 0)) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Xác nhận CK</button>';
     echo '<button type="button" class="button--small button--white" data-open-sms-modal="1" data-order-basic-info="' . esc_attr($basic_info) . '" data-sms-phone="' . esc_attr($billing_phone) . '" data-sms-paid="' . esc_attr($sms_paid) . '" data-sms-recall="' . esc_attr($sms_recall) . '">Gửi SMS</button>';
     echo '</div></td>';
     echo '</tr>';
