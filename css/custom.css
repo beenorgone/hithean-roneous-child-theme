@@ -830,13 +830,16 @@ input[type="submit"],
 }
 
 /* Product NEW Badge */
-.woocommerce .products .product_tag-new,
-.single-product .product_tag-new .woocommerce-product-gallery {
+.woocommerce .product_tag-new > a.woocommerce-LoopProduct-link,
+.woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link,
+.single-product .product_tag-new .woocommerce-product-gallery .flex-viewport {
     position: relative;
+    display: block;
 }
 
-.woocommerce .products .product_tag-new > a:first-of-type::before,
-.single-product .product_tag-new .woocommerce-product-gallery::before {
+.woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
+.woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
+.single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before {
     content: "NEW";
     position: absolute;
     top: 10px;
@@ -845,43 +848,41 @@ input[type="submit"],
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 48px;
-    height: 26px;
-    padding: 0 10px;
-    border-radius: 3px;
-    background: var(--default-color-dark-blue);
-    box-shadow: 0 6px 14px rgb(0 71 186 / 24%);
+    min-width: 64px;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, var(--default-color-pink) 0%, var(--default-color-red) 100%);
+    box-shadow: 0 8px 18px rgb(191 31 51 / 28%);
     color: var(--default-color-white);
     font-family: "Oswald", sans-serif;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     line-height: 1;
     letter-spacing: 0;
     pointer-events: none;
 }
 
-.woocommerce .products .product_tag-new > a:first-of-type {
-    position: relative;
-    display: block;
-}
-
-.woocommerce .products .product_tag-new > a:first-of-type .onsale {
-    top: 44px;
+.woocommerce .product_tag-new > a.woocommerce-LoopProduct-link .onsale,
+.woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link .onsale {
+    top: 54px;
 }
 
 @media screen and (max-width: 480px) {
-    .woocommerce .products .product_tag-new > a:first-of-type::before,
-    .single-product .product_tag-new .woocommerce-product-gallery::before {
+    .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
+    .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
+    .single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before {
         top: 8px;
         left: 8px;
-        min-width: 42px;
-        height: 24px;
-        padding: 0 8px;
-        font-size: 12px;
+        min-width: 54px;
+        height: 30px;
+        padding: 0 10px;
+        font-size: 14px;
     }
 
-    .woocommerce .products .product_tag-new > a:first-of-type .onsale {
-        top: 38px;
+    .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link .onsale,
+    .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link .onsale {
+        top: 46px;
     }
 }
 
