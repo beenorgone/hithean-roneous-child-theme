@@ -26,7 +26,7 @@ function render_order_paid_confirmation_ui()
         </div>
 
         <div class="btc-panel btc-search-panel">
-            <p><input type="text" id="order_search" placeholder="Nhập mã đơn (nhiều mã: cách nhau bằng dấu phẩy hoặc khoảng trắng)"></p>
+            <p><input type="text" id="order_search" style="width: 100% !important;" placeholder="Nhập mã đơn (nhiều mã: cách nhau bằng dấu phẩy hoặc khoảng trắng)"></p>
             <div class="btc-actions-row">
                 <button type="button" id="btn_search_order" class="button--small button--green">Tìm kiếm</button>
                 <button type="button" id="clear_results_btn" class="button--small button--red">Xóa kết quả</button>
