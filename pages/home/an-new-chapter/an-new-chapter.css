@@ -1,0 +1,785 @@
+/*----------------------------------------------*\
+  AN NEW CHAPTER — Landing Page Styles
+  Dùng CSS variables từ /css/custom.css
+  Tất cả classes mới đều prefix anc-
+\*----------------------------------------------*/
+
+/* =============================================
+   HERO
+   ============================================= */
+
+#anc-hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /*
+     * Thêm background-image vào đây sau khi upload ảnh:
+     * background-image: url('URL_ANH_HERO');
+     */
+    background-color: var(--product-nuocepkytu-green);
+    background: linear-gradient(
+        135deg,
+        rgba(19, 81, 80, 0.92),
+        rgba(45, 106, 79, 0.86)
+    );
+}
+
+/* Wrapper để center content dọc */
+#anc-hero > div > div > div > div > div {
+    width: 100%;
+}
+
+.anc-hero-content {
+    text-align: center;
+    padding: 80px 20px 60px;
+    color: var(--default-color-white);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Cert badge vòng tròn trong hero */
+.anc-cert-badge {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 3px solid var(--default-color-yellow);
+    background: rgba(255, 255, 255, 0.10);
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    color: var(--default-color-yellow);
+    margin: 0 auto 32px;
+    gap: 3px;
+    transition: transform 2s ease;
+    cursor: default;
+}
+
+.anc-cert-badge:hover {
+    transform: rotate(360deg);
+}
+
+.anc-cert-badge-org {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    opacity: 0.85;
+}
+
+.anc-cert-badge-num {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.anc-hero-title {
+    font-family: 'Oswald', sans-serif !important;
+    font-size: 42px !important;
+    font-weight: 600 !important;
+    letter-spacing: 6px !important;
+    text-transform: uppercase !important;
+    color: var(--default-color-white) !important;
+    margin: 0 0 10px !important;
+    line-height: 1.1 !important;
+}
+
+.anc-hero-subtitle {
+    font-family: 'Be Vietnam', sans-serif;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.88);
+    margin-bottom: 40px;
+    font-weight: 300;
+    letter-spacing: 1px;
+}
+
+.anc-hero-ctas {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.anc-scroll-arrow {
+    display: block;
+    margin-top: 56px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 22px;
+    animation: anc-bounce 1.8s ease infinite;
+}
+
+@keyframes anc-bounce {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50%       { transform: translateY(8px); opacity: 0.9; }
+}
+
+@media screen and (min-width: 1000px) {
+    .anc-hero-title {
+        font-size: 72px !important;
+        letter-spacing: 10px !important;
+    }
+    .anc-hero-subtitle {
+        font-size: 22px;
+    }
+}
+
+/* =============================================
+   CERTIFICATION SECTION
+   ============================================= */
+
+#anc-certification {
+    padding: 80px 20px;
+    background: #fff;
+    text-align: center;
+}
+
+.anc-cert-section-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Badge lớn CSS-only */
+.anc-cert-badge-large {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: 4px solid var(--product-nuocepkytu-green);
+    background: linear-gradient(
+        135deg,
+        rgba(19, 81, 80, 0.06),
+        rgba(0, 132, 61, 0.10)
+    );
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 30px;
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    color: var(--product-nuocepkytu-green);
+    transition: transform 2s ease;
+    cursor: default;
+}
+
+.anc-cert-badge-large:hover {
+    transform: rotate(360deg);
+}
+
+.anc-badge-leaf {
+    font-size: 30px;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.anc-badge-org {
+    font-size: 9px;
+    letter-spacing: 2px;
+    opacity: 0.75;
+}
+
+.anc-badge-cert {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    opacity: 0.65;
+}
+
+.anc-badge-num {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+}
+
+#anc-certification h2 {
+    font-family: 'Oswald', sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 3px !important;
+    color: var(--product-nuocepkytu-green) !important;
+    margin-bottom: 16px !important;
+}
+
+.anc-cert-desc {
+    max-width: 680px;
+    margin: 0 auto 50px;
+    color: var(--default-color-charcoal-grey);
+    line-height: 1.75;
+    font-size: 15px;
+}
+
+/* Stat boxes với màu xanh hữu cơ */
+.anc-cert-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+
+.anc-cert-stats .stat-box {
+    background: var(--product-nuocepkytu-green);
+    color: var(--default-color-white);
+    flex: 1 1 240px;
+    max-width: 300px;
+    font-family: 'Be Vietnam', sans-serif;
+}
+
+.anc-cert-stats .stat-number {
+    font-size: 1.5rem;
+    color: var(--default-color-yellow);
+    font-family: 'Oswald', sans-serif;
+}
+
+.anc-cert-stats .stat-text {
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 14px;
+}
+
+/* =============================================
+   NEW PRODUCTS
+   ============================================= */
+
+#anc-products {
+    padding: 80px 20px;
+    background: var(--default-color-beige);
+}
+
+#anc-products h2 {
+    color: var(--default-color-dark-brown) !important;
+}
+
+.anc-products-grid {
+    max-width: 960px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 30px;
+}
+
+.anc-product-card {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+}
+
+.anc-product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--default-box-shadow);
+}
+
+.anc-product-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: var(--default-color-yellow);
+    color: #fff;
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 2px;
+    z-index: 2;
+}
+
+.anc-product-badge.badge-soon {
+    background: var(--product-nuocepkytu-green);
+}
+
+.anc-product-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+}
+
+.anc-product-img-placeholder {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: linear-gradient(135deg, rgba(19,81,80,0.08), rgba(0,132,61,0.12));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+}
+
+.anc-product-body {
+    padding: 24px 24px 28px;
+}
+
+.anc-product-body h3 {
+    font-family: 'Oswald', sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    color: var(--default-color-dark-brown) !important;
+    margin-bottom: 12px !important;
+    font-size: 19px !important;
+}
+
+.anc-product-highlights {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: var(--default-color-charcoal-grey);
+}
+
+.anc-product-highlights li {
+    padding: 3px 0;
+}
+
+.anc-product-highlights li::before {
+    content: '✓ ';
+    color: var(--product-nuocepkytu-light-green);
+    font-weight: 700;
+}
+
+.anc-product-price {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.anc-price-sale {
+    font-family: 'Oswald', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--default-color-dark-brown);
+}
+
+.anc-price-original {
+    font-size: 14px;
+    color: #aaa;
+    text-decoration: line-through;
+}
+
+.anc-price-note {
+    font-size: 12px;
+    color: var(--product-nuocepkytu-light-green);
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+@media screen and (min-width: 700px) {
+    .anc-products-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* =============================================
+   YEAST HERO UPDATES
+   ============================================= */
+
+#anc-updates {
+    padding: 80px 20px;
+    background: var(--default-color-dark-brown);
+    text-align: center;
+}
+
+#anc-updates h2 {
+    font-family: 'Oswald', sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 3px !important;
+    color: var(--default-color-white) !important;
+    margin-bottom: 6px !important;
+}
+
+.anc-updates-label {
+    font-size: 12px;
+    color: var(--default-color-yellow);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: 'Oswald', sans-serif;
+    margin-bottom: 50px;
+    display: block;
+}
+
+.anc-updates-grid {
+    max-width: 860px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    text-align: left;
+}
+
+.anc-update-card {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    padding: 36px 28px;
+    transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+}
+
+.anc-update-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.11);
+}
+
+.anc-update-icon {
+    font-size: 44px;
+    display: block;
+    margin-bottom: 16px;
+    line-height: 1;
+}
+
+.anc-update-card h3 {
+    font-family: 'Oswald', sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    color: var(--default-color-yellow) !important;
+    margin-bottom: 12px !important;
+    font-size: 20px !important;
+}
+
+.anc-update-card p {
+    color: rgba(255, 255, 255, 0.82);
+    line-height: 1.7;
+    margin: 0 0 10px;
+    font-size: 15px;
+}
+
+.anc-update-card strong {
+    color: var(--default-color-white);
+}
+
+.anc-update-detail {
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    margin-top: 16px;
+    padding-top: 14px;
+}
+
+.anc-update-detail summary {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    font-family: 'Oswald', sans-serif;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+
+.anc-update-detail summary:hover {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.anc-update-detail[open] summary {
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 10px;
+}
+
+.anc-update-detail .anc-detail-body {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.65;
+    margin: 8px 0 0;
+}
+
+@media screen and (min-width: 700px) {
+    .anc-updates-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* =============================================
+   PROTEIN CALCULATOR
+   ============================================= */
+
+#anc-calculator {
+    padding: 80px 20px;
+    background: var(--default-color-beige);
+}
+
+.anc-calc-card {
+    max-width: 660px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 8px;
+    padding: 40px 32px 44px;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
+    border-top: 4px solid var(--product-nuocepkytu-green);
+}
+
+.anc-calc-card h2 {
+    font-family: 'Oswald', sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    color: var(--product-nuocepkytu-green) !important;
+    font-size: 22px !important;
+    margin-bottom: 6px !important;
+}
+
+.anc-calc-desc {
+    color: var(--default-color-charcoal-grey);
+    font-size: 14px;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.anc-field {
+    margin-bottom: 18px;
+}
+
+.anc-field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--default-color-dark-brown);
+    margin-bottom: 6px;
+    font-family: 'Be Vietnam', sans-serif;
+}
+
+.anc-field input[type="number"],
+.anc-field select {
+    width: 100%;
+    height: 46px;
+    border: 1px solid rgba(50, 50, 50, 0.18);
+    background: #fff;
+    padding: 0 14px;
+    font-family: 'Be Vietnam', sans-serif;
+    font-size: 15px;
+    color: var(--default-color-dark-brown);
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.anc-field select {
+    border-radius: 24px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23323232' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+}
+
+.anc-field input[type="number"]:focus,
+.anc-field select:focus {
+    border-color: var(--product-nuocepkytu-green);
+    box-shadow: 0 0 0 3px rgba(19, 81, 80, 0.12);
+}
+
+.anc-calc-btn {
+    width: 100%;
+    margin-top: 6px;
+    cursor: pointer;
+    border: none;
+    font-family: 'Oswald', sans-serif;
+    font-size: 16px;
+    letter-spacing: 1px;
+}
+
+/* Result area */
+#anc-calc-result {
+    display: none;
+    margin-top: 32px;
+    padding-top: 28px;
+    border-top: 1px solid var(--default-color-grey);
+}
+
+#anc-calc-result.visible {
+    display: block;
+    animation: anc-fadein 0.35s ease forwards;
+}
+
+@keyframes anc-fadein {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.anc-result-number {
+    font-family: 'Oswald', sans-serif;
+    font-size: 52px;
+    font-weight: 600;
+    color: var(--product-nuocepkytu-green);
+    line-height: 1;
+    display: block;
+}
+
+.anc-result-unit {
+    font-family: 'Oswald', sans-serif;
+    font-size: 17px;
+    color: var(--default-color-charcoal-grey);
+    margin: 4px 0 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.anc-result-note {
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+/* Product suggestion card */
+.anc-suggestion-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #bbb;
+    font-family: 'Oswald', sans-serif;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.anc-suggestion-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid rgba(50, 50, 50, 0.12);
+    border-radius: 6px;
+    padding: 14px;
+    text-decoration: none !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    background: #fff;
+}
+
+.anc-suggestion-card:hover {
+    border-color: var(--product-nuocepkytu-green);
+    box-shadow: 0 2px 14px rgba(19, 81, 80, 0.10);
+    transform: translateY(-2px);
+}
+
+.anc-suggestion-img {
+    width: 68px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+    background: rgba(19, 81, 80, 0.08);
+}
+
+.anc-suggestion-img-placeholder {
+    width: 68px;
+    height: 68px;
+    background: linear-gradient(135deg, rgba(19,81,80,0.12), rgba(0,132,61,0.15));
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+}
+
+.anc-suggestion-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.anc-suggestion-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px;
+    color: var(--default-color-dark-brown);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+    line-height: 1.3;
+}
+
+.anc-suggestion-desc {
+    font-size: 12px;
+    color: var(--default-color-charcoal-grey);
+    line-height: 1.4;
+}
+
+.anc-suggestion-arrow {
+    color: var(--product-nuocepkytu-green);
+    font-size: 18px;
+    flex-shrink: 0;
+    font-weight: 700;
+}
+
+/* =============================================
+   CTA FOOTER BAND
+   ============================================= */
+
+#anc-cta-band {
+    padding: 80px 20px;
+    background: var(--product-nuocepkytu-green);
+    text-align: center;
+}
+
+#anc-cta-band h2 {
+    font-family: 'Oswald', sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 4px !important;
+    color: var(--default-color-white) !important;
+    margin-bottom: 12px !important;
+}
+
+#anc-cta-band p {
+    color: rgba(255, 255, 255, 0.85);
+    max-width: 560px;
+    margin: 0 auto 30px;
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+/* Override button--dark-blue-reverse trên nền xanh để dễ nhìn */
+#anc-cta-band .button--dark-blue-reverse {
+    background: var(--default-color-white);
+    color: var(--product-nuocepkytu-green);
+    border-color: var(--default-color-white);
+}
+
+#anc-cta-band .button--dark-blue-reverse:hover {
+    background: transparent;
+    color: var(--default-color-white);
+}
+
+/* =============================================
+   SECTION TITLES (shared)
+   ============================================= */
+
+.anc-section-title {
+    font-family: 'Oswald', sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    text-align: center !important;
+    margin-bottom: 10px !important;
+}
+
+.anc-section-subtitle {
+    text-align: center;
+    color: var(--default-color-charcoal-grey);
+    max-width: 580px;
+    margin: 0 auto 50px;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* =============================================
+   SCROLL ANIMATIONS (IntersectionObserver)
+   ============================================= */
+
+.anc-fade-in {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.anc-fade-in.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.anc-fade-in-children > * {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.anc-fade-in-children.is-visible > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 0s; }
+.anc-fade-in-children.is-visible > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.12s; }
+.anc-fade-in-children.is-visible > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.24s; }
+.anc-fade-in-children.is-visible > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.36s; }

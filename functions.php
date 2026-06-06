@@ -28,6 +28,22 @@ if (!function_exists('roneous_child_enqueue_styles')) {
             filemtime(get_stylesheet_directory() . '/css/custom.css')
         );
 
+        if (is_page('an-new-chapter')) {
+            wp_enqueue_style(
+                'hithean-an-new-chapter-style',
+                get_stylesheet_directory_uri() . '/pages/home/an-new-chapter/an-new-chapter.css',
+                array('hithean-custom-style'),
+                filemtime(get_stylesheet_directory() . '/pages/home/an-new-chapter/an-new-chapter.css')
+            );
+            wp_enqueue_script(
+                'hithean-an-new-chapter-script',
+                get_stylesheet_directory_uri() . '/pages/home/an-new-chapter/an-new-chapter.js',
+                array(),
+                filemtime(get_stylesheet_directory() . '/pages/home/an-new-chapter/an-new-chapter.js'),
+                true
+            );
+        }
+
         if (function_exists('is_cart') && is_cart()) {
             wp_enqueue_style(
                 'roneous-child-cart-style',
