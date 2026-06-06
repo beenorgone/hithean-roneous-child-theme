@@ -26,9 +26,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 <section id="anc-hero">
   <div class="anc-hero-content anc-fade-in">
 
-    <div class="anc-cert-badge">
-      <span class="anc-cert-badge-org">CERTIFIED ORGANIC</span>
-      <span class="anc-cert-badge-num">CU 916118</span>
+    <div class="anc-hero-brand">
+      <!--
+        Thay src bên dưới bằng URL logo The An Organics:
+        <img src="URL_LOGO_THE_AN_ORGANICS" alt="The An Organics" class="anc-hero-logo" />
+      -->
+      <div class="anc-hero-logo-placeholder">The An Organics</div>
+      <div class="anc-cert-badge">
+        <span class="anc-cert-badge-org">CERTIFIED ORGANIC</span>
+        <span class="anc-cert-badge-num">CU 916118</span>
+      </div>
     </div>
 
     <h1 class="anc-hero-title">AN NEW CHAPTER</h1>
@@ -138,6 +145,27 @@ if ( ! defined( 'ABSPATH' ) ) {
           <span class="anc-price-sale">430.000₫</span>
         </div>
         <a href="https://hithean.com/san-pham/sieu-thuc-pham/bot-matcha-huu-co/" class="button--dark-blue-reverse" target="_blank" rel="noopener">Xem thêm &amp; Đặt trước</a>
+      </div>
+    </div>
+
+    <!-- Card 3: Bột Inulin Hữu Cơ -->
+    <div class="anc-product-card">
+      <span class="anc-product-badge badge-organic">USDA &amp; EU<br>ORGANIC</span>
+      <img class="anc-product-img" src="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin-8-1-600x600.png" alt="Bột Inulin Hữu Cơ The An Organics" />
+      <div class="anc-product-body">
+        <h3>Bột Inulin Hữu Cơ The An Organics</h3>
+        <ul class="anc-product-highlights">
+          <li>Chất xơ hòa tan từ rễ chicory hữu cơ</li>
+          <li>Prebiotics nuôi dưỡng lợi khuẩn đường ruột</li>
+          <li>Vị ngọt nhẹ tự nhiên, hòa tan dễ — không ảnh hưởng mùi vị</li>
+          <li><strong>Chính thức được phép dùng logo USDA Organic &amp; EU Organic</strong></li>
+        </ul>
+        <div class="anc-product-price">
+          <span class="anc-price-sale">350.000₫</span>
+          <span class="anc-price-unit">/ hộp 200g</span>
+        </div>
+        <p class="anc-price-note">✦ Mua 2: -5% · Mua 3+: -10%</p>
+        <a href="https://hithean.com/san-pham/sieu-thuc-pham/bot-inulin-huu-co/" class="button--nuocepkytu-light-green" target="_blank" rel="noopener">Xem sản phẩm</a>
       </div>
     </div>
 
