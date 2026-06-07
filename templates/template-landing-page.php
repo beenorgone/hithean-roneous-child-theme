@@ -155,28 +155,34 @@ if ( ! defined( 'ABSPATH' ) ) {
   <h2 class="anc-section-title anc-fade-in">YEAST HERO PROTEIN — AVOCADO MATCHA</h2>
   <p class="anc-section-subtitle anc-fade-in">Ưu đãi ra mắt −25% đến hết 20/06</p>
 
-  <div class="anc-products-grid anc-products-grid--single anc-fade-in">
+  <div class="anc-pf anc-fade-in">
 
-    <div class="anc-product-card">
-      <span class="anc-product-badge">ƯU ĐÃI RA MẮT</span>
-      <img class="anc-product-img" src="https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png" alt="Yeast Hero Protein Powder Avocado Matcha" />
-      <div class="anc-product-body">
-        <h3>Yeast Hero Matcha Bơ</h3>
-        <ul class="anc-product-highlights">
-          <li>22g protein hoàn chỉnh / khẩu phần (thành phần Yeast Protein có điểm chất lượng protein PDCAAS hoàn hảo = 1)</li>
-          <li>Matcha ceremonial hữu cơ &amp; bơ vườn rừng sấy thăng hoa (~40g)</li>
-          <li>5g chất xơ · ít hơn 1g đường · 160 kcal/khẩu phần</li>
-          <li>Làm ngọt tự nhiên bằng la hán quả hữu cơ</li>
-          <li>Không gluten · Không GMO · Không sữa</li>
-        </ul>
-        <div class="anc-product-price">
-          <span class="anc-price-sale">960.000₫</span>
-          <span class="anc-price-original">1.280.000₫</span>
-          <span class="anc-price-tag">-25%</span>
-        </div>
-        <p class="anc-price-note">✦ Miễn phí vận chuyển đến 20/06</p>
-        <a href="https://hithean.com/san-pham/protein/yeast-hero-protein-powder-avocado-matcha/" class="button--light-green" target="_blank" rel="noopener">Xem &amp; Mua ngay</a>
+    <div class="anc-pf-visual">
+      <img src="https://hithean.com/wp-content/uploads/2026/04/Yeast-Hero-Protein-Powder-Avocado-Matcha-Box-ban-tieng-Viet-01-600x600.png" alt="Yeast Hero Protein Powder Avocado Matcha — hộp bản tiếng Việt" />
+    </div>
+
+    <div class="anc-pf-details">
+      <span class="anc-pf-badge">ƯU ĐÃI RA MẮT −25%</span>
+      <h3 class="anc-pf-name">Yeast Hero<br>Matcha Bơ</h3>
+      <div class="anc-pf-pills">
+        <span class="anc-stat-pill">22g Protein</span>
+        <span class="anc-stat-pill">5g Chất xơ</span>
+        <span class="anc-stat-pill">160 kcal</span>
+        <span class="anc-stat-pill">&lt;1g Đường</span>
       </div>
+      <ul class="anc-product-highlights">
+        <li>Yeast Protein — điểm chất lượng PDCAAS hoàn hảo = 1</li>
+        <li>Matcha ceremonial hữu cơ &amp; bơ vườn rừng sấy thăng hoa (~40g)</li>
+        <li>Làm ngọt tự nhiên bằng la hán quả hữu cơ</li>
+        <li>Không gluten · Không GMO · Không sữa</li>
+      </ul>
+      <div class="anc-product-price">
+        <span class="anc-price-sale">960.000₫</span>
+        <span class="anc-price-original">1.280.000₫</span>
+        <span class="anc-price-tag">-25%</span>
+      </div>
+      <p class="anc-price-note">✦ Miễn phí vận chuyển đến 20/06</p>
+      <a href="https://hithean.com/san-pham/protein/yeast-hero-protein-powder-avocado-matcha/" class="button--light-green anc-pf-cta" target="_blank" rel="noopener">Xem &amp; Mua ngay →</a>
     </div>
 
   </div>

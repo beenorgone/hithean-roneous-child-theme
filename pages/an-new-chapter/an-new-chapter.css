@@ -269,7 +269,7 @@
    ============================================= */
 
 #anc-qc {
-    background: #fff;
+    background: var(--default-color-beige);
     padding: 72px 24px;
     text-align: center;
 }
@@ -347,28 +347,124 @@
 }
 
 /* =============================================
-   NEW PRODUCTS
+   NEW PRODUCTS — YH FEATURE LAYOUT
    ============================================= */
 
 #anc-products {
-    padding: 80px 20px;
-    background: var(--default-color-beige);
+    padding: 72px 20px;
+    background: #fff;
+    text-align: center;
 }
 
 #anc-products h2 {
     color: var(--default-color-dark-brown) !important;
 }
 
+/* Feature card: image | details 2-col on desktop */
+.anc-pf {
+    max-width: 920px;
+    margin: 40px auto 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.09);
+    overflow: hidden;
+    text-align: left;
+}
+
+@media (min-width: 680px) {
+    .anc-pf {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.anc-pf-visual {
+    background: var(--default-color-beige);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    min-height: 280px;
+}
+
+.anc-pf-visual img {
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+}
+
+.anc-pf-details {
+    padding: 36px 32px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+}
+
+.anc-pf-badge {
+    display: inline-block;
+    background: var(--default-color-yellow);
+    color: #fff;
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 14px;
+    align-self: flex-start;
+}
+
+.anc-pf-name {
+    font-family: 'Oswald', sans-serif !important;
+    font-size: clamp(2rem, 5vw, 2.8rem) !important;
+    font-weight: 600 !important;
+    color: var(--default-color-dark-brown) !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    line-height: 1.08 !important;
+    margin: 0 0 18px !important;
+}
+
+.anc-pf-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.anc-stat-pill {
+    background: rgba(19, 81, 80, 0.07);
+    color: var(--product-nuocepkytu-green);
+    border: 1px solid rgba(19, 81, 80, 0.2);
+    padding: 5px 13px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Oswald', sans-serif;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.anc-pf-cta {
+    display: block !important;
+    text-align: center !important;
+    margin-top: 8px;
+}
+
+/* =============================================
+   ORGANIC PRODUCTS SECTION
+   ============================================= */
+
 .anc-products-grid {
     max-width: 1140px;
     margin: 0 auto;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 30px;
-}
-
-.anc-products-grid--single {
-    max-width: 460px;
+    gap: 24px;
 }
 
 .anc-products-grid--two {
@@ -376,12 +472,16 @@
 }
 
 #anc-organic {
-    background: #fff;
-    padding: 80px 20px;
+    background: var(--default-color-beige);
+    padding: 72px 20px;
 }
 
 #anc-organic h2 {
     color: var(--product-nuocepkytu-green) !important;
+}
+
+#anc-organic .anc-product-card {
+    border-top: 3px solid var(--default-color-green-dark);
 }
 
 .anc-product-card {
@@ -1005,3 +1105,82 @@
 .anc-fade-in-children.is-visible > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.12s; }
 .anc-fade-in-children.is-visible > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.24s; }
 .anc-fade-in-children.is-visible > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.36s; }
+
+/* =============================================
+   MOBILE OPTIMIZATIONS
+   ============================================= */
+
+@media (max-width: 600px) {
+
+    /* Feature product */
+    .anc-pf-details {
+        padding: 24px 20px 28px;
+    }
+
+    .anc-pf-visual {
+        padding: 24px;
+        min-height: 220px;
+    }
+
+    /* Buttons full-width on mobile */
+    .anc-pf-cta,
+    .anc-qc-link,
+    .anc-calc-btn,
+    #anc-organic .button--light-green,
+    #anc-organic .button--light-blue,
+    #anc-cta-band a {
+        display: block !important;
+        width: 100%;
+        text-align: center !important;
+        box-sizing: border-box;
+    }
+
+    /* Prevent iOS input zoom */
+    #anc-calc-form input[type="number"],
+    #anc-calc-form select {
+        font-size: 16px;
+    }
+
+    /* QC grid 1-col on mobile */
+    .anc-qc-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Looser section padding */
+    #anc-certification,
+    #anc-qc,
+    #anc-products,
+    #anc-story,
+    #anc-updates,
+    #anc-organic,
+    #anc-calculator {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    /* Stat boxes 1-col */
+    .anc-cert-stats {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .anc-cert-stats .stat-box {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    /* Story lead */
+    .anc-story-lead {
+        font-size: 1.4rem;
+    }
+
+    /* Calc card */
+    .anc-calc-card {
+        padding: 28px 18px 32px;
+    }
+
+    /* Product highlights */
+    .anc-product-highlights {
+        padding-left: 16px;
+    }
+}
