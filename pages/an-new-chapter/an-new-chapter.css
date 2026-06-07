@@ -254,6 +254,16 @@
     font-size: 14px;
 }
 
+.anc-cert-bridge {
+    max-width: 620px;
+    margin: 48px auto 0;
+    font-size: 15px;
+    font-style: italic;
+    color: var(--product-nuocepkytu-green);
+    line-height: 1.7;
+    opacity: 0.88;
+}
+
 /* =============================================
    QC / PRODUCTION SYSTEM
    ============================================= */

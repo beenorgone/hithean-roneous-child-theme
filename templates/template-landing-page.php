@@ -85,6 +85,9 @@ if ( ! defined( 'ABSPATH' ) ) {
       </div>
 
     </div>
+
+    <p class="anc-cert-bridge anc-fade-in">Chứng nhận hữu cơ là mảnh ghép mới nhất trong hệ thống sản xuất được xây dựng trên nền tảng khoa học và minh bạch của The An Organics.</p>
+
   </div>
 </section>
 
