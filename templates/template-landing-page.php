@@ -102,11 +102,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <!-- Card 1: Yeast Hero Matcha Bơ -->
     <div class="anc-product-card">
       <span class="anc-product-badge">ƯU ĐÃI RA MẮT</span>
-      <!--
-        Thay thẻ div bên dưới bằng <img> sau khi có URL ảnh:
-        <img class="anc-product-img" src="URL_ANH_YEAST_HERO_MATCHA_BO" alt="Yeast Hero Protein Powder Avocado Matcha" />
-      -->
-      <div class="anc-product-img-placeholder">🥑</div>
+      <img class="anc-product-img" src="https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png" alt="Yeast Hero Protein Powder Avocado Matcha" />
       <div class="anc-product-body">
         <h3>Yeast Hero Matcha Bơ</h3>
         <ul class="anc-product-highlights">

@@ -29,8 +29,7 @@
         name: 'Yeast Hero Matcha Bơ',
         desc: '22g protein hoàn chỉnh · Matcha ceremonial & Bơ',
         url:  'https://hithean.com/san-pham/protein/yeast-hero-protein-powder-avocado-matcha/',
-        // Thay bằng URL ảnh thực tế sau khi upload lên WordPress media
-        img:  '',
+        img:  'https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png',
     };
 
     function calcProtein(weight, activity, goal) {
