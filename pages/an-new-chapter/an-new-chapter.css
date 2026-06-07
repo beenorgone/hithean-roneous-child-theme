@@ -13,29 +13,49 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /*
-     * Thêm background-image vào đây sau khi upload ảnh:
-     * background-image: url('URL_ANH_HERO');
-     */
     background-color: var(--product-nuocepkytu-green);
     background: linear-gradient(
         135deg,
-        rgba(19, 81, 80, 0.92),
-        rgba(45, 106, 79, 0.86)
+        rgba(19, 81, 80, 0.94) 0%,
+        rgba(45, 106, 79, 0.88) 60%,
+        rgba(0, 80, 50, 0.82) 100%
     );
 }
 
-/* Wrapper để center content dọc */
-#anc-hero > div > div > div > div > div {
+.anc-hero-layout {
     width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 28px 60px;
+    gap: 48px;
 }
 
 .anc-hero-content {
     text-align: center;
-    padding: 80px 20px 60px;
     color: var(--default-color-white);
-    max-width: 800px;
-    margin: 0 auto;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.anc-hero-product-col {
+    display: none;
+    flex: 0 0 340px;
+    max-width: 340px;
+    position: relative;
+}
+
+.anc-hero-product-img {
+    width: 100%;
+    filter: drop-shadow(0 28px 56px rgba(0, 0, 0, 0.45));
+    animation: anc-float 5s ease-in-out infinite;
+}
+
+@keyframes anc-float {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50%       { transform: translateY(-20px) rotate(1deg); }
 }
 
 /* Cert badge vòng tròn trong hero */
@@ -142,6 +162,20 @@
     .anc-hero-subtitle {
         font-size: 22px;
     }
+    .anc-hero-product-col {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .anc-hero-content {
+        text-align: left;
+    }
+    .anc-hero-brand {
+        justify-content: flex-start;
+    }
+    .anc-hero-ctas {
+        justify-content: flex-start;
+    }
 }
 
 /* =============================================
@@ -187,10 +221,12 @@
     transform: rotate(360deg);
 }
 
-.anc-badge-leaf {
-    font-size: 30px;
-    line-height: 1;
-    margin-bottom: 2px;
+/* USDA + EU Organic combined logo image (inside cert badge or QC card) */
+.anc-badge-organic-logos-img {
+    width: 82px;
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 3px;
 }
 
 .anc-badge-org {
@@ -227,31 +263,67 @@
     font-size: 15px;
 }
 
-/* Stat boxes với màu xanh hữu cơ */
+/* Cert info cards — redesigned from stat-box */
 .anc-cert-stats {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
     justify-content: center;
+    text-align: left;
 }
 
-.anc-cert-stats .stat-box {
-    background: var(--product-nuocepkytu-green);
-    color: var(--default-color-white);
+.anc-cert-card {
+    background: var(--default-color-beige, #f7f6f2);
+    border-top: 4px solid var(--product-nuocepkytu-green);
+    border-radius: 8px;
+    padding: 26px 22px 22px;
     flex: 1 1 240px;
     max-width: 300px;
-    font-family: 'Be Vietnam', sans-serif;
 }
 
-.anc-cert-stats .stat-number {
-    font-size: 1.5rem;
-    color: var(--default-color-yellow);
+.anc-cert-card-icon {
+    font-size: 22px;
+    line-height: 1;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.anc-cert-card-num {
     font-family: 'Oswald', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--product-nuocepkytu-green);
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
 }
 
-.anc-cert-stats .stat-text {
-    color: rgba(255, 255, 255, 0.88);
-    font-size: 14px;
+.anc-cert-card-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--default-color-dark-brown);
+    line-height: 1.5;
+    padding-bottom: 14px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(19, 81, 80, 0.12);
+}
+
+.anc-cert-card-details {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 13px;
+    color: var(--default-color-charcoal-grey, #555);
+}
+
+.anc-cert-card-details li {
+    padding: 3px 0;
+    line-height: 1.5;
+}
+
+.anc-cert-card-details li::before {
+    content: '— ';
+    color: var(--product-nuocepkytu-light-green, #3d8f7b);
+    font-weight: 600;
 }
 
 .anc-cert-bridge {
@@ -304,10 +376,48 @@
 }
 
 .anc-qc-item {
-    background: var(--default-color-beige);
+    background: #fff;
     border-left: 3px solid var(--product-nuocepkytu-green);
-    border-radius: 4px;
-    padding: 18px 16px;
+    border-radius: 6px;
+    padding: 20px 18px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.anc-qc-cert-img {
+    display: block;
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    margin-bottom: 10px;
+    object-fit: contain;
+}
+
+.anc-qc-cert-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 6px;
+    font-size: 12px;
+}
+
+.anc-qc-cert-list li {
+    padding: 2px 0;
+    color: var(--default-color-charcoal-grey, #555);
+    line-height: 1.45;
+}
+
+.anc-qc-cert-list li::before {
+    content: '– ';
+    color: var(--product-nuocepkytu-green);
+    font-weight: 600;
+}
+
+.anc-qc-fda-note {
+    font-size: 11px;
+    color: var(--default-color-charcoal-grey, #555);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(19, 81, 80, 0.1);
+    line-height: 1.5;
 }
 
 .anc-qc-icon {
@@ -381,17 +491,16 @@
 
 .anc-pf-visual {
     background: var(--default-color-beige);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
+    display: block;
+    padding: 24px 24px 16px;
     min-height: 280px;
 }
 
 .anc-pf-visual img {
     width: 100%;
-    max-height: 420px;
+    max-height: 380px;
     object-fit: contain;
+    display: block;
 }
 
 .anc-pf-details {
@@ -453,6 +562,154 @@
     display: block !important;
     text-align: center !important;
     margin-top: 8px;
+}
+
+/* =============================================
+   PRODUCT GALLERY (WooCommerce-style)
+   ============================================= */
+
+.anc-gallery {
+    width: 100%;
+}
+
+.anc-gallery-main {
+    width: 100%;
+    display: block;
+    object-fit: contain;
+    transition: opacity 0.16s ease;
+}
+
+/* In pf-visual: fill panel, contain image */
+.anc-pf-visual .anc-gallery-main {
+    max-height: 380px;
+    background: var(--default-color-beige);
+}
+
+/* In product card: 1:1 crop */
+.anc-gallery--card .anc-gallery-main {
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+}
+
+.anc-gallery-thumbs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.anc-gallery--card .anc-gallery-thumbs {
+    padding: 8px 12px 6px;
+    margin-top: 0;
+    background: #fafafa;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.anc-gallery-thumb {
+    width: 52px;
+    height: 52px;
+    border: 2px solid rgba(0, 0, 0, 0.10);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    padding: 0;
+    background: #fff;
+    flex-shrink: 0;
+    transition: border-color 0.15s ease;
+}
+
+.anc-gallery-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+}
+
+.anc-gallery-thumb.is-active,
+.anc-gallery-thumb:hover {
+    border-color: var(--product-nuocepkytu-green);
+}
+
+/* Factory card: large icon to match logo image visual weight */
+.anc-qc-icon--lg {
+    font-size: 56px;
+    margin-bottom: 6px;
+}
+
+/* Factory Google Maps embed */
+.anc-factory-map {
+    margin-top: 10px;
+}
+
+.anc-factory-iframe {
+    width: 100%;
+    height: 200px;
+    border: 0;
+    border-radius: 6px;
+    display: block;
+}
+
+.anc-factory-map-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--product-nuocepkytu-green);
+    text-decoration: none;
+}
+
+.anc-factory-map-link:hover {
+    text-decoration: underline;
+}
+
+/* Inline update highlights inside product feature card */
+.anc-pf-updates {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 13px 15px;
+    background: var(--default-color-beige, #f7f6f2);
+    border-left: 3px solid var(--product-nuocepkytu-green);
+    border-radius: 4px;
+}
+
+.anc-pf-update-item {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    font-size: 13px;
+    color: var(--default-color-charcoal-grey, #555);
+    line-height: 1.55;
+}
+
+.anc-pf-update-icon {
+    font-size: 15px;
+    flex-shrink: 0;
+    line-height: 1.5;
+}
+
+.anc-pf-updates strong {
+    color: var(--default-color-dark-brown);
+}
+
+.anc-pf-updates .anc-update-detail {
+    border-top: none;
+    margin-top: 3px;
+    padding-top: 0;
+}
+
+.anc-pf-updates .anc-update-detail summary {
+    font-size: 11px;
+    opacity: 0.5;
+}
+
+.anc-pf-updates .anc-detail-body {
+    font-size: 12px;
+    margin-top: 5px;
 }
 
 /* =============================================
@@ -639,13 +896,34 @@
 
 #anc-story {
     background: #0d1f1c;
+    background-image: url('https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png');
+    background-size: cover;
+    background-position: center 40%;
+    background-blend-mode: multiply;
     padding: 96px 24px;
     text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+#anc-story::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        150deg,
+        rgba(13, 31, 28, 0.90) 0%,
+        rgba(19, 81, 80, 0.78) 60%,
+        rgba(13, 31, 28, 0.93) 100%
+    );
+    z-index: 0;
 }
 
 .anc-story-inner {
     max-width: 740px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
 .anc-story-lead {
@@ -693,60 +971,63 @@
 }
 
 /* =============================================
-   YEAST HERO UPDATES
+   YEAST HERO UPDATES — merged into #anc-products
    ============================================= */
 
-#anc-updates {
-    padding: 80px 20px;
-    background: var(--default-color-dark-brown);
-    text-align: center;
+.anc-products-divider {
+    max-width: 920px;
+    margin: 48px auto 0;
+    border: 0;
+    border-top: 1px solid rgba(19, 81, 80, 0.12);
 }
 
-#anc-updates h2 {
-    font-family: 'Oswald', sans-serif !important;
-    text-transform: uppercase !important;
-    letter-spacing: 3px !important;
-    color: var(--default-color-white) !important;
-    margin-bottom: 6px !important;
-}
-
-.anc-updates-label {
-    font-size: 12px;
-    color: var(--default-color-yellow);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    font-family: 'Oswald', sans-serif;
-    margin-bottom: 50px;
+.anc-products-updates-label {
     display: block;
+    text-align: center;
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--product-nuocepkytu-green);
+    opacity: 0.65;
+    margin: 20px 0 24px;
 }
 
 .anc-updates-grid {
-    max-width: 860px;
+    max-width: 920px;
     margin: 0 auto;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
     text-align: left;
 }
 
+@media screen and (min-width: 700px) {
+    .anc-updates-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 .anc-update-card {
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: var(--default-color-beige, #f7f6f2);
+    border: 1px solid rgba(19, 81, 80, 0.10);
+    border-left: 4px solid var(--product-nuocepkytu-green);
     border-radius: 10px;
-    padding: 36px 28px;
+    padding: 28px 24px;
     transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
 }
 
 .anc-update-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(255, 255, 255, 0.28);
-    background: rgba(255, 255, 255, 0.11);
+    transform: translateY(-3px);
+    background: #eff4f0;
+    border-color: rgba(19, 81, 80, 0.22);
+    border-left-color: var(--default-color-green-dark, #00843d);
 }
 
 .anc-update-icon {
-    font-size: 44px;
+    font-size: 36px;
     display: block;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
     line-height: 1;
 }
 
@@ -754,60 +1035,55 @@
     font-family: 'Oswald', sans-serif !important;
     text-transform: uppercase !important;
     letter-spacing: 1px !important;
-    color: var(--default-color-yellow) !important;
-    margin-bottom: 12px !important;
-    font-size: 20px !important;
+    color: var(--default-color-dark-brown) !important;
+    margin-bottom: 10px !important;
+    font-size: 18px !important;
 }
 
 .anc-update-card p {
-    color: rgba(255, 255, 255, 0.82);
+    color: var(--default-color-charcoal-grey, #555);
     line-height: 1.7;
     margin: 0 0 10px;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .anc-update-card strong {
-    color: var(--default-color-white);
+    color: var(--default-color-dark-brown);
 }
 
 .anc-update-detail {
-    border-top: 1px solid rgba(255, 255, 255, 0.10);
-    margin-top: 16px;
-    padding-top: 14px;
+    border-top: 1px solid rgba(19, 81, 80, 0.12);
+    margin-top: 14px;
+    padding-top: 12px;
 }
 
 .anc-update-detail summary {
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 12px;
+    color: var(--product-nuocepkytu-green);
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 1px;
     cursor: pointer;
     font-family: 'Oswald', sans-serif;
+    opacity: 0.55;
     -webkit-user-select: none;
     user-select: none;
-    transition: color 0.2s ease;
+    transition: opacity 0.2s ease;
 }
 
 .anc-update-detail summary:hover {
-    color: rgba(255, 255, 255, 0.65);
+    opacity: 0.85;
 }
 
 .anc-update-detail[open] summary {
-    color: rgba(255, 255, 255, 0.65);
+    opacity: 0.80;
     margin-bottom: 10px;
 }
 
 .anc-update-detail .anc-detail-body {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.55);
+    color: var(--default-color-charcoal-grey, #555);
     line-height: 1.65;
     margin: 8px 0 0;
-}
-
-@media screen and (min-width: 700px) {
-    .anc-updates-grid {
-        grid-template-columns: 1fr 1fr;
-    }
 }
 
 /* =============================================

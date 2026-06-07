@@ -27,7 +27,7 @@
 
     var SUGGESTION = {
         name: 'Yeast Hero Matcha Bơ',
-        desc: '22g protein · 5g chất xơ · <1g đường · 160 kcal · Bơ vườn rừng & Matcha hữu cơ',
+        desc: '22g protein thuần chay · 5g chất xơ · <1g đường · 160 kcal · Bơ vườn rừng & Matcha hữu cơ',
         url:  'https://hithean.com/san-pham/protein/yeast-hero-protein-powder-avocado-matcha/',
         img:  'https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png',
     };
@@ -147,6 +147,51 @@
     }
 
     /* ============================================================
+       PRODUCT GALLERY (WooCommerce-style thumbnail switching)
+       ============================================================ */
+
+    function initGalleries() {
+        var galleries = document.querySelectorAll('.anc-gallery');
+        galleries.forEach(function (gallery) {
+            var mainImg = gallery.querySelector('.anc-gallery-main');
+            var thumbs  = gallery.querySelectorAll('.anc-gallery-thumb');
+            if (!mainImg || !thumbs.length) return;
+            thumbs.forEach(function (thumb) {
+                thumb.addEventListener('click', function () {
+                    var newSrc = this.getAttribute('data-src');
+                    if (!newSrc || mainImg.getAttribute('src') === newSrc) return;
+                    mainImg.style.opacity = '0';
+                    var that = this;
+                    setTimeout(function () {
+                        mainImg.src = newSrc;
+                        mainImg.style.opacity = '1';
+                    }, 160);
+                    thumbs.forEach(function (t) { t.classList.remove('is-active'); });
+                    that.classList.add('is-active');
+                });
+            });
+        });
+    }
+
+    /* ============================================================
+       LAZY MAP (load Google Maps iframe on details open)
+       ============================================================ */
+
+    function initLazyMaps() {
+        var mapDetails = document.querySelectorAll('[data-lazy-map]');
+        mapDetails.forEach(function (el) {
+            el.addEventListener('toggle', function () {
+                if (!this.open) return;
+                var iframe = this.querySelector('iframe[data-src]');
+                if (iframe) {
+                    iframe.setAttribute('src', iframe.getAttribute('data-src'));
+                    iframe.removeAttribute('data-src');
+                }
+            });
+        });
+    }
+
+    /* ============================================================
        INIT
        ============================================================ */
 
@@ -154,6 +199,8 @@
         initCalculator();
         initScrollAnimations();
         initSmoothScroll();
+        initGalleries();
+        initLazyMaps();
     }
 
     if (document.readyState === 'loading') {
