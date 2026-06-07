@@ -313,7 +313,7 @@
     background: var(--default-color-green-dark);
     left: 16px;
     right: auto;
-    line-height: 1.3;
+    white-space: nowrap;
     padding: 5px 10px;
     font-size: 10px;
 }

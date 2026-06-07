@@ -125,7 +125,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <!-- Card 2: Bột Matcha Hữu Cơ The An Organics -->
     <div class="anc-product-card">
       <span class="anc-product-badge badge-soon">SẮP RA MẮT</span>
-      <span class="anc-product-badge badge-organic">Chứng nhận hữu cơ USDA &amp; EU<br>ORGANIC</span>
+      <span class="anc-product-badge badge-organic">Chứng nhận hữu cơ USDA &amp; EU ORGANIC</span>
       <img class="anc-product-img" src="https://hithean.com/wp-content/uploads/2026/06/Organic-Matcha-Powder-The-An-Organics-1-600x600.jpg" alt="Bột Matcha Hữu Cơ The An Organics" />
       <div class="anc-product-body">
         <h3>Bột Matcha Hữu Cơ The An Organics</h3>
@@ -144,7 +144,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <!-- Card 3: Bột Inulin Hữu Cơ -->
     <div class="anc-product-card">
-      <span class="anc-product-badge badge-organic">Chứng nhận hữu cơ USDA &amp; EU<br>ORGANIC</span>
+      <span class="anc-product-badge badge-organic">Chứng nhận hữu cơ USDA &amp; EU ORGANIC</span>
       <img class="anc-product-img" src="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin-8-1-600x600.png" alt="Bột Inulin Hữu Cơ The An Organics" />
       <div class="anc-product-body">
         <h3>Bột Inulin Hữu Cơ The An Organics</h3>
