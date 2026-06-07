@@ -34,12 +34,12 @@ if ( ! defined( 'ABSPATH' ) ) {
       </div>
     </div>
 
-    <h1 class="anc-hero-title">AN NEW CHAPTER</h1>
-    <p class="anc-hero-subtitle">Chương mới của (The) An</p>
+    <h1 class="anc-hero-title">"AN" NEW CHAPTER</h1>
+    <p class="anc-hero-subtitle">Khởi nguồn bản địa, bắt nhịp thế giới</p>
 
     <div class="anc-hero-ctas">
-      <a href="#anc-certification" class="button--dark-blue-reverse">Chứng nhận hữu cơ</a>
-      <a href="#anc-products" class="button--nuocepkytu-light-green">Sản phẩm mới</a>
+      <a href="#anc-certification" class="button--light-blue">Chứng nhận hữu cơ</a>
+      <a href="#anc-products" class="button--light-green">Sản phẩm mới</a>
     </div>
 
     <span class="anc-scroll-arrow" aria-hidden="true">↓</span>
@@ -106,10 +106,11 @@ if ( ! defined( 'ABSPATH' ) ) {
       <div class="anc-product-body">
         <h3>Yeast Hero Matcha Bơ</h3>
         <ul class="anc-product-highlights">
-          <li>22g protein hoàn chỉnh / khẩu phần (PDCAAS = 1)</li>
-          <li>2g matcha ceremonial hữu cơ &amp; bơ sấy lạnh (~40g)</li>
-          <li>5g chất xơ · 4g BCAAs</li>
-          <li>Không đường · Không gluten · Không GMO · Không sữa</li>
+          <li>22g protein hoàn chỉnh / khẩu phần (thành phần Yeast Protein có điểm chất lượng protein PDCAAS hoàn hảo = 1)</li>
+          <li>Matcha ceremonial hữu cơ &amp; bơ vườn rừng sấy thăng hoa (~40g)</li>
+          <li>5g chất xơ · ít hơn 1g đường · 160 kcal/khẩu phần</li>
+          <li>Làm ngọt tự nhiên bằng la hán quả hữu cơ</li>
+          <li>Không gluten · Không GMO · Không sữa</li>
         </ul>
         <div class="anc-product-price">
           <span class="anc-price-sale">960.000₫</span>
@@ -117,7 +118,7 @@ if ( ! defined( 'ABSPATH' ) ) {
           <span class="anc-price-tag">-25%</span>
         </div>
         <p class="anc-price-note">✦ Miễn phí vận chuyển đến 20/06</p>
-        <a href="https://hithean.com/san-pham/protein/yeast-hero-protein-powder-avocado-matcha/" class="button--nuocepkytu-light-green" target="_blank" rel="noopener">Xem &amp; Mua ngay</a>
+        <a href="https://hithean.com/san-pham/protein/yeast-hero-protein-powder-avocado-matcha/" class="button--light-green" target="_blank" rel="noopener">Xem &amp; Mua ngay</a>
       </div>
     </div>
 
@@ -136,7 +137,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         <div class="anc-product-price">
           <span class="anc-price-sale">430.000₫</span>
         </div>
-        <a href="https://hithean.com/san-pham/sieu-thuc-pham/bot-matcha-huu-co/" class="button--dark-blue-reverse" target="_blank" rel="noopener">Xem thêm &amp; Đặt trước</a>
+        <a href="https://hithean.com/san-pham/sieu-thuc-pham/bot-matcha-huu-co/" class="button--light-blue" target="_blank" rel="noopener">Xem thêm &amp; Đặt trước</a>
       </div>
     </div>
 
@@ -157,7 +158,7 @@ if ( ! defined( 'ABSPATH' ) ) {
           <span class="anc-price-unit">/ hộp 200g</span>
         </div>
         <p class="anc-price-note">✦ Mua 2: -5% · Mua 3+: -10%</p>
-        <a href="https://hithean.com/san-pham/sieu-thuc-pham/bot-inulin-huu-co/" class="button--nuocepkytu-light-green" target="_blank" rel="noopener">Xem sản phẩm</a>
+        <a href="https://hithean.com/san-pham/sieu-thuc-pham/bot-inulin-huu-co/" class="button--light-green" target="_blank" rel="noopener">Xem sản phẩm</a>
       </div>
     </div>
 
@@ -189,6 +190,12 @@ if ( ! defined( 'ABSPATH' ) ) {
         <summary>Chi tiết về an toàn thực phẩm ↓</summary>
         <p class="anc-detail-body">HP Indigo ElectroInk tuân thủ các quy định của FDA Hoa Kỳ (US FDA Compliance) về tiếp xúc gián tiếp với thực phẩm, cụ thể là đối với việc in trên bề mặt không tiếp xúc với thực phẩm của bao bì. Các loại mực này an toàn cho nhiều loại thực phẩm khác nhau trong các điều kiện sử dụng cụ thể.</p>
       </details>
+    </div>
+
+    <div class="anc-update-card">
+      <span class="anc-update-icon" aria-hidden="true">🌱</span>
+      <h3>Nguyên liệu vườn rừng bản địa</h3>
+      <p>Bơ được canh tác theo mô hình <strong>vườn rừng</strong> — đưa đặc sản Việt Nam vào thế hệ sản phẩm dinh dưỡng hiện đại, tạo giá trị cho người tiêu dùng và nông dân địa phương.</p>
     </div>
 
   </div>
@@ -250,9 +257,9 @@ if ( ! defined( 'ABSPATH' ) ) {
      CTA BAND
      ============================================================ -->
 <section id="anc-cta-band">
-  <h2 class="anc-fade-in">AN NEW CHAPTER</h2>
-  <p class="anc-fade-in">Chương mới của (The) An — sản phẩm hữu cơ, tiêu chuẩn quốc tế, cho sức khỏe bền vững.</p>
-  <a href="https://hithean.com/" class="button--dark-blue-reverse anc-fade-in" target="_blank" rel="noopener">XEM TẤT CẢ SẢN PHẨM →</a>
+  <h2 class="anc-fade-in">"AN" NEW CHAPTER</h2>
+  <p class="anc-fade-in">Khởi nguồn bản địa, bắt nhịp thế giới — trao quyền cho sức khỏe cá nhân, cộng đồng và hành tinh.</p>
+  <a href="https://hithean.com/" class="button--light-blue anc-fade-in" target="_blank" rel="noopener">XEM TẤT CẢ SẢN PHẨM →</a>
 </section>
 
 
