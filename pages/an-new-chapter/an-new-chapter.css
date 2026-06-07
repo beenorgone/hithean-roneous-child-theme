@@ -367,6 +367,23 @@
     gap: 30px;
 }
 
+.anc-products-grid--single {
+    max-width: 460px;
+}
+
+.anc-products-grid--two {
+    max-width: 760px;
+}
+
+#anc-organic {
+    background: #fff;
+    padding: 80px 20px;
+}
+
+#anc-organic h2 {
+    color: var(--product-nuocepkytu-green) !important;
+}
+
 .anc-product-card {
     background: #fff;
     border-radius: 8px;
