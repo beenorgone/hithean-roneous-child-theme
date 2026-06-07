@@ -466,10 +466,18 @@ input[type="submit"],
     border: 2px solid var(--default-color-dark-blue) !important;
 }
 
+.button--light-green,
 .button--nuocepkytu-light-green {
-    background: var(--product-nuocepkytu-light-green);
+    background: var(--default-color-green-dark);
     color: var(--default-color-white) !important;
-    border: 2px solid var(--product-nuocepkytu-light-green);
+    border: 2px solid var(--default-color-green-dark);
+}
+
+.button--light-green:hover,
+.button--nuocepkytu-light-green:hover {
+    background: var(--default-color-color);
+    color: var(--default-color-green-dark) !important;
+    border: 2px solid var(--default-color-green-dark);
 }
 
 .button--protein-yeast-yellow {
