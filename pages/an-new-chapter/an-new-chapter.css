@@ -255,6 +255,80 @@
 }
 
 /* =============================================
+   QC / PRODUCTION SYSTEM
+   ============================================= */
+
+#anc-qc {
+    background: #fff;
+    padding: 72px 24px;
+    text-align: center;
+}
+
+.anc-qc-inner {
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+#anc-qc .anc-section-title {
+    color: var(--product-nuocepkytu-green) !important;
+}
+
+.anc-qc-desc {
+    max-width: 600px;
+    margin: 0 auto 40px;
+    color: var(--default-color-charcoal-grey);
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.anc-qc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 36px;
+    text-align: left;
+}
+
+@media (min-width: 700px) {
+    .anc-qc-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.anc-qc-item {
+    background: var(--default-color-beige);
+    border-left: 3px solid var(--product-nuocepkytu-green);
+    border-radius: 4px;
+    padding: 18px 16px;
+}
+
+.anc-qc-icon {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 8px;
+    line-height: 1;
+}
+
+.anc-qc-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--product-nuocepkytu-green);
+    margin-bottom: 5px;
+}
+
+.anc-qc-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--default-color-dark-brown);
+    line-height: 1.45;
+}
+
+.anc-qc-link {
+    display: inline-block;
+    font-size: 14px;
+}
+
+/* =============================================
    NEW PRODUCTS
    ============================================= */
 
@@ -313,7 +387,8 @@
     background: var(--default-color-green-dark);
     left: 16px;
     right: auto;
-    white-space: nowrap;
+    max-width: calc(55% - 16px);
+    line-height: 1.4;
     padding: 5px 10px;
     font-size: 10px;
 }

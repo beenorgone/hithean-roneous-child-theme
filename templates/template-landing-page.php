@@ -90,6 +90,61 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 <!-- ============================================================
+     QC / PRODUCTION SYSTEM
+     ============================================================ -->
+<section id="anc-qc">
+  <div class="anc-qc-inner">
+
+    <h2 class="anc-section-title anc-fade-in">HỆ THỐNG SẢN XUẤT</h2>
+    <p class="anc-qc-desc anc-fade-in">Mọi sản phẩm The An Organics được xây dựng trên nền tảng khoa học và minh bạch — từ nguyên liệu đầu vào đến thành phẩm trên kệ.</p>
+
+    <div class="anc-qc-grid anc-fade-in-children">
+
+      <div class="anc-qc-item">
+        <span class="anc-qc-icon" aria-hidden="true">🏭</span>
+        <div class="anc-qc-label">Nhà máy</div>
+        <div class="anc-qc-value">Quốc Oai, Hà Nội</div>
+      </div>
+
+      <div class="anc-qc-item">
+        <span class="anc-qc-icon" aria-hidden="true">📋</span>
+        <div class="anc-qc-label">Tiêu chuẩn sản xuất</div>
+        <div class="anc-qc-value">ISO 22000 · HACCP · GMP</div>
+      </div>
+
+      <div class="anc-qc-item">
+        <span class="anc-qc-icon" aria-hidden="true">🇺🇸</span>
+        <div class="anc-qc-label">FDA Registration (Hoa Kỳ)</div>
+        <div class="anc-qc-value">18772617074</div>
+      </div>
+
+      <div class="anc-qc-item">
+        <span class="anc-qc-icon" aria-hidden="true">🌿</span>
+        <div class="anc-qc-label">Chứng nhận hữu cơ</div>
+        <div class="anc-qc-value">USDA · EU · CU 916118</div>
+      </div>
+
+      <div class="anc-qc-item">
+        <span class="anc-qc-icon" aria-hidden="true">🔬</span>
+        <div class="anc-qc-label">Đối tác kiểm nghiệm</div>
+        <div class="anc-qc-value">Eurofins — 900+ lab tại 50+ quốc gia</div>
+      </div>
+
+      <div class="anc-qc-item">
+        <span class="anc-qc-icon" aria-hidden="true">✅</span>
+        <div class="anc-qc-label">Quy trình kiểm tra</div>
+        <div class="anc-qc-value">2 lần: nguyên liệu đầu vào &amp; thành phẩm</div>
+      </div>
+
+    </div>
+
+    <a href="https://hithean.com/ve-chung-toi/kiem-soat-chat-luong/" class="button--light-blue anc-qc-link anc-fade-in" target="_blank" rel="noopener">Xem đầy đủ hệ thống kiểm soát chất lượng →</a>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
      NEW PRODUCTS
      ============================================================ -->
 <section id="anc-products">
