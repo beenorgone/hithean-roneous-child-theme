@@ -103,7 +103,7 @@ if ( ! defined( 'ABSPATH' ) ) {
       <div class="anc-qc-item">
         <span class="anc-qc-icon" aria-hidden="true">🏭</span>
         <div class="anc-qc-label">Nhà máy</div>
-        <div class="anc-qc-value">Quốc Oai, Hà Nội</div>
+        <div class="anc-qc-value">đặt tại Cụm sản xuất dịch vụ, thôn Văn Khê, xã Nghĩa Hương, Hà Nội, Việt Nam</div>
       </div>
 
       <div class="anc-qc-item">
