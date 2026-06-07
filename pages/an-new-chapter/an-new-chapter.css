@@ -311,10 +311,9 @@
 
 .anc-product-badge.badge-organic {
     background: var(--default-color-green-dark);
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1px;
-    line-height: 1.2;
+    left: 16px;
+    right: auto;
+    line-height: 1.3;
     padding: 5px 10px;
     font-size: 10px;
 }
