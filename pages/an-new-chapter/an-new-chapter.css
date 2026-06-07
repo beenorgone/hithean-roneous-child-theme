@@ -52,7 +52,8 @@
     font-family: 'Oswald', sans-serif;
     text-transform: uppercase;
     color: var(--default-color-yellow);
-    margin: 0 auto 32px;
+    margin-top: 0;
+    margin-bottom: 32px;
     gap: 3px;
     transition: transform 2s ease;
     cursor: default;
@@ -105,7 +106,7 @@
 }
 
 .anc-hero-logo {
-    height: 48px;
+    height: 100px;
     width: auto;
     object-fit: contain;
     filter: brightness(0) invert(1);
