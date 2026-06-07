@@ -185,7 +185,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     </div>
 
-    <a href="https://hithean.com/ve-chung-toi/kiem-soat-chat-luong/" class="button--light-blue anc-qc-link anc-fade-in" target="_blank" rel="noopener">Xem đầy đủ hệ thống kiểm soát chất lượng →</a>
+    <a href="https://hithean.com/ve-chung-toi/kiem-soat-chat-luong/" class="button--light-blue anc-qc-link anc-fade-in" target="_blank" rel="noopener">Tìm hiểu thêm →</a>
 
   </div>
 </section>
