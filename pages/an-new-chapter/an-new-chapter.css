@@ -15,9 +15,9 @@
     --anc-hero-bg:     url('https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg');
     --anc-cert-bg:     none;
     --anc-qc-bg:       none;
-    --anc-products-bg: none;
+    --anc-products-bg: url('https://hithean.com/wp-content/uploads/2026/06/banner-website-1.jpg.webp');
     --anc-story-bg:    url('https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png');
-    --anc-organic-bg:  none;
+    --anc-organic-bg:  url('https://hithean.com/wp-content/uploads/2026/06/Organic-Matcha-Powder-The-An-Organics-13.jpg.webp');
     --anc-calc-bg:     none;
     --anc-cta-bg:      none;
 }
@@ -88,18 +88,18 @@
 /* Tất cả ảnh cùng baseline, width đều nhau */
 .anc-float-img {
     position: absolute;
-    width: 38%;
+    width: 45%;
     bottom: 0;
     object-fit: contain;
     filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.55));
 }
 
-/* 5 ảnh xếp từ trái → phải, step ~15.5%, overlap ~22.5% */
+/* 5 ảnh xếp từ trái → phải, step 16%, overlap ~29% */
 .anc-float-img--1 { left: 0;    z-index: 3; animation: anc-float-1 5.4s ease-in-out infinite 0s; }
 .anc-float-img--2 { left: 16%;  z-index: 5; animation: anc-float-2 5.4s ease-in-out infinite 0.6s; }
-.anc-float-img--3 { left: 31%;  z-index: 4; animation: anc-float-3 5.4s ease-in-out infinite 1.2s; }
-.anc-float-img--4 { left: 47%;  z-index: 2; animation: anc-float-4 5.4s ease-in-out infinite 1.8s; }
-.anc-float-img--5 { left: 62%;  z-index: 1; animation: anc-float-5 5.4s ease-in-out infinite 2.4s; }
+.anc-float-img--3 { left: 32%;  z-index: 4; animation: anc-float-3 5.4s ease-in-out infinite 1.2s; }
+.anc-float-img--4 { left: 48%;  z-index: 2; animation: anc-float-4 5.4s ease-in-out infinite 1.8s; }
+.anc-float-img--5 { left: 64%;  z-index: 1; animation: anc-float-5 5.4s ease-in-out infinite 2.4s; }
 
 @keyframes anc-float-1 {
     0%, 100% { transform: rotate(-7deg) translateY(0); }
