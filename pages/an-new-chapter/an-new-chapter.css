@@ -82,24 +82,24 @@
 .anc-hero-products-cluster {
     position: relative;
     width: 100%;
-    aspect-ratio: 1.4 / 1;
+    aspect-ratio: 1.1 / 1;
 }
 
-/* Tất cả ảnh cùng baseline, width đều nhau */
+/* Tất cả ảnh cùng width cơ bản, bottom sẽ override per-image cho arc */
 .anc-float-img {
     position: absolute;
-    width: 45%;
+    width: 65%;
     bottom: 0;
     object-fit: contain;
     filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.55));
 }
 
-/* 5 ảnh xếp từ trái → phải, step 16%, overlap ~29% */
-.anc-float-img--1 { left: 0;    z-index: 3; animation: anc-float-1 5.4s ease-in-out infinite 0s; }
-.anc-float-img--2 { left: 16%;  z-index: 5; animation: anc-float-2 5.4s ease-in-out infinite 0.6s; }
-.anc-float-img--3 { left: 32%;  z-index: 4; animation: anc-float-3 5.4s ease-in-out infinite 1.2s; }
-.anc-float-img--4 { left: 48%;  z-index: 2; animation: anc-float-4 5.4s ease-in-out infinite 1.8s; }
-.anc-float-img--5 { left: 64%;  z-index: 1; animation: anc-float-5 5.4s ease-in-out infinite 2.4s; }
+/* Arc nhẹ: hai đầu thấp → center cao nhất; img--3 (YH Bơ Matcha) nổi bật */
+.anc-float-img--1 { left: 0;    bottom: 0%;  z-index: 3; animation: anc-float-1 5.4s ease-in-out infinite 0s; }
+.anc-float-img--2 { left: 16%;  bottom: 5%;  z-index: 4; animation: anc-float-2 5.4s ease-in-out infinite 0.6s; }
+.anc-float-img--3 { left: 32%;  bottom: 11%; width: 72%; z-index: 6; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.65)); animation: anc-float-3 5.4s ease-in-out infinite 1.2s; }
+.anc-float-img--4 { left: 48%;  bottom: 5%;  z-index: 5; animation: anc-float-4 5.4s ease-in-out infinite 1.8s; }
+.anc-float-img--5 { left: 64%;  bottom: 0%;  z-index: 2; animation: anc-float-5 5.4s ease-in-out infinite 2.4s; }
 
 @keyframes anc-float-1 {
     0%, 100% { transform: rotate(-7deg) translateY(0); }
