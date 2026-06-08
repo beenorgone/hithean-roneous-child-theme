@@ -10,8 +10,10 @@
 
 /* ============================================================
    SECTION BACKGROUND IMAGES — đổi URL tại đây
+   Desktop: --anc-*-bg  |  Mobile: --anc-*-bg-m (nếu không set → fallback về desktop)
    ============================================================ */
 :root {
+    /* Desktop */
     --anc-hero-bg:     url('https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg');
     --anc-cert-bg:     none;
     --anc-qc-bg:       none;
@@ -20,6 +22,17 @@
     --anc-organic-bg:  url('https://hithean.com/wp-content/uploads/2026/06/Organic-Matcha-Powder-The-An-Organics-13.jpg.webp');
     --anc-calc-bg:     none;
     --anc-cta-bg:      none;
+
+    /* Mobile — khai báo ở đây khi có ảnh riêng cho mobile:
+    --anc-hero-bg-m:     url('...');
+    --anc-cert-bg-m:     url('...');
+    --anc-qc-bg-m:       url('...');
+    --anc-products-bg-m: url('...');
+    --anc-story-bg-m:    url('...');
+    --anc-organic-bg-m:  url('...');
+    --anc-calc-bg-m:     url('...');
+    --anc-cta-bg-m:      url('...');
+    */
 }
 
 #anc-hero {
@@ -1611,5 +1624,39 @@
     /* Product highlights */
     .anc-product-highlights {
         padding-left: 16px;
+    }
+
+    /* Mobile background images — fallback về desktop var nếu chưa set -m */
+    #anc-hero {
+        background-image: var(--anc-hero-bg-m, var(--anc-hero-bg, none));
+        background-position: center top;
+    }
+    #anc-certification {
+        background-image: var(--anc-cert-bg-m, var(--anc-cert-bg, none));
+        background-position: center top;
+    }
+    #anc-qc {
+        background-image: var(--anc-qc-bg-m, var(--anc-qc-bg, none));
+        background-position: center top;
+    }
+    #anc-products {
+        background-image: var(--anc-products-bg-m, var(--anc-products-bg, none));
+        background-position: center top;
+    }
+    #anc-story {
+        background-image: var(--anc-story-bg-m, var(--anc-story-bg, none));
+        background-position: center top;
+    }
+    #anc-organic {
+        background-image: var(--anc-organic-bg-m, var(--anc-organic-bg, none));
+        background-position: center top;
+    }
+    #anc-calculator {
+        background-image: var(--anc-calc-bg-m, var(--anc-calc-bg, none));
+        background-position: center top;
+    }
+    #anc-cta-band {
+        background-image: var(--anc-cta-bg-m, var(--anc-cta-bg, none));
+        background-position: center top;
     }
 }
