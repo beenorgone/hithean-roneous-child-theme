@@ -8,9 +8,18 @@
    HERO
    ============================================= */
 
-/* ---- HERO BACKGROUND IMAGE — đổi URL ở đây ---- */
+/* ============================================================
+   SECTION BACKGROUND IMAGES — đổi URL tại đây
+   ============================================================ */
 :root {
-    --anc-hero-bg: url('https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg');
+    --anc-hero-bg:     url('https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg');
+    --anc-cert-bg:     none;
+    --anc-qc-bg:       none;
+    --anc-products-bg: none;
+    --anc-story-bg:    url('https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png');
+    --anc-organic-bg:  none;
+    --anc-calc-bg:     none;
+    --anc-cta-bg:      none;
 }
 
 #anc-hero {
@@ -63,9 +72,9 @@
     width: 100%;
 }
 
-/* ---- Product cluster — overlapping composition ---- */
+/* ---- Product cluster — shelf lineup, same baseline ---- */
 .anc-hero-products {
-    width: min(92vw, 360px);
+    width: min(92vw, 320px);
     margin: 0 auto;
     flex-shrink: 0;
 }
@@ -73,63 +82,44 @@
 .anc-hero-products-cluster {
     position: relative;
     width: 100%;
-    aspect-ratio: 1.15 / 1;
+    aspect-ratio: 1.4 / 1;
 }
 
+/* Tất cả ảnh cùng baseline, width đều nhau */
 .anc-float-img {
     position: absolute;
-    width: 44%;
+    width: 38%;
+    bottom: 0;
     object-fit: contain;
-    filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.5));
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.55));
 }
 
-/* Matcha — top-center, z=3 */
-.anc-float-img--3 {
-    top: 0;
-    left: 28%;
-    z-index: 3;
-    animation: anc-float-3 5.4s ease-in-out infinite 1.6s;
-}
-
-/* Original — lower-left, tilted */
-.anc-float-img--1 {
-    bottom: 6%;
-    left: 0;
-    z-index: 2;
-    animation: anc-float-1 5.4s ease-in-out infinite 0s;
-}
-
-/* Overnight — lower-right, front */
-.anc-float-img--2 {
-    bottom: 4%;
-    right: 0;
-    z-index: 4;
-    animation: anc-float-2 5.4s ease-in-out infinite 0.8s;
-}
-
-/* Inulin — upper-right, behind */
-.anc-float-img--4 {
-    top: 3%;
-    right: 3%;
-    z-index: 1;
-    animation: anc-float-4 5.4s ease-in-out infinite 2.4s;
-}
+/* 5 ảnh xếp từ trái → phải, step ~15.5%, overlap ~22.5% */
+.anc-float-img--1 { left: 0;    z-index: 3; animation: anc-float-1 5.4s ease-in-out infinite 0s; }
+.anc-float-img--2 { left: 16%;  z-index: 5; animation: anc-float-2 5.4s ease-in-out infinite 0.6s; }
+.anc-float-img--3 { left: 31%;  z-index: 4; animation: anc-float-3 5.4s ease-in-out infinite 1.2s; }
+.anc-float-img--4 { left: 47%;  z-index: 2; animation: anc-float-4 5.4s ease-in-out infinite 1.8s; }
+.anc-float-img--5 { left: 62%;  z-index: 1; animation: anc-float-5 5.4s ease-in-out infinite 2.4s; }
 
 @keyframes anc-float-1 {
-    0%, 100% { transform: rotate(-8deg) translateY(0); }
-    50%       { transform: rotate(-8deg) translateY(-14px); }
+    0%, 100% { transform: rotate(-7deg) translateY(0); }
+    50%       { transform: rotate(-7deg) translateY(-13px); }
 }
 @keyframes anc-float-2 {
-    0%, 100% { transform: rotate(6deg) translateY(0); }
-    50%       { transform: rotate(6deg) translateY(-12px); }
+    0%, 100% { transform: rotate(5deg) translateY(0); }
+    50%       { transform: rotate(5deg) translateY(-16px); }
 }
 @keyframes anc-float-3 {
     0%, 100% { transform: rotate(-3deg) translateY(0); }
-    50%       { transform: rotate(-3deg) translateY(-18px); }
+    50%       { transform: rotate(-3deg) translateY(-14px); }
 }
 @keyframes anc-float-4 {
-    0%, 100% { transform: rotate(9deg) translateY(0); }
-    50%       { transform: rotate(9deg) translateY(-10px); }
+    0%, 100% { transform: rotate(8deg) translateY(0); }
+    50%       { transform: rotate(8deg) translateY(-11px); }
+}
+@keyframes anc-float-5 {
+    0%, 100% { transform: rotate(-5deg) translateY(0); }
+    50%       { transform: rotate(-5deg) translateY(-13px); }
 }
 
 /* Cert badge vòng tròn trong hero — với logos image */
@@ -138,8 +128,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 126px;
-    height: 126px;
+    width: 138px;
+    height: 138px;
     border-radius: 50%;
     border: 3px solid var(--default-color-yellow);
     background: rgba(255, 255, 255, 0.10);
@@ -158,11 +148,9 @@
 }
 
 .anc-cert-badge-logos {
-    width: 68px;
+    width: 62px;
     height: auto;
     object-fit: contain;
-    filter: brightness(0) invert(1);
-    opacity: 0.88;
     display: block;
 }
 
@@ -257,11 +245,11 @@
     .anc-hero-ctas {
         justify-content: flex-start;
     }
-    /* Desktop: cluster fills right column — larger */
+    /* Desktop: 5 ảnh — container rộng hơn */
     .anc-hero-products {
-        flex: 0 0 500px;
-        max-width: 500px;
-        width: 500px;
+        flex: 0 0 560px;
+        max-width: 560px;
+        width: 560px;
         margin: 0;
     }
 }
@@ -272,9 +260,21 @@
 
 #anc-certification {
     padding: 80px 20px;
-    background: #fff;
+    background-color: #fff;
+    background-image: var(--anc-cert-bg, none);
+    background-size: cover;
+    background-position: center;
     text-align: center;
+    position: relative;
 }
+#anc-certification::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.80);
+    z-index: 0;
+}
+#anc-certification > * { position: relative; z-index: 1; }
 
 .anc-cert-section-inner {
     max-width: 1000px;
@@ -432,10 +432,22 @@
    ============================================= */
 
 #anc-qc {
-    background: var(--default-color-beige);
+    background-color: var(--default-color-beige);
+    background-image: var(--anc-qc-bg, none);
+    background-size: cover;
+    background-position: center;
     padding: 72px 24px;
     text-align: center;
+    position: relative;
 }
+#anc-qc::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(247, 246, 242, 0.80);
+    z-index: 0;
+}
+#anc-qc > * { position: relative; z-index: 1; }
 
 .anc-qc-inner {
     max-width: 960px;
@@ -552,9 +564,21 @@
 
 #anc-products {
     padding: 72px 20px;
-    background: #fff;
+    background-color: #fff;
+    background-image: var(--anc-products-bg, none);
+    background-size: cover;
+    background-position: center;
     text-align: center;
+    position: relative;
 }
+#anc-products::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.82);
+    z-index: 0;
+}
+#anc-products > * { position: relative; z-index: 1; }
 
 #anc-products h2 {
     color: var(--default-color-dark-brown) !important;
@@ -823,9 +847,21 @@
 }
 
 #anc-organic {
-    background: var(--default-color-beige);
+    background-color: var(--default-color-beige);
+    background-image: var(--anc-organic-bg, none);
+    background-size: cover;
+    background-position: center;
     padding: 72px 20px;
+    position: relative;
 }
+#anc-organic::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(247, 246, 242, 0.80);
+    z-index: 0;
+}
+#anc-organic > * { position: relative; z-index: 1; }
 
 #anc-organic h2 {
     color: var(--product-nuocepkytu-green) !important;
@@ -989,11 +1025,10 @@
    ============================================= */
 
 #anc-story {
-    background: #0d1f1c;
-    background-image: url('https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png');
+    background-color: #0d1f1c;
+    background-image: var(--anc-story-bg, none);
     background-size: cover;
     background-position: center 40%;
-    background-blend-mode: multiply;
     padding: 96px 24px;
     text-align: center;
     position: relative;
@@ -1186,8 +1221,20 @@
 
 #anc-calculator {
     padding: 80px 20px;
-    background: var(--default-color-beige);
+    background-color: var(--default-color-beige);
+    background-image: var(--anc-calc-bg, none);
+    background-size: cover;
+    background-position: center;
+    position: relative;
 }
+#anc-calculator::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(247, 246, 242, 0.80);
+    z-index: 0;
+}
+#anc-calculator > * { position: relative; z-index: 1; }
 
 .anc-calc-card {
     max-width: 660px;
@@ -1397,9 +1444,21 @@
 
 #anc-cta-band {
     padding: 80px 20px;
-    background: var(--product-nuocepkytu-green);
+    background-color: var(--product-nuocepkytu-green);
+    background-image: var(--anc-cta-bg, none);
+    background-size: cover;
+    background-position: center;
     text-align: center;
+    position: relative;
 }
+#anc-cta-band::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 40, 35, 0.78);
+    z-index: 0;
+}
+#anc-cta-band > * { position: relative; z-index: 1; }
 
 #anc-cta-band h2 {
     font-family: 'Oswald', sans-serif !important;
