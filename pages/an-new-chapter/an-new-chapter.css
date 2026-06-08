@@ -8,6 +8,11 @@
    HERO
    ============================================= */
 
+/* ---- HERO BACKGROUND IMAGE — đổi URL ở đây ---- */
+:root {
+    --anc-hero-bg: url('https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg');
+}
+
 #anc-hero {
     min-height: 100vh;
     display: flex;
@@ -15,13 +20,30 @@
     align-items: center;
     justify-content: center;
     position: relative;
+    background-image: var(--anc-hero-bg);
+    background-size: cover;
+    background-position: center;
     background-color: var(--product-nuocepkytu-green);
+}
+
+/* Color overlay phủ trên ảnh */
+#anc-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
     background: linear-gradient(
-        135deg,
-        rgba(19, 81, 80, 0.94) 0%,
-        rgba(45, 106, 79, 0.88) 60%,
-        rgba(0, 80, 50, 0.82) 100%
+        150deg,
+        rgba(13, 40, 35, 0.82) 0%,
+        rgba(19, 81, 80, 0.72) 50%,
+        rgba(0, 60, 40, 0.80) 100%
     );
+    z-index: 0;
+}
+
+/* Tất cả children nằm trên overlay */
+#anc-hero > * {
+    position: relative;
+    z-index: 1;
 }
 
 .anc-hero-layout {
@@ -43,7 +65,7 @@
 
 /* ---- Product cluster — overlapping composition ---- */
 .anc-hero-products {
-    width: min(88vw, 320px);
+    width: min(92vw, 360px);
     margin: 0 auto;
     flex-shrink: 0;
 }
@@ -51,37 +73,35 @@
 .anc-hero-products-cluster {
     position: relative;
     width: 100%;
-    aspect-ratio: 1.25 / 1;
+    aspect-ratio: 1.15 / 1;
 }
 
 .anc-float-img {
     position: absolute;
+    width: 44%;
     object-fit: contain;
     filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.5));
 }
 
-/* Matcha — center, largest, z=3 */
+/* Matcha — top-center, z=3 */
 .anc-float-img--3 {
-    width: 46%;
     top: 0;
-    left: 27%;
+    left: 28%;
     z-index: 3;
     animation: anc-float-3 5.4s ease-in-out infinite 1.6s;
 }
 
-/* Original box — lower-left, tilted */
+/* Original — lower-left, tilted */
 .anc-float-img--1 {
-    width: 42%;
-    bottom: 0;
+    bottom: 6%;
     left: 0;
     z-index: 2;
     animation: anc-float-1 5.4s ease-in-out infinite 0s;
 }
 
-/* Overnight sachet — lower-right, front */
+/* Overnight — lower-right, front */
 .anc-float-img--2 {
-    width: 38%;
-    bottom: 5%;
+    bottom: 4%;
     right: 0;
     z-index: 4;
     animation: anc-float-2 5.4s ease-in-out infinite 0.8s;
@@ -89,9 +109,8 @@
 
 /* Inulin — upper-right, behind */
 .anc-float-img--4 {
-    width: 30%;
-    top: 2%;
-    right: 5%;
+    top: 3%;
+    right: 3%;
     z-index: 1;
     animation: anc-float-4 5.4s ease-in-out infinite 2.4s;
 }
@@ -238,11 +257,11 @@
     .anc-hero-ctas {
         justify-content: flex-start;
     }
-    /* Desktop: cluster fills right column */
+    /* Desktop: cluster fills right column — larger */
     .anc-hero-products {
-        flex: 0 0 420px;
-        max-width: 420px;
-        width: 420px;
+        flex: 0 0 500px;
+        max-width: 500px;
+        width: 500px;
         margin: 0;
     }
 }
@@ -1069,7 +1088,7 @@
 }
 
 .anc-updates-grid {
-    max-width: 920px;
+    max-width: 960px;
     margin: 0 auto;
     display: grid;
     grid-template-columns: 1fr;
