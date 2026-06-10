@@ -20,6 +20,7 @@ defined('ABSPATH') || exit;
 
 $text_align  = is_rtl() ? 'right' : 'left';
 $margin_side = is_rtl() ? 'left' : 'right';
+$price_align = is_rtl() ? 'left' : 'right';
 
 foreach ($items as $item_id => $item) :
     $product       = $item->get_product();
@@ -71,13 +72,18 @@ foreach ($items as $item_id => $item) :
 
             ?>
         </td>
-        <td class="td" style="font-size: 0.9em; text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
-            <?php echo wc_price($item->get_product()->get_regular_price(), array('currency' => $order->get_order_currency())); ?>
+        <td class="td" style="font-size: 0.9em; text-align:<?php echo esc_attr($price_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif; white-space: nowrap;">
+            <?php
+            $regular_price = is_object($product) ? $product->get_regular_price() : '';
+            echo $regular_price === ''
+                ? '&ndash;'
+                : wp_kses_post(wc_price((float) $regular_price, array('currency' => $order->get_currency())));
+            ?>
         </td>
-        <td class="td" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
-            <b><?php echo wc_price($order->get_item_total($item, false, true), array('currency' => $order->get_order_currency())); ?></b>
+        <td class="td" style="text-align:<?php echo esc_attr($price_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif; white-space: nowrap;">
+            <b><?php echo wp_kses_post(wc_price($order->get_item_total($item, false, true), array('currency' => $order->get_currency()))); ?></b>
         </td>
-        <td class="td" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
+        <td class="td" style="text-align:center; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
             <?php
             $qty          = $item->get_quantity();
             $refunded_qty = $order->get_qty_refunded_for_item($item_id);
@@ -90,7 +96,7 @@ foreach ($items as $item_id => $item) :
             echo wp_kses_post(apply_filters('woocommerce_email_order_item_quantity', $qty_display, $item));
             ?>
         </td>
-        <td class="td" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
+        <td class="td" style="text-align:<?php echo esc_attr($price_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif; white-space: nowrap;">
             <?php echo wp_kses_post($order->get_formatted_line_subtotal($item)); ?>
         </td>
     </tr>
@@ -99,7 +105,7 @@ foreach ($items as $item_id => $item) :
     if ($show_purchase_note && $purchase_note) {
     ?>
         <tr>
-            <td colspan="3" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
+            <td colspan="5" style="text-align:<?php echo esc_attr($text_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
                 <?php
                 echo wp_kses_post(wpautop(do_shortcode($purchase_note)));
                 ?>

@@ -8,6 +8,7 @@
 defined('ABSPATH') || exit;
 
 $text_align = is_rtl() ? 'right' : 'left';
+$price_align = is_rtl() ? 'left' : 'right';
 
 do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain_text, $email); ?>
 
@@ -50,6 +51,16 @@ do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain
         padding: 10px;
     }
 
+    .hr-email-order-table {
+        table-layout: fixed;
+    }
+
+    .hr-email-order-table th,
+    .hr-email-order-table td {
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
     a,
     a:hover,
     a:visited {
@@ -82,27 +93,39 @@ do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain
 </h2>
 
 <div style="margin-bottom: 40px;">
-    <table class="td" cellspacing="0" cellpadding="6" style="width: 100%; font-family: 'Helvetica Neue', Helvetica, Roboto, Arial, sans-serif;" border="1">
+    <table class="td hr-email-order-table" cellspacing="0" cellpadding="6" style="width: 100%; table-layout: fixed; font-family: 'Helvetica Neue', Helvetica, Roboto, Arial, sans-serif;" border="1">
+        <colgroup>
+            <col style="width: 46%;">
+            <col style="width: 14%;">
+            <col style="width: 16%;">
+            <col style="width: 8%;">
+            <col style="width: 16%;">
+        </colgroup>
         <thead>
             <tr>
-                <th class="td" scope="col" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Product', 'woocommerce'); ?></th>
-                <th class="td" scope="col" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Giá gốc', 'woocommerce'); ?></th>
-                <th class="td" scope="col" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Giá áp dụng', 'woocommerce'); ?></th>
-                <th class="td" scope="col" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('SL', 'woocommerce'); ?></th>
-                <th class="td" scope="col" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Thành Tiền', 'woocommerce'); ?></th>
+                <th class="td" scope="col" style="width: 46%; text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Product', 'woocommerce'); ?></th>
+                <th class="td" scope="col" style="width: 14%; text-align:<?php echo esc_attr($price_align); ?>;"><?php esc_html_e('Giá gốc', 'woocommerce'); ?></th>
+                <th class="td" scope="col" style="width: 16%; text-align:<?php echo esc_attr($price_align); ?>;"><?php esc_html_e('Giá áp dụng', 'woocommerce'); ?></th>
+                <th class="td" scope="col" style="width: 8%; text-align:center;"><?php esc_html_e('SL', 'woocommerce'); ?></th>
+                <th class="td" scope="col" style="width: 16%; text-align:<?php echo esc_attr($price_align); ?>;"><?php esc_html_e('Thành Tiền', 'woocommerce'); ?></th>
             </tr>
         </thead>
         <tbody>
             <?php
-            echo wc_get_email_order_items( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-                $order,
+            wc_get_template(
+                'emails/email-order-items.php',
                 array(
-                    'show_sku'      => $sent_to_admin,
-                    'show_image'    => false,
-                    'image_size'    => array(32, 32),
-                    'plain_text'    => $plain_text,
-                    'sent_to_admin' => $sent_to_admin,
-                )
+                    'items'              => $order->get_items(),
+                    'order'              => $order,
+                    'show_purchase_note' => $order->is_paid() && ! $sent_to_admin,
+                    'show_sku'           => $sent_to_admin,
+                    'show_image'         => false,
+                    'image_size'         => array(32, 32),
+                    'plain_text'         => $plain_text,
+                    'sent_to_admin'      => $sent_to_admin,
+                ),
+                '',
+                trailingslashit(get_stylesheet_directory()) . 'woocommerce/'
             );
             ?>
         </tbody>
@@ -111,8 +134,8 @@ do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain
             if ($order->get_customer_note()) {
             ?>
                 <tr>
-                    <th class="td" scope="row" colspan="2" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Note:', 'woocommerce'); ?></th>
-                    <td class="td" scope="row" colspan="3" style="text-align: right;"><?php echo wp_kses_post(nl2br(wptexturize($order->get_customer_note()))); ?></td>
+                    <th class="td" scope="row" colspan="1" style="text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Note:', 'woocommerce'); ?></th>
+                    <td class="td" scope="row" colspan="4" style="text-align:<?php echo esc_attr($price_align); ?>;"><?php echo wp_kses_post(nl2br(wptexturize($order->get_customer_note()))); ?></td>
                 </tr>
             <?php
             }
@@ -127,8 +150,8 @@ do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain
                     $i++;
             ?>
                     <tr class="total">
-                        <th class="td" scope="row" colspan="2" style="text-align:<?php echo esc_attr($text_align); ?>; <?php echo (1 === $i) ? 'border-top-width: 4px;' : ''; ?>"><?php echo wp_kses_post($total['label']); ?></th>
-                        <td class="td" scope="row" colspan="3" style="text-align: right; <?php echo (1 === $i) ? 'border-top-width: 4px;' : ''; ?>"><?php echo wp_kses_post($total['value']); ?></td>
+                        <th class="td" scope="row" colspan="1" style="text-align:<?php echo esc_attr($text_align); ?>; <?php echo (1 === $i) ? 'border-top-width: 4px;' : ''; ?>"><?php echo wp_kses_post($total['label']); ?></th>
+                        <td class="td" scope="row" colspan="4" style="text-align:<?php echo esc_attr($price_align); ?>; <?php echo (1 === $i) ? 'border-top-width: 4px;' : ''; ?>"><?php echo wp_kses_post($total['value']); ?></td>
                     </tr>
             <?php
                 }
