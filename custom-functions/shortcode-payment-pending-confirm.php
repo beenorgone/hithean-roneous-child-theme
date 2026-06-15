@@ -724,19 +724,81 @@ function oppc_order_matches_keyword(WC_Order $order, string $keyword): bool
 
     $order_id = (string) $order->get_id();
     $formatted = function_exists('change_order_number') ? (string) change_order_number($order->get_id()) : $order_id;
-    $haystack = implode(' ', [
+    $order_codes = array_filter(array_unique([
         $order_id,
         '#' . $order_id,
         $formatted,
+        '#' . $formatted,
         'P1' . $formatted,
         'P0' . $formatted,
+    ]));
+    $haystack = implode(' ', array_merge($order_codes, [
         $order->get_billing_phone(),
         $order->get_billing_first_name(),
         $order->get_billing_last_name(),
         $order->get_billing_email(),
-    ]);
+    ]));
 
-    return stripos($haystack, $needle) !== false;
+    if (stripos($haystack, $needle) !== false) {
+        return true;
+    }
+
+    foreach (oppc_parse_keyword_tokens($keyword) as $token) {
+        if (oppc_token_matches_order_codes($token, $order_codes)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function oppc_parse_keyword_tokens(string $keyword): array
+{
+    $parts = preg_split('/[\s,]+/', $keyword, -1, PREG_SPLIT_NO_EMPTY);
+    if (!is_array($parts)) {
+        return [];
+    }
+
+    return array_values(array_unique(array_map('trim', $parts)));
+}
+
+function oppc_token_matches_order_codes(string $token, array $order_codes): bool
+{
+    $token = trim($token);
+    if ($token === '') {
+        return false;
+    }
+
+    $candidates = [$token, ltrim($token, '#')];
+    $normalized = oppc_normalize_order_code_token($token);
+    if ($normalized !== '') {
+        $candidates[] = $normalized;
+        if (strlen($normalized) > 2) {
+            $candidates[] = substr($normalized, 0, -2);
+        }
+    }
+
+    foreach (array_unique($candidates) as $candidate) {
+        foreach ($order_codes as $code) {
+            if (strcasecmp((string) $code, (string) $candidate) === 0) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function oppc_normalize_order_code_token(string $token): string
+{
+    $code = strtoupper(trim($token));
+    $code = str_replace('#', '', $code);
+
+    if (strpos($code, 'P0') === 0 || strpos($code, 'P1') === 0) {
+        $code = substr($code, 2);
+    }
+
+    return preg_replace('/\D+/', '', $code);
 }
 
 function oppc_get_confirmation_audit(WC_Order $order): array
