@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đối Tác Phân Phối — The An Organics | hithean.com</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;700&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../an-new-chapter/an-new-chapter.css" />
+  <style>
+    /* B2B-specific additions */
+    .anc-b2b-why { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 960px; margin: 40px auto 0; }
+    @media (min-width: 680px) { .anc-b2b-why { grid-template-columns: repeat(3, 1fr); } }
+    .anc-b2b-card { background: #fff; border-radius: 12px; padding: 28px 24px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #e8f5f0; }
+    .anc-b2b-card-icon { font-size: 32px; display: block; margin-bottom: 12px; }
+    .anc-b2b-card h3 { font-size: 15px; font-weight: 700; color: #0f766e; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .anc-b2b-card p { font-size: 13px; color: #555; line-height: 1.7; margin: 0; }
+
+    .anc-register-section { padding: 80px 20px; background: #f0faf6; text-align: center; }
+    .anc-register-section h2 { font-family: 'Oswald', sans-serif; font-size: 32px; letter-spacing: 4px; color: #0f3330; margin: 0 0 12px; text-transform: uppercase; }
+    .anc-register-section > p { color: #555; margin: 0 0 32px; font-size: 15px; }
+    .anc-register-frame-wrap { max-width: 780px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .anc-register-frame-wrap iframe { display: block; width: 100%; border: none; min-height: 640px; }
+    .anc-register-alt { margin-top: 24px; font-size: 13px; color: #777; }
+    .anc-register-alt a { color: #0f766e; font-weight: 600; }
+
+    .anc-contact-bar { background: #0f3330; color: rgba(255,255,255,0.9); padding: 32px 20px; text-align: center; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .anc-contact-bar strong { color: #fff; }
+    .anc-contact-bar a { color: #6ee7b7; text-decoration: none; font-weight: 600; }
+    @media (min-width: 680px) { .anc-contact-bar { flex-direction: row; justify-content: center; gap: 32px; } }
+
+    .anc-product-lineup { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 960px; margin: 36px auto 0; }
+    @media (min-width: 540px) { .anc-product-lineup { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 900px) { .anc-product-lineup { grid-template-columns: repeat(5, 1fr); } }
+    .anc-lineup-card { background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #eee; text-align: center; padding: 0 0 16px; }
+    .anc-lineup-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+    .anc-lineup-card-body { padding: 10px 14px 0; }
+    .anc-lineup-card h4 { font-size: 12px; font-weight: 700; color: #0f3330; margin: 0 0 4px; line-height: 1.4; }
+    .anc-lineup-card-tag { font-size: 10px; color: #0f766e; font-weight: 600; background: #e6f7f3; border-radius: 4px; padding: 2px 6px; display: inline-block; }
+    .anc-lineup-card a { display: block; margin: 10px 12px 0; font-size: 12px; padding: 6px 0; background: #0f766e; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; }
+    .anc-lineup-card a:hover { background: #0d6b62; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<section id="anc-hero">
+  <div class="anc-hero-layout">
+
+    <div class="anc-hero-content anc-fade-in">
+
+      <div class="anc-hero-brand">
+        <img src="https://hithean.com/wp-content/uploads/2024/08/logo-thean-w200-no-paddings.png" alt="The An Organics" class="anc-hero-logo" />
+        <div class="anc-cert-badge">
+          <img class="anc-cert-badge-logos" src="https://hithean.com/wp-content/uploads/2025/11/organic-logos-600x332.png.webp" alt="USDA · EU Organic" />
+          <span class="anc-cert-badge-org">CERTIFIED ORGANIC</span>
+          <span class="anc-cert-badge-cert">NHÀ MÁY SẢN XUẤT</span>
+          <span class="anc-cert-badge-num">CU 916118</span>
+        </div>
+      </div>
+
+      <h1 class="anc-hero-title">PHÂN PHỐI CÙNG THE AN</h1>
+      <p class="anc-hero-subtitle">Hữu cơ USDA &amp; EU · 5 sản phẩm · Nhà máy CU 916118</p>
+
+      <div class="anc-hero-ctas">
+        <a href="#anc-register" class="button--light-green">Đăng ký đối tác ngay</a>
+        <a href="#anc-products" class="button--light-blue">Xem danh mục sản phẩm</a>
+      </div>
+
+    </div>
+
+    <div class="anc-hero-products anc-fade-in" aria-hidden="true">
+      <div class="anc-hero-products-cluster">
+        <img class="anc-float-img anc-float-img--1" src="https://hithean.com/wp-content/uploads/2024/08/Yeast-Hero-Protein-Powder-Original-1-600x600.png" alt="" />
+        <img class="anc-float-img anc-float-img--2" src="https://hithean.com/wp-content/uploads/2024/11/Label-sachet-Yeast-Hero-Overnight-Protein-Powder-front.png" alt="" />
+        <img class="anc-float-img anc-float-img--3" src="https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png" alt="" />
+        <img class="anc-float-img anc-float-img--4" src="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin-8-1-600x600.png" alt="" />
+        <img class="anc-float-img anc-float-img--5" src="https://hithean.com/wp-content/uploads/2025/09/Organic-Matcha-Powder-The-An-Organics-13-600x600.png.webp" alt="" />
+      </div>
+    </div>
+
+  </div>
+  <span class="anc-scroll-arrow" aria-hidden="true">↓</span>
+</section>
+
+
+<!-- ============================================================
+     WHY PARTNER
+     ============================================================ -->
+<section id="anc-certification" style="padding:80px 20px;">
+  <div class="anc-cert-section-inner">
+    <h2 class="anc-section-title anc-fade-in">TẠI SAO CHỌN THE AN ORGANICS?</h2>
+    <p class="anc-cert-desc anc-fade-in">Nền tảng chứng nhận quốc tế, danh mục sản phẩm ngách cao cấp và chính sách hỗ trợ phân phối thực chất.</p>
+
+    <div class="anc-b2b-why anc-fade-in-children">
+
+      <div class="anc-b2b-card">
+        <span class="anc-b2b-card-icon">🏅</span>
+        <h3>Chứng nhận quốc tế</h3>
+        <p>Nhà máy đạt <strong>USDA Organic · EU Organic</strong> (CU 916118) · ISO 22000 · HACCP · GMP · Kiểm nghiệm Eurofins. Hồ sơ sản phẩm đầy đủ để tự tin giới thiệu với khách hàng khó tính.</p>
+      </div>
+
+      <div class="anc-b2b-card">
+        <span class="anc-b2b-card-icon">📦</span>
+        <h3>Danh mục sản phẩm ngách</h3>
+        <p><strong>5 sản phẩm</strong> ở 2 dòng — Yeast Hero Protein (3 hương vị) và Organic Superfoods (Inulin, Matcha). Đây là phân khúc sạch, cao cấp, ít cạnh tranh so với whey protein đại trà.</p>
+      </div>
+
+      <div class="anc-b2b-card">
+        <span class="anc-b2b-card-icon">🤝</span>
+        <h3>Hỗ trợ phân phối thực chất</h3>
+        <p>Tài liệu bán hàng, hình ảnh sản phẩm sẵn có. Chính sách giá rõ ràng. Hỗ trợ trực tiếp từ team The An Organics qua Zalo/Messenger.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     PRODUCT LINEUP
+     ============================================================ -->
+<section id="anc-products" style="padding:80px 20px;background:#f7f6f2;">
+  <h2 class="anc-section-title anc-fade-in">DANH MỤC SẢN PHẨM</h2>
+  <p class="anc-section-subtitle anc-fade-in">5 sản phẩm · 2 dòng · Tất cả xuất xứ nhà máy CU 916118</p>
+
+  <div class="anc-product-lineup anc-fade-in-children">
+
+    <div class="anc-lineup-card">
+      <img src="https://hithean.com/wp-content/uploads/2024/08/Yeast-Hero-Protein-Powder-Original-1-600x600.png" alt="Yeast Hero Original" />
+      <div class="anc-lineup-card-body">
+        <span class="anc-lineup-card-tag">Yeast Hero</span>
+        <h4>Protein Powder Original</h4>
+        <a href="https://hithean.com/san-pham/protein/yeast-hero-protein-powder/" target="_blank" rel="noopener">Xem sản phẩm</a>
+      </div>
+    </div>
+
+    <div class="anc-lineup-card">
+      <img src="https://hithean.com/wp-content/uploads/2024/11/Label-sachet-Yeast-Hero-Overnight-Protein-Powder-front.png" alt="Yeast Hero Overnight" />
+      <div class="anc-lineup-card-body">
+        <span class="anc-lineup-card-tag">Yeast Hero</span>
+        <h4>Protein Powder Overnight</h4>
+        <a href="https://hithean.com/san-pham/protein/yeast-hero-overnight-protein-powder/" target="_blank" rel="noopener">Xem sản phẩm</a>
+      </div>
+    </div>
+
+    <div class="anc-lineup-card">
+      <img src="https://hithean.com/wp-content/uploads/2026/04/Yeast-Hero-Protein-Powder-Avocado-Matcha-Box-ban-tieng-Viet-01-600x600.png" alt="Yeast Hero Avocado Matcha" />
+      <div class="anc-lineup-card-body">
+        <span class="anc-lineup-card-tag">Yeast Hero · Mới</span>
+        <h4>Protein Powder Avocado Matcha</h4>
+        <a href="https://hithean.com/san-pham/protein/yeast-hero-protein-powder-avocado-matcha/" target="_blank" rel="noopener">Xem sản phẩm</a>
+      </div>
+    </div>
+
+    <div class="anc-lineup-card">
+      <img src="https://hithean.com/wp-content/uploads/2026/06/Organic-Matcha-Powder-The-An-Organics-1-600x600.jpg" alt="Bột Matcha Hữu Cơ" />
+      <div class="anc-lineup-card-body">
+        <span class="anc-lineup-card-tag">Organic · Mới</span>
+        <h4>Bột Matcha Hữu Cơ</h4>
+        <a href="https://hithean.com/san-pham/sieu-thuc-pham/bot-matcha-huu-co/" target="_blank" rel="noopener">Xem sản phẩm</a>
+      </div>
+    </div>
+
+    <div class="anc-lineup-card">
+      <img src="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin-8-1-600x600.png" alt="Bột Inulin Hữu Cơ" />
+      <div class="anc-lineup-card-body">
+        <span class="anc-lineup-card-tag">Organic</span>
+        <h4>Bột Inulin Hữu Cơ</h4>
+        <a href="https://hithean.com/san-pham/sieu-thuc-pham/bot-inulin-huu-co/" target="_blank" rel="noopener">Xem sản phẩm</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     CERTIFICATION CREDIBILITY
+     ============================================================ -->
+<section id="anc-qc">
+  <div class="anc-qc-inner">
+    <h2 class="anc-section-title anc-fade-in">NỀN TẢNG CHỨNG NHẬN</h2>
+    <p class="anc-qc-desc anc-fade-in">Đây là câu trả lời cho câu hỏi đầu tiên của mọi nhà phân phối — "Hồ sơ sản phẩm có gì?"</p>
+
+    <div class="anc-qc-grid anc-fade-in-children">
+
+      <div class="anc-qc-item">
+        <img class="anc-qc-cert-img" src="https://hithean.com/wp-content/uploads/2025/11/organic-logos-600x332.png.webp" alt="USDA Organic · EU Organic" />
+        <div class="anc-qc-label">Chứng nhận hữu cơ</div>
+        <div class="anc-qc-value">USDA Organic · EU Organic · CU 916118</div>
+        <ul class="anc-qc-cert-list">
+          <li>Cấp bởi CGLOBAL — tổ chức chứng nhận quốc tế</li>
+          <li>Toàn bộ chuỗi: nguyên liệu → sản xuất → thành phẩm</li>
+          <li>Đủ điều kiện xuất khẩu vào Hoa Kỳ &amp; EU</li>
+        </ul>
+      </div>
+
+      <div class="anc-qc-item">
+        <img class="anc-qc-cert-img" src="https://hithean.com/wp-content/uploads/2025/11/chung-nhan-nha-xuong-logos-haccp-iso2200-gmp-1200x663-1-600x332.png.webp" alt="HACCP · ISO 22000 · GMP" />
+        <div class="anc-qc-label">Tiêu chuẩn sản xuất</div>
+        <div class="anc-qc-value">ISO 22000 · HACCP · GMP · FDA Hoa Kỳ</div>
+        <ul class="anc-qc-cert-list">
+          <li>ISO 22000 — Quản lý an toàn thực phẩm</li>
+          <li>HACCP · GMP — Sản xuất tốt, kiểm soát điểm tới hạn</li>
+          <li>FDA Hoa Kỳ: 18772617074</li>
+        </ul>
+      </div>
+
+      <div class="anc-qc-item">
+        <img class="anc-qc-cert-img" src="https://hithean.com/wp-content/uploads/2025/11/eurofins-logo-1200x663-1-600x332.png.webp" alt="Eurofins" />
+        <div class="anc-qc-label">Kiểm nghiệm độc lập</div>
+        <div class="anc-qc-value">Eurofins Scientific · ISO/IEC 17025</div>
+        <ul class="anc-qc-cert-list">
+          <li>Thành phần dinh dưỡng, chất gây dị ứng</li>
+          <li>Vi sinh, kim loại nặng, dư lượng thuốc BVTV</li>
+          <li>Báo cáo độc lập — không có xung đột lợi ích</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     REGISTRATION FORM
+     ============================================================ -->
+<section id="anc-register" class="anc-register-section">
+  <h2>ĐĂNG KÝ ĐỐI TÁC PHÂN PHỐI</h2>
+  <p>Điền thông tin bên dưới — team The An Organics sẽ liên hệ trong 24–48 giờ làm việc.</p>
+  <div class="anc-register-frame-wrap">
+    <iframe
+      src="https://ivarvietnam.sg.larksuite.com/share/base/form/shrlgohesaZOwSEwWOPtw4xuN4c"
+      title="Đăng ký đối tác phân phối The An Organics"
+      loading="lazy"
+      allowfullscreen
+    ></iframe>
+  </div>
+  <p class="anc-register-alt">
+    Hoặc liên hệ trực tiếp:<br />
+    📞 <a href="tel:+84785832333">0785.832.333</a> (máy lẻ 1 hoặc 4) &nbsp;·&nbsp;
+    ✉ <a href="mailto:info@hithean.com">info@hithean.com</a>
+  </p>
+</section>
+
+
+<!-- ============================================================
+     CONTACT BAR
+     ============================================================ -->
+<div class="anc-contact-bar">
+  <span>📞 <strong>Hotline:</strong> <a href="tel:+84785832333">0785.832.333</a> (máy lẻ 1 hoặc 4)</span>
+  <span>✉ <a href="mailto:info@hithean.com">info@hithean.com</a></span>
+  <span>💬 <a href="https://m.me/theanorganics" target="_blank" rel="noopener">Facebook Messenger</a></span>
+</div>
+
+
+<!-- ============================================================
+     CTA BAND
+     ============================================================ -->
+<section id="anc-cta-band">
+  <h2 class="anc-fade-in">CÙNG PHÁT TRIỂN VỚI THE AN ORGANICS</h2>
+  <p class="anc-fade-in">Hữu cơ USDA &amp; EU · Nhà máy CU 916118 · Kiểm nghiệm Eurofins · Hỗ trợ phân phối toàn quốc</p>
+  <a href="#anc-register" class="button--light-green anc-fade-in">Đăng ký đối tác →</a>
+</section>
+
+
+<script src="../an-new-chapter/an-new-chapter.js"></script>
+</body>
+</html>

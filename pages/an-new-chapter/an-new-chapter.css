@@ -927,6 +927,10 @@
     background: var(--product-nuocepkytu-green);
 }
 
+.anc-product-badge.badge-new {
+    background: #16a34a;
+}
+
 .anc-product-badge.badge-organic {
     background: var(--default-color-green-dark);
     left: 16px;
