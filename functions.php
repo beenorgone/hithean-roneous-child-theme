@@ -204,6 +204,7 @@ $general_includes = [
     'custom-functions/shortcode-posts.php',
     'custom-functions/shortcode-pos.php',
     'custom-functions/shortcode-bank-transfer-confirmation.php',
+    'custom-functions/shortcode-payment-pending-confirm.php',
     'custom-functions/shortcode-google-docs.php',
     'custom-functions/shortcode-embed.php',
     'custom-functions/shortcode-order-shipped.php',

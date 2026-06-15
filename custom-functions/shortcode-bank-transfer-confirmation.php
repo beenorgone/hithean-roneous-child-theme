@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 /**
  * Shortcode: [order_paid_confirmation]
@@ -26,7 +27,7 @@ function render_order_paid_confirmation_ui()
         </div>
 
         <div class="btc-panel btc-search-panel">
-            <p><input type="text" id="order_search" style="width: 100% !important;" placeholder="Nhập mã đơn (nhiều mã: cách nhau bằng dấu phẩy hoặc khoảng trắng)"></p>
+            <p><input type="text" id="order_search" placeholder="Nhập mã đơn (nhiều mã: cách nhau bằng dấu phẩy hoặc khoảng trắng)"></p>
             <div class="btc-actions-row">
                 <button type="button" id="btn_search_order" class="button--small button--green">Tìm kiếm</button>
                 <button type="button" id="clear_results_btn" class="button--small button--red">Xóa kết quả</button>
@@ -51,9 +52,9 @@ function render_order_paid_confirmation_ui()
                 <div>
                     <label>Tài khoản nhận</label>
                     <select id="bank_account">
+                        <option value="ACB 8700507">ACB 8700507</option>
                         <option value="Vietinbank 113600098383">Vietinbank 113600098383 / TK công ty</option>
                         <option value="ACB 11090087">ACB 11090087</option>
-                        <option value="ACB 8700507">ACB 8700507</option>
                     </select>
                 </div>
 
@@ -134,37 +135,39 @@ function render_order_paid_confirmation_script()
     ];
 ?>
     <style>
-        .btc-ui { display: grid; gap: 16px; }
-        .btc-panel, .btc-notice { background: #fff; border: 1px solid #d6dee7; border-radius: 14px; padding: 16px; }
+        .btc-ui { display: grid; gap: 10px; font-size: 12px; line-height: 1.35; }
+        .btc-panel, .btc-notice { background: #fff; border: 1px solid #d6dee7; border-radius: 8px; padding: 10px 12px; }
         .btc-panel h2, .btc-panel p { margin: 0; }
         .btc-panel p + p { margin-top: 8px; }
-        .btc-search-panel { display: grid; gap: 12px; }
+        .btc-search-panel { display: grid; gap: 8px; }
         .btc-search-panel input,
         .btc-modal textarea,
         .btc-modal input,
-        .btc-modal select { width: 100%; border: 1px solid #c9d3df; border-radius: 10px; padding: 10px 12px; background: #fff; }
-        .btc-actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btc-modal select { width: 100%; border: 1px solid #c9d3df; border-radius: 6px; padding: 6px 8px; background: #fff; font-size: 12px; line-height: 1.3; }
+        .btc-actions-row { display: flex; gap: 6px; flex-wrap: wrap; }
         .btc-notice { display: none; }
         .btc-notice.is-visible { display: block; }
         .btc-notice.is-success { border-color: #b8ddc7; background: #edf8f1; color: #1f6b3a; }
         .btc-notice.is-error { border-color: #efc0c0; background: #fff2f2; color: #9c2f2f; }
         .btc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .btc-table { width: 100%; min-width: 980px; border-collapse: collapse; table-layout: auto; }
-        .btc-table th, .btc-table td { padding: 12px; border-bottom: 1px solid #e5ebf1; vertical-align: top; text-align: left; }
-        .btc-table th { background: #f6f8fb; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: #5b6470; }
+        .btc-table { width: 100%; min-width: 860px; border-collapse: collapse; table-layout: auto; }
+        .btc-table th, .btc-table td { padding: 7px 8px; border-bottom: 1px solid #e5ebf1; vertical-align: top; text-align: left; font-size: 12px; line-height: 1.35; }
+        .btc-table th { background: #f6f8fb; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #5b6470; }
         .btc-table tr:hover td { background: #fbfcfe; }
-        .btc-table ul { margin: 0; padding-left: 18px; }
-        .btc-table__muted { display: block; margin-top: 4px; color: #5b6470; }
-        .btc-table__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btc-table ul { margin: 0; padding-left: 14px; }
+        .btc-table li { margin: 0 0 2px; }
+        .btc-table__muted { display: block; margin-top: 2px; color: #5b6470; font-size: 12px; line-height: 1.3; }
+        .btc-table__actions { display: flex; gap: 5px; flex-wrap: wrap; }
         .btc-copy-field { cursor: copy; }
         .btc-modal[hidden] { display: none; }
         .btc-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
         .btc-modal__backdrop { position: absolute; inset: 0; background: rgba(17, 24, 39, .55); }
-        .btc-modal__dialog { position: relative; width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; margin: 0; background: #fff; border-radius: 16px; padding: 22px; box-shadow: 0 18px 60px rgba(0,0,0,.22); }
+        .btc-modal__dialog { position: relative; width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; margin: 0; background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 18px 60px rgba(0,0,0,.22); font-size: 12px; line-height: 1.35; }
         .btc-modal__close { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; font-size: 30px; line-height: 1; cursor: pointer; }
-        .btc-modal__summary, .btc-modal__dialog h3 { margin-bottom: 16px; }
-        .btc-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+        .btc-modal__summary, .btc-modal__dialog h3 { margin-bottom: 10px; }
+        .btc-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
         .btc-form-span { grid-column: 1 / -1; }
+        .btc-ui .button--small, .btc-ui .button--green, .btc-ui .button--white, .btc-ui .button--red, .btc-modal .button--small, .btc-modal .button--green, .btc-modal .button--white { min-height: 30px; padding: 5px 9px; font-size: 12px; line-height: 1.2; border-radius: 6px; }
         body.btc-modal-open { overflow: hidden; }
         @media (max-width: 767px) {
             .btc-table-wrap { overflow-x: visible; }
@@ -180,7 +183,7 @@ function render_order_paid_confirmation_script()
             .btc-table tr { border: 1px solid #d6dee7; border-radius: 14px; background: #fff; overflow: hidden; }
             .btc-table td { border-bottom: 1px solid #e5ebf1; padding: 12px 14px; }
             .btc-table td:last-child { border-bottom: 0; }
-            .btc-table td::before { content: attr(data-label); display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: #5b6470; letter-spacing: .03em; }
+            .btc-table td::before { content: attr(data-label); display: block; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; color: #5b6470; letter-spacing: .03em; }
             .btc-table__actions { flex-direction: column; }
             .btc-table__actions > * { width: 100%; text-align: center; }
             .btc-form-grid { grid-template-columns: 1fr; }
@@ -481,14 +484,10 @@ function resolve_order_from_search_code($token)
     }
 
     foreach ($attempts as $candidate) {
-        if ($candidate === '' || !is_numeric($candidate)) {
-            continue;
-        }
+        if ($candidate === '' || !is_numeric($candidate)) continue;
 
         $order = wc_get_order((int) $candidate);
-        if ($order) {
-            return $order;
-        }
+        if ($order) return $order;
     }
 
     return null;
@@ -516,14 +515,10 @@ function handle_search_order_ajax()
 
     foreach ($tokens as $token) {
         $order = resolve_order_from_search_code($token);
-        if (!$order) {
-            continue;
-        }
+        if (!$order) continue;
 
         $order_id = $order->get_id();
-        if (isset($seen_order_ids[$order_id])) {
-            continue;
-        }
+        if (isset($seen_order_ids[$order_id])) continue;
 
         $seen_order_ids[$order_id] = true;
         $orders[] = $order;
@@ -594,6 +589,12 @@ function render_single_order_info($order)
         }
         echo '</small>';
     }
+    $payment_audit = btc_get_payment_confirmation_audit($order);
+    if (!empty($payment_audit)) {
+        $audit_name = $payment_audit['confirmed_name'] ?? ('User #' . ($payment_audit['confirmed_by'] ?? ''));
+        $audit_time = $payment_audit['confirmed_at'] ?? '';
+        echo '<small class="btc-table__muted">Xác nhận bởi: ' . esc_html(trim($audit_name . ($audit_time ? ' | ' . $audit_time : ''))) . '</small>';
+    }
     echo '</td>';
     echo '<td data-label="Trạng thái">' . esc_html($order_status) . '<span class="btc-table__muted">' . esc_html(is_array($handling_status) ? implode(', ', $handling_status) : $handling_status) . '</span></td>';
     echo '<td data-label="Sản phẩm"><ul>';
@@ -602,7 +603,7 @@ function render_single_order_info($order)
     }
     echo '</ul></td>';
     echo '<td data-label="Thao tác"><div class="btc-table__actions">';
-    echo '<button type="button" class="button--small button--green" data-open-confirm-modal="1" data-order-id="' . intval($order_id) . '" data-order-total-raw="' . esc_attr(wc_format_decimal($order->get_total(), 0)) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Xác nhận CK</button>';
+    echo '<button type="button" class="button--small button--green" data-open-confirm-modal="1" data-order-id="' . intval($order_id) . '" data-order-total-raw="' . esc_attr(wc_format_decimal($order->get_total(), 0)) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Xác nhận chuyển khoản</button>';
     echo '<button type="button" class="button--small button--white" data-open-sms-modal="1" data-order-basic-info="' . esc_attr($basic_info) . '" data-sms-phone="' . esc_attr($billing_phone) . '" data-sms-paid="' . esc_attr($sms_paid) . '" data-sms-recall="' . esc_attr($sms_recall) . '">Gửi SMS</button>';
     echo '</div></td>';
     echo '</tr>';
@@ -660,6 +661,7 @@ function handle_confirm_order_payment()
     }
 
     process_order_payment($order, $bank_account, $paid_date, $amount_received, $payer, $cod_note);
+
     wp_send_json_success([
         'message' => 'Đã cập nhật đơn hàng. Bank: ' . esc_html($order->get_meta('order_bank_account_received')) . ' | Date: ' . esc_html($order->get_meta('order_paid_date')),
     ]);
@@ -669,6 +671,13 @@ function process_order_payment($order, $bank_account, $paid_date, $amount_receiv
 {
     $order_id = $order->get_id();
     $order_total = $order->get_total();
+    $confirmation_type = 'bank_transfer';
+
+    if ($payer === 'shipper') {
+        $confirmation_type = 'cod_shipper';
+    } elseif ($payer === 'self') {
+        $confirmation_type = 'cod_staff';
+    }
 
     if (in_array($payer, ['shipper', 'self'])) {
         if (!empty($cod_note)) {
@@ -696,5 +705,54 @@ function process_order_payment($order, $bank_account, $paid_date, $amount_receiv
         }
     }
 
+    btc_record_payment_confirmation_audit($order, $confirmation_type, (float) $amount_received, $payer, $bank_account, $paid_date, $cod_note);
     $order->save();
+}
+
+function btc_get_payment_confirmation_audit($order)
+{
+    if (!$order instanceof WC_Order) {
+        return [];
+    }
+
+    $raw = $order->get_meta('_order_payment_confirmation_audit');
+    if (!is_string($raw) || $raw === '') {
+        return [];
+    }
+
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function btc_record_payment_confirmation_audit($order, $type, $amount, $payer, $bank_account, $paid_date, $note)
+{
+    if (!$order instanceof WC_Order) {
+        return;
+    }
+
+    $user = wp_get_current_user();
+    $display_name = $user && $user->ID ? ($user->display_name ?: $user->user_login) : 'Unknown user';
+    $confirmed_at = current_time('mysql');
+    $audit = [
+        'type' => (string) $type,
+        'confirmed_by' => $user ? (int) $user->ID : 0,
+        'confirmed_name' => $display_name,
+        'confirmed_at' => $confirmed_at,
+        'amount' => (float) $amount,
+        'payer' => (string) $payer,
+        'bank_account' => (string) $bank_account,
+        'paid_date' => (string) $paid_date,
+        'note' => (string) $note,
+    ];
+
+    update_post_meta($order->get_id(), '_order_payment_confirmation_audit', wp_json_encode($audit, JSON_UNESCAPED_UNICODE));
+    $note_parts = [
+        sprintf('Thanh toán đã được xác nhận bởi %s lúc %s.', $display_name, $confirmed_at),
+        'Loại: ' . $type,
+        'Số tiền: ' . wp_strip_all_tags(wc_price((float) $amount)),
+    ];
+    if ((string) $note !== '') {
+        $note_parts[] = 'Ghi chú: ' . $note;
+    }
+    $order->add_order_note(implode(' | ', $note_parts));
 }
