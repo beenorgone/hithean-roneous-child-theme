@@ -463,10 +463,49 @@ function oppc_render_assets(): void
                 document.body.classList.remove('oppc-modal-open');
             }
 
+            function buildConfirmPreview(ids, bankAccount, paidDate, amountReceived, payer, note) {
+                var payerLabels = {
+                    customer: 'Khách hàng',
+                    shipper: 'Shipper TT COD',
+                    self: 'Nhân viên TT COD'
+                };
+                var summary = document.getElementById('oppc_order_summary').value || '';
+                var amountText = amountReceived ? amountReceived : 'Trống/0 - xử lý theo logic nhận đủ nếu không phải thanh toán một phần';
+                var lines = [
+                    'PREVIEW XÁC NHẬN THANH TOÁN',
+                    '',
+                    'Số đơn: ' + ids.length,
+                    'Mã đơn: #' + ids.join(', #'),
+                    summary ? 'Thông tin: ' + summary : '',
+                    '',
+                    'Sẽ cập nhật:',
+                    '- Tài khoản nhận: ' + bankAccount,
+                    '- Ngày nhận CK: ' + paidDate,
+                    '- Số tiền nhận: ' + amountText,
+                    '- Người thanh toán: ' + (payerLabels[payer] || payer),
+                    note ? '- Ghi chú: ' + note : '- Ghi chú: Không có',
+                    '- Lưu audit _order_payment_confirmation_audit với người xác nhận hiện tại',
+                    '',
+                    'Bấm OK để cập nhật thật. Bấm Cancel để quay lại chỉnh.'
+                ];
+
+                return lines.filter(Boolean).join('\n');
+            }
+
             function confirmPayment() {
                 var ids = state.orderIds && state.orderIds.length ? state.orderIds : (state.orderId ? [state.orderId] : []);
                 if (!ids.length) {
                     showNotice('Chưa chọn đơn hàng.', 'error');
+                    return;
+                }
+
+                var bankAccount = document.getElementById('oppc_bank_account').value;
+                var paidDate = document.getElementById('oppc_paid_date').value;
+                var amountReceived = document.getElementById('oppc_amount').value;
+                var payer = document.getElementById('oppc_payer').value;
+                var note = document.getElementById('oppc_note').value;
+
+                if (!window.confirm(buildConfirmPreview(ids, bankAccount, paidDate, amountReceived, payer, note))) {
                     return;
                 }
 
@@ -477,11 +516,11 @@ function oppc_render_assets(): void
                     nonce: oppcConfig.confirmNonce,
                     order_id: state.orderId,
                     order_ids: ids.join(','),
-                    bank_account: document.getElementById('oppc_bank_account').value,
-                    paid_date: document.getElementById('oppc_paid_date').value,
-                    amount_received: document.getElementById('oppc_amount').value,
-                    payer: document.getElementById('oppc_payer').value,
-                    note: document.getElementById('oppc_note').value
+                    bank_account: bankAccount,
+                    paid_date: paidDate,
+                    amount_received: amountReceived,
+                    payer: payer,
+                    note: note
                 }, function(response) {
                     if (response && response.success && response.data) {
                         closeConfirm();

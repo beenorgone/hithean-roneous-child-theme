@@ -397,6 +397,35 @@ function render_order_paid_confirmation_script()
                 });
             }
 
+            function buildConfirmPreview(ids, bankAccount, paidDate, amountReceived, payer, codNote) {
+                var payerLabels = {
+                    customer: 'Khách hàng',
+                    shipper: 'Shipper TT COD',
+                    self: 'Nhân viên TT COD'
+                };
+                var summary = document.getElementById('selected_order_info').value || '';
+                var amountText = amountReceived ? amountReceived : 'Trống/0 - xử lý theo logic nhận đủ nếu không phải thanh toán một phần';
+                var lines = [
+                    'PREVIEW XÁC NHẬN THANH TOÁN',
+                    '',
+                    'Số đơn: ' + ids.length,
+                    'Mã đơn: #' + ids.join(', #'),
+                    summary ? 'Thông tin: ' + summary : '',
+                    '',
+                    'Sẽ cập nhật:',
+                    '- Tài khoản nhận: ' + bankAccount,
+                    '- Ngày nhận CK: ' + paidDate,
+                    '- Số tiền nhận: ' + amountText,
+                    '- Người thanh toán: ' + (payerLabels[payer] || payer),
+                    codNote ? '- Ghi chú COD: ' + codNote : '- Ghi chú COD: Không có',
+                    '- Lưu audit _order_payment_confirmation_audit với người xác nhận hiện tại',
+                    '',
+                    'Bấm OK để cập nhật thật. Bấm Cancel để quay lại chỉnh.'
+                ];
+
+                return lines.filter(Boolean).join('\n');
+            }
+
             function confirmPayment() {
                 var bankAccount = document.getElementById('bank_account').value;
                 var paidDate = document.getElementById('paid_date').value;
@@ -407,6 +436,10 @@ function render_order_paid_confirmation_script()
                 var ids = state.selectedOrderIds && state.selectedOrderIds.length ? state.selectedOrderIds : (state.selectedOrderId ? [state.selectedOrderId] : []);
                 if (!ids.length || !paidDate || !bankAccount) {
                     showNotice('Vui lòng nhập đầy đủ thông tin!', 'error');
+                    return;
+                }
+
+                if (!window.confirm(buildConfirmPreview(ids, bankAccount, paidDate, amountReceived, payer, codNote))) {
                     return;
                 }
 
