@@ -212,7 +212,10 @@ function oppc_render_assets(): void
         .oppc-recent { margin-bottom: 12px; }
         .oppc-recent h3 { margin: 0 0 8px; font-size: 14px; }
         .oppc-muted { display: block; margin-top: 2px; color: #5b6470; font-size: 12px; line-height: 1.3; }
+        .oppc-bulk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
         .oppc-row-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+        .oppc-select-cell { width: 34px; text-align: center; }
+        .oppc input.oppc-row-select, .oppc input#oppc_select_all { width: auto; min-width: 0; }
         .oppc-modal[hidden] { display: none; }
         .oppc-modal { position: fixed; inset: 0; z-index: 9999; display: block; width: 100%; height: 100%; padding: 0; overflow: visible; pointer-events: none; }
         .oppc-modal__backdrop { position: fixed; inset: 0; background: rgba(17, 24, 39, .35); pointer-events: auto; }
@@ -241,7 +244,7 @@ function oppc_render_assets(): void
             var root = document.querySelector('.oppc');
             if (!root) return;
 
-            var state = { orderId: '', lastLoaded: false, selectedRow: null };
+            var state = { orderId: '', orderIds: [], lastLoaded: false, selectedRow: null, selectedRows: [] };
             var noticeEl = document.getElementById('oppc_notice');
             var resultsEl = document.getElementById('oppc_results');
             var loadBtn = document.getElementById('oppc_load');
@@ -286,11 +289,21 @@ function oppc_render_assets(): void
                     if (response && response.success && response.data) {
                         resultsEl.innerHTML = response.data.html || '';
                         resultsEl.hidden = false;
+                        state.orderId = '';
+                        state.orderIds = [];
+                        state.selectedRow = null;
+                        state.selectedRows = [];
+                        updateBulkState();
                         state.lastLoaded = true;
                         if (!keepNotice) showNotice(response.data.message || 'Đã tải dữ liệu.', 'success');
                     } else {
                         resultsEl.innerHTML = '<p>Không có dữ liệu phù hợp.</p>';
                         resultsEl.hidden = false;
+                        state.orderId = '';
+                        state.orderIds = [];
+                        state.selectedRow = null;
+                        state.selectedRows = [];
+                        updateBulkState();
                         showNotice(response && response.data && response.data.message ? response.data.message : 'Không tải được dữ liệu.', 'error');
                     }
                 }).fail(function() {
@@ -334,25 +347,62 @@ function oppc_render_assets(): void
                 var wrap = document.createElement('div');
                 wrap.id = 'oppc_recent_confirmed';
                 wrap.className = 'oppc-recent';
-                wrap.innerHTML = '<h3>Vừa xác nhận</h3><div class="oppc-table-wrap"><table class="oppc-table"><thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Thanh toán</th><th>Sản phẩm</th><th>Xác nhận</th><th>Thao tác</th></tr></thead><tbody></tbody></table></div>';
+                wrap.innerHTML = '<h3>Vừa xác nhận</h3><div class="oppc-table-wrap"><table class="oppc-table"><thead><tr><th class="oppc-select-cell"></th><th>Mã đơn</th><th>Khách hàng</th><th>Thanh toán</th><th>Sản phẩm</th><th>Xác nhận</th><th>Thao tác</th></tr></thead><tbody></tbody></table></div>';
                 resultsEl.insertBefore(wrap, resultsEl.firstChild);
                 return wrap.querySelector('tbody');
             }
 
-            function moveSelectedRowToRecent() {
-                if (!state.selectedRow || !document.body.contains(state.selectedRow)) return;
+            function moveRowsToRecent(rows) {
+                if (!rows || !rows.length) return;
 
                 var tbody = ensureRecentGroup();
-                var auditCell = state.selectedRow.querySelector('[data-label="Xác nhận"]');
-                if (auditCell) {
-                    auditCell.textContent = 'Vừa xác nhận';
+                rows.forEach(function(row) {
+                    if (!row || !document.body.contains(row)) return;
+
+                    var checkbox = row.querySelector('.oppc-row-select');
+                    if (checkbox) checkbox.checked = false;
+
+                    var auditCell = row.querySelector('[data-label="Xác nhận"]');
+                    if (auditCell) {
+                        auditCell.textContent = 'Vừa xác nhận';
+                    }
+                    tbody.insertBefore(row, tbody.firstChild);
+                });
+                updateBulkState();
+            }
+
+            function selectedCheckboxes() {
+                return Array.prototype.slice.call(resultsEl.querySelectorAll('.oppc-row-select:checked'));
+            }
+
+            function selectedOrderIds() {
+                return selectedCheckboxes().map(function(input) { return input.value; }).filter(Boolean);
+            }
+
+            function updateBulkState() {
+                var count = selectedOrderIds().length;
+                var bulkBtn = document.getElementById('oppc_bulk_confirm');
+                var countEl = document.getElementById('oppc_bulk_count');
+                var selectAll = document.getElementById('oppc_select_all');
+                var allBoxes = Array.prototype.slice.call(resultsEl.querySelectorAll('.oppc-row-select'));
+
+                if (bulkBtn) bulkBtn.disabled = count === 0;
+                if (countEl) countEl.textContent = count ? count + ' đơn đã chọn' : 'Chưa chọn đơn';
+                if (selectAll) {
+                    selectAll.checked = allBoxes.length > 0 && count === allBoxes.length;
+                    selectAll.indeterminate = count > 0 && count < allBoxes.length;
                 }
-                tbody.insertBefore(state.selectedRow, tbody.firstChild);
+            }
+
+            function moveSelectedRowToRecent() {
+                moveRowsToRecent(state.selectedRows && state.selectedRows.length ? state.selectedRows : [state.selectedRow]);
             }
 
             function openConfirm(button) {
                 state.orderId = button.getAttribute('data-order-id') || '';
+                state.orderIds = state.orderId ? [state.orderId] : [];
                 state.selectedRow = button.closest('tr');
+                state.selectedRows = state.selectedRow ? [state.selectedRow] : [];
                 document.getElementById('oppc_order_summary').value = button.getAttribute('data-order-summary') || '';
                 document.getElementById('oppc_amount').value = button.getAttribute('data-order-total') || '';
                 document.getElementById('oppc_paid_date').value = new Date().toISOString().split('T')[0];
@@ -365,8 +415,31 @@ function oppc_render_assets(): void
 
             function closeConfirm() {
                 state.orderId = '';
+                state.orderIds = [];
+                state.selectedRows = [];
                 confirmModal.hidden = true;
                 document.body.classList.remove('oppc-modal-open');
+            }
+
+            function openBulkConfirm(button) {
+                var ids = selectedOrderIds();
+                if (!ids.length) {
+                    showNotice('Vui lòng chọn ít nhất một đơn.', 'error');
+                    return;
+                }
+
+                state.orderId = ids[0] || '';
+                state.orderIds = ids;
+                state.selectedRows = selectedCheckboxes().map(function(input) { return input.closest('tr'); }).filter(Boolean);
+                state.selectedRow = state.selectedRows[0] || null;
+                document.getElementById('oppc_order_summary').value = 'Xác nhận ' + ids.length + ' đơn: #' + ids.join(', #');
+                document.getElementById('oppc_amount').value = '';
+                document.getElementById('oppc_paid_date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('oppc_payer').value = 'customer';
+                document.getElementById('oppc_note').value = '';
+                confirmModal.hidden = false;
+                placeAnchoredModal(confirmModal, button);
+                document.body.classList.add('oppc-modal-open');
             }
 
             function openSms(button) {
@@ -391,7 +464,8 @@ function oppc_render_assets(): void
             }
 
             function confirmPayment() {
-                if (!state.orderId) {
+                var ids = state.orderIds && state.orderIds.length ? state.orderIds : (state.orderId ? [state.orderId] : []);
+                if (!ids.length) {
                     showNotice('Chưa chọn đơn hàng.', 'error');
                     return;
                 }
@@ -402,6 +476,7 @@ function oppc_render_assets(): void
                     action: 'oppc_confirm_payment',
                     nonce: oppcConfig.confirmNonce,
                     order_id: state.orderId,
+                    order_ids: ids.join(','),
                     bank_account: document.getElementById('oppc_bank_account').value,
                     paid_date: document.getElementById('oppc_paid_date').value,
                     amount_received: document.getElementById('oppc_amount').value,
@@ -438,6 +513,23 @@ function oppc_render_assets(): void
             resultsEl.addEventListener('click', function(e) {
                 var confirmButton = e.target.closest('[data-ppc-confirm="1"]');
                 var smsButton = e.target.closest('[data-ppc-sms="1"]');
+                var selectAll = e.target.closest('#oppc_select_all');
+                var rowSelect = e.target.closest('.oppc-row-select');
+                var bulkButton = e.target.closest('#oppc_bulk_confirm');
+
+                if (selectAll) {
+                    Array.prototype.forEach.call(resultsEl.querySelectorAll('.oppc-row-select'), function(input) { input.checked = selectAll.checked; });
+                    updateBulkState();
+                    return;
+                }
+                if (rowSelect) {
+                    updateBulkState();
+                    return;
+                }
+                if (bulkButton) {
+                    openBulkConfirm(bulkButton);
+                    return;
+                }
                 if (confirmButton) openConfirm(confirmButton);
                 if (smsButton) openSms(smsButton);
             });
@@ -675,8 +767,12 @@ function oppc_render_results(array $orders, array $filters): void
         return;
     }
 
+    if (!$is_audit_view) {
+        echo '<div class="oppc-bulk-actions"><button type="button" id="oppc_bulk_confirm" class="button--small button--green" disabled>Xác nhận đã chọn</button><span id="oppc_bulk_count" class="oppc-muted">Chưa chọn đơn</span></div>';
+    }
+
     echo '<div class="oppc-table-wrap"><table class="oppc-table"><thead><tr>';
-    echo '<th>Mã đơn</th><th>Khách hàng</th><th>Thanh toán</th><th>Sản phẩm</th><th>Xác nhận</th><th>Thao tác</th>';
+    echo '<th class="oppc-select-cell">' . ($is_audit_view ? '' : '<input type="checkbox" id="oppc_select_all" aria-label="Chọn tất cả đơn">') . '</th><th>Mã đơn</th><th>Khách hàng</th><th>Thanh toán</th><th>Sản phẩm</th><th>Xác nhận</th><th>Thao tác</th>';
     echo '</tr></thead><tbody>';
     foreach ($orders as $order) {
         oppc_render_order_row($order, $is_audit_view);
@@ -701,6 +797,7 @@ function oppc_render_order_row(WC_Order $order, bool $is_audit_view): void
     $default_payer = $order->get_payment_method() === 'cod' ? 'shipper' : 'customer';
 
     echo '<tr>';
+    echo '<td class="oppc-select-cell" data-label="Chọn">' . ($is_audit_view ? '' : '<input type="checkbox" class="oppc-row-select" value="' . intval($order_id) . '" aria-label="Chọn đơn #' . intval($order_id) . '">') . '</td>';
     echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><span class="oppc-muted">Mã: ' . esc_html($new_order_id) . '</span><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank" rel="noopener noreferrer">Chỉnh sửa</a></td>';
     echo '<td data-label="Khách hàng">' . esc_html($billing_name ?: 'Khách lẻ') . '<span class="oppc-muted">' . esc_html($billing_phone) . '</span><span class="oppc-muted">Trạng thái: ' . esc_html($order_status) . '</span></td>';
     echo '<td data-label="Thanh toán"><strong>' . $order_total . '</strong><span class="oppc-muted">' . esc_html($payment_method) . '</span><span class="oppc-muted">Giao bởi: ' . esc_html($shipping_method ?: 'Chưa có') . '</span><span class="oppc-muted">' . esc_html($order_date) . '</span></td>';
@@ -751,10 +848,9 @@ function oppc_ajax_confirm_payment(): void
         wp_send_json_error(['message' => 'Bạn không có quyền thực hiện thao tác này.'], 403);
     }
 
-    $order_id = absint($_POST['order_id'] ?? 0);
-    $order = $order_id ? wc_get_order($order_id) : false;
-    if (!$order instanceof WC_Order) {
-        wp_send_json_error(['message' => 'Đơn hàng không tồn tại.'], 404);
+    $order_ids = oppc_parse_order_ids($_POST['order_ids'] ?? ($_POST['order_id'] ?? ''));
+    if (empty($order_ids)) {
+        wp_send_json_error(['message' => 'Chưa chọn đơn hàng.'], 400);
     }
 
     $bank_account = sanitize_text_field(wp_unslash($_POST['bank_account'] ?? ''));
@@ -771,9 +867,35 @@ function oppc_ajax_confirm_payment(): void
         wp_send_json_error(['message' => 'Vui lòng nhập tài khoản nhận và ngày nhận chuyển khoản.'], 400);
     }
 
-    oppc_process_confirmation($order, $bank_account, $paid_date, $amount_received, $payer, $note);
+    $confirmed = 0;
+    foreach ($order_ids as $order_id) {
+        $order = wc_get_order($order_id);
+        if (!$order instanceof WC_Order) {
+            continue;
+        }
 
-    wp_send_json_success(['message' => 'Đã xác nhận thanh toán và lưu người xác nhận.']);
+        oppc_process_confirmation($order, $bank_account, $paid_date, $amount_received, $payer, $note);
+        $confirmed++;
+    }
+
+    if ($confirmed === 0) {
+        wp_send_json_error(['message' => 'Không có đơn hợp lệ để xác nhận.'], 404);
+    }
+
+    wp_send_json_success(['message' => sprintf('Đã xác nhận thanh toán %d đơn và lưu người xác nhận.', $confirmed)]);
+}
+
+function oppc_parse_order_ids($raw): array
+{
+    if (is_array($raw)) {
+        $parts = $raw;
+    } else {
+        $parts = preg_split('/[\s,]+/', (string) wp_unslash($raw), -1, PREG_SPLIT_NO_EMPTY);
+    }
+
+    $ids = array_map('absint', is_array($parts) ? $parts : []);
+    $ids = array_filter($ids);
+    return array_values(array_unique($ids));
 }
 
 function oppc_process_confirmation(WC_Order $order, string $bank_account, string $paid_date, float $amount_received, string $payer, string $note): void

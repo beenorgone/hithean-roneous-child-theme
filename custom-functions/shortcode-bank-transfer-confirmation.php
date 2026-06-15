@@ -143,7 +143,7 @@ function render_order_paid_confirmation_script()
         .btc-search-panel input,
         .btc-modal textarea,
         .btc-modal input,
-        .btc-modal select { width: 100%; border: 1px solid #c9d3df; border-radius: 6px; padding: 6px 8px; background: #fff; font-size: 12px; line-height: 1.3; }
+        .btc-modal select { width: 100% !important; border: 1px solid #c9d3df; border-radius: 6px; padding: 6px 8px; background: #fff; font-size: 12px; line-height: 1.3; }
         .btc-actions-row { display: flex; gap: 6px; flex-wrap: wrap; }
         .btc-notice { display: none; }
         .btc-notice.is-visible { display: block; }
@@ -157,7 +157,10 @@ function render_order_paid_confirmation_script()
         .btc-table ul { margin: 0; padding-left: 14px; }
         .btc-table li { margin: 0 0 2px; }
         .btc-table__muted { display: block; margin-top: 2px; color: #5b6470; font-size: 12px; line-height: 1.3; }
+        .btc-bulk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
         .btc-table__actions { display: flex; gap: 5px; flex-wrap: wrap; }
+        .btc-select-cell { width: 34px; text-align: center; }
+        .btc-ui input.btc-row-select, .btc-ui input#btc_select_all { width: auto; min-width: 0; }
         .btc-copy-field { cursor: copy; }
         .btc-modal[hidden] { display: none; }
         .btc-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -194,7 +197,7 @@ function render_order_paid_confirmation_script()
     <script>
         var btcConfig = <?php echo wp_json_encode($config); ?>;
         document.addEventListener('DOMContentLoaded', function() {
-            var state = { selectedOrderId: '', lastSearch: '' };
+            var state = { selectedOrderId: '', selectedOrderIds: [], lastSearch: '' };
             var noticeEl = document.getElementById('btc_notice');
             var resultsEl = document.getElementById('order_results');
             var modalEl = document.getElementById('btc_payment_modal');
@@ -265,6 +268,7 @@ function render_order_paid_confirmation_script()
 
             function openModal(buttonEl) {
                 state.selectedOrderId = buttonEl.getAttribute('data-order-id') || '';
+                state.selectedOrderIds = state.selectedOrderId ? [state.selectedOrderId] : [];
                 summaryEl.value = buttonEl.getAttribute('data-order-basic-info') || '';
                 document.getElementById('amount_received').value = buttonEl.getAttribute('data-order-total-raw') || '';
                 document.getElementById('paid_date').value = new Date().toISOString().split('T')[0];
@@ -278,8 +282,48 @@ function render_order_paid_confirmation_script()
 
             function closeModal() {
                 state.selectedOrderId = '';
+                state.selectedOrderIds = [];
                 modalEl.hidden = true;
                 document.body.classList.remove('btc-modal-open');
+            }
+
+            function selectedOrderIds() {
+                return Array.prototype.slice.call(resultsEl.querySelectorAll('.btc-row-select:checked')).map(function(input) { return input.value; }).filter(Boolean);
+            }
+
+            function updateBulkState() {
+                var ids = selectedOrderIds();
+                var bulkBtn = document.getElementById('btc_bulk_confirm');
+                var countEl = document.getElementById('btc_bulk_count');
+                var selectAll = document.getElementById('btc_select_all');
+                var allBoxes = Array.prototype.slice.call(resultsEl.querySelectorAll('.btc-row-select'));
+
+                if (bulkBtn) bulkBtn.disabled = ids.length === 0;
+                if (countEl) countEl.textContent = ids.length ? ids.length + ' đơn đã chọn' : 'Chưa chọn đơn';
+                if (selectAll) {
+                    selectAll.checked = allBoxes.length > 0 && ids.length === allBoxes.length;
+                    selectAll.indeterminate = ids.length > 0 && ids.length < allBoxes.length;
+                }
+            }
+
+            function openBulkModal(buttonEl) {
+                var ids = selectedOrderIds();
+                if (!ids.length) {
+                    showNotice('Vui lòng chọn ít nhất một đơn.', 'error');
+                    return;
+                }
+
+                state.selectedOrderId = ids[0] || '';
+                state.selectedOrderIds = ids;
+                summaryEl.value = 'Xác nhận ' + ids.length + ' đơn: #' + ids.join(', #');
+                document.getElementById('amount_received').value = '';
+                document.getElementById('paid_date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('bank_account').selectedIndex = 0;
+                payerEl.value = 'customer';
+                document.getElementById('cod_note').value = '';
+                toggleCodNote();
+                modalEl.hidden = false;
+                document.body.classList.add('btc-modal-open');
             }
 
             function openSmsModal(buttonEl) {
@@ -312,6 +356,9 @@ function render_order_paid_confirmation_script()
             function renderResults(html) {
                 resultsEl.innerHTML = html || '';
                 resultsEl.style.display = html ? 'block' : 'none';
+                state.selectedOrderId = '';
+                state.selectedOrderIds = [];
+                updateBulkState();
             }
 
             function searchOrder(keepNotice) {
@@ -357,7 +404,8 @@ function render_order_paid_confirmation_script()
                 var payer = payerEl.value;
                 var codNote = document.getElementById('cod_note').value;
 
-                if (!state.selectedOrderId || !paidDate || !bankAccount) {
+                var ids = state.selectedOrderIds && state.selectedOrderIds.length ? state.selectedOrderIds : (state.selectedOrderId ? [state.selectedOrderId] : []);
+                if (!ids.length || !paidDate || !bankAccount) {
                     showNotice('Vui lòng nhập đầy đủ thông tin!', 'error');
                     return;
                 }
@@ -368,6 +416,7 @@ function render_order_paid_confirmation_script()
                 jQuery.post(btcConfig.ajaxUrl, {
                     action: 'confirm_order_payment',
                     order_id: state.selectedOrderId,
+                    order_ids: ids.join(','),
                     bank_account: bankAccount,
                     paid_date: paidDate,
                     amount_received: amountReceived,
@@ -410,6 +459,23 @@ function render_order_paid_confirmation_script()
             resultsEl.addEventListener('click', function(e) {
                 var confirmButton = e.target.closest('[data-open-confirm-modal="1"]');
                 var smsButton = e.target.closest('[data-open-sms-modal="1"]');
+                var selectAll = e.target.closest('#btc_select_all');
+                var rowSelect = e.target.closest('.btc-row-select');
+                var bulkButton = e.target.closest('#btc_bulk_confirm');
+
+                if (selectAll) {
+                    Array.prototype.forEach.call(resultsEl.querySelectorAll('.btc-row-select'), function(input) { input.checked = selectAll.checked; });
+                    updateBulkState();
+                    return;
+                }
+                if (rowSelect) {
+                    updateBulkState();
+                    return;
+                }
+                if (bulkButton) {
+                    openBulkModal(bulkButton);
+                    return;
+                }
                 if (confirmButton) {
                     openModal(confirmButton);
                 }
@@ -541,8 +607,9 @@ function handle_search_order_ajax()
 function render_order_search_result($orders)
 {
     echo '<div><h3>Đơn hàng tìm được</h3><p>Chọn đúng đơn hàng rồi bấm "Xác nhận chuyển khoản" hoặc "Gửi SMS" để thao tác.</p></div>';
+    echo '<div class="btc-bulk-actions"><button type="button" id="btc_bulk_confirm" class="button--small button--green" disabled>Xác nhận đã chọn</button><span id="btc_bulk_count" class="btc-table__muted">Chưa chọn đơn</span></div>';
     echo '<div class="btc-table-wrap"><table class="btc-table"><thead><tr>';
-    echo '<th>Mã đơn</th><th>Khách hàng</th><th>Đơn hàng</th><th>Trạng thái</th><th>Sản phẩm</th><th>Thao tác</th>';
+    echo '<th class="btc-select-cell"><input type="checkbox" id="btc_select_all" aria-label="Chọn tất cả đơn"></th><th>Mã đơn</th><th>Khách hàng</th><th>Đơn hàng</th><th>Trạng thái</th><th>Sản phẩm</th><th>Thao tác</th>';
     echo '</tr></thead><tbody>';
     foreach ($orders as $order) render_single_order_info($order);
     echo '</tbody></table></div>';
@@ -573,6 +640,7 @@ function render_single_order_info($order)
     );
 
     echo '<tr>';
+    echo '<td class="btc-select-cell" data-label="Chọn"><input type="checkbox" class="btc-row-select" value="' . intval($order_id) . '" aria-label="Chọn đơn #' . intval($order_id) . '"></td>';
     echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><br><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank">✏️ Chỉnh sửa đơn hàng</a></td>';
     echo '<td data-label="Khách hàng">' . esc_html($billing_name) . '<span class="btc-table__muted">' . esc_html($billing_phone) . '</span></td>';
     echo '<td data-label="Đơn hàng"><strong>' . $order_total . '</strong><span class="btc-table__muted">' . esc_html($order_date) . '</span><span class="btc-table__muted">' . esc_html($payment_method) . '</span>';
@@ -648,23 +716,50 @@ function handle_confirm_order_payment()
         wp_send_json_error(['message' => 'Bạn không có quyền thực hiện thao tác này.'], 403);
     }
 
-    $order_id = intval($_POST['order_id']);
+    $order_ids = btc_parse_order_ids($_POST['order_ids'] ?? ($_POST['order_id'] ?? ''));
     $bank_account = sanitize_text_field($_POST['bank_account']);
     $paid_date = sanitize_text_field($_POST['paid_date']);
     $amount_received = floatval($_POST['amount_received']);
     $payer = sanitize_text_field($_POST['payer']);
     $cod_note = sanitize_textarea_field($_POST['cod_note']);
 
-    $order = wc_get_order($order_id);
-    if (!$order) {
-        wp_send_json_error(['message' => 'Đơn hàng không tồn tại.'], 404);
+    if (empty($order_ids)) {
+        wp_send_json_error(['message' => 'Chưa chọn đơn hàng.'], 400);
     }
 
-    process_order_payment($order, $bank_account, $paid_date, $amount_received, $payer, $cod_note);
+    $confirmed = 0;
+    $last_order = null;
+    foreach ($order_ids as $order_id) {
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            continue;
+        }
+
+        process_order_payment($order, $bank_account, $paid_date, $amount_received, $payer, $cod_note);
+        $last_order = $order;
+        $confirmed++;
+    }
+
+    if ($confirmed === 0 || !$last_order) {
+        wp_send_json_error(['message' => 'Không có đơn hợp lệ để xác nhận.'], 404);
+    }
 
     wp_send_json_success([
-        'message' => 'Đã cập nhật đơn hàng. Bank: ' . esc_html($order->get_meta('order_bank_account_received')) . ' | Date: ' . esc_html($order->get_meta('order_paid_date')),
+        'message' => sprintf('Đã cập nhật %d đơn hàng. Bank: %s | Date: %s', $confirmed, esc_html($last_order->get_meta('order_bank_account_received')), esc_html($last_order->get_meta('order_paid_date'))),
     ]);
+}
+
+function btc_parse_order_ids($raw): array
+{
+    if (is_array($raw)) {
+        $parts = $raw;
+    } else {
+        $parts = preg_split('/[\s,]+/', (string) wp_unslash($raw), -1, PREG_SPLIT_NO_EMPTY);
+    }
+
+    $ids = array_map('absint', is_array($parts) ? $parts : []);
+    $ids = array_filter($ids);
+    return array_values(array_unique($ids));
 }
 
 function process_order_payment($order, $bank_account, $paid_date, $amount_received, $payer, $cod_note)
