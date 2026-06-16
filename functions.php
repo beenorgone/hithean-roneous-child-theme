@@ -82,6 +82,15 @@ jQuery(function($) {
 });
 JS);
         }
+
+        if (function_exists('is_checkout') && is_checkout()) {
+            wp_enqueue_style(
+                'roneous-child-checkout-style',
+                get_stylesheet_directory_uri() . '/css/page-checkout.css',
+                array('hithean-custom-style'),
+                filemtime(get_stylesheet_directory() . '/css/page-checkout.css')
+            );
+        }
     }
     add_action('wp_enqueue_scripts', 'roneous_child_enqueue_styles');
 }
