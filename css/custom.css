@@ -1150,6 +1150,20 @@ nav .menu li a:focus {
     }
 }
 
+/* Product variations (mobile) */
+
+@media (max-width: 768px) {
+    .product .summary .variations {
+        margin: 0 auto;
+    }
+
+    .product .summary .variations tr {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+}
+
 /* Product title */
 
 .product_title.entry-title {
