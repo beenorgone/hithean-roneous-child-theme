@@ -99,7 +99,13 @@ body {
 .hithean-product-linking {
     display: grid;
     gap: 14px;
-    margin: 18px 0 22px;
+    margin: 18px auto 22px auto;
+}
+
+@media screen and (min-width: 769px) {
+    .hithean-product-linking {
+        margin: 18px 0 22px;
+    }
 }
 
 .hithean-product-linking__group {
