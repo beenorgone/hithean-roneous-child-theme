@@ -133,6 +133,7 @@ function oppc_render_ui(): void
                         <option value="ACB 8700507">ACB 8700507</option>
                         <option value="Vietinbank 113600098383">Vietinbank 113600098383 / TK công ty</option>
                         <option value="ACB 11090087">ACB 11090087</option>
+                        <option value="tiền mặt">tiền mặt</option>
                     </select>
                 </label>
                 <label>

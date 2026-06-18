@@ -26,6 +26,7 @@ function thean_register_order_meta_boxes($meta_boxes)
         'ACB 11090087'            => 'ACB 11090087',
         'Momo 0766333454'         => 'Momo 0766333454',
         'ACB 212658699'           => 'ACB 212658699',
+        'tiền mặt'                => 'tiền mặt',
     ];
 
     $shipper_options = [
