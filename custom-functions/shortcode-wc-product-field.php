@@ -1,17 +1,17 @@
 <?php
 /*
- * Shortcode: [anc_product_field]
+ * Shortcode: [wc_product_field]
  * Lấy tên / giá / link / CTA của 1 sản phẩm WooCommerce theo id|sku|slug,
- * để nhúng vào landing page tĩnh (an-new-chapter) — tự cập nhật khi sửa sản phẩm.
+ * để nhúng vào landing page tĩnh — tự cập nhật khi sửa sản phẩm.
  *
- * Dùng: [anc_product_field slug="ten-san-pham" field="name"]
+ * Dùng: [wc_product_field slug="ten-san-pham" field="name"]
  * field: name | permalink | regular_price | sale_price | current_price |
  *        discount_percent | cta_text | image
  */
 
-add_shortcode('anc_product_field', 'child_theme_anc_product_field_shortcode');
+add_shortcode('wc_product_field', 'child_theme_wc_product_field_shortcode');
 
-function child_theme_anc_product_field_resolve_product(array $atts): ?WC_Product
+function child_theme_wc_product_field_resolve_product(array $atts): ?WC_Product
 {
     if (!function_exists('wc_get_product')) {
         return null;
@@ -32,16 +32,16 @@ function child_theme_anc_product_field_resolve_product(array $atts): ?WC_Product
     return $product instanceof WC_Product ? $product : null;
 }
 
-function child_theme_anc_product_field_shortcode($atts): string
+function child_theme_wc_product_field_shortcode($atts): string
 {
     $atts = shortcode_atts([
         'id'    => '',
         'sku'   => '',
         'slug'  => '',
         'field' => 'name',
-    ], $atts, 'anc_product_field');
+    ], $atts, 'wc_product_field');
 
-    $product = child_theme_anc_product_field_resolve_product($atts);
+    $product = child_theme_wc_product_field_resolve_product($atts);
     if (!$product instanceof WC_Product) {
         return '';
     }

@@ -545,8 +545,8 @@ function tpc_loader_modules()
             ],
         ],
         [
-            'id' => 'anc_product_field',
-            'file' => 'custom-functions/shortcode-anc-product-field.php',
+            'id' => 'wc_product_field',
+            'file' => 'custom-functions/shortcode-wc-product-field.php',
             'path_groups' => ['anc_landing'],
         ],
     ];
