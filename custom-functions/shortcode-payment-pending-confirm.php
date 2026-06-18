@@ -205,7 +205,7 @@ function oppc_render_assets(): void
         .oppc__notice.is-error { border-color: #efc0c0; background: #fff2f2; color: #9c2f2f; }
         .oppc-table-wrap { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .oppc-table { width: 100%; min-width: 860px; border-collapse: collapse; table-layout: fixed; }
-        .oppc-table th, .oppc-table td { padding: 7px 8px; border-bottom: 1px solid #e5ebf1; text-align: left; vertical-align: top; overflow-wrap: anywhere; font-size: 12px; line-height: 1.35; }
+        .oppc-table th, .oppc-table td { padding: 7px 8px !important; border-bottom: 1px solid #e5ebf1; text-align: left; vertical-align: top; overflow-wrap: anywhere; font-size: 12px; line-height: 1.35; }
         .oppc-table th { background: #f6f8fb; color: #5b6470; font-size: 12px; text-transform: uppercase; }
         .oppc-table ul { margin: 0; padding-left: 14px; }
         .oppc-table li { margin: 0 0 2px; }
