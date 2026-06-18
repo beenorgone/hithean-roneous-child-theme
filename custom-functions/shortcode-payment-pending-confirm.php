@@ -213,6 +213,8 @@ function oppc_render_assets(): void
         .oppc-recent { margin-bottom: 12px; }
         .oppc-recent h3 { margin: 0 0 8px; font-size: 14px; }
         .oppc-muted { display: block; margin-top: 2px; color: #5b6470; font-size: 12px; line-height: 1.3; }
+        .oppc-result-summary { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0; padding: 8px 10px; border: 1px solid #d6dee7; border-radius: 6px; background: #f6f8fb; font-size: 12px; line-height: 1.35; }
+        .oppc-result-summary strong { color: #111827; }
         .oppc-bulk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
         .oppc-row-actions { display: flex; flex-wrap: wrap; gap: 5px; }
         .oppc-select-cell { width: 34px; text-align: center; }
@@ -862,12 +864,21 @@ function oppc_has_only_external_cod_carriers(WC_Order $order): bool
 function oppc_render_results(array $orders, array $filters): void
 {
     $is_audit_view = !empty($filters['confirmed_by']);
+    $result_total = 0.0;
+    foreach ($orders as $order) {
+        if ($order instanceof WC_Order) {
+            $result_total += (float) $order->get_total();
+        }
+    }
+
     echo '<div><h3>' . esc_html($is_audit_view ? 'Đơn theo người xác nhận' : 'Đơn cần xác nhận') . '</h3></div>';
 
     if (empty($orders)) {
         echo '<p>Không có đơn hàng phù hợp.</p>';
         return;
     }
+
+    echo '<div class="oppc-result-summary"><span>Số đơn: <strong>' . esc_html((string) count($orders)) . '</strong></span><span>Tổng số tiền: <strong>' . wp_kses_post(wc_price($result_total)) . '</strong></span></div>';
 
     if (!$is_audit_view) {
         echo '<div class="oppc-bulk-actions"><button type="button" id="oppc_bulk_confirm" class="button--small button--green" disabled>Xác nhận đã chọn</button><span id="oppc_bulk_count" class="oppc-muted">Chưa chọn đơn</span></div>';

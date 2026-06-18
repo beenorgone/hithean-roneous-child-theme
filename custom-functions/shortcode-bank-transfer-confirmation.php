@@ -158,6 +158,8 @@ function render_order_paid_confirmation_script()
         .btc-table ul { margin: 0; padding-left: 14px; }
         .btc-table li { margin: 0 0 2px; }
         .btc-table__muted { display: block; margin-top: 2px; color: #5b6470; font-size: 12px; line-height: 1.3; }
+        .btc-result-summary { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0; padding: 8px 10px; border: 1px solid #d6dee7; border-radius: 6px; background: #f6f8fb; font-size: 12px; line-height: 1.35; }
+        .btc-result-summary strong { color: #111827; }
         .btc-bulk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; }
         .btc-table__actions { display: flex; gap: 5px; flex-wrap: wrap; }
         .btc-select-cell { width: 34px; text-align: center; }
@@ -640,7 +642,15 @@ function handle_search_order_ajax()
 
 function render_order_search_result($orders)
 {
+    $result_total = 0.0;
+    foreach ($orders as $order) {
+        if ($order instanceof WC_Order) {
+            $result_total += (float) $order->get_total();
+        }
+    }
+
     echo '<div><h3>Đơn hàng tìm được</h3><p>Chọn đúng đơn hàng rồi bấm "Xác nhận chuyển khoản" hoặc "Gửi SMS" để thao tác.</p></div>';
+    echo '<div class="btc-result-summary"><span>Số đơn: <strong>' . esc_html((string) count($orders)) . '</strong></span><span>Tổng số tiền: <strong>' . wp_kses_post(wc_price($result_total)) . '</strong></span></div>';
     echo '<div class="btc-bulk-actions"><button type="button" id="btc_bulk_confirm" class="button--small button--green" disabled>Xác nhận đã chọn</button><span id="btc_bulk_count" class="btc-table__muted">Chưa chọn đơn</span></div>';
     echo '<div class="btc-table-wrap"><table class="btc-table"><thead><tr>';
     echo '<th class="btc-select-cell"><input type="checkbox" id="btc_select_all" aria-label="Chọn tất cả đơn"></th><th>Mã đơn</th><th>Khách hàng</th><th>Đơn hàng</th><th>Trạng thái</th><th>Sản phẩm</th><th>Thao tác</th>';
