@@ -204,7 +204,6 @@ $general_includes = [
     'custom-functions/popup-widget.php',
     'custom-functions/shortcode-field-content.php',
     'custom-functions/shortcode-greenspark-banner.php',
-    'custom-functions/shortcode-anc-product-field.php',
     'custom-functions/product-page.php',
     'custom-functions/product-linking.php',
     'custom-functions/product-list-page.php',
@@ -467,6 +466,9 @@ function tpc_loader_path_groups()
             '/tien-ich/protein-calculator',
             '/an-new-chapter',
         ],
+        'anc_landing' => [
+            '/an-new-chapter',
+        ],
     ]);
 }
 
@@ -541,6 +543,11 @@ function tpc_loader_modules()
             'ajax_actions' => [
                 'protein_calculator_get_products',
             ],
+        ],
+        [
+            'id' => 'anc_product_field',
+            'file' => 'custom-functions/shortcode-anc-product-field.php',
+            'path_groups' => ['anc_landing'],
         ],
     ];
 
