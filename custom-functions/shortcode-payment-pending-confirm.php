@@ -526,8 +526,8 @@ function oppc_render_assets(): void
                     note: note
                 }, function(response) {
                     if (response && response.success && response.data) {
-                        closeConfirm();
                         moveSelectedRowToRecent();
+                        closeConfirm();
                         showNotice(response.data.message || 'Đã xác nhận thanh toán.', 'success');
                     } else {
                         showNotice(response && response.data && response.data.message ? response.data.message : 'Không thể xác nhận.', 'error');
