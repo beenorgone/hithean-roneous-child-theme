@@ -1535,6 +1535,24 @@
     line-height: 1.6;
 }
 
+/* Dynamic product grids — [products] shortcode (auto-update tên/giá/link) */
+.anc-yeast-hero-lineup,
+.anc-organic-products-shortcode {
+    max-width: 1100px;
+    margin: 56px auto 0;
+    padding: 0 20px;
+}
+
+.anc-yeast-hero-lineup-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 16px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--default-color-dark-brown);
+    margin: 0 0 24px;
+}
+
 /* =============================================
    SCROLL ANIMATIONS (IntersectionObserver)
    ============================================= */

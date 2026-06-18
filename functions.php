@@ -204,6 +204,7 @@ $general_includes = [
     'custom-functions/popup-widget.php',
     'custom-functions/shortcode-field-content.php',
     'custom-functions/shortcode-greenspark-banner.php',
+    'custom-functions/shortcode-anc-product-field.php',
     'custom-functions/product-page.php',
     'custom-functions/product-linking.php',
     'custom-functions/product-list-page.php',
@@ -464,6 +465,7 @@ function tpc_loader_path_groups()
         'protein' => [
             '/protein-calculator',
             '/tien-ich/protein-calculator',
+            '/an-new-chapter',
         ],
     ]);
 }

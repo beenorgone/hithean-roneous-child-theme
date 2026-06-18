@@ -38,6 +38,9 @@ function child_theme_landing_page_content( string $html_path ): string {
     // Bỏ <script> local-preview (JS được enqueue qua wp_footer)
     $content = preg_replace( '/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $content );
 
+    // Cho phép shortcode WooCommerce / shortcode tự viết (vd: [anc_product_field], [products], [protein_calculator])
+    $content = do_shortcode( $content );
+
     return trim( $content );
 }
 
