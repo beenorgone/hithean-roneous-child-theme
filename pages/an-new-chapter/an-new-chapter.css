@@ -586,7 +586,7 @@
 
 #anc-products {
     padding: 72px 20px;
-    background-color: #fff;
+    background-color: var(--product-nuocepkytu-green);
     background-image: var(--anc-products-bg, none);
     background-size: cover;
     background-position: center;
@@ -597,13 +597,17 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.82);
+    background: rgba(10, 40, 35, 0.85);
     z-index: 0;
 }
 #anc-products > * { position: relative; z-index: 1; }
 
 #anc-products h2 {
-    color: var(--default-color-dark-brown) !important;
+    color: var(--default-color-white) !important;
+}
+
+#anc-products .anc-section-subtitle {
+    color: rgba(255, 255, 255, 0.85);
 }
 
 /* Feature card: image | details 2-col on desktop */
@@ -869,7 +873,7 @@
 }
 
 #anc-organic {
-    background-color: var(--default-color-beige);
+    background-color: var(--product-nuocepkytu-green);
     background-image: var(--anc-organic-bg, none);
     background-size: cover;
     background-position: center;
@@ -880,13 +884,17 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(247, 246, 242, 0.80);
+    background: rgba(10, 40, 35, 0.85);
     z-index: 0;
 }
 #anc-organic > * { position: relative; z-index: 1; }
 
 #anc-organic h2 {
-    color: var(--product-nuocepkytu-green) !important;
+    color: var(--default-color-white) !important;
+}
+
+#anc-organic .anc-section-subtitle {
+    color: rgba(255, 255, 255, 0.85);
 }
 
 #anc-organic .anc-product-card {
@@ -1549,7 +1557,7 @@
     letter-spacing: 1.5px;
     text-transform: uppercase;
     text-align: center;
-    color: var(--default-color-dark-brown);
+    color: var(--default-color-white);
     margin: 0 0 24px;
 }
 
@@ -1584,6 +1592,35 @@
    ============================================= */
 
 @media (max-width: 600px) {
+
+    /* Hero: logos nhỏ lại, products group to thêm */
+    .anc-hero-logo {
+        height: 64px;
+    }
+
+    .anc-cert-badge {
+        width: 100px;
+        height: 100px;
+        gap: 3px;
+        margin-bottom: 24px;
+    }
+
+    .anc-cert-badge-logos {
+        width: 44px;
+    }
+
+    .anc-cert-badge-org,
+    .anc-cert-badge-cert {
+        font-size: 8px;
+    }
+
+    .anc-cert-badge-num {
+        font-size: 9px;
+    }
+
+    .anc-hero-products {
+        width: min(100vw, 380px);
+    }
 
     /* Feature product */
     .anc-pf-details {
