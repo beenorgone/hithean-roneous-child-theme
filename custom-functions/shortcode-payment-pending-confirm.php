@@ -320,27 +320,13 @@ function oppc_render_assets(): void
                 var dialog = modal.querySelector('.oppc-modal__dialog');
                 if (!dialog) return;
 
-                var rect = button.getBoundingClientRect();
                 var margin = 16;
-                var dialogWidth = Math.min(760, window.innerWidth - (margin * 2));
-                var left = rect.left;
-                var maxLeft = window.innerWidth - dialogWidth - margin;
-
-                left = Math.max(margin, Math.min(left, maxLeft));
+                var dialogWidth = Math.min(680, window.innerWidth - (margin * 2));
                 dialog.style.width = dialogWidth + 'px';
-                dialog.style.left = left + 'px';
+                dialog.style.left = Math.max(margin, (window.innerWidth - dialogWidth) / 2) + 'px';
 
                 var dialogHeight = Math.min(dialog.offsetHeight || 520, window.innerHeight - (margin * 2));
-                var preferredTop = rect.bottom + 8;
-                var maxTop = window.innerHeight - dialogHeight - margin;
-                var top = preferredTop;
-
-                if (top > maxTop) {
-                    top = rect.top - dialogHeight - 8;
-                }
-
-                top = Math.max(margin, Math.min(top, maxTop));
-                dialog.style.top = top + 'px';
+                dialog.style.top = Math.max(margin, (window.innerHeight - dialogHeight) / 2) + 'px';
             }
 
             function ensureRecentGroup() {
