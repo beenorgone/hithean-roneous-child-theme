@@ -880,6 +880,33 @@ function oppc_get_order_shippers(WC_Order $order): array
 }
 
 /**
+ * Map key đối tác giao hàng sang nhãn hiển thị (đồng bộ với order-metabox.php).
+ */
+function oppc_get_shipper_labels(): array
+{
+    return [
+        'self' => 'THEAN',
+        'ghtk' => 'Giao Hang Tiet Kiem',
+        'ahamove' => 'Ahamove',
+        'viettel' => 'Viettel Post',
+    ];
+}
+
+/**
+ * Chuỗi đối tác giao hàng đã chọn để hiển thị; rỗng nếu chưa chọn.
+ */
+function oppc_get_order_shipper_display(WC_Order $order): string
+{
+    $labels = oppc_get_shipper_labels();
+    $names = [];
+    foreach (oppc_get_order_shippers($order) as $carrier) {
+        $names[] = $labels[$carrier] ?? $carrier;
+    }
+
+    return implode(', ', $names);
+}
+
+/**
  * GHTK và Viettel Post tự thu hộ COD nên không cần xác nhận thanh toán nội bộ.
  */
 function oppc_is_external_carrier(string $carrier): bool
@@ -931,7 +958,6 @@ function oppc_render_order_row(WC_Order $order, bool $is_audit_view): void
     $order_total = wc_price($order->get_total());
     $order_date = $order->get_date_created() ? wc_format_datetime($order->get_date_created()) : '';
     $payment_method = $order->get_payment_method_title() ?: $order->get_payment_method();
-    $shipping_method = $order->get_shipping_method();
     $order_status = wc_get_order_status_name($order->get_status());
     $new_order_id = function_exists('change_order_number') ? change_order_number($order_id) : $order_id;
     $sms_paid = "The An da nhan duoc thanh toan don $new_order_id. Don hang se som duoc giao toi ban. Cam on ban da tin mua An (Tin nhan tu dong)";
@@ -942,8 +968,9 @@ function oppc_render_order_row(WC_Order $order, bool $is_audit_view): void
     echo '<tr>';
     echo '<td class="oppc-select-cell" data-label="Chọn">' . ($is_audit_view ? '' : '<input type="checkbox" class="oppc-row-select" value="' . intval($order_id) . '" aria-label="Chọn đơn #' . intval($order_id) . '">') . '</td>';
     echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><span class="oppc-muted">Mã: ' . esc_html($new_order_id) . '</span><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank" rel="noopener noreferrer">Chỉnh sửa</a></td>';
+    $shipper_display = oppc_get_order_shipper_display($order);
     echo '<td data-label="Khách hàng">' . esc_html($billing_name ?: 'Khách lẻ') . '<span class="oppc-muted">' . esc_html($billing_phone) . '</span><span class="oppc-muted">Trạng thái: ' . esc_html($order_status) . '</span></td>';
-    echo '<td data-label="Thanh toán"><strong>' . $order_total . '</strong><span class="oppc-muted">' . esc_html($payment_method) . '</span><span class="oppc-muted">Giao bởi: ' . esc_html($shipping_method ?: 'Chưa có') . '</span><span class="oppc-muted">' . esc_html($order_date) . '</span></td>';
+    echo '<td data-label="Thanh toán"><strong>' . $order_total . '</strong><span class="oppc-muted">' . esc_html($payment_method) . '</span><span class="oppc-muted">Giao bởi: ' . esc_html($shipper_display ?: 'Chưa chọn') . '</span><span class="oppc-muted">' . esc_html($order_date) . '</span></td>';
     echo '<td data-label="Sản phẩm"><ul>';
     foreach ($order->get_items() as $item) {
         echo '<li>' . esc_html($item->get_name()) . ' x ' . intval($item->get_quantity()) . '</li>';
