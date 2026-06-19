@@ -840,25 +840,55 @@ function oppc_is_pending_cod(WC_Order $order): bool
 
 function oppc_has_only_external_cod_carriers(WC_Order $order): bool
 {
-    $has_carrier = false;
+    $carriers = oppc_get_order_shippers($order);
+    if (empty($carriers)) {
+        return false;
+    }
 
-    foreach ($order->get_shipping_methods() as $shipping_item) {
-        $haystack = strtolower(trim((string) $shipping_item->get_method_id() . ' ' . (string) $shipping_item->get_method_title()));
-        if ($haystack === '') {
-            continue;
-        }
-
-        $has_carrier = true;
-        $is_external = strpos($haystack, 'ghtk') !== false
-            || strpos($haystack, 'viettel') !== false
-            || strpos($haystack, 'viettel post') !== false;
-
-        if (!$is_external) {
+    foreach ($carriers as $carrier) {
+        if (!oppc_is_external_carrier($carrier)) {
             return false;
         }
     }
 
-    return $has_carrier;
+    return true;
+}
+
+/**
+ * Đối tác giao hàng được lưu ở meta "order_shipper" (Meta Box select_advanced, multiple).
+ * Trả về mảng các giá trị đã chọn (đã lowercase/trim).
+ */
+function oppc_get_order_shippers(WC_Order $order): array
+{
+    $raw = $order->get_meta('order_shipper');
+    if (is_string($raw)) {
+        $raw = $raw === '' ? [] : [$raw];
+    }
+    if (!is_array($raw)) {
+        return [];
+    }
+
+    $carriers = [];
+    foreach ($raw as $value) {
+        $value = strtolower(trim((string) $value));
+        if ($value !== '') {
+            $carriers[] = $value;
+        }
+    }
+
+    return array_values(array_unique($carriers));
+}
+
+/**
+ * GHTK và Viettel Post tự thu hộ COD nên không cần xác nhận thanh toán nội bộ.
+ */
+function oppc_is_external_carrier(string $carrier): bool
+{
+    return $carrier === 'ghtk'
+        || $carrier === 'viettel'
+        || strpos($carrier, 'ghtk') !== false
+        || strpos($carrier, 'tiet kiem') !== false
+        || strpos($carrier, 'viettel') !== false;
 }
 
 function oppc_render_results(array $orders, array $filters): void
