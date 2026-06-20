@@ -231,6 +231,7 @@ $general_includes = [
     'custom-functions/order-number.php',
     'custom-functions/order-status.php',
     'custom-functions/order-tracking.php',
+    'custom-functions/order-creator/create-order-for-customer.php', // Trang /tao-don/ — tạo đơn hộ khách
 
     'custom-functions/checkout-page.php',
     'custom-functions/order-auto-tasks.php',
