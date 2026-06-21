@@ -1172,7 +1172,12 @@
             link.addEventListener('click', function (e) {
                 e.preventDefault();
                 var target = document.getElementById(link.dataset.jump);
-                if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+                if (target) {
+                    document.querySelectorAll('.oc-section-nav a[data-jump]').forEach(function (item) { item.classList.remove('is-active'); });
+                    link.classList.add('is-active');
+                    link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             });
         });
         $('#oc-pay-confirm').addEventListener('click', confirmPayment);

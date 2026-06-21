@@ -47,6 +47,48 @@
 #oc-section-cart, #oc-section-promo, #oc-section-notes,
 #oc-section-orders, #oc-section-customer { scroll-margin-top: 64px; }
 
+@media (max-width: 640px) {
+    .oc-app { padding: 10px; }
+    .oc-topbar { margin-bottom: 10px; }
+    .oc-topbar__left { gap: 8px; }
+    .oc-topbar__title { gap: 8px; }
+    .oc-topbar h1 { font-size: 18px; }
+    .oc-logo { height: 42px; }
+
+    /* The page tabs stay in the regular header; only section navigation is sticky. */
+    .oc-tabs { gap: 2px; }
+    .oc-tab { padding: 6px 9px; font-size: 12px; }
+
+    .oc-section-nav {
+        top: 0;
+        z-index: 15;
+        flex-wrap: nowrap;
+        gap: 0;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 0 10px;
+        margin: 0 -10px 12px;
+        scrollbar-width: none;
+        box-shadow: 0 1px 5px rgba(15, 23, 42, .08);
+    }
+    .oc-section-nav::-webkit-scrollbar { display: none; }
+    .oc-section-nav a {
+        flex: 0 0 auto;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        background: transparent;
+        padding: 8px 9px 7px;
+        font-size: 11px;
+        line-height: 1.25;
+    }
+    .oc-section-nav a:hover,
+    .oc-section-nav a.is-active { border-bottom-color: var(--oc-primary); color: var(--oc-primary-dark); }
+    #oc-section-cart, #oc-section-promo, #oc-section-notes,
+    #oc-section-orders, #oc-section-customer { scroll-margin-top: 44px; }
+}
+
 /* card header (tiêu đề + nút phụ) */
 .oc-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .oc-card-head h2 { margin: 0; }
