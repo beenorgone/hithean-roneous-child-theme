@@ -55,7 +55,8 @@
             fees: state.fees.slice(),
             shipping_method: state.shipping_method,
             shipping_cost: $('#oc-shipping-cost').value.trim(),
-            save_customer_addresses: $('#oc-save-customer-addresses').checked,
+            // Address defaults are persisted only by the explicit confirmation action.
+            save_customer_addresses: false,
             order_meta: collectOrderMeta(),
             billing: collectBilling(),
             shipping: collectShipping(),
@@ -428,7 +429,49 @@
         if (!keepShip) {
             applyAddresses(c.billing || {}, c.shipping || {});
         }
+        updateSaveAddressAction();
         recalc();
+    }
+
+    function updateSaveAddressAction() {
+        var checkbox = $('#oc-save-customer-addresses');
+        var button = $('#oc-save-customer-addresses-confirm');
+        var status = $('#oc-save-customer-addresses-status');
+        if (!checkbox || !button) { return; }
+        button.hidden = !checkbox.checked;
+        button.disabled = !state.customer;
+        if (!checkbox.checked && status) { status.textContent = ''; }
+    }
+
+    function saveCustomerAddresses() {
+        if (!state.customer || !state.customer.id) {
+            $('#oc-save-customer-addresses-status').textContent = 'Chọn khách hàng trước khi lưu địa chỉ.';
+            return;
+        }
+        var button = $('#oc-save-customer-addresses-confirm');
+        var status = $('#oc-save-customer-addresses-status');
+        button.disabled = true;
+        status.textContent = 'Đang lưu địa chỉ...';
+        post('order_creator_save_customer_addresses', {
+            payload: JSON.stringify({
+                customer_id: state.customer.id,
+                billing: collectBilling(),
+                shipping: collectShipping()
+            })
+        }).then(function (res) {
+            if (!res.success) {
+                status.textContent = '❌ ' + ((res.data && res.data.message) || 'Không thể lưu địa chỉ.');
+                button.disabled = false;
+                return;
+            }
+            $('#oc-save-customer-addresses').checked = false;
+            state.customer = res.data.customer;
+            selectCustomer(res.data.customer, true);
+            status.textContent = '✓ Đã lưu làm địa chỉ mặc định của khách.';
+        }).catch(function () {
+            status.textContent = '❌ Không thể lưu địa chỉ.';
+            button.disabled = false;
+        });
     }
 
     function loadCustomerHistory(mode) {
@@ -537,6 +580,7 @@
             if (o.order_date && !isCopy) $('#oc-order-date').value = o.order_date;
             $('#oc-customer-note').value = o.customer_note || '';
             $('#oc-save-customer-addresses').checked = false;
+            updateSaveAddressAction();
             fillOrderMeta(o.order_meta);
 
             // địa chỉ đặt hàng + giao hàng CỦA ĐƠN (không lấy từ khách)
@@ -647,6 +691,7 @@
         $('#oc-customer-card').innerHTML = '';
         $('#oc-customer-edit').hidden = true;
         $('#oc-result').hidden = true;
+        updateSaveAddressAction();
         document.querySelector('.oc-topbar h1').textContent = 'Tạo đơn hàng';
         document.title = 'Tạo đơn hàng';
         $('#oc-create').textContent = 'Tạo đơn';
@@ -1047,6 +1092,8 @@
         $('#oc-product-search').addEventListener('focus', onProductFocus);
         $('#oc-order-search').addEventListener('input', onOrderSearch);
         $('#oc-customer-search').addEventListener('input', onCustomerSearch);
+        $('#oc-save-customer-addresses').addEventListener('change', updateSaveAddressAction);
+        $('#oc-save-customer-addresses-confirm').addEventListener('click', saveCustomerAddresses);
         $('#oc-lines-body').addEventListener('input', onLineInput);
         $('#oc-lines-body').addEventListener('change', function (e) { if (e.target.dataset.f) recalc(); });
         $('#oc-lines-body').addEventListener('click', onLineInput);

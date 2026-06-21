@@ -575,6 +575,20 @@ function order_creator_save_customer_addresses(array $payload): void
     }
 }
 
+/** Lưu địa chỉ mặc định theo thao tác xác nhận riêng, không cần tạo đơn. */
+add_action('wp_ajax_order_creator_save_customer_addresses', function () {
+    order_creator_verify_ajax();
+    $payload = order_creator_get_payload();
+    $user_id = absint($payload['customer_id'] ?? 0);
+    if ($user_id <= 0 || !get_user_by('id', $user_id)) {
+        wp_send_json_error(['message' => 'Hãy chọn khách hàng trước khi lưu địa chỉ.'], 400);
+    }
+
+    $payload['save_customer_addresses'] = true;
+    order_creator_save_customer_addresses($payload);
+    wp_send_json_success(['customer' => order_creator_format_customer(get_user_by('id', $user_id))]);
+});
+
 /**
  * Đồng bộ line item / fee / shipping / coupon từ giỏ đã tính sang đơn có sẵn.
  * Dùng cho luồng CHỈNH SỬA (xoá item cũ, dựng lại từ giỏ).
@@ -1807,7 +1821,11 @@ function order_creator_render_page(): void
                 <input type="text" id="oc-bill-state" placeholder="Tỉnh/Thành (state)">
                 <small class="oc-muted">Nhập tên Tỉnh/Thành viết hoa, liền nhau, không dấu. VD: HUNGYEN, HANOI, HOCHIMINH.</small>
                 <div class="oc-customer-info" id="oc-customer-info" hidden></div>
-                <div class="oc-field oc-check"><label><input type="checkbox" id="oc-save-customer-addresses"> Lưu địa chỉ này vào thông tin mặc định của khách</label></div>
+                <div class="oc-field oc-check">
+                    <label><input type="checkbox" id="oc-save-customer-addresses"> Lưu địa chỉ này vào thông tin mặc định của khách</label>
+                    <button type="button" class="oc-btn oc-btn--primary" id="oc-save-customer-addresses-confirm" hidden>Xác nhận lưu địa chỉ</button>
+                    <small class="oc-muted" id="oc-save-customer-addresses-status" aria-live="polite"></small>
+                </div>
 
                 <div class="oc-field oc-check" style="margin-top:10px;">
                     <label><input type="checkbox" id="oc-ship-diff"> Giao đến địa chỉ khác?</label>

@@ -168,6 +168,8 @@
 .oc-tag { display: inline-block; margin-top: 4px; background: var(--thean-erp-blue-light, #e8f0ff); color: var(--oc-blue); border-radius: 4px; padding: 2px 8px; font-size: 11px; }
 .oc-check label { display: flex; align-items: center; gap: 8px; font-weight: 500; color: var(--oc-text); cursor: pointer; }
 .oc-check input { width: auto !important; }
+.oc-check #oc-save-customer-addresses-confirm { margin-top: 8px; }
+.oc-check #oc-save-customer-addresses-status { display: block; margin-top: 6px; }
 
 /* tabs */
 .oc-topbar__left { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
