@@ -1438,6 +1438,19 @@ add_action('template_redirect', function () {
     exit;
 }, 5);
 
+/** Chuyển hướng trang plugin Phone Orders (admin) sang trang Tạo đơn của theme. */
+add_action('admin_init', function () {
+    if (wp_doing_ajax() || ($_GET['page'] ?? '') !== 'phone-orders-for-woocommerce') {
+        return;
+    }
+    if (!order_creator_can()) {
+        return;
+    }
+    $args = isset($_GET['order_id']) && absint($_GET['order_id']) > 0 ? ['order_id' => absint($_GET['order_id'])] : [];
+    wp_safe_redirect(add_query_arg($args, home_url('/' . ORDER_CREATOR_ROUTE . '/')));
+    exit;
+});
+
 function order_creator_assets_uri(string $file): string
 {
     // Suy URL từ vị trí thật của file để không phụ thuộc đường dẫn cứng.
@@ -1700,7 +1713,7 @@ function order_creator_render_page(): void
                 <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-edit" hidden>Quản lý địa chỉ khách</button>
                 <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-history" hidden>Lịch sử đặt hàng</button>
                 <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-products" hidden>Sản phẩm đã đặt</button>
-                <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-new-toggle">+ Khách hàng mới</button>
+                <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-new-toggle">Khách hàng mới</button>
             </section>
 
             <section class="oc-card">

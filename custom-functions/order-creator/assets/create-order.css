@@ -26,8 +26,8 @@
 }
 .oc-topbar h1 { font-size: 20px; margin: 0; }
 .oc-topbar__actions { display: flex; gap: 8px; }
-.oc-topbar__title { display: inline-flex; align-items: center; gap: 10px; }
-.oc-logo { height: 28px; width: auto; display: block; object-fit: contain; }
+.oc-topbar__title { display: inline-flex; align-items: center; gap: 10px; font-size: 20px; }
+.oc-logo { height: 1.5em; width: auto; display: block; object-fit: contain; } /* gấp rưỡi chiều cao tiêu đề */
 
 /* sticky section nav (nhảy nhanh tới từng phần) */
 .oc-section-nav {
@@ -88,7 +88,7 @@
 .oc-btn--primary { background: var(--oc-primary); border-color: var(--oc-primary); color: #002b1c; }
 .oc-btn--primary:hover { background: var(--oc-primary-dark); color: #fff; }
 .oc-btn--ghost:hover { border-color: var(--oc-primary); color: var(--oc-primary-dark); }
-.oc-btn--block { width: 100%; margin-top: 8px; }
+.oc-btn--block { margin-top: 8px; }
 .oc-btn:disabled { opacity: .6; cursor: default; }
 
 /* search results */
