@@ -258,7 +258,7 @@
         bar.querySelector('.oc-result-add-selected').addEventListener('click', function () {
             var checked = box.querySelectorAll('.oc-result-check:checked');
             if (!checked.length) { return; }
-            checked.forEach(function (cb) { addItemQuiet(Number(cb.dataset.pid), Number(cb.dataset.vid) || 0, cb.dataset.label); });
+            checked.forEach(function (cb) { addItemQuiet(Number(cb.dataset.pid), Number(cb.dataset.vid) || 0, cb.dataset.label, cb.dataset.price); });
             renderLines();
             recalc();
             box.hidden = true;
@@ -279,25 +279,26 @@
         check.dataset.pid = d.pid;
         check.dataset.vid = d.vid || 0;
         check.dataset.label = d.label;
+        check.dataset.price = d.price;
         check.addEventListener('click', function (e) { e.stopPropagation(); });
         row.insertBefore(check, row.firstChild);
         row.addEventListener('click', function (e) {
             if (e.target === check) { return; }
-            addItem(d.pid, d.vid, d.label);
+            addItem(d.pid, d.vid, d.label, d.price);
             box.hidden = true;
             $('#oc-product-search').value = '';
         });
         box.appendChild(row);
     }
 
-    function addItemQuiet(pid, vid, name) {
+    function addItemQuiet(pid, vid, name, price) {
         var existing = state.items.find(function (it) { return it.product_id === pid && it.variation_id === (vid || 0); });
         if (existing) { existing.qty += 1; }
-        else { state.items.push({ product_id: pid, variation_id: vid || 0, name: name, qty: 1, manual_price: '', line_discount: 0 }); }
+        else { state.items.push({ product_id: pid, variation_id: vid || 0, name: name, unit_price: Number(price), qty: 1, manual_price: '', line_discount: 0 }); }
     }
 
-    function addItem(pid, vid, name) {
-        addItemQuiet(pid, vid, name);
+    function addItem(pid, vid, name, price) {
+        addItemQuiet(pid, vid, name, price);
         renderLines();
         recalc();
     }
@@ -312,10 +313,11 @@
         }
         state.items.forEach(function (it, idx) {
             var line = snapshot ? (snapshot.lines || []).find(function (l) { return l.product_id === it.product_id && l.variation_id === (it.variation_id || 0); }) : null;
+            var unitPrice = line && line.unit_price != null ? line.unit_price : it.unit_price;
             var tr = document.createElement('tr');
             tr.innerHTML =
                 '<td>' + it.name + '</td>' +
-                '<td class="oc-col-num">' + (line ? money(line.unit_price) : '—') + '</td>' +
+                '<td class="oc-col-num">' + (Number.isFinite(Number(unitPrice)) ? money(unitPrice) : '—') + '</td>' +
                 '<td class="oc-col-num"><input type="number" class="oc-mini" data-f="manual_price" data-i="' + idx + '" value="' + (it.manual_price === '' ? '' : it.manual_price) + '" placeholder="—"></td>' +
                 '<td class="oc-col-num"><input type="number" class="oc-mini" data-f="line_discount" data-i="' + idx + '" value="' + (it.line_discount || '') + '" placeholder="0"></td>' +
                 '<td class="oc-col-num"><input type="number" class="oc-mini" data-f="qty" data-i="' + idx + '" min="1" value="' + it.qty + '"></td>' +
