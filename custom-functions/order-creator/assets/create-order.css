@@ -128,6 +128,8 @@
 }
 #oc-customer-new-toggle::before { content: "\f132"; }
 #oc-customer-edit::before, #oc-edit-inline::before { content: "\f464"; }
+#oc-customer-history::before { content: "\f469"; }
+#oc-customer-products::before { content: "\f312"; }
 #oc-coupon-add::before { content: "\f487"; }
 #oc-fee-add::before { content: "\f132"; }
 #oc-recalc::before { content: "\f463"; }
