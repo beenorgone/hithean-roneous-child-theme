@@ -37,7 +37,7 @@ if (!defined('ORDER_CREATOR_CAP')) {
 
 function &order_creator_state(): array
 {
-    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'shipping_cost' => null];
+    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'shipping_cost' => null, 'source_prices' => []];
     return $state;
 }
 
@@ -223,6 +223,12 @@ add_action('woocommerce_before_calculate_totals', function ($cart) {
             continue;
         }
 
+        // Một số rule giá trả về giá rỗng cho SP hidden/hết hàng ở context "view".
+        // Giữ giá hiệu lực đã snapshot lúc nhân viên thêm sản phẩm để cart vẫn tính được.
+        if (isset($item['_oc_source_price']) && is_numeric($item['_oc_source_price']) && !is_numeric($item['data']->get_price())) {
+            $item['data']->set_price(max(0, (float) $item['_oc_source_price']));
+        }
+
         if (empty($state['is_admin'])) {
             continue; // giá sửa / giảm theo dòng chỉ dành cho admin
         }
@@ -275,6 +281,33 @@ add_filter('woocommerce_add_to_cart_validation', function ($passed) {
     return $state['active'] ? true : $passed;
 }, 1000);
 
+/** Chỉ trong phiên tạo đơn: cho phép nhân viên thêm SP ẩn hoặc hết hàng. */
+add_filter('woocommerce_is_purchasable', function ($purchasable) {
+    $state = &order_creator_state();
+    return $state['active'] ? true : $purchasable;
+}, 1000);
+
+add_filter('woocommerce_product_is_in_stock', function ($in_stock) {
+    $state = &order_creator_state();
+    return $state['active'] ? true : $in_stock;
+}, 1000);
+
+add_filter('woocommerce_product_has_enough_stock', function ($has_enough_stock) {
+    $state = &order_creator_state();
+    return $state['active'] ? true : $has_enough_stock;
+}, 1000);
+
+/** Fallback giá lưu trong DB khi một filter front-end ẩn giá SP không thể mua. */
+add_filter('woocommerce_product_get_price', function ($price, $product) {
+    $state = &order_creator_state();
+    if (!$state['active'] || is_numeric($price) || !($product instanceof WC_Product)) {
+        return $price;
+    }
+
+    $source_price = $state['source_prices'][$product->get_id()] ?? null;
+    return is_numeric($source_price) ? (string) $source_price : $price;
+}, PHP_INT_MAX, 2);
+
 // ================================================================
 // CART PIPELINE
 // ================================================================
@@ -310,6 +343,7 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
         $state['active'] = false;
         $state['fees']   = [];
         $state['shipping_cost'] = null;
+        $state['source_prices'] = [];
 
         WC()->cart->empty_cart(false);
         if (WC()->session) {
@@ -355,7 +389,19 @@ function order_creator_populate_cart(array $payload): void
             continue;
         }
 
+        $price_product = $variation_id > 0 ? wc_get_product($variation_id) : wc_get_product($product_id);
+        if (!$price_product instanceof WC_Product) {
+            continue;
+        }
+
         $cart_item_data = [];
+        // Context "edit" đọc _price đã lưu (sale price nếu có), không bị các filter
+        // front-end ẩn giá đối với SP hidden/hết hàng tác động.
+        $source_price = $price_product->get_price('edit');
+        if (is_numeric($source_price)) {
+            $cart_item_data['_oc_source_price'] = (float) $source_price;
+            $state['source_prices'][$price_product->get_id()] = (float) $source_price;
+        }
         if (isset($item['manual_price']) && $item['manual_price'] !== '' && $item['manual_price'] !== null) {
             $cart_item_data['_oc_manual_price'] = (float) $item['manual_price'];
         }
@@ -781,6 +827,16 @@ function order_creator_product_is_hidden(WC_Product $product): bool
         || $product->get_status() === 'private';
 }
 
+/** Giá hiệu lực, fallback về _price khi rule front-end đang ẩn giá sản phẩm. */
+function order_creator_product_price(WC_Product $product): float
+{
+    $price = $product->get_price();
+    if (!is_numeric($price)) {
+        $price = $product->get_price('edit');
+    }
+    return is_numeric($price) ? (float) $price : 0.0;
+}
+
 /** Chuẩn hoá 1 product → entry cho kết quả tìm/SP mặc định. */
 function order_creator_format_product(WC_Product $product): array
 {
@@ -788,7 +844,7 @@ function order_creator_format_product(WC_Product $product): array
         'id'         => $product->get_id(),
         'name'       => $product->get_name(),
         'sku'        => $product->get_sku(),
-        'price'      => (float) $product->get_price(),
+        'price'      => order_creator_product_price($product),
         'price_html' => wp_strip_all_tags($product->get_price_html()),
         'type'       => $product->get_type(),
         'image'      => order_creator_product_image($product),
@@ -806,7 +862,7 @@ function order_creator_format_product(WC_Product $product): array
                 'id'    => $variation->get_id(),
                 'label' => wc_get_formatted_variation($variation, true, false),
                 'sku'   => $variation->get_sku(),
-                'price' => (float) $variation->get_price(),
+                'price' => order_creator_product_price($variation),
                 'image' => order_creator_product_image($variation),
                 'stock' => order_creator_stock_label($variation),
             ];
