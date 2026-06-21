@@ -11,6 +11,13 @@
 </head>
 <body>
 
+<!--
+  Sắp xếp lại thứ tự section bằng query string ?order=trust,hero,...
+  (dùng tên section bỏ tiền tố "anc-", phân tách bằng dấu phẩy). Xem an-new-chapter.js → initSectionReorder().
+  Chỉ dùng để test A/B thủ công — không ảnh hưởng SEO vì Google đọc theo DOM gốc bên dưới.
+-->
+<main id="anc-main">
+
 <!-- ============================================================
      HERO
      ============================================================ -->
@@ -51,6 +58,48 @@
 
   </div>
   <span class="anc-scroll-arrow" aria-hidden="true">↓</span>
+</section>
+
+
+<!-- ============================================================
+     TRUST BAR
+     ============================================================ -->
+<section id="anc-trust">
+  <div class="anc-trust-inner anc-fade-in-children">
+
+    <div class="anc-trust-item">
+      <span class="anc-trust-icon" aria-hidden="true">🌿</span>
+      <div class="anc-trust-text">
+        <strong>CU 916118</strong>
+        <span>Chứng nhận hữu cơ USDA &amp; EU</span>
+      </div>
+    </div>
+
+    <div class="anc-trust-item">
+      <span class="anc-trust-icon" aria-hidden="true">🔬</span>
+      <div class="anc-trust-text">
+        <strong>Eurofins</strong>
+        <span>Kiểm nghiệm độc lập</span>
+      </div>
+    </div>
+
+    <div class="anc-trust-item">
+      <span class="anc-trust-icon" aria-hidden="true">🏭</span>
+      <div class="anc-trust-text">
+        <strong>ISO 22000 · HACCP · GMP</strong>
+        <span>Tiêu chuẩn sản xuất quốc tế</span>
+      </div>
+    </div>
+
+    <div class="anc-trust-item">
+      <span class="anc-trust-icon" aria-hidden="true">🚚</span>
+      <div class="anc-trust-text">
+        <strong>Miễn phí vận chuyển</strong>
+        <span>Toàn quốc</span>
+      </div>
+    </div>
+
+  </div>
 </section>
 
 
@@ -280,33 +329,6 @@
 
 
 <!-- ============================================================
-     BRAND STORY
-     ============================================================ -->
-<section id="anc-story">
-  <div class="anc-story-inner anc-fade-in">
-    <p class="anc-story-lead">Yeast Hero Bơ Matcha không chỉ là một hương vị mới của dòng sản phẩm Yeast Hero Protein</p>
-    <p class="anc-story-body">Đây là một dấu mốc của The An Organics trong hành trình đưa những nguyên liệu đặc trưng của Việt Nam bước vào thế hệ sản phẩm dinh dưỡng hiện đại đang được ưa chuộng trên toàn thế giới.</p>
-    <p class="anc-story-body">Từ những trái bơ được canh tác theo <strong>mô hình vườn rừng</strong> đến ly protein mỗi ngày, chúng tôi mong muốn tạo ra nhiều giá trị hơn cho người tiêu dùng và cho nông dân địa phương.</p>
-    <span class="anc-story-en">A New Chapter: Rooted Locally, Inspired Globally.</span>
-  </div>
-</section>
-
-
-<!-- ============================================================
-     ORGANIC PRODUCTS
-     ============================================================ -->
-<section id="anc-organic">
-
-  <h2 class="anc-section-title anc-fade-in">SẢN PHẨM HỮU CƠ THE AN ORGANICS</h2>
-  <p class="anc-section-subtitle anc-fade-in">Nguyên liệu hữu cơ chứng nhận USDA &amp; EU — từ nhà máy CU 916118</p>
-
-  <div class="anc-organic-products-shortcode anc-fade-in-children">
-    [products category="sieu-thuc-pham" columns="3"]
-  </div>
-</section>
-
-
-<!-- ============================================================
      PROTEIN CALCULATOR
      ============================================================ -->
 <section id="anc-calculator">
@@ -319,6 +341,76 @@
 
 
 <!-- ============================================================
+     ORGANIC PRODUCTS
+     ============================================================ -->
+<section id="anc-organic">
+
+  <h2 class="anc-section-title anc-fade-in">SẢN PHẨM HỮU CƠ THE AN ORGANICS</h2>
+  <p class="anc-section-subtitle anc-fade-in">Nguyên liệu hữu cơ chứng nhận USDA &amp; EU — từ nhà máy CU 916118</p>
+  <p class="anc-organic-story anc-fade-in">Từ những trái bơ canh tác theo <strong>mô hình vườn rừng</strong> đến ly protein mỗi ngày — A New Chapter: Rooted Locally, Inspired Globally.</p>
+
+  <div class="anc-organic-products-shortcode anc-fade-in-children">
+    [products category="sieu-thuc-pham" columns="3"]
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FAQ
+     ============================================================ -->
+<section id="anc-faq">
+  <div class="anc-faq-inner">
+
+    <h2 class="anc-section-title anc-fade-in">CÂU HỎI THƯỜNG GẶP</h2>
+
+    <div class="anc-faq-list anc-fade-in">
+
+      <details class="anc-faq-item">
+        <summary>Yeast Hero Protein khác gì với Whey Protein?</summary>
+        <p>Yeast Protein là đạm hoàn chỉnh với 18 axit amin, điểm chất lượng protein PDCAAS hoàn hảo = 1 — tương đương whey nhưng không từ sữa động vật, phù hợp người không dùng được sữa/đậu nành. Quy trình sản xuất cũng thân thiện môi trường hơn: ít CO₂, ít nước &amp; đất hơn protein động vật.</p>
+      </details>
+
+      <details class="anc-faq-item">
+        <summary>Avocado Matcha có ngọt không? Thành phần tạo ngọt là gì?</summary>
+        <p>Sản phẩm không dùng đường — vị ngọt tự nhiên đến từ la hán quả hữu cơ (0 calo, chỉ số đường huyết GI = 0), kết hợp cùng bơ vườn rừng và matcha hữu cơ cấp ceremonial, không hương liệu nhân tạo.</p>
+      </details>
+
+      <details class="anc-faq-item">
+        <summary>Sản phẩm có phù hợp người ăn chay, dị ứng thực phẩm không?</summary>
+        <p>Toàn bộ dòng Yeast Hero Protein: không đường, không đậu nành, không sữa, không gluten, không GMO — phù hợp người ăn chay thuần (vegan) và người nhạy cảm với các nhóm dị ứng phổ biến nhất.</p>
+      </details>
+
+      <details class="anc-faq-item">
+        <summary>Chứng nhận hữu cơ CU 916118 nghĩa là gì?</summary>
+        <p>CU 916118 là mã chứng nhận hữu cơ quốc tế do <strong>Control Union</strong> cấp cho nhà máy sản xuất, xác nhận toàn bộ chuỗi — từ nguyên liệu đầu vào đến thành phẩm — đạt chuẩn <strong>USDA Organic</strong> (Hoa Kỳ) và <strong>EU Organic</strong> (châu Âu), kiểm tra định kỳ hàng năm.</p>
+      </details>
+
+      <details class="anc-faq-item">
+        <summary>Pha Yeast Hero Protein như thế nào?</summary>
+        <p>Pha 1 khẩu phần (38,4g) với 200–250ml nước hoặc sữa thực vật, lắc đều hoặc dùng máy xay. Dùng được mọi thời điểm trong ngày — phổ biến nhất là sau tập luyện hoặc thay một phần bữa ăn nhẹ.</p>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     COMMUNITY
+     ============================================================ -->
+<section id="anc-social">
+  <div class="anc-social-inner anc-fade-in">
+    <h2 class="anc-section-title">CỘNG ĐỒNG THE AN ORGANICS</h2>
+    <p class="anc-section-subtitle">Theo dõi hành trình sản phẩm hữu cơ — từ nhà máy đến trải nghiệm thực tế của khách hàng.</p>
+    <a href="https://facebook.com/hitheanorganics" class="anc-social-link" target="_blank" rel="noopener">
+      <span aria-hidden="true">📘</span> Theo dõi The An Organics trên Facebook →
+    </a>
+  </div>
+  <!-- TODO: thay/bổ sung review, ảnh khách hàng thực (Shopee/Tiki/Facebook) khi có dữ liệu -->
+</section>
+
+
+<!-- ============================================================
      CTA BAND
      ============================================================ -->
 <section id="anc-cta-band">
@@ -327,6 +419,7 @@
   <a href="https://hithean.com/" class="button--light-blue anc-fade-in" target="_blank" rel="noopener">XEM TẤT CẢ SẢN PHẨM →</a>
 </section>
 
+</main>
 
 <script src="an-new-chapter.js"></script>
 </body>

@@ -7,6 +7,33 @@
     'use strict';
 
     /* ============================================================
+       SECTION REORDER (?order=trust,hero,products,... — bỏ tiền tố "anc-")
+       Dùng để A/B test thứ tự section thủ công, không ảnh hưởng DOM gốc/SEO.
+       ============================================================ */
+
+    function initSectionReorder() {
+        var order = new URLSearchParams(window.location.search).get('order');
+        if (!order) return;
+
+        var main = document.getElementById('anc-main');
+        if (!main) return;
+
+        var ids = order.split(',').map(function (s) { return 'anc-' + s.trim(); });
+        ids.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) main.appendChild(el);
+        });
+
+        var badge = document.createElement('div');
+        badge.textContent = 'Preview order: ' + order + ' (click để ẩn)';
+        badge.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:9999;' +
+            'background:rgba(13,40,35,0.92);color:#fff;font:12px monospace;' +
+            'padding:8px 12px;border-radius:6px;max-width:90vw;overflow:auto;cursor:pointer;';
+        badge.addEventListener('click', function () { badge.remove(); });
+        document.body.appendChild(badge);
+    }
+
+    /* ============================================================
        SCROLL ANIMATIONS (IntersectionObserver)
        ============================================================ */
 
@@ -99,6 +126,7 @@
        ============================================================ */
 
     function init() {
+        initSectionReorder();
         initScrollAnimations();
         initSmoothScroll();
         initGalleries();
