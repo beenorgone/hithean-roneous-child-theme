@@ -32,22 +32,25 @@
 /* sticky section nav (nhảy nhanh tới từng phần) */
 .oc-section-nav {
     position: sticky; top: 0; z-index: 15;
-    display: flex; flex-wrap: wrap; gap: 6px;
-    padding: 10px 16px; margin-bottom: 12px;
+    display: flex; flex-wrap: nowrap; gap: 0;
+    overflow-x: auto;
+    padding: 0 16px; margin-bottom: 12px;
     background: rgba(255, 255, 255, .96);
     -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
     border-bottom: 1px solid var(--oc-border);
 }
 .oc-section-nav a {
     font-size: 12px; font-weight: 600; color: var(--oc-muted); text-decoration: none;
-    padding: 6px 12px; border: 1px solid var(--oc-border); border-radius: 20px;
-    background: #fff; white-space: nowrap;
+    flex: 0 0 auto; padding: 10px 14px 8px;
+    border: 0; border-bottom: 3px solid transparent; border-radius: 0;
+    background: transparent; white-space: nowrap;
 }
-.oc-section-nav a:hover { border-color: var(--oc-primary); color: var(--oc-primary-dark); }
+.oc-section-nav a:hover,
+.oc-section-nav a.is-active { border-bottom-color: var(--oc-primary); color: var(--oc-primary-dark); }
 #oc-section-cart, #oc-section-promo, #oc-section-notes,
 #oc-section-orders, #oc-section-customer { scroll-margin-top: 64px; }
 
-@media (max-width: 640px) {
+@media (max-width: 782px) {
     .oc-app { padding: 10px; }
     .oc-topbar { margin-bottom: 10px; }
     .oc-topbar__left { gap: 8px; }
