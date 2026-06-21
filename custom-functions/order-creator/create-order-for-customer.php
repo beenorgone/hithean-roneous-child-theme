@@ -969,6 +969,11 @@ function order_creator_phone_variants(string $raw): array
     return array_values(array_unique(array_filter($variants)));
 }
 
+function order_creator_is_phone_search(string $value): bool
+{
+    return (bool) preg_match('/^\+?\d+$/', $value);
+}
+
 function order_creator_format_customer(WP_User $user): array
 {
     $addr = function (string $type) use ($user): array {
@@ -1023,13 +1028,22 @@ add_action('wp_ajax_order_creator_search_customers', function () {
         }
     }
 
-    // Số điện thoại
-    if (preg_match('/^\+?[\d\s.\-]+$/', $term)) {
-        foreach (order_creator_phone_variants($term) as $variant) {
+    // Số điện thoại: cùng quy tắc 0… / 84… / +84… như Coupon Creator.
+    if (order_creator_is_phone_search($term)) {
+        $variants = order_creator_phone_variants($term);
+        if ($variants !== []) {
+            $meta_query = ['relation' => 'OR'];
+            foreach ($variants as $variant) {
+                $meta_query[] = [
+                    'key'     => 'billing_phone',
+                    'value'   => $variant,
+                    'compare' => '=',
+                ];
+            }
             $q = new WP_User_Query([
-                'meta_key'   => 'billing_phone',
-                'meta_value' => $variant,
-                'number'     => 10,
+                'meta_query' => $meta_query,
+                'number'     => 20,
+                'fields'     => 'all',
             ]);
             foreach ($q->get_results() as $user) {
                 $found[$user->ID] = $user;
@@ -1038,7 +1052,7 @@ add_action('wp_ajax_order_creator_search_customers', function () {
     }
 
     // Tên / login / email (mờ)
-    if (count($found) < 10) {
+    if (!order_creator_is_phone_search($term) && count($found) < 10) {
         $q = new WP_User_Query([
             'search'         => '*' . esc_attr($term) . '*',
             'search_columns' => ['user_login', 'user_email', 'user_nicename', 'display_name'],
@@ -1190,23 +1204,33 @@ add_action('wp_ajax_order_creator_create_customer', function () {
         }
     } else {
         // ----- Tạo khách mới -----
-        if ($phone === '' && $email === '') {
-            wp_send_json_error(['message' => 'Cần ít nhất SĐT hoặc email để tạo khách.']);
+        if ($email === '') {
+            $phone_digits = preg_replace('/\D+/', '', $phone);
+            if (substr($phone_digits, 0, 2) === '00') {
+                $phone_digits = substr($phone_digits, 2);
+            }
+            if (substr($phone_digits, 0, 1) === '0') {
+                $phone_digits = '84' . substr($phone_digits, 1);
+            } elseif (substr($phone_digits, 0, 2) !== '84') {
+                $phone_digits = '84' . $phone_digits;
+            }
+            if (!preg_match('/^84\d{8,10}$/', $phone_digits)) {
+                wp_send_json_error(['message' => 'Cần email hoặc SĐT hợp lệ để tạo tài khoản khách hàng.']);
+            }
+            $email = $phone_digits . '@sms.hithean.com';
         }
-        if ($email !== '' && email_exists($email)) {
+        if (email_exists($email)) {
             wp_send_json_error(['message' => 'Email đã tồn tại trong hệ thống.']);
         }
         if ($username === '') {
-            $username = $email !== '' ? $email : ('kh' . preg_replace('/\D+/', '', $phone) . '_' . wp_generate_password(4, false, false));
+            $username = $email;
         }
         if (username_exists($username)) {
             $username .= '_' . wp_generate_password(4, false, false);
         }
-        $login_email = $email !== '' ? $email : ($username . '@no-email.local');
-
         $user_id = wp_insert_user([
             'user_login'   => $username,
-            'user_email'   => $login_email,
+            'user_email'   => $email,
             'user_pass'    => wp_generate_password(16),
             'first_name'   => $first,
             'last_name'    => $last,
@@ -1427,9 +1451,11 @@ function order_creator_invoice_html(WC_Order $order): string
     $content = preg_replace('#<style\b[^>]*>.*?</style>#is', '', $content);
     $content = preg_replace('#<!--\[if.*?\]>.*?<!\[endif\]-->#is', '', $content);
     $content = preg_replace('/\sstyle=(["\']).*?\1/is', '', $content);
+    // Bỏ lời chào và lời mời thanh toán mặc định; hóa đơn chỉ hiển thị thông tin đơn.
+    $content = preg_replace('#<p\b[^>]*>\s*(?:Xin\s+chào\b|Một\s+đơn\s+hàng\s+đã\s+được\s+tạo\b).*?</p>#isu', '', $content);
     $customer_note = trim((string) $order->get_customer_note());
     $note_html = $customer_note === '' ? '' : '<section class="oc-invoice-note"><strong>Ghi chú đơn hàng</strong><div>' . nl2br(esc_html($customer_note)) . '</div></section>';
-    $table_css = '<style>.oc-invoice #body_content table.td td,.oc-invoice #body_content table.td th{padding:10px 9px!important;border:1px solid #d9e0e6!important;vertical-align:top!important}.oc-invoice #body_content table.td th{background:#ddd!important;color:#17212b!important;border-color:#17212b!important}.oc-invoice tr:last-child td{font-weight:normal!important}.oc-invoice table.td tfoot tr:last-child .woocommerce-Price-amount.amount{font-size:120%!important;font-weight:700}</style>';
+    $table_css = '<style>.oc-invoice #body_content table.td,.oc-invoice #body_content table.td td,.oc-invoice #body_content table.td th{border:0!important}.oc-invoice #body_content table.td td,.oc-invoice #body_content table.td th{padding:10px 9px!important;vertical-align:top!important}.oc-invoice #body_content table.td th{background:#ddd!important;color:#17212b!important}.oc-invoice tr:last-child td{font-weight:normal!important}.oc-invoice table.td tfoot tr:last-child .woocommerce-Price-amount.amount{font-size:150%!important;font-weight:700}.oc-invoice .wc-payment-qr img,.oc-invoice img[src*="qrcode.io.vn"],.oc-invoice img[src*="qr.sepay.vn"]{width:166.667px!important;max-width:100%!important}</style>';
 
     return '<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hóa đơn #' . esc_html($number) . '</title><style>'
         . '*{box-sizing:border-box}body{margin:0;background:#fff;color:#1f2933;font:14px/1.5 Arial,sans-serif}.oc-invoice{width:min(760px,100%);margin:0 auto;padding:26px 28px;background:#fff}.oc-invoice-brand{padding:0 0 16px;margin-bottom:18px;border-bottom:2px solid #17212b}.oc-invoice-brand img{display:block;max-width:180px!important;max-height:72px!important;width:auto!important;height:auto!important;object-fit:contain}.oc-invoice #wrapper,.oc-invoice #template_container,.oc-invoice #template_body,.oc-invoice #body_content,.oc-invoice #body_content_inner{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}.oc-invoice #template_header,.oc-invoice #template_header_image,.oc-invoice #template_footer,.oc-invoice #footer{display:none!important}.oc-invoice table{width:100%!important;border-collapse:collapse!important;margin:16px 0!important;background:#fff!important}.oc-invoice #wrapper td,.oc-invoice #template_container td,.oc-invoice #template_body td,.oc-invoice #body_content td{padding:0!important;border:0!important}.oc-invoice table.td td,.oc-invoice table.td th{padding:10px 9px!important;border:1px solid #d9e0e6!important;vertical-align:top!important}.oc-invoice table.td th{background:#ddd!important;color:#17212b!important;border-color:#17212b!important;font-size:12px!important;text-align:left!important}.oc-invoice table.td tr:last-child td{font-weight:700}.oc-invoice p{margin:0 0 12px}.oc-invoice h1,.oc-invoice h2{margin:0 0 12px;color:#17212b}.oc-invoice img{max-width:100%!important;height:auto!important}.oc-invoice .wc-payment-qr{margin:22px auto!important;text-align:center!important}.oc-invoice-note{margin-top:20px;padding:13px 15px;border-left:4px solid #17212b;background:#f3f5f7}.oc-invoice-note strong{display:block;margin-bottom:4px;color:#17212b}.oc-invoice-additional{margin-top:24px;padding-top:14px;border-top:1px solid #d9e0e6;color:#52606d;font-size:12px}.oc-invoice-additional p:last-child{margin-bottom:0}@media print{.oc-invoice{width:100%;padding:0}}</style></head><body><main class="oc-invoice">' . $brand_html . $table_css . $content . $note_html . $additional_html . '</main></body></html>';
