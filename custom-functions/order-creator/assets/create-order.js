@@ -159,6 +159,45 @@
     }
     function setShipDiff(on) { $('#oc-ship-diff').checked = !!on; $('#oc-ship-fields').hidden = !on; }
 
+    function copyBillingToShipping() {
+        var billing = collectBilling();
+        fillShipping({
+            first_name: billing.first_name,
+            last_name: billing.last_name,
+            phone: billing.phone,
+            address_1: billing.address_1,
+            city: billing.city || billing.state || ''
+        });
+    }
+
+    function loadShippingFromOrder() {
+        var input = $('#oc-ship-load-order');
+        var button = $('#oc-ship-load-btn');
+        var status = $('#oc-ship-load-status');
+        var orderId = input.value.trim().replace(/^#/, '');
+        if (!orderId) { status.textContent = 'Nhập mã đơn cần tải.'; return; }
+        button.disabled = true;
+        status.textContent = 'Đang tải địa chỉ giao hàng...';
+        post('order_creator_load_order', { order_id: orderId }).then(function (res) {
+            button.disabled = false;
+            if (!res.success) {
+                status.textContent = '❌ ' + ((res.data && res.data.message) || 'Không tìm thấy đơn hàng.');
+                return;
+            }
+            var shipping = res.data.shipping || {};
+            if (!(shipping.address_1 || shipping.city || shipping.phone || shipping.first_name || shipping.last_name)) {
+                shipping = res.data.billing || {};
+            }
+            setShipDiff(true);
+            fillShipping(shipping);
+            status.textContent = '✓ Đã tải địa chỉ giao hàng từ đơn #' + (res.data.order_number || orderId) + '.';
+            recalc();
+        }).catch(function () {
+            button.disabled = false;
+            status.textContent = '❌ Không thể tải địa chỉ giao hàng.';
+        });
+    }
+
     function applyAddresses(billing, shipping) {
         fillBilling(billing);
         var hasShip = shipping && (shipping.address_1 || shipping.city || shipping.phone);
@@ -1101,7 +1140,12 @@
         $('#oc-fee-add').addEventListener('click', addFee);
         $('#oc-shipping-method').addEventListener('change', function () { state.shipping_method = this.value; recalc(); });
         $('#oc-shipping-cost').addEventListener('change', recalc);
-        $('#oc-ship-diff').addEventListener('change', function () { $('#oc-ship-fields').hidden = !this.checked; recalc(); });
+        $('#oc-ship-diff').addEventListener('change', function () {
+            $('#oc-ship-fields').hidden = !this.checked;
+            if (this.checked) { copyBillingToShipping(); }
+            recalc();
+        });
+        $('#oc-ship-load-btn').addEventListener('click', loadShippingFromOrder);
         ['oc-bill-state', 'oc-bill-address', 'oc-ship-city', 'oc-ship-address'].forEach(function (id) {
             var el = $('#' + id); if (el) { el.addEventListener('change', recalc); }
         });

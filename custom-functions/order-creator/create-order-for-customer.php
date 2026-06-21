@@ -1832,6 +1832,11 @@ function order_creator_render_page(): void
                 </div>
                 <div id="oc-ship-fields" hidden>
                     <h3 class="oc-subhead">Địa chỉ giao hàng</h3>
+                    <div class="oc-inline">
+                        <input type="text" id="oc-ship-load-order" placeholder="Mã đơn để tải địa chỉ giao">
+                        <button type="button" class="oc-btn oc-btn--ghost" id="oc-ship-load-btn">Tải địa chỉ từ đơn</button>
+                    </div>
+                    <small class="oc-muted" id="oc-ship-load-status" aria-live="polite"></small>
                     <input type="text" id="oc-ship-name" placeholder="Họ tên người nhận">
                     <input type="text" id="oc-ship-phone" placeholder="SĐT">
                     <input type="text" id="oc-ship-address" placeholder="Địa chỉ">
