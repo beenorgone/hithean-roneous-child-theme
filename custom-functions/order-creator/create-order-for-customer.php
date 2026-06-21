@@ -1848,40 +1848,46 @@ function order_creator_render_page(): void
             </div>
         </div>
 
-        <h4 class="oc-subhead">Common</h4>
+        <h4 class="oc-subhead">Thông tin chung</h4>
         <div class="oc-form-grid">
-            <div class="oc-cust-field" data-cust="first_name"><label>First name *</label><input type="text" id="oc-cust-first_name"></div>
-            <div class="oc-cust-field" data-cust="last_name"><label>Last name</label><input type="text" id="oc-cust-last_name"></div>
+            <div class="oc-cust-field" data-cust="first_name"><label>Tên *</label><input type="text" id="oc-cust-first_name"></div>
+            <div class="oc-cust-field" data-cust="last_name"><label>Họ</label><input type="text" id="oc-cust-last_name"></div>
             <div class="oc-cust-field" data-cust="email"><label>E-mail</label><input type="email" id="oc-cust-email"></div>
-            <div class="oc-cust-field" data-cust="username"><label>Username</label><input type="text" id="oc-cust-username"></div>
-            <div class="oc-cust-field" data-cust="role"><label>Role</label><select id="oc-cust-role"></select></div>
+            <div class="oc-cust-field" data-cust="username"><label>Tên đăng nhập</label><input type="text" id="oc-cust-username"></div>
+            <div class="oc-cust-field" data-cust="role"><label>Vai trò</label><select id="oc-cust-role"></select></div>
         </div>
 
-        <h4 class="oc-subhead">Billing address</h4>
+        <h4 class="oc-subhead">Địa chỉ</h4>
         <div class="oc-form-grid">
-            <div class="oc-cust-field" data-cust="phone"><label>Phone *</label><input type="text" id="oc-cust-phone"></div>
-            <div class="oc-cust-field" data-cust="address_1"><label>Address 1 *</label><input type="text" id="oc-cust-address_1"></div>
-            <div class="oc-cust-field" data-cust="address_2"><label>Address 2</label><input type="text" id="oc-cust-address_2"></div>
-            <div class="oc-cust-field" data-cust="city"><label>City</label><input type="text" id="oc-cust-city"></div>
-            <div class="oc-cust-field" data-cust="state"><label>State/County</label><input type="text" id="oc-cust-state"></div>
+            <div class="oc-cust-field" data-cust="phone"><label>SĐT *</label><input type="text" id="oc-cust-phone"></div>
+            <div class="oc-cust-field" data-cust="address_1"><label>Địa chỉ 1 *</label><input type="text" id="oc-cust-address_1"></div>
+            <div class="oc-cust-field" data-cust="address_2"><label>Địa chỉ 2</label><input type="text" id="oc-cust-address_2"></div>
+            <div class="oc-cust-field" data-cust="city"><label>Thành phố</label><input type="text" id="oc-cust-city"></div>
+            <div class="oc-cust-field" data-cust="state"><label>Tỉnh/Thành</label><input type="text" id="oc-cust-state"></div>
         </div>
 
-        <?php foreach (order_creator_customer_custom_field_defs() as $key => $field) : ?>
-            <div class="oc-cust-field" data-cust="<?php echo esc_attr($key); ?>">
-                <label for="oc-cust-<?php echo esc_attr($key); ?>"><?php echo esc_html($field['label']); ?></label>
-                <?php if ($field['type'] === 'textarea') : ?>
-                    <textarea id="oc-cust-<?php echo esc_attr($key); ?>" rows="3"></textarea>
-                <?php else : ?>
-                    <input type="<?php echo esc_attr($field['type']); ?>" id="oc-cust-<?php echo esc_attr($key); ?>">
-                <?php endif; ?>
-            </div>
-        <?php endforeach; ?>
+        <?php $oc_custom_defs = order_creator_customer_custom_field_defs(); ?>
+        <?php if ($oc_custom_defs) : ?>
+        <h4 class="oc-subhead">Thông tin thêm</h4>
+        <div class="oc-form-grid">
+            <?php foreach ($oc_custom_defs as $key => $field) : ?>
+                <div class="oc-cust-field<?php echo $field['type'] === 'textarea' ? ' oc-form-span' : ''; ?>" data-cust="<?php echo esc_attr($key); ?>">
+                    <label for="oc-cust-<?php echo esc_attr($key); ?>"><?php echo esc_html($field['label']); ?></label>
+                    <?php if ($field['type'] === 'textarea') : ?>
+                        <textarea id="oc-cust-<?php echo esc_attr($key); ?>" rows="3"></textarea>
+                    <?php else : ?>
+                        <input type="<?php echo esc_attr($field['type']); ?>" id="oc-cust-<?php echo esc_attr($key); ?>">
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
 
         <div class="oc-field oc-check"><label><input type="checkbox" id="oc-cust-copy-shipping" checked> Dùng địa chỉ này cho cả giao hàng</label></div>
 
         <div class="oc-modal__actions">
-            <button type="button" class="oc-btn oc-btn--ghost" data-oc-close="1">Cancel</button>
-            <button type="button" class="oc-btn oc-btn--primary" id="oc-new-save">Save customer</button>
+            <button type="button" class="oc-btn oc-btn--ghost" data-oc-close="1">Hủy</button>
+            <button type="button" class="oc-btn oc-btn--primary" id="oc-new-save">Lưu khách hàng</button>
         </div>
         <div class="oc-modal__result" id="oc-new-result"></div>
     </div>

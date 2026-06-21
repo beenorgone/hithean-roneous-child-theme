@@ -704,7 +704,7 @@
         } else {
             $('#oc-cust-modal-title').textContent = 'Khách hàng mới';
             $('#oc-cust-role').value = 'customer';
-            $('#oc-new-save').textContent = 'Save customer';
+            $('#oc-new-save').textContent = 'Lưu khách hàng';
         }
         openModal('#oc-customer-modal');
     }

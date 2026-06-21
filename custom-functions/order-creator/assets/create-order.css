@@ -27,7 +27,7 @@
 .oc-topbar h1 { font-size: 20px; margin: 0; }
 .oc-topbar__actions { display: flex; gap: 8px; }
 .oc-topbar__title { display: inline-flex; align-items: center; gap: 10px; font-size: 20px; }
-.oc-logo { height: 1.5em; width: auto; display: block; object-fit: contain; } /* gấp rưỡi chiều cao tiêu đề */
+.oc-logo { height: 55px; width: auto; display: block; object-fit: contain; } /* gấp rưỡi chiều cao tiêu đề */
 
 /* sticky section nav (nhảy nhanh tới từng phần) */
 .oc-section-nav {
