@@ -1275,17 +1275,14 @@ body.anc-modal-locked {
 
 #anc-calculator {
     padding: 80px 20px;
-    background-color: var(--default-color-beige);
-    background-image: var(--anc-calc-bg, none);
-    background-size: cover;
-    background-position: center;
+    background-color: var(--product-nuocepkytu-green);
     position: relative;
 }
 #anc-calculator::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(247, 246, 242, 0.80);
+    background: rgba(10, 40, 35, 0.85);
     z-index: 0;
 }
 #anc-calculator > * { position: relative; z-index: 1; }
