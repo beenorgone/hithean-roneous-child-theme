@@ -14,23 +14,13 @@
    ============================================================ */
 :root {
     /* Desktop */
-    --anc-hero-bg:     url('https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg');
-    --anc-cert-bg:     none;
-    --anc-qc-bg:       none;
-    --anc-products-bg: url('https://hithean.com/wp-content/uploads/2026/06/banner-website-1.jpg.webp');
-    --anc-organic-bg:  url('https://hithean.com/wp-content/uploads/2026/06/Organic-Matcha-Powder-The-An-Organics-13.jpg.webp');
-    --anc-calc-bg:     none;
-    --anc-cta-bg:      none;
+    --anc-hero-bg: url('https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg');
+    --anc-cta-bg:  none;
 
     /* Mobile — khai báo ở đây khi có ảnh riêng cho mobile: */
-    --anc-hero-bg-m:     url('https://hithean.com/wp-content/uploads/2026/05/thean-yeast-hero-proteins-mobile-background-202605.jpg');
+    --anc-hero-bg-m: url('https://hithean.com/wp-content/uploads/2026/05/thean-yeast-hero-proteins-mobile-background-202605.jpg');
     /*
-    --anc-cert-bg-m:     url('...');
-    --anc-qc-bg-m:       url('...');
-    --anc-products-bg-m: url('...');
-    --anc-organic-bg-m:  url('...');
-    --anc-calc-bg-m:     url('...');
-    --anc-cta-bg-m:      url('...');
+    --anc-cta-bg-m: url('...');
     */
 }
 
@@ -86,7 +76,7 @@
 
 /* ---- Product cluster — shelf lineup, same baseline ---- */
 .anc-hero-products {
-    width: min(92vw, 320px);
+    width: min(92vw, 360px);
     margin: 0 auto;
     flex-shrink: 0;
 }
@@ -106,12 +96,12 @@
     filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.55));
 }
 
-/* Mobile/tablet default: step 14% → last right edge ~102%, vừa khít container */
+/* Mobile/tablet default: step 16% — giãn rộng hơn, container tự co theo vw nên không bị quá rộng */
 .anc-float-img--1 { left: 0;    bottom: 0%;  z-index: 3; animation: anc-float-1 5.4s ease-in-out infinite 0s; }
-.anc-float-img--2 { left: 14%;  bottom: 5%;  z-index: 4; animation: anc-float-2 5.4s ease-in-out infinite 0.6s; }
-.anc-float-img--3 { left: 28%;  bottom: 11%; width: 52%; z-index: 6; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.65)); animation: anc-float-3 5.4s ease-in-out infinite 1.2s; }
-.anc-float-img--4 { left: 42%;  bottom: 5%;  z-index: 5; animation: anc-float-4 5.4s ease-in-out infinite 1.8s; }
-.anc-float-img--5 { left: 56%;  bottom: 0%;  z-index: 2; animation: anc-float-5 5.4s ease-in-out infinite 2.4s; }
+.anc-float-img--2 { left: 16%;  bottom: 5%;  z-index: 4; animation: anc-float-2 5.4s ease-in-out infinite 0.6s; }
+.anc-float-img--3 { left: 32%;  bottom: 11%; width: 52%; z-index: 6; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.65)); animation: anc-float-3 5.4s ease-in-out infinite 1.2s; }
+.anc-float-img--4 { left: 48%;  bottom: 5%;  z-index: 5; animation: anc-float-4 5.4s ease-in-out infinite 1.8s; }
+.anc-float-img--5 { left: 64%;  bottom: 0%;  z-index: 2; animation: anc-float-5 5.4s ease-in-out infinite 2.4s; }
 
 @keyframes anc-float-1 {
     0%, 100% { transform: rotate(-7deg) translateY(0); }
@@ -134,42 +124,14 @@
     50%       { transform: rotate(-5deg) translateY(-13px); }
 }
 
-/* Cert badge vòng tròn trong hero — với logos image */
-.anc-cert-badge {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 138px;
-    height: 138px;
-    border-radius: 50%;
-    border: 3px solid var(--default-color-yellow);
-    background: rgba(255, 255, 255, 0.10);
-    font-family: 'Oswald', sans-serif;
-    text-transform: uppercase;
-    color: var(--default-color-yellow);
-    margin-top: 0;
-    margin-bottom: 32px;
-    gap: 5px;
-    transition: transform 2s ease;
-    cursor: default;
-}
-
-.anc-cert-badge:hover {
-    transform: rotate(360deg);
-}
-
-.anc-cert-badge-logos {
-    width: 62px;
-    height: auto;
+/* USDA + EU Organic logos cạnh logo brand trong hero */
+.anc-hero-cert-logos {
+    height: 56px;
+    width: auto;
     object-fit: contain;
-    display: block;
-}
-
-.anc-cert-badge-num {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 1px;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 8px;
+    padding: 6px 10px;
 }
 
 .anc-hero-title {
@@ -280,10 +242,7 @@
 
 #anc-certification {
     padding: 80px 20px;
-    background-color: #fff;
-    background-image: var(--anc-cert-bg, none);
-    background-size: cover;
-    background-position: center;
+    background-color: var(--product-nuocepkytu-green);
     text-align: center;
     position: relative;
 }
@@ -291,7 +250,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.80);
+    background: rgba(10, 40, 35, 0.85);
     z-index: 0;
 }
 #anc-certification > * { position: relative; z-index: 1; }
@@ -310,19 +269,33 @@
     max-width: 1100px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 18px;
     text-align: left;
 }
 
 @media (min-width: 700px) {
-    .anc-trust-inner { grid-template-columns: repeat(4, 1fr); }
+    .anc-trust-inner { grid-template-columns: repeat(3, 1fr); }
 }
 
 .anc-trust-item {
     display: flex;
     align-items: center;
     gap: 12px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 8px;
+    margin: 0;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.anc-trust-item:hover {
+    background: rgba(19, 81, 80, 0.06);
 }
 
 .anc-trust-icon {
@@ -350,6 +323,106 @@
     color: var(--default-color-charcoal-grey, #555);
 }
 
+/* =============================================
+   MODAL (trust bar details + protein calculator)
+   ============================================= */
+
+.anc-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.anc-modal.is-open {
+    display: flex;
+}
+
+.anc-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 40, 35, 0.72);
+}
+
+.anc-modal-dialog {
+    position: relative;
+    background: #fff;
+    border-radius: 10px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 86vh;
+    overflow-y: auto;
+    padding: 40px 28px 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.anc-modal-dialog--lg {
+    max-width: 680px;
+}
+
+.anc-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--default-color-charcoal-grey, #555);
+    cursor: pointer;
+    padding: 4px 10px;
+}
+
+.anc-modal-body h3 {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--product-nuocepkytu-green);
+    margin: 0 0 14px;
+    font-size: 17px;
+}
+
+.anc-modal-body p {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--default-color-charcoal-grey, #555);
+    line-height: 1.6;
+}
+
+.anc-modal-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    color: var(--default-color-charcoal-grey, #555);
+    line-height: 1.6;
+}
+
+.anc-modal-list li {
+    padding: 4px 0;
+}
+
+.anc-modal-list li::before {
+    content: '— ';
+    color: var(--product-nuocepkytu-light-green, #3d8f7b);
+    font-weight: 600;
+}
+
+.anc-modal-note {
+    font-size: 12px;
+    color: var(--default-color-charcoal-grey, #555);
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(19, 81, 80, 0.1);
+}
+
+body.anc-modal-locked {
+    overflow: hidden;
+}
+
 .anc-cert-section-inner {
     max-width: 1000px;
     margin: 0 auto;
@@ -363,12 +436,8 @@
     width: 160px;
     height: 160px;
     border-radius: 50%;
-    border: 4px solid var(--product-nuocepkytu-green);
-    background: linear-gradient(
-        135deg,
-        rgba(19, 81, 80, 0.06),
-        rgba(0, 132, 61, 0.10)
-    );
+    border: 4px solid var(--default-color-yellow);
+    background: rgba(255, 255, 255, 0.08);
     display: inline-flex;
     flex-direction: column;
     align-items: center;
@@ -377,7 +446,7 @@
     margin-bottom: 30px;
     font-family: 'Oswald', sans-serif;
     text-transform: uppercase;
-    color: var(--product-nuocepkytu-green);
+    color: var(--default-color-white);
     transition: transform 2s ease;
     cursor: default;
 }
@@ -388,10 +457,13 @@
 
 /* USDA + EU Organic combined logo image (inside cert badge or QC card) */
 .anc-badge-organic-logos-img {
-    width: 82px;
+    width: 76px;
     height: auto;
     object-fit: contain;
-    margin-bottom: 3px;
+    margin-bottom: 5px;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 6px;
+    padding: 4px 6px;
 }
 
 .anc-badge-org {
@@ -416,14 +488,14 @@
     font-family: 'Oswald', sans-serif !important;
     text-transform: uppercase !important;
     letter-spacing: 3px !important;
-    color: var(--product-nuocepkytu-green) !important;
+    color: var(--default-color-white) !important;
     margin-bottom: 16px !important;
 }
 
 .anc-cert-desc {
     max-width: 680px;
     margin: 0 auto 50px;
-    color: var(--default-color-charcoal-grey);
+    color: rgba(255, 255, 255, 0.85);
     line-height: 1.75;
     font-size: 15px;
 }
@@ -496,9 +568,8 @@
     margin: 48px auto 0;
     font-size: 15px;
     font-style: italic;
-    color: var(--product-nuocepkytu-green);
+    color: rgba(255, 255, 255, 0.8);
     line-height: 1.7;
-    opacity: 0.88;
 }
 
 /* =============================================
@@ -506,10 +577,7 @@
    ============================================= */
 
 #anc-qc {
-    background-color: var(--default-color-beige);
-    background-image: var(--anc-qc-bg, none);
-    background-size: cover;
-    background-position: center;
+    background-color: var(--product-nuocepkytu-green);
     padding: 72px 24px;
     text-align: center;
     position: relative;
@@ -518,7 +586,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(247, 246, 242, 0.80);
+    background: rgba(10, 40, 35, 0.85);
     z-index: 0;
 }
 #anc-qc > * { position: relative; z-index: 1; }
@@ -529,13 +597,13 @@
 }
 
 #anc-qc .anc-section-title {
-    color: var(--product-nuocepkytu-green) !important;
+    color: var(--default-color-white) !important;
 }
 
 .anc-qc-desc {
     max-width: 600px;
     margin: 0 auto 40px;
-    color: var(--default-color-charcoal-grey);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 15px;
     line-height: 1.7;
 }
@@ -639,9 +707,6 @@
 #anc-products {
     padding: 72px 20px;
     background-color: var(--product-nuocepkytu-green);
-    background-image: var(--anc-products-bg, none);
-    background-size: cover;
-    background-position: center;
     text-align: center;
     position: relative;
 }
@@ -926,9 +991,6 @@
 
 #anc-organic {
     background-color: var(--product-nuocepkytu-green);
-    background-image: var(--anc-organic-bg, none);
-    background-size: cover;
-    background-position: center;
     padding: 72px 20px;
     position: relative;
 }
@@ -1253,9 +1315,10 @@
 }
 #anc-calculator > * { position: relative; z-index: 1; }
 
-.anc-calc-card {
-    max-width: 660px;
+.anc-calc-cta {
+    max-width: 560px;
     margin: 0 auto;
+    text-align: center;
     background: #fff;
     border-radius: 8px;
     padding: 40px 32px 44px;
@@ -1263,7 +1326,7 @@
     border-top: 4px solid var(--product-nuocepkytu-green);
 }
 
-.anc-calc-card h2 {
+.anc-calc-cta h2 {
     font-family: 'Oswald', sans-serif !important;
     text-transform: uppercase !important;
     letter-spacing: 2px !important;
@@ -1275,8 +1338,18 @@
 .anc-calc-desc {
     color: var(--default-color-charcoal-grey);
     font-size: 14px;
-    margin-bottom: 30px;
+    margin-bottom: 26px;
     line-height: 1.6;
+}
+
+.anc-calc-cta .button--light-green {
+    display: inline-block;
+}
+
+/* Calculator nội dung khi mở trong modal */
+.anc-modal-body .anc-calc-card,
+.anc-modal-body #anc-calc-form {
+    text-align: left;
 }
 
 .anc-field {
@@ -1469,6 +1542,21 @@
     margin: 0 auto;
 }
 
+.anc-faq-group + .anc-faq-group {
+    margin-top: 36px;
+}
+
+.anc-faq-group-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--product-nuocepkytu-green);
+    margin: 0 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(19, 81, 80, 0.15);
+}
+
 .anc-faq-list {
     display: flex;
     flex-direction: column;
@@ -1526,8 +1614,20 @@
 }
 
 .anc-social-inner {
-    max-width: 600px;
+    max-width: 620px;
     margin: 0 auto;
+}
+
+.anc-social-embed {
+    max-width: 605px;
+    margin: 0 auto 24px;
+}
+
+.anc-tiktok-embed {
+    border: 0;
+    background: inherit;
+    padding: 0;
+    margin: 0;
 }
 
 .anc-social-link {
@@ -1672,28 +1772,13 @@
         height: 64px;
     }
 
-    .anc-cert-badge {
-        width: 100px;
-        height: 100px;
-        gap: 3px;
-        margin-bottom: 24px;
-    }
-
-    .anc-cert-badge-logos {
-        width: 44px;
-    }
-
-    .anc-cert-badge-org,
-    .anc-cert-badge-cert {
-        font-size: 8px;
-    }
-
-    .anc-cert-badge-num {
-        font-size: 9px;
+    .anc-hero-cert-logos {
+        height: 40px;
+        padding: 4px 8px;
     }
 
     .anc-hero-products {
-        width: min(100vw, 380px);
+        width: min(94vw, 400px);
     }
 
     /* Feature product */
@@ -1754,13 +1839,8 @@
         width: 100%;
     }
 
-    /* Trust bar 1-col */
-    .anc-trust-inner {
-        grid-template-columns: 1fr;
-    }
-
-    /* Calc card */
-    .anc-calc-card {
+    /* Calc CTA card */
+    .anc-calc-cta {
         padding: 28px 18px 32px;
     }
 
@@ -1772,26 +1852,6 @@
     /* Mobile background images — fallback về desktop var nếu chưa set -m */
     #anc-hero {
         background-image: var(--anc-hero-bg-m, var(--anc-hero-bg, none));
-        background-position: center top;
-    }
-    #anc-certification {
-        background-image: var(--anc-cert-bg-m, var(--anc-cert-bg, none));
-        background-position: center top;
-    }
-    #anc-qc {
-        background-image: var(--anc-qc-bg-m, var(--anc-qc-bg, none));
-        background-position: center top;
-    }
-    #anc-products {
-        background-image: var(--anc-products-bg-m, var(--anc-products-bg, none));
-        background-position: center top;
-    }
-    #anc-organic {
-        background-image: var(--anc-organic-bg-m, var(--anc-organic-bg, none));
-        background-position: center top;
-    }
-    #anc-calculator {
-        background-image: var(--anc-calc-bg-m, var(--anc-calc-bg, none));
         background-position: center top;
     }
     #anc-cta-band {

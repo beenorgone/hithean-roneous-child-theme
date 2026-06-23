@@ -28,16 +28,11 @@
 
       <div class="anc-hero-brand">
         <img src="https://hithean.com/wp-content/uploads/2024/08/logo-thean-w200-no-paddings.png" alt="The An Organics" class="anc-hero-logo" />
-        <div class="anc-cert-badge">
-          <img class="anc-cert-badge-logos" src="https://hithean.com/wp-content/uploads/2025/11/organic-logos-600x332.png.webp" alt="USDA · EU Organic" />
-          <span class="anc-cert-badge-org">CERTIFIED ORGANIC</span>
-          <span class="anc-cert-badge-cert">NHÀ MÁY SẢN XUẤT</span>
-          <span class="anc-cert-badge-num">CU 916118</span>
-        </div>
+        <img class="anc-hero-cert-logos" src="https://hithean.com/wp-content/uploads/2025/11/organic-logos-600x332.png.webp" alt="Chứng nhận USDA Organic · EU Organic — CU 916118" />
       </div>
 
       <h1 class="anc-hero-title">"AN" NEW CHAPTER</h1>
-      <p class="anc-hero-subtitle">Khởi nguồn bản địa, bắt nhịp thế giới</p>
+      <p class="anc-hero-subtitle">Công thức nâng cấp, bao bì mới &amp; chứng nhận hữu cơ quốc tế CU 916118 — Yeast Hero Protein thế hệ mới đã có mặt</p>
 
       <div class="anc-hero-ctas">
         <a href="#anc-certification" class="button--light-blue">Chứng nhận hữu cơ</a>
@@ -67,40 +62,84 @@
 <section id="anc-trust">
   <div class="anc-trust-inner anc-fade-in-children">
 
-    <div class="anc-trust-item">
+    <button type="button" class="anc-trust-item" data-modal-open="modal-trust-cert">
       <span class="anc-trust-icon" aria-hidden="true">🌿</span>
       <div class="anc-trust-text">
         <strong>CU 916118</strong>
         <span>Chứng nhận hữu cơ USDA &amp; EU</span>
       </div>
-    </div>
+    </button>
 
-    <div class="anc-trust-item">
+    <button type="button" class="anc-trust-item" data-modal-open="modal-trust-eurofins">
       <span class="anc-trust-icon" aria-hidden="true">🔬</span>
       <div class="anc-trust-text">
         <strong>Eurofins</strong>
         <span>Kiểm nghiệm độc lập</span>
       </div>
-    </div>
+    </button>
 
-    <div class="anc-trust-item">
+    <button type="button" class="anc-trust-item" data-modal-open="modal-trust-iso">
       <span class="anc-trust-icon" aria-hidden="true">🏭</span>
       <div class="anc-trust-text">
         <strong>ISO 22000 · HACCP · GMP</strong>
         <span>Tiêu chuẩn sản xuất quốc tế</span>
       </div>
-    </div>
-
-    <div class="anc-trust-item">
-      <span class="anc-trust-icon" aria-hidden="true">🚚</span>
-      <div class="anc-trust-text">
-        <strong>Miễn phí vận chuyển</strong>
-        <span>Toàn quốc</span>
-      </div>
-    </div>
+    </button>
 
   </div>
 </section>
+
+<!-- Trust bar detail modals -->
+<div class="anc-modal" id="modal-trust-cert" aria-hidden="true">
+  <div class="anc-modal-backdrop" data-modal-close></div>
+  <div class="anc-modal-dialog">
+    <button type="button" class="anc-modal-close" data-modal-close aria-label="Đóng">×</button>
+    <div class="anc-modal-body">
+      <h3>Chứng nhận hữu cơ quốc tế CU 916118</h3>
+      <ul class="anc-modal-list">
+        <li>Cấp bởi <strong>Control Union</strong> — tổ chức chứng nhận quốc tế</li>
+        <li>Đạt tiêu chuẩn <strong>USDA Organic</strong> (Hoa Kỳ) và <strong>EU Organic</strong> (châu Âu)</li>
+        <li>Áp dụng toàn bộ chuỗi: nguyên liệu → sản xuất → thành phẩm</li>
+        <li>Đạt chuẩn xuất khẩu vào Hoa Kỳ &amp; Liên minh châu Âu</li>
+        <li>Kiểm tra định kỳ hàng năm tại nhà máy</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="anc-modal" id="modal-trust-eurofins" aria-hidden="true">
+  <div class="anc-modal-backdrop" data-modal-close></div>
+  <div class="anc-modal-dialog">
+    <button type="button" class="anc-modal-close" data-modal-close aria-label="Đóng">×</button>
+    <div class="anc-modal-body">
+      <h3>Đối tác kiểm nghiệm độc lập — Eurofins</h3>
+      <p>Eurofins Scientific — 900+ phòng lab · 50+ quốc gia.</p>
+      <ul class="anc-modal-list">
+        <li>Phân tích thành phần dinh dưỡng &amp; chất gây dị ứng</li>
+        <li>Kiểm nghiệm vi sinh, kim loại nặng, dư lượng thuốc BVTV</li>
+        <li>Báo cáo theo chuẩn quốc tế <strong>ISO/IEC 17025</strong></li>
+        <li>Kết quả kiểm nghiệm độc lập, không có lợi ích xung đột</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="anc-modal" id="modal-trust-iso" aria-hidden="true">
+  <div class="anc-modal-backdrop" data-modal-close></div>
+  <div class="anc-modal-dialog">
+    <button type="button" class="anc-modal-close" data-modal-close aria-label="Đóng">×</button>
+    <div class="anc-modal-body">
+      <h3>Tiêu chuẩn sản xuất quốc tế</h3>
+      <p>3 chứng nhận quốc tế · TQC CGLOBAL · Mã: TQC.03.6137</p>
+      <ul class="anc-modal-list">
+        <li>ISO 22000 — Quản lý an toàn thực phẩm</li>
+        <li>HACCP — Phân tích mối nguy &amp; kiểm soát tới hạn</li>
+        <li>GMP — Quy phạm thực hành sản xuất tốt</li>
+      </ul>
+      <p class="anc-modal-note">🇺🇸 FDA Hoa Kỳ: 18772617074 · CGLOBAL.FDA.9269</p>
+    </div>
+  </div>
+</div>
 
 
 <!-- ============================================================
@@ -332,12 +371,22 @@
      PROTEIN CALCULATOR
      ============================================================ -->
 <section id="anc-calculator">
-  <div class="anc-calc-card anc-fade-in">
+  <div class="anc-calc-cta anc-fade-in">
     <h2>TÍNH LƯỢNG PROTEIN MỖI NGÀY</h2>
     <p class="anc-calc-desc">Theo khuyến nghị VN/WHO và Mỹ 2026–2030 — kèm gợi ý sản phẩm Yeast Hero phù hợp.</p>
-    [protein_calculator]
+    <button type="button" class="button--light-green" data-modal-open="modal-calculator">Tính ngay →</button>
   </div>
 </section>
+
+<div class="anc-modal" id="modal-calculator" aria-hidden="true">
+  <div class="anc-modal-backdrop" data-modal-close></div>
+  <div class="anc-modal-dialog anc-modal-dialog--lg">
+    <button type="button" class="anc-modal-close" data-modal-close aria-label="Đóng">×</button>
+    <div class="anc-modal-body">
+      [protein_calculator]
+    </div>
+  </div>
+</div>
 
 
 <!-- ============================================================
@@ -363,33 +412,70 @@
 
     <h2 class="anc-section-title anc-fade-in">CÂU HỎI THƯỜNG GẶP</h2>
 
-    <div class="anc-faq-list anc-fade-in">
+    <div class="anc-faq-group anc-fade-in">
+      <h3 class="anc-faq-group-title">Thông tin chung</h3>
+      <div class="anc-faq-list">
 
-      <details class="anc-faq-item">
-        <summary>Yeast Hero Protein khác gì với Whey Protein?</summary>
-        <p>Yeast Protein là đạm hoàn chỉnh với 18 axit amin, điểm chất lượng protein PDCAAS hoàn hảo = 1 — tương đương whey nhưng không từ sữa động vật, phù hợp người không dùng được sữa/đậu nành. Quy trình sản xuất cũng thân thiện môi trường hơn: ít CO₂, ít nước &amp; đất hơn protein động vật.</p>
-      </details>
+        <details class="anc-faq-item">
+          <summary>Pha Yeast Hero Protein như thế nào?</summary>
+          <p>Pha 1 khẩu phần (38,4g) với 200–300ml nước hoặc sữa thực vật, lắc đều hoặc dùng máy xay. Bảo quản lạnh và dùng trong ngày. Dùng được mọi thời điểm trong ngày — phổ biến nhất là sau tập luyện hoặc thay một phần bữa ăn nhẹ.</p>
+        </details>
 
-      <details class="anc-faq-item">
-        <summary>Avocado Matcha có ngọt không? Thành phần tạo ngọt là gì?</summary>
-        <p>Sản phẩm không dùng đường — vị ngọt tự nhiên đến từ la hán quả hữu cơ (0 calo, chỉ số đường huyết GI = 0), kết hợp cùng bơ vườn rừng và matcha hữu cơ cấp ceremonial, không hương liệu nhân tạo.</p>
-      </details>
+        <details class="anc-faq-item">
+          <summary>Mỗi ngày nên dùng bao nhiêu protein?</summary>
+          <p>Lượng protein cần thiết phụ thuộc tuổi, cân nặng, giới tính, mức độ vận động và tình trạng sức khỏe — tính theo khuyến nghị VN/WHO và Mỹ 2026–2030. Dùng công cụ <strong>tính lượng protein mỗi ngày</strong> ở phần trên trang để có gợi ý cụ thể kèm sản phẩm Yeast Hero phù hợp.</p>
+        </details>
 
-      <details class="anc-faq-item">
-        <summary>Sản phẩm có phù hợp người ăn chay, dị ứng thực phẩm không?</summary>
-        <p>Toàn bộ dòng Yeast Hero Protein: không đường, không đậu nành, không sữa, không gluten, không GMO — phù hợp người ăn chay thuần (vegan) và người nhạy cảm với các nhóm dị ứng phổ biến nhất.</p>
-      </details>
+        <details class="anc-faq-item">
+          <summary>Trẻ em, phụ nữ mang thai và cho con bú có dùng được không?</summary>
+          <p>Sản phẩm không chứa thành phần hay vitamin/khoáng chất tổng hợp. Tuy nhiên nên kiểm tra kỹ thành phần để đảm bảo phù hợp với các nhóm nhạy cảm dị ứng trước khi sử dụng.</p>
+        </details>
 
-      <details class="anc-faq-item">
-        <summary>Chứng nhận hữu cơ CU 916118 nghĩa là gì?</summary>
-        <p>CU 916118 là mã chứng nhận hữu cơ quốc tế do <strong>Control Union</strong> cấp cho nhà máy sản xuất, xác nhận toàn bộ chuỗi — từ nguyên liệu đầu vào đến thành phẩm — đạt chuẩn <strong>USDA Organic</strong> (Hoa Kỳ) và <strong>EU Organic</strong> (châu Âu), kiểm tra định kỳ hàng năm.</p>
-      </details>
+      </div>
+    </div>
 
-      <details class="anc-faq-item">
-        <summary>Pha Yeast Hero Protein như thế nào?</summary>
-        <p>Pha 1 khẩu phần (38,4g) với 200–250ml nước hoặc sữa thực vật, lắc đều hoặc dùng máy xay. Dùng được mọi thời điểm trong ngày — phổ biến nhất là sau tập luyện hoặc thay một phần bữa ăn nhẹ.</p>
-      </details>
+    <div class="anc-faq-group anc-fade-in">
+      <h3 class="anc-faq-group-title">Protein Yeast Hero</h3>
+      <div class="anc-faq-list">
 
+        <details class="anc-faq-item">
+          <summary>Yeast Hero Protein khác gì với Whey Protein?</summary>
+          <p>Yeast Protein là đạm hoàn chỉnh với 18 axit amin, điểm chất lượng protein PDCAAS hoàn hảo = 1 — tương đương whey nhưng không từ sữa động vật, phù hợp người không dùng được sữa/đậu nành. Quy trình sản xuất cũng thân thiện môi trường hơn: ít CO₂, ít nước &amp; đất hơn protein động vật.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Yeast Protein có nguồn gốc từ đâu?</summary>
+          <p>Yeast protein có nguồn gốc từ quá trình lên men mật rỉ đường cùng chủng nấm men Saccharomyces cerevisiae — chủng men đã được dùng hàng ngàn năm trong làm bánh mì và ủ bia.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Avocado Matcha có ngọt không? Thành phần tạo ngọt là gì?</summary>
+          <p>Sản phẩm không dùng đường — vị ngọt tự nhiên đến từ la hán quả hữu cơ (0 calo, chỉ số đường huyết GI = 0), kết hợp cùng bơ vườn rừng và matcha hữu cơ cấp ceremonial, không hương liệu nhân tạo.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Sản phẩm có phù hợp người ăn chay, dị ứng thực phẩm không?</summary>
+          <p>Toàn bộ dòng Yeast Hero Protein: không đường, không đậu nành, không sữa, không gluten, không GMO — phù hợp người ăn chay thuần (vegan) và người nhạy cảm với các nhóm dị ứng phổ biến nhất.</p>
+        </details>
+
+      </div>
+    </div>
+
+    <div class="anc-faq-group anc-fade-in">
+      <h3 class="anc-faq-group-title">Chứng nhận hữu cơ</h3>
+      <div class="anc-faq-list">
+
+        <details class="anc-faq-item">
+          <summary>Chứng nhận hữu cơ CU 916118 nghĩa là gì?</summary>
+          <p>CU 916118 là mã chứng nhận hữu cơ quốc tế do <strong>Control Union</strong> cấp cho nhà máy sản xuất, xác nhận toàn bộ chuỗi — từ nguyên liệu đầu vào đến thành phẩm — đạt chuẩn <strong>USDA Organic</strong> (Hoa Kỳ) và <strong>EU Organic</strong> (châu Âu), kiểm tra định kỳ hàng năm.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Nhà máy còn đạt chứng nhận sản xuất nào khác?</summary>
+          <p>Ngoài chứng nhận hữu cơ, nhà máy đạt 3 chứng nhận quốc tế ISO 22000, HACCP, GMP (cấp bởi TQC CGLOBAL, mã TQC.03.6137) và đăng ký FDA Hoa Kỳ. Mọi sản phẩm còn được kiểm nghiệm độc lập bởi Eurofins Scientific.</p>
+        </details>
+
+      </div>
     </div>
   </div>
 </section>
@@ -402,11 +488,16 @@
   <div class="anc-social-inner anc-fade-in">
     <h2 class="anc-section-title">CỘNG ĐỒNG THE AN ORGANICS</h2>
     <p class="anc-section-subtitle">Theo dõi hành trình sản phẩm hữu cơ — từ nhà máy đến trải nghiệm thực tế của khách hàng.</p>
+
+    <div class="anc-social-embed">
+      <blockquote class="tiktok-embed anc-tiktok-embed" cite="https://www.tiktok.com/tag/yeasthero" data-tag-id="yeasthero" data-embed-type="tag"><section><a href="https://www.tiktok.com/tag/yeasthero?refer=tag_embed" target="_blank" rel="noopener">#yeasthero</a></section></blockquote>
+      <script async src="https://www.tiktok.com/embed.js"></script>
+    </div>
+
     <a href="https://facebook.com/hitheanorganics" class="anc-social-link" target="_blank" rel="noopener">
       <span aria-hidden="true">📘</span> Theo dõi The An Organics trên Facebook →
     </a>
   </div>
-  <!-- TODO: thay/bổ sung review, ảnh khách hàng thực (Shopee/Tiki/Facebook) khi có dữ liệu -->
 </section>
 
 

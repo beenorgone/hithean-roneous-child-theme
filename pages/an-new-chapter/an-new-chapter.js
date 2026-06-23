@@ -34,6 +34,44 @@
     }
 
     /* ============================================================
+       MODALS (trust bar details, protein calculator)
+       ============================================================ */
+
+    function openModal(modal) {
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('anc-modal-locked');
+    }
+
+    function closeModal(modal) {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('anc-modal-locked');
+    }
+
+    function initModals() {
+        document.querySelectorAll('[data-modal-open]').forEach(function (trigger) {
+            trigger.addEventListener('click', function () {
+                var modal = document.getElementById(trigger.getAttribute('data-modal-open'));
+                if (modal) openModal(modal);
+            });
+        });
+
+        document.querySelectorAll('[data-modal-close]').forEach(function (closer) {
+            closer.addEventListener('click', function () {
+                var modal = closer.closest('.anc-modal');
+                if (modal) closeModal(modal);
+            });
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') return;
+            var openEl = document.querySelector('.anc-modal.is-open');
+            if (openEl) closeModal(openEl);
+        });
+    }
+
+    /* ============================================================
        SCROLL ANIMATIONS (IntersectionObserver)
        ============================================================ */
 
@@ -127,6 +165,7 @@
 
     function init() {
         initSectionReorder();
+        initModals();
         initScrollAnimations();
         initSmoothScroll();
         initGalleries();
