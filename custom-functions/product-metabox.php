@@ -44,6 +44,17 @@ function hithean_product_additional_info_metabox($meta_boxes)
                 'name' => esc_html__('Thành phần và bảng giá trị dinh dưỡng', 'hithean-product-metabox'),
                 'desc' => esc_html__('Thông tin nhập tại đây sẽ hiển thị ở Tab Thành Phần', 'hithean-product-metabox'),
             ],
+            [
+                'id'                => 'product_nutrition_label_csv',
+                'type'              => 'textarea',
+                'name'              => esc_html__('Bảng thành phần / dinh dưỡng (CSV)', 'hithean-product-metabox'),
+                'desc'              => wp_kses_post(__('Cách dùng: bấm <strong>Tải ảnh lên</strong> bên dưới, rồi bấm <strong>Thêm vào CSV</strong>. Mỗi dòng có định dạng: Tiêu đề ảnh, URL ảnh. Dùng dấu ngoặc kép nếu tiêu đề có dấu phẩy.', 'hithean-product-metabox')),
+                'sanitize_callback' => 'sanitize_textarea_field',
+                'attributes'        => [
+                    'placeholder' => "Supplement Facts,https://example.com/supplement-facts.jpg\nNutrition Facts,https://example.com/nutrition-facts.jpg",
+                ],
+                'rows'              => 6,
+            ],
 
             [
                 'id' => $prefix . 'nhan_phu',
@@ -84,4 +95,3 @@ function hithean_product_additional_info_metabox($meta_boxes)
 }
 
 add_filter('rwmb_meta_boxes', 'hithean_product_additional_info_metabox');
-
