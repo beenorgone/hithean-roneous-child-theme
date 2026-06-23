@@ -407,14 +407,18 @@
         recalc();
     }
 
-    function addFee() {
-        var name = $('#oc-fee-name').value.trim();
+    // Đưa phí đang gõ dở (chưa bấm "Thêm") vào danh sách. Trả về true nếu có thêm.
+    function flushPendingFee() {
         var amount = Number($('#oc-fee-amount').value);
-        if (!amount) return;
-        state.fees.push({ name: name, amount: amount });
-        renderFees();
+        if (!amount) { return false; }
+        state.fees.push({ name: $('#oc-fee-name').value.trim(), amount: amount });
         $('#oc-fee-name').value = ''; $('#oc-fee-amount').value = '';
-        recalc();
+        renderFees();
+        return true;
+    }
+
+    function addFee() {
+        if (flushPendingFee()) { recalc(); }
     }
 
     function renderFees() {
@@ -881,6 +885,7 @@
     // ---------- create order ----------
     function createOrder(isDraft) {
         if (!state.items.length) { alert('Chưa có sản phẩm.'); return; }
+        flushPendingFee();
         var payload = buildPayload();
         payload.draft = !!isDraft;
         var btn = isDraft ? $('#oc-draft') : $('#oc-create');
@@ -1160,7 +1165,7 @@
         $('#oc-invoice-copy').addEventListener('click', invoiceCopy);
         $('#oc-cancel-edit').addEventListener('click', cancelEdit);
         $('#oc-clear-cart').addEventListener('click', clearCart);
-        $('#oc-recalc').addEventListener('click', doRecalc);
+        $('#oc-recalc').addEventListener('click', function () { flushPendingFee(); doRecalc(); });
         $('#oc-draft').addEventListener('click', function () { createOrder(true); });
         $('#oc-create').addEventListener('click', function () { createOrder(false); });
         $('#oc-copy-order').addEventListener('click', copyCurrent);

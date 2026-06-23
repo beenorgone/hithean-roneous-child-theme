@@ -253,24 +253,25 @@ add_action('woocommerce_cart_calculate_fees', function ($cart) {
     }
 }, 1000);
 
-/** Ghi đè phí của phương thức ship đang chọn, khi nhân viên nhập phí thủ công. */
+/**
+ * Ghi đè phí ship khi nhân viên nhập phí thủ công.
+ * Áp cho TẤT CẢ phương thức (không chỉ method đang chọn) vì lúc WC tính & cache
+ * rate trong add_to_cart thì chosen_shipping_methods chưa được set → nếu chỉ ghi
+ * đè method đang chọn sẽ trượt và đơn lấy phí ship mặc định.
+ */
 add_filter('woocommerce_package_rates', function ($rates) {
     $state = &order_creator_state();
     if (!$state['active'] || $state['shipping_cost'] === null || !is_array($rates)) {
         return $rates;
     }
 
-    $chosen = WC()->session ? (array) WC()->session->get('chosen_shipping_methods') : [];
-    $rate_id = $chosen[0] ?? '';
-    if ($rate_id === '' || empty($rates[$rate_id])) {
-        return $rates;
-    }
-
-    $cost = max(0, (float) $state['shipping_cost']);
-    $rate = $rates[$rate_id];
-    $rate->set_cost($cost);
-    if (wc_tax_enabled()) {
-        $rate->set_taxes(WC_Tax::calc_shipping_tax($cost, WC_Tax::get_shipping_tax_rates()));
+    $cost  = max(0, (float) $state['shipping_cost']);
+    $taxes = wc_tax_enabled() ? WC_Tax::calc_shipping_tax($cost, WC_Tax::get_shipping_tax_rates()) : [];
+    foreach ($rates as $rate) {
+        $rate->set_cost($cost);
+        if (wc_tax_enabled()) {
+            $rate->set_taxes($taxes);
+        }
     }
     return $rates;
 }, 1000);
@@ -438,6 +439,13 @@ function order_creator_populate_cart(array $payload): void
 
     if (!empty($payload['shipping_method']) && WC()->session) {
         WC()->session->set('chosen_shipping_methods', [wc_clean((string) $payload['shipping_method'])]);
+    }
+    // Xoá cache rate (WC cache theo hash gói hàng, không gồm phí ship thủ công) để
+    // filter woocommerce_package_rates chạy lại với shipping_cost mới mỗi lần tính.
+    if (WC()->session) {
+        foreach (array_keys(WC()->cart->get_shipping_packages()) as $package_key) {
+            WC()->session->set('shipping_for_package_' . $package_key, false);
+        }
     }
     WC()->cart->calculate_shipping();
 }
