@@ -706,25 +706,12 @@ body.anc-modal-locked {
 
 #anc-products {
     padding: 72px 20px;
-    background-color: var(--product-nuocepkytu-green);
+    background-color: var(--default-color-beige, #f7f6f2);
     text-align: center;
-    position: relative;
 }
-#anc-products::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(10, 40, 35, 0.85);
-    z-index: 0;
-}
-#anc-products > * { position: relative; z-index: 1; }
 
 #anc-products h2 {
-    color: var(--default-color-white) !important;
-}
-
-#anc-products .anc-section-subtitle {
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--product-nuocepkytu-green) !important;
 }
 
 /* Feature card: image | details 2-col on desktop */
@@ -990,25 +977,12 @@ body.anc-modal-locked {
 }
 
 #anc-organic {
-    background-color: var(--product-nuocepkytu-green);
+    background-color: var(--default-color-beige, #f7f6f2);
     padding: 72px 20px;
-    position: relative;
 }
-#anc-organic::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(10, 40, 35, 0.85);
-    z-index: 0;
-}
-#anc-organic > * { position: relative; z-index: 1; }
 
 #anc-organic h2 {
-    color: var(--default-color-white) !important;
-}
-
-#anc-organic .anc-section-subtitle {
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--product-nuocepkytu-green) !important;
 }
 
 #anc-organic .anc-product-card {
@@ -1021,7 +995,8 @@ body.anc-modal-locked {
     margin: -24px auto 40px;
     font-size: 14px;
     font-style: italic;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--product-nuocepkytu-green);
+    opacity: 0.85;
     line-height: 1.7;
 }
 
@@ -1731,7 +1706,7 @@ body.anc-modal-locked {
     letter-spacing: 1.5px;
     text-transform: uppercase;
     text-align: center;
-    color: var(--default-color-white);
+    color: var(--product-nuocepkytu-green);
     margin: 0 0 24px;
 }
 
