@@ -1058,6 +1058,13 @@ function oppc_process_confirmation(WC_Order $order, string $bank_account, string
 {
     $order_id = $order->get_id();
     $order_total = (float) $order->get_total();
+    // Không nhập số tiền → hiểu là đã thanh toán 100%, lấy tổng đơn tại thời điểm xác nhận.
+    if ($amount_received <= 0) {
+        $amount_received = $order_total;
+    }
+    $original_method = $order->get_payment_method();
+    $current_status = $order->get_status();
+    $is_full_payment = !($amount_received > 0 && $amount_received < $order_total);
     $type = 'bank_transfer';
 
     if ($payer === 'shipper') {
@@ -1067,7 +1074,7 @@ function oppc_process_confirmation(WC_Order $order, string $bank_account, string
     }
 
     if ($payer === 'customer') {
-        if ($order->get_payment_method() === 'cod') {
+        if ($original_method === 'cod') {
             $order->set_payment_method('bacs');
             $order->set_payment_method_title('Chuyển khoản ngân hàng');
             $order->add_order_note('Phương thức thanh toán đã được đổi từ COD sang Chuyển khoản ngân hàng.');
@@ -1076,7 +1083,10 @@ function oppc_process_confirmation(WC_Order $order, string $bank_account, string
         update_post_meta($order_id, 'order_paid_date', $paid_date);
         update_post_meta($order_id, 'order_bank_account_received', $bank_account);
 
-        if ($amount_received > 0 && $amount_received < $order_total) {
+        if ($original_method === 'bacs' && in_array($current_status, ['shipping', 'local-shipping'], true)) {
+            // Đơn BACS đang giao hàng / giao nhanh → chỉ ghi nhận thanh toán, giữ nguyên trạng thái.
+            $order->add_order_note('Đã xác nhận thanh toán. Đơn đang giao nên giữ nguyên trạng thái hiện tại.');
+        } elseif (!$is_full_payment) {
             $order->update_status('partial-paid', sprintf('Đã nhận %s đ (Thanh toán một phần)', wc_format_decimal($amount_received, 0)));
         } else {
             $order->update_status('paid', 'Đã nhận đủ tiền, đơn hàng được đánh dấu là Đã CK.');
@@ -1084,8 +1094,13 @@ function oppc_process_confirmation(WC_Order $order, string $bank_account, string
                 wc_reduce_stock_levels($order_id);
             }
         }
-    } elseif ($payer === 'self' && !($amount_received > 0 && $amount_received < $order_total)) {
-        $order->update_status('completed', 'Nhân viên đã thanh toán COD, đơn hàng được đánh dấu là Hoàn thành.');
+    } elseif (in_array($payer, ['shipper', 'self'], true)) {
+        // Đơn COD đang Giao nhanh hoặc Đã giao → Hoàn thành khi xác nhận thanh toán.
+        if ($original_method === 'cod' && $is_full_payment && in_array($current_status, ['local-shipping', 'delivered'], true)) {
+            $order->update_status('completed', sprintf('Đơn COD (%s) đã thanh toán đủ, đơn hàng được đánh dấu là Hoàn thành.', $current_status));
+        } elseif ($payer === 'self' && $is_full_payment) {
+            $order->update_status('completed', 'Nhân viên đã thanh toán COD, đơn hàng được đánh dấu là Hoàn thành.');
+        }
     }
 
     oppc_record_confirmation_audit($order, $type, $amount_received, $payer, $bank_account, $paid_date, $note);

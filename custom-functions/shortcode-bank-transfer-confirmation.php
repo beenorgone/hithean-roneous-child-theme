@@ -42,7 +42,7 @@ function render_order_paid_confirmation_ui()
         <div class="btc-modal__backdrop" data-modal-close="1"></div>
         <div class="btc-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="btc_modal_title">
             <button type="button" class="btc-modal__close" data-modal-close="1" aria-label="Đóng">&times;</button>
-            <h3 id="btc_modal_title">Xác nhận chuyển khoản</h3>
+            <h3 id="btc_modal_title">Xác nhận thanh toán</h3>
             <div class="btc-modal__summary">
                 <label>Thông tin đơn hàng</label>
                 <textarea id="selected_order_info" rows="3" readonly></textarea>
@@ -95,7 +95,7 @@ function render_order_paid_confirmation_ui()
         <div class="btc-modal__backdrop" data-sms-modal-close="1"></div>
         <div class="btc-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="btc_sms_modal_title">
             <button type="button" class="btc-modal__close" data-sms-modal-close="1" aria-label="Đóng">&times;</button>
-            <h3 id="btc_sms_modal_title">Gửi SMS xác nhận chuyển khoản</h3>
+            <h3 id="btc_sms_modal_title">Gửi SMS xác nhận thanh toán</h3>
             <div class="btc-modal__summary">
                 <label>Thông tin đơn hàng</label>
                 <textarea id="sms_order_info" rows="3" readonly></textarea>
@@ -649,7 +649,7 @@ function render_order_search_result($orders)
         }
     }
 
-    echo '<div><h3>Đơn hàng tìm được</h3><p>Chọn đúng đơn hàng rồi bấm "Xác nhận chuyển khoản" hoặc "Gửi SMS" để thao tác.</p></div>';
+    echo '<div><h3>Đơn hàng tìm được</h3><p>Chọn đúng đơn hàng rồi bấm "Xác nhận thanh toán" hoặc "Gửi SMS" để thao tác.</p></div>';
     echo '<div class="btc-result-summary"><span>Số đơn: <strong>' . esc_html((string) count($orders)) . '</strong></span><span>Tổng số tiền: <strong>' . wp_kses_post(wc_price($result_total)) . '</strong></span></div>';
     echo '<div class="btc-bulk-actions"><button type="button" id="btc_bulk_confirm" class="button--small button--green" disabled>Xác nhận đã chọn</button><span id="btc_bulk_count" class="btc-table__muted">Chưa chọn đơn</span></div>';
     echo '<div class="btc-table-wrap"><table class="btc-table"><thead><tr>';
@@ -715,7 +715,7 @@ function render_single_order_info($order)
     }
     echo '</ul></td>';
     echo '<td data-label="Thao tác"><div class="btc-table__actions">';
-    echo '<button type="button" class="button--small button--green" data-open-confirm-modal="1" data-order-id="' . intval($order_id) . '" data-order-total-raw="' . esc_attr(wc_format_decimal($order->get_total(), 0)) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Xác nhận chuyển khoản</button>';
+    echo '<button type="button" class="button--small button--green" data-open-confirm-modal="1" data-order-id="' . intval($order_id) . '" data-order-total-raw="' . esc_attr(wc_format_decimal($order->get_total(), 0)) . '" data-order-basic-info="' . esc_attr($basic_info) . '">Xác nhận TT</button>';
     echo '<button type="button" class="button--small button--white" data-open-sms-modal="1" data-order-basic-info="' . esc_attr($basic_info) . '" data-sms-phone="' . esc_attr($billing_phone) . '" data-sms-paid="' . esc_attr($sms_paid) . '" data-sms-recall="' . esc_attr($sms_recall) . '">Gửi SMS</button>';
     echo '</div></td>';
     echo '</tr>';
@@ -810,6 +810,13 @@ function process_order_payment($order, $bank_account, $paid_date, $amount_receiv
 {
     $order_id = $order->get_id();
     $order_total = $order->get_total();
+    // Không nhập số tiền → hiểu là đã thanh toán 100%, lấy tổng đơn tại thời điểm xác nhận.
+    if ($amount_received <= 0) {
+        $amount_received = (float) $order_total;
+    }
+    $original_method = $order->get_payment_method();
+    $current_status = $order->get_status();
+    $is_full_payment = !($amount_received > 0 && $amount_received < $order_total);
     $confirmation_type = 'bank_transfer';
 
     if ($payer === 'shipper') {
@@ -822,12 +829,16 @@ function process_order_payment($order, $bank_account, $paid_date, $amount_receiv
         if (!empty($cod_note)) {
             $order->add_order_note("💰 {$payer} đã thanh toán tiền COD: {$cod_note}");
         }
-        if ($payer === 'self' && !($amount_received > 0 && $amount_received < $order_total)) {
+        // Đơn COD đang Giao nhanh hoặc Đã giao → Hoàn thành khi xác nhận thanh toán.
+        if ($original_method === 'cod' && $is_full_payment && in_array($current_status, ['local-shipping', 'delivered'], true)) {
+            $order->add_order_note("💰 Đơn COD ({$current_status}) đã thanh toán đủ, đơn hàng được đánh dấu là Hoàn thành.");
+            $order->update_status('completed');
+        } elseif ($payer === 'self' && $is_full_payment) {
             $order->add_order_note("💰 Nhân viên đã thanh toán COD, đơn hàng được đánh dấu là Hoàn thành.");
             $order->update_status('completed');
         }
     } elseif ($payer === 'customer') {
-        if ($order->get_payment_method() === 'cod') {
+        if ($original_method === 'cod') {
             $order->set_payment_method('bacs');
             $order->set_payment_method_title('Chuyển khoản ngân hàng');
             $order->add_order_note("🔄 Phương thức thanh toán đã được đổi từ COD sang Chuyển khoản ngân hàng.");
@@ -836,7 +847,10 @@ function process_order_payment($order, $bank_account, $paid_date, $amount_receiv
         if (!empty($paid_date)) update_post_meta($order_id, 'order_paid_date', $paid_date);
         if (!empty($bank_account)) update_post_meta($order_id, 'order_bank_account_received', $bank_account);
 
-        if ($amount_received > 0 && $amount_received < $order_total) {
+        if ($original_method === 'bacs' && in_array($current_status, ['shipping', 'local-shipping'], true)) {
+            // Đơn BACS đang giao hàng / giao nhanh → chỉ ghi nhận thanh toán, giữ nguyên trạng thái.
+            $order->add_order_note("✅ Đã xác nhận thanh toán. Đơn đang giao nên giữ nguyên trạng thái hiện tại.");
+        } elseif ($amount_received > 0 && $amount_received < $order_total) {
             $order->update_status('partial-paid', "⚠️ Đã nhận {$amount_received} đ (Thanh toán một phần)");
         } else {
             $order->update_status('paid', "✅ Đã nhận đủ tiền, đơn hàng được đánh dấu là Đã CK.");
