@@ -219,7 +219,7 @@
     }
 
     function initSelects() {
-        fillSelect($('#oc-status'), CFG.statuses || [], 'key', 'label', 'pending');
+        fillSelect($('#oc-status'), CFG.statuses || [], 'key', 'label', 'on-hold');
         fillSelect($('#oc-payment'), CFG.gateways || [], 'id', 'title');
         var bank = $('#oc-pay-bank');
         (CFG.bankAccounts || []).forEach(function (b) {
@@ -633,7 +633,7 @@
 
             renderCoupons(); renderFees(); renderLines();
             if (isCopy) {
-                $('#oc-status').value = 'pending';
+                $('#oc-status').value = 'on-hold';
                 $('#oc-order-date').value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
                 markCopyMode(o.order_number);
             } else {
@@ -727,7 +727,7 @@
             else { el.value = ''; }
         });
         $('#oc-suppress-email').checked = true;
-        $('#oc-status').value = 'pending';
+        $('#oc-status').value = 'on-hold';
         $('#oc-order-date').value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
         $('#oc-shipping-method').innerHTML = '<option value="">— Tính lại để xem —</option>';
         $('#oc-customer-card').hidden = true;

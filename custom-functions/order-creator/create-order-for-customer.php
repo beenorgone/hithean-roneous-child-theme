@@ -695,7 +695,7 @@ function order_creator_apply_status_and_notes(WC_Order $order, array $payload, b
             $order->set_date_created($ts);
         }
     }
-    $status = $is_draft ? order_creator_draft_status() : sanitize_key($payload['status'] ?? 'pending');
+    $status = $is_draft ? order_creator_draft_status() : sanitize_key($payload['status'] ?? 'on-hold');
     if ($status !== '') {
         $order->set_status($status);
     }
