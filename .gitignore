@@ -2,5 +2,4 @@
 error_log
 *.log
 custom-functions/firebase_credentials.json
-
-pages/an-new-chapter/sections.csv
+pages/an-new-chapter/*.csv
