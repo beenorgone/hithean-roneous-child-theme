@@ -3,9 +3,9 @@ order,ID,name,next action
 2,anc-trust,Trust bar,Đã bỏ "Miễn phí vận chuyển"; 3 trust card còn lại mở modal chi tiết khi click
 3,anc-certification,Certification,Đã đổi sang background tối giống anc-products
 4,anc-qc,QC / Production system,Đã đổi sang background tối giống anc-organic
-5,anc-products,Yeast Hero Protein,Đã bỏ background ảnh, giữ màu nền xanh đặc
-6,anc-calculator,Protein calculator,Đã chuyển thành CTA + modal popup
-7,anc-organic,Organic products,Đã bỏ background ảnh, giữ màu nền xanh đặc
+5,anc-products,Yeast Hero Protein,Đã bỏ background ảnh, đổi sang nền sáng (beige)
+6,anc-calculator,Protein calculator,Đã chuyển thành CTA + modal popup; nền xanh đậm để xen kẽ với 2 section sản phẩm nền sáng
+7,anc-organic,Organic products,Đã bỏ background ảnh, đổi sang nền sáng (beige)
 8,anc-faq,FAQ,Đã chia 3 nhóm (Thông tin chung / Protein Yeast Hero / Chứng nhận hữu cơ) + bổ sung Q&A thực từ trang sản phẩm Yeast Hero Original
 9,anc-social,Community,Đã thay placeholder bằng TikTok embed thực #yeasthero
 10,anc-cta-band,CTA band,Giữ nguyên
