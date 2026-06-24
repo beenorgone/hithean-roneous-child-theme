@@ -178,6 +178,19 @@ function oppc_render_ui(): void
             <textarea id="oppc_sms_recall" class="oppc-copy" rows="3" readonly></textarea>
         </div>
     </div>
+
+    <div id="oppc_preview_modal" class="oppc-modal" hidden>
+        <div class="oppc-modal__backdrop" data-ppc-preview-close="1"></div>
+        <div class="oppc-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="oppc_preview_title">
+            <button type="button" class="oppc-modal__close" data-ppc-preview-close="1" aria-label="Đóng">&times;</button>
+            <h3 id="oppc_preview_title">Xác nhận cập nhật thanh toán</h3>
+            <div id="oppc_preview_body" class="oppc-preview"></div>
+            <div class="oppc__actions">
+                <button type="button" class="button--small button--white" data-ppc-preview-close="1">Quay lại</button>
+                <button type="button" id="oppc_preview_confirm" class="button--small button--green">Xác nhận cập nhật</button>
+            </div>
+        </div>
+    </div>
     <?php
 }
 
@@ -228,11 +241,22 @@ function oppc_render_assets(): void
         .oppc-copy { cursor: copy; }
         .oppc .button--small, .oppc-modal .button--small, .oppc .button--green, .oppc .button--white, .oppc-modal .button--green, .oppc-modal .button--white { min-height: 30px; padding: 5px 9px; font-size: 12px; line-height: 1.2; border-radius: 6px; }
         body.oppc-modal-open { overflow: hidden; }
+        #oppc_preview_modal { z-index: 10000; }
+        .oppc-preview { font-size: 12px; }
+        .oppc-preview__lead { margin: 0 0 8px; font-weight: 600; color: #111827; }
+        .oppc-preview__list { margin: 0 0 10px; display: grid; gap: 0; border: 1px solid #e5ebf1; border-radius: 8px; overflow: hidden; }
+        .oppc-preview__row { display: grid; grid-template-columns: 140px 1fr; gap: 8px; padding: 7px 10px; border-bottom: 1px solid #eef2f6; }
+        .oppc-preview__row:last-child { border-bottom: 0; }
+        .oppc-preview__row:nth-child(odd) { background: #f9fbfd; }
+        .oppc-preview__row dt { margin: 0; color: #5b6470; font-weight: 600; }
+        .oppc-preview__row dd { margin: 0; color: #111827; overflow-wrap: anywhere; }
+        .oppc-preview__note { margin: 0; color: #5b6470; font-size: 11px; line-height: 1.4; }
         @media (max-width: 1199px) {
             .oppc__filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 767px) {
             .oppc__filters, .oppc__modal-grid { grid-template-columns: 1fr; }
+            .oppc-preview__row { grid-template-columns: 1fr; gap: 2px; }
             .oppc-table, .oppc-table thead, .oppc-table tbody, .oppc-table tr, .oppc-table th, .oppc-table td { display: block; width: 100%; }
             .oppc-table { min-width: 0; }
             .oppc-table thead { display: none; }
@@ -255,6 +279,15 @@ function oppc_render_assets(): void
             var confirmModal = document.getElementById('oppc_confirm_modal');
             var smsModal = document.getElementById('oppc_sms_modal');
             var confirmBtn = document.getElementById('oppc_confirm');
+            var previewModal = document.getElementById('oppc_preview_modal');
+            var previewConfirmBtn = document.getElementById('oppc_preview_confirm');
+            var pendingPayment = null;
+
+            function escapeHtml(value) {
+                var div = document.createElement('div');
+                div.textContent = value == null ? '' : String(value);
+                return div.innerHTML;
+            }
 
             function showNotice(message, type) {
                 noticeEl.textContent = message || '';
@@ -452,33 +485,29 @@ function oppc_render_assets(): void
                 document.body.classList.remove('oppc-modal-open');
             }
 
-            function buildConfirmPreview(ids, bankAccount, paidDate, amountReceived, payer, note) {
+            function buildConfirmPreviewHtml(ids, bankAccount, paidDate, amountReceived, payer, note) {
                 var payerLabels = {
                     customer: 'Khách hàng',
                     shipper: 'Shipper TT COD',
                     self: 'Nhân viên TT COD'
                 };
-                var summary = document.getElementById('oppc_order_summary').value || '';
-                var amountText = amountReceived ? amountReceived : 'Trống/0 - xử lý theo logic nhận đủ nếu không phải thanh toán một phần';
-                var lines = [
-                    'PREVIEW XÁC NHẬN THANH TOÁN',
-                    '',
-                    'Số đơn: ' + ids.length,
-                    'Mã đơn: #' + ids.join(', #'),
-                    summary ? 'Thông tin: ' + summary : '',
-                    '',
-                    'Sẽ cập nhật:',
-                    '- Tài khoản nhận: ' + bankAccount,
-                    '- Ngày nhận CK: ' + paidDate,
-                    '- Số tiền nhận: ' + amountText,
-                    '- Người thanh toán: ' + (payerLabels[payer] || payer),
-                    note ? '- Ghi chú: ' + note : '- Ghi chú: Không có',
-                    '- Lưu audit _order_payment_confirmation_audit với người xác nhận hiện tại',
-                    '',
-                    'Bấm OK để cập nhật thật. Bấm Cancel để quay lại chỉnh.'
+                var amountText = amountReceived ? amountReceived : 'Để trống → hiểu là đã thanh toán 100% (lấy tổng đơn hiện tại)';
+                var rows = [
+                    ['Số đơn cập nhật', ids.length + ' đơn'],
+                    ['Mã đơn', '#' + ids.join(', #')],
+                    ['Tài khoản nhận', bankAccount],
+                    ['Ngày nhận CK', paidDate],
+                    ['Số tiền nhận', amountText],
+                    ['Người thanh toán', payerLabels[payer] || payer],
+                    ['Ghi chú', note || 'Không có']
                 ];
 
-                return lines.filter(Boolean).join('\n');
+                var html = '<p class="oppc-preview__lead">Vui lòng kiểm tra thông tin sẽ được cập nhật:</p><dl class="oppc-preview__list">';
+                rows.forEach(function(row) {
+                    html += '<div class="oppc-preview__row"><dt>' + escapeHtml(row[0]) + '</dt><dd>' + escapeHtml(row[1]) + '</dd></div>';
+                });
+                html += '</dl><p class="oppc-preview__note">Hệ thống sẽ lưu nhật ký xác nhận kèm người thực hiện và cập nhật trạng thái đơn theo quy tắc thanh toán.</p>';
+                return html;
             }
 
             function confirmPayment() {
@@ -494,34 +523,61 @@ function oppc_render_assets(): void
                 var payer = document.getElementById('oppc_payer').value;
                 var note = document.getElementById('oppc_note').value;
 
-                if (!window.confirm(buildConfirmPreview(ids, bankAccount, paidDate, amountReceived, payer, note))) {
+                pendingPayment = {
+                    ids: ids,
+                    orderId: state.orderId,
+                    bankAccount: bankAccount,
+                    paidDate: paidDate,
+                    amountReceived: amountReceived,
+                    payer: payer,
+                    note: note
+                };
+
+                document.getElementById('oppc_preview_body').innerHTML = buildConfirmPreviewHtml(ids, bankAccount, paidDate, amountReceived, payer, note);
+                previewModal.hidden = false;
+                placeAnchoredModal(previewModal, confirmBtn);
+                document.body.classList.add('oppc-modal-open');
+            }
+
+            function closePreview() {
+                previewModal.hidden = true;
+                // Giữ confirm modal mở bên dưới để người dùng quay lại chỉnh nếu cần.
+            }
+
+            function runConfirmPayment() {
+                if (!pendingPayment) {
                     return;
                 }
 
+                var p = pendingPayment;
                 clearNotice();
-                setLoading(confirmBtn, true, 'Đang xác nhận...', 'Xác nhận');
+                setLoading(previewConfirmBtn, true, 'Đang xác nhận...', 'Xác nhận cập nhật');
                 jQuery.post(oppcConfig.ajaxUrl, {
                     action: 'oppc_confirm_payment',
                     nonce: oppcConfig.confirmNonce,
-                    order_id: state.orderId,
-                    order_ids: ids.join(','),
-                    bank_account: bankAccount,
-                    paid_date: paidDate,
-                    amount_received: amountReceived,
-                    payer: payer,
-                    note: note
+                    order_id: p.orderId,
+                    order_ids: p.ids.join(','),
+                    bank_account: p.bankAccount,
+                    paid_date: p.paidDate,
+                    amount_received: p.amountReceived,
+                    payer: p.payer,
+                    note: p.note
                 }, function(response) {
                     if (response && response.success && response.data) {
+                        closePreview();
                         moveSelectedRowToRecent();
                         closeConfirm();
                         showNotice(response.data.message || 'Đã xác nhận thanh toán.', 'success');
                     } else {
+                        closePreview();
                         showNotice(response && response.data && response.data.message ? response.data.message : 'Không thể xác nhận.', 'error');
                     }
                 }).fail(function() {
+                    closePreview();
                     showNotice('Yêu cầu xác nhận thất bại.', 'error');
                 }).always(function() {
-                    setLoading(confirmBtn, false, 'Đang xác nhận...', 'Xác nhận');
+                    setLoading(previewConfirmBtn, false, 'Đang xác nhận...', 'Xác nhận cập nhật');
+                    pendingPayment = null;
                 });
             }
 
@@ -562,8 +618,10 @@ function oppc_render_assets(): void
                 if (smsButton) openSms(smsButton);
             });
             confirmBtn.addEventListener('click', confirmPayment);
+            previewConfirmBtn.addEventListener('click', runConfirmPayment);
             Array.prototype.forEach.call(document.querySelectorAll('[data-ppc-close="1"]'), function(el) { el.addEventListener('click', closeConfirm); });
             Array.prototype.forEach.call(document.querySelectorAll('[data-ppc-sms-close="1"]'), function(el) { el.addEventListener('click', closeSms); });
+            Array.prototype.forEach.call(document.querySelectorAll('[data-ppc-preview-close="1"]'), function(el) { el.addEventListener('click', closePreview); });
             Array.prototype.forEach.call(document.querySelectorAll('.oppc-copy'), function(el) {
                 el.addEventListener('click', function() {
                     this.focus();
