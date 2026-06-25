@@ -12,6 +12,8 @@
         customer: null,        // {id, name, ...}
         items: [],             // [{product_id, variation_id, name, qty, manual_price, line_discount}]
         coupons: [],           // [code]
+        couponStatus: {},      // { code: {applied, message, discount, detail} }
+        _couponNotified: {},   // { code: true } — đã hiện popup lỗi cho mã này
         fees: [],              // [{name, amount}]
         shipping_method: '',
         lastOrder: null
@@ -220,7 +222,7 @@
 
     function initSelects() {
         fillSelect($('#oc-status'), CFG.statuses || [], 'key', 'label', 'on-hold');
-        fillSelect($('#oc-payment'), CFG.gateways || [], 'id', 'title');
+        fillSelect($('#oc-payment'), CFG.gateways || [], 'id', 'title', 'cod');
         var bank = $('#oc-pay-bank');
         (CFG.bankAccounts || []).forEach(function (b) {
             var o = document.createElement('option'); o.value = b; o.textContent = b; bank.appendChild(o);
@@ -394,15 +396,114 @@
     }
 
     function renderCoupons() {
-        renderChips($('#oc-coupon-list'), state.coupons,
-            function (c) { return c; },
-            function (i) { state.coupons.splice(i, 1); renderCoupons(); recalc(); });
+        var listEl = $('#oc-coupon-list');
+        listEl.innerHTML = '';
+        state.coupons.forEach(function (code, idx) {
+            var st = state.couponStatus[code] || null;
+            var li = document.createElement('li');
+            li.className = 'oc-chip oc-coupon-chip';
+            var mark = '';
+            if (st) {
+                li.classList.add(st.applied ? 'is-applied' : 'is-failed');
+                mark = st.applied
+                    ? '<span class="oc-coupon-mark oc-coupon-mark--ok" title="Áp dụng thành công">✓</span>'
+                    : '<span class="oc-coupon-mark oc-coupon-mark--fail" title="Áp dụng thất bại">!</span>';
+            }
+            var detailLink = (st && st.detail)
+                ? '<a href="#" class="oc-coupon-detail">Xem chi tiết</a>'
+                : '';
+            li.innerHTML = mark + '<span class="oc-coupon-code">' + code + '</span>' + detailLink +
+                '<button type="button" class="oc-chip-x" aria-label="Gỡ mã">&times;</button>';
+            li.querySelector('.oc-chip-x').addEventListener('click', function () {
+                state.coupons.splice(idx, 1);
+                delete state.couponStatus[code];
+                delete state._couponNotified[code];
+                renderCoupons();
+                recalc();
+            });
+            var dl = li.querySelector('.oc-coupon-detail');
+            if (dl) { dl.addEventListener('click', function (e) { e.preventDefault(); showCouponDetail(st.detail); }); }
+            listEl.appendChild(li);
+        });
+    }
+
+    // Cập nhật trạng thái mã từ kết quả tính lại; tự bật popup lỗi cho mã vừa thất bại.
+    function applyCouponStatus(snap) {
+        var list = (snap && snap.coupon_status) || [];
+        var seen = {};
+        list.forEach(function (s) {
+            seen[s.code] = true;
+            state.couponStatus[s.code] = s;
+            if (!s.applied) {
+                if (!state._couponNotified[s.code]) {
+                    state._couponNotified[s.code] = true;
+                    showCouponFail(s);
+                }
+            } else {
+                delete state._couponNotified[s.code];
+            }
+        });
+        // Mã không còn trong kết quả (vd: chưa có sản phẩm) → bỏ trạng thái cũ.
+        Object.keys(state.couponStatus).forEach(function (code) {
+            if (!seen[code]) { delete state.couponStatus[code]; }
+        });
+        renderCoupons();
+    }
+
+    function showCouponFail(s) {
+        $('#oc-coupon-modal-title').textContent = 'Không áp dụng được mã "' + s.code + '"';
+        var body = $('#oc-coupon-modal-body');
+        var msg = s.message || 'Mã ưu đãi không áp dụng được cho đơn này.';
+        var html = '<p class="oc-coupon-failmsg">' + escapeHtml(msg) + '</p>';
+        if (s.detail) { html += couponDetailHtml(s.detail); }
+        body.innerHTML = html;
+        setCouponModalEdit(s.detail);
+        openModal('#oc-coupon-modal');
+    }
+
+    function showCouponDetail(detail) {
+        if (!detail) { return; }
+        $('#oc-coupon-modal-title').textContent = 'Chi tiết mã "' + detail.code + '"';
+        $('#oc-coupon-modal-body').innerHTML = couponDetailHtml(detail);
+        setCouponModalEdit(detail);
+        openModal('#oc-coupon-modal');
+    }
+
+    function setCouponModalEdit(detail) {
+        var edit = $('#oc-coupon-modal-edit');
+        if (detail && detail.edit_url) {
+            edit.href = detail.edit_url;
+            edit.hidden = false;
+        } else {
+            edit.hidden = true;
+        }
+    }
+
+    function couponDetailHtml(detail) {
+        var html = '';
+        if (detail.description) { html += '<p class="oc-coupon-desc">' + escapeHtml(detail.description) + '</p>'; }
+        var rows = detail.rows || [];
+        if (rows.length) {
+            html += '<table class="oc-coupon-table"><tbody>';
+            rows.forEach(function (r) {
+                html += '<tr><th>' + escapeHtml(r.label) + '</th><td>' + escapeHtml(r.value) + '</td></tr>';
+            });
+            html += '</tbody></table>';
+        }
+        return html;
+    }
+
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
     }
 
     function addCoupon(code) {
         code = (code || '').trim().toLowerCase();
         if (!code || state.coupons.indexOf(code) !== -1) return;
         state.coupons.push(code);
+        delete state._couponNotified[code];
         renderCoupons();
         recalc();
     }
@@ -614,6 +715,8 @@
                 return { product_id: it.product_id, variation_id: it.variation_id || 0, name: it.name, qty: it.qty, manual_price: '', line_discount: 0 };
             });
             state.coupons = (o.coupons || []).slice();
+            state.couponStatus = {};
+            state._couponNotified = {};
             state.fees = (o.fees || []).slice();
             state.shipping_method = o.shipping_method || '';
 
@@ -701,6 +804,8 @@
         if (!window.confirm('Xóa toàn bộ sản phẩm, mã ưu đãi, phí và phí ship điều chỉnh?')) { return; }
         state.items = [];
         state.coupons = [];
+        state.couponStatus = {};
+        state._couponNotified = {};
         state.fees = [];
         state.shipping_method = '';
         $('#oc-shipping-cost').value = '';
@@ -716,6 +821,8 @@
         state.customer = null;
         state.items = [];
         state.coupons = [];
+        state.couponStatus = {};
+        state._couponNotified = {};
         state.fees = [];
         state.shipping_method = '';
         state.lastOrder = null;
@@ -843,6 +950,7 @@
             renderLines(res.data);
             updateTotals(res.data);
             updateShippingOptions(res.data);
+            applyCouponStatus(res.data);
         });
     }
 

@@ -37,7 +37,7 @@ if (!defined('ORDER_CREATOR_CAP')) {
 
 function &order_creator_state(): array
 {
-    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'shipping_cost' => null, 'source_prices' => []];
+    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'shipping_cost' => null, 'source_prices' => [], 'coupon_results' => []];
     return $state;
 }
 
@@ -345,6 +345,7 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
         $state['fees']   = [];
         $state['shipping_cost'] = null;
         $state['source_prices'] = [];
+        $state['coupon_results'] = [];
 
         WC()->cart->empty_cart(false);
         if (WC()->session) {
@@ -429,12 +430,37 @@ function order_creator_populate_cart(array $payload): void
         ];
     }
 
+    $state['coupon_results'] = [];
     $coupons = isset($payload['coupons']) && is_array($payload['coupons']) ? $payload['coupons'] : [];
-    foreach ($coupons as $code) {
-        $code = wc_format_coupon_code(wc_clean((string) $code));
-        if ($code !== '' && !WC()->cart->has_discount($code)) {
-            WC()->cart->apply_coupon($code);
+    foreach ($coupons as $raw_code) {
+        $code = wc_format_coupon_code(wc_clean((string) $raw_code));
+        if ($code === '') {
+            continue;
         }
+        if (WC()->cart->has_discount($code)) {
+            $state['coupon_results'][$code] = ['applied' => true, 'message' => ''];
+            continue;
+        }
+        // Bắt notice lỗi của WooCommerce để báo lý do thất bại thân thiện cho nhân viên.
+        if (function_exists('wc_clear_notices')) {
+            wc_clear_notices();
+        }
+        $ok      = WC()->cart->apply_coupon($code);
+        $applied = $ok && WC()->cart->has_discount($code);
+        $message = '';
+        if (!$applied && function_exists('wc_get_notices')) {
+            foreach (wc_get_notices('error') as $notice) {
+                $text    = is_array($notice) ? ($notice['notice'] ?? '') : (string) $notice;
+                $message = trim($message . ' ' . wp_strip_all_tags((string) $text));
+            }
+        }
+        if (function_exists('wc_clear_notices')) {
+            wc_clear_notices();
+        }
+        $state['coupon_results'][$code] = [
+            'applied' => $applied,
+            'message' => $applied ? '' : ($message !== '' ? $message : 'Mã ưu đãi không áp dụng được cho đơn này.'),
+        ];
     }
 
     if (!empty($payload['shipping_method']) && WC()->session) {
@@ -448,6 +474,102 @@ function order_creator_populate_cart(array $payload): void
         }
     }
     WC()->cart->calculate_shipping();
+}
+
+/**
+ * Thông tin tóm tắt 1 mã ưu đãi để hiển thị popup "Xem chi tiết".
+ * Trả về null khi mã không tồn tại trong hệ thống.
+ */
+function order_creator_coupon_detail(string $code): ?array
+{
+    $code = wc_format_coupon_code($code);
+    $id   = function_exists('wc_get_coupon_id_by_code') ? wc_get_coupon_id_by_code($code) : 0;
+    if (!$id) {
+        return null;
+    }
+    $coupon = new WC_Coupon($id);
+
+    $type_labels = function_exists('wc_get_coupon_types') ? wc_get_coupon_types() : [];
+    $type        = $coupon->get_discount_type();
+    $amount      = (float) $coupon->get_amount();
+    $amount_text = $type === 'percent'
+        ? wc_format_decimal($amount, false, true) . '%'
+        : wp_strip_all_tags(wc_price($amount));
+
+    $rows   = [];
+    $rows[] = ['label' => 'Loại giảm', 'value' => $type_labels[$type] ?? $type];
+    $rows[] = ['label' => 'Giá trị', 'value' => $amount_text];
+    if ($coupon->get_free_shipping()) {
+        $rows[] = ['label' => 'Miễn phí ship', 'value' => 'Có'];
+    }
+    if ((float) $coupon->get_minimum_amount() > 0) {
+        $rows[] = ['label' => 'Đơn tối thiểu', 'value' => wp_strip_all_tags(wc_price($coupon->get_minimum_amount()))];
+    }
+    if ((float) $coupon->get_maximum_amount() > 0) {
+        $rows[] = ['label' => 'Đơn tối đa', 'value' => wp_strip_all_tags(wc_price($coupon->get_maximum_amount()))];
+    }
+    $expiry = $coupon->get_date_expires();
+    if ($expiry) {
+        $rows[] = ['label' => 'Hết hạn', 'value' => $expiry->date_i18n('d/m/Y')];
+    }
+    if ((int) $coupon->get_usage_limit() > 0) {
+        $rows[] = ['label' => 'Lượt dùng', 'value' => (int) $coupon->get_usage_count() . ' / ' . (int) $coupon->get_usage_limit()];
+    }
+    if ((int) $coupon->get_usage_limit_per_user() > 0) {
+        $rows[] = ['label' => 'Giới hạn / khách', 'value' => (string) (int) $coupon->get_usage_limit_per_user()];
+    }
+    if ($coupon->get_individual_use()) {
+        $rows[] = ['label' => 'Dùng riêng', 'value' => 'Không cộng dồn mã khác'];
+    }
+    if ($coupon->get_exclude_sale_items()) {
+        $rows[] = ['label' => 'SP đang sale', 'value' => 'Không áp dụng'];
+    }
+
+    $product_names = function (array $ids): string {
+        $names = [];
+        foreach ($ids as $pid) {
+            $p = wc_get_product($pid);
+            if ($p) {
+                $names[] = $p->get_name();
+            }
+        }
+        return implode(', ', $names);
+    };
+    $category_names = function (array $ids): string {
+        $names = [];
+        foreach ($ids as $cid) {
+            $term = get_term($cid, 'product_cat');
+            if ($term && !is_wp_error($term)) {
+                $names[] = $term->name;
+            }
+        }
+        return implode(', ', $names);
+    };
+    if ($coupon->get_product_ids()) {
+        $rows[] = ['label' => 'Chỉ áp dụng SP', 'value' => $product_names($coupon->get_product_ids())];
+    }
+    if ($coupon->get_excluded_product_ids()) {
+        $rows[] = ['label' => 'Loại trừ SP', 'value' => $product_names($coupon->get_excluded_product_ids())];
+    }
+    if ($coupon->get_product_categories()) {
+        $rows[] = ['label' => 'Chỉ áp dụng danh mục', 'value' => $category_names($coupon->get_product_categories())];
+    }
+    if ($coupon->get_excluded_product_categories()) {
+        $rows[] = ['label' => 'Loại trừ danh mục', 'value' => $category_names($coupon->get_excluded_product_categories())];
+    }
+    if ($coupon->get_email_restrictions()) {
+        $rows[] = ['label' => 'Giới hạn email', 'value' => implode(', ', $coupon->get_email_restrictions())];
+    }
+
+    // Quyền sửa coupon kiểm tra theo operator (đã snapshot trước khi mạo danh khách).
+    $is_admin = !empty(order_creator_state()['is_admin']);
+
+    return [
+        'code'        => $coupon->get_code(),
+        'description' => wp_strip_all_tags($coupon->get_description()),
+        'rows'        => $rows,
+        'edit_url'    => $is_admin ? (string) get_edit_post_link($id, 'raw') : '',
+    ];
 }
 
 /** Đọc giỏ đã tính → mảng cho UI (preview, không lưu). */
@@ -490,6 +612,18 @@ function order_creator_snapshot_cart(): array
         $coupons[] = ['code' => $code, 'amount' => (float) $cart->get_coupon_discount_amount($code)];
     }
 
+    // Trạng thái từng mã đã yêu cầu áp (thành công / thất bại + lý do + chi tiết) cho UI.
+    $coupon_status = [];
+    foreach (order_creator_state()['coupon_results'] as $code => $result) {
+        $coupon_status[] = [
+            'code'     => $code,
+            'applied'  => !empty($result['applied']),
+            'message'  => (string) ($result['message'] ?? ''),
+            'discount' => !empty($result['applied']) ? (float) $cart->get_coupon_discount_amount($code) : 0,
+            'detail'   => order_creator_coupon_detail($code),
+        ];
+    }
+
     $chosen = WC()->session ? (array) WC()->session->get('chosen_shipping_methods') : [];
 
     return [
@@ -498,6 +632,7 @@ function order_creator_snapshot_cart(): array
         'shipping_rates' => $rates,
         'chosen_shipping' => $chosen[0] ?? '',
         'coupons'        => $coupons,
+        'coupon_status'  => $coupon_status,
         'subtotal'       => (float) $cart->get_subtotal(),
         'discount_total' => (float) $cart->get_discount_total(),
         'shipping_total' => (float) $cart->get_shipping_total(),
@@ -2031,6 +2166,20 @@ function order_creator_render_page(): void
             <button type="button" class="oc-btn oc-btn--primary" id="oc-pay-confirm">Xác nhận</button>
         </div>
         <div class="oc-modal__result" id="oc-pay-result"></div>
+    </div>
+</div>
+
+<!-- Modal mã ưu đãi (thông báo lỗi thân thiện + xem chi tiết) -->
+<div class="oc-modal" id="oc-coupon-modal" hidden>
+    <div class="oc-modal__backdrop" data-oc-close="1"></div>
+    <div class="oc-modal__dialog" role="dialog" aria-modal="true">
+        <button type="button" class="oc-modal__close" data-oc-close="1" aria-label="Đóng">&times;</button>
+        <h3 id="oc-coupon-modal-title">Mã ưu đãi</h3>
+        <div id="oc-coupon-modal-body"></div>
+        <div class="oc-modal__actions">
+            <a href="#" class="oc-btn oc-btn--ghost" id="oc-coupon-modal-edit" target="_blank" rel="noopener" hidden>Mở trang quản trị mã</a>
+            <button type="button" class="oc-btn oc-btn--primary" data-oc-close="1">Đóng</button>
+        </div>
     </div>
 </div>
 

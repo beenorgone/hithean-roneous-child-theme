@@ -202,6 +202,20 @@
 }
 .oc-chip button { border: 0; background: transparent; cursor: pointer; font-size: 14px; line-height: 1; color: var(--oc-muted); }
 
+/* coupon chips: trạng thái áp mã */
+.oc-coupon-chip.is-applied { border-color: #16a34a; background: #f0fdf4; }
+.oc-coupon-chip.is-failed { border-color: #dc2626; background: #fef2f2; }
+.oc-coupon-mark { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; font-size: 11px; font-weight: 700; color: #fff; line-height: 1; }
+.oc-coupon-mark--ok { background: #16a34a; }
+.oc-coupon-mark--fail { background: #dc2626; }
+.oc-coupon-code { font-weight: 600; text-transform: uppercase; }
+.oc-coupon-detail { font-size: 11px; color: var(--oc-blue, #2563eb); text-decoration: underline; cursor: pointer; }
+.oc-coupon-failmsg { margin: 0 0 12px; color: #b91c1c; font-weight: 600; }
+.oc-coupon-desc { margin: 0 0 12px; color: var(--oc-muted); }
+.oc-coupon-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.oc-coupon-table th, .oc-coupon-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--oc-border); vertical-align: top; }
+.oc-coupon-table th { width: 38%; color: var(--oc-muted); font-weight: 600; }
+
 /* totals */
 .oc-totals .oc-total-row { display: flex; justify-content: space-between; padding: 5px 0; }
 .oc-total-row--grand { border-top: 2px solid var(--oc-border); margin-top: 6px; padding-top: 10px; font-size: 16px; }
