@@ -24,13 +24,22 @@ function hithean_product_nutrition_label_items(int $product_id): array
     return $items;
 }
 
-function hithean_render_product_nutrition_label(): void
+function hithean_render_product_nutrition_label(int $product_id = 0): void
 {
-    if (!is_product()) return;
-    $product_id = (int) get_queried_object_id();
+    static $render_count = 0;
+
+    if (!$product_id) {
+        if (!is_product()) return;
+        $product_id = (int) get_queried_object_id();
+    }
+
+    if ($product_id <= 0 || get_post_type($product_id) !== 'product') return;
+
     $items = hithean_product_nutrition_label_items($product_id);
     if (!$items) return;
-    $modal_id = 'nutrition-label-modal-' . $product_id;
+
+    $render_count++;
+    $modal_id = 'nutrition-label-modal-' . $product_id . '-' . $render_count;
     ?>
     <section class="product-nutrition-label" aria-label="Nutrition label">
         <button class="product-nutrition-label__trigger button--" type="button" aria-haspopup="dialog" aria-controls="<?php echo esc_attr($modal_id); ?>" aria-expanded="false"><i class="ti-clipboard" aria-hidden="true"></i><?php esc_html_e('Xem bảng dinh dưỡng', 'hithean-product-metabox'); ?></button>
@@ -52,6 +61,27 @@ function hithean_render_product_nutrition_label(): void
     <?php
 }
 add_action('hithean_before_product_chat_ctas', 'hithean_render_product_nutrition_label');
+
+function hithean_product_nutrition_label_shortcode(array $atts = []): string
+{
+    $atts = shortcode_atts(
+        [
+            'product_id' => 0,
+        ],
+        $atts,
+        'product_nutrition_label'
+    );
+
+    $product_id = absint($atts['product_id']);
+    if (!$product_id) {
+        $product_id = (int) get_the_ID();
+    }
+
+    ob_start();
+    hithean_render_product_nutrition_label($product_id);
+    return (string) ob_get_clean();
+}
+add_shortcode('product_nutrition_label', 'hithean_product_nutrition_label_shortcode');
 
 function hithean_product_nutrition_label_assets(): void
 {
