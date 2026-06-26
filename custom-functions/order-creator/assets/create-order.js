@@ -1048,7 +1048,17 @@
         var frame = $('#oc-invoice-frame');
         var doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
         if (!doc) { return Promise.reject('Không đọc được hóa đơn.'); }
-        return html2canvas(doc.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+        var images = Array.prototype.slice.call(doc.images || []);
+        var ready = images.map(function (img) {
+            if (img.complete) { return Promise.resolve(); }
+            return new Promise(function (resolve) {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+            });
+        });
+        return Promise.all(ready).then(function () {
+            return html2canvas(doc.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+        });
     }
 
     function invoiceFileName() {
