@@ -1700,6 +1700,10 @@ nav .menu li a:focus {
     }
 }
 
+div.summary.entry-summary > div.b-greenspark-revenue-percentage-widget > div {
+    width: unset !important;
+}
+
 /*----------------------*\
   WOO PRODUCT LIST PAGE
 \*----------------------*/
