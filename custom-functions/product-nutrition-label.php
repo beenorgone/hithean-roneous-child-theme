@@ -33,7 +33,7 @@ function hithean_render_product_nutrition_label(): void
     $modal_id = 'nutrition-label-modal-' . $product_id;
     ?>
     <section class="product-nutrition-label" aria-label="Nutrition label">
-        <button class="product-nutrition-label__trigger button--light-blue" type="button" aria-haspopup="dialog" aria-controls="<?php echo esc_attr($modal_id); ?>" aria-expanded="false"><i class="ti-clipboard" aria-hidden="true"></i><?php esc_html_e('Xem bảng dinh dưỡng', 'hithean-product-metabox'); ?></button>
+        <button class="product-nutrition-label__trigger button--" type="button" aria-haspopup="dialog" aria-controls="<?php echo esc_attr($modal_id); ?>" aria-expanded="false"><i class="ti-clipboard" aria-hidden="true"></i><?php esc_html_e('Xem bảng dinh dưỡng', 'hithean-product-metabox'); ?></button>
     </section>
     <div id="<?php echo esc_attr($modal_id); ?>" class="product-nutrition-label__modal" hidden aria-hidden="true">
         <div class="product-nutrition-label__backdrop" data-nutrition-label-close></div>
