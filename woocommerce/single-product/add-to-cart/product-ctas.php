@@ -1,3 +1,4 @@
+<?php do_action('hithean_before_product_chat_ctas'); ?>
 <div id="section-product-ctas" class="b-single-product-ctas" style="">
 	<a target="_blank" class="button--light-blue" style="" href="https://m.me/61558663706094"><i class="icon-facebook ti-facebook"></i>Chat với The An</a>
 	</br>
