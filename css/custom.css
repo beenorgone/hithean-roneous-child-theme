@@ -1092,6 +1092,17 @@ nav .menu li a:focus {
     .nav-container nav .nav-bar > .module:first-child {
         width: unset;
     }
+
+    body.site-scrolled .nav-container nav,
+    body.site-scrolled .nav-container nav.fixed,
+    body.site-scrolled .nav-container nav.absolute,
+    body.site-scrolled.admin-bar .nav-container nav,
+    body.site-scrolled.admin-bar .nav-container nav.fixed,
+    body.site-scrolled.admin-bar .nav-container nav.absolute {
+        top: 0 !important;
+        right: 0;
+        left: 0;
+    }
 }
 
 .nav-container nav.fixed,
