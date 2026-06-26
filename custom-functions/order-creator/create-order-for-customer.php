@@ -1264,6 +1264,27 @@ add_action('wp_ajax_order_creator_customer_history', function () {
     wp_send_json_success(['orders' => $rows, 'products' => array_values($products)]);
 });
 
+function order_creator_normalize_order_search_term(string $term): string
+{
+    $term = trim($term);
+    return preg_replace('/^(?:#|P0|P1)+/i', '', $term) ?? $term;
+}
+
+function order_creator_add_order_search_candidate(array &$orders, string $term): bool
+{
+    if (!ctype_digit($term)) {
+        return false;
+    }
+
+    $order = wc_get_order(absint($term));
+    if (!$order instanceof WC_Order) {
+        return false;
+    }
+
+    $orders[$order->get_id()] = $order;
+    return true;
+}
+
 add_action('wp_ajax_order_creator_search_orders', function () {
     order_creator_verify_ajax();
 
@@ -1273,10 +1294,11 @@ add_action('wp_ajax_order_creator_search_orders', function () {
     }
 
     $orders = [];
-    if (ctype_digit($term)) {
-        $order = wc_get_order(absint($term));
-        if ($order instanceof WC_Order) {
-            $orders[$order->get_id()] = $order;
+    $normalized_term = order_creator_normalize_order_search_term($term);
+    if ($normalized_term !== '') {
+        $found_by_id = order_creator_add_order_search_candidate($orders, $normalized_term);
+        if (!$found_by_id && ctype_digit($normalized_term) && strlen($normalized_term) > 2) {
+            order_creator_add_order_search_candidate($orders, substr($normalized_term, 0, -2));
         }
     }
 
@@ -1284,7 +1306,7 @@ add_action('wp_ajax_order_creator_search_orders', function () {
         'limit'   => 20,
         'orderby' => 'date',
         'order'   => 'DESC',
-        'search'  => '*' . $term . '*',
+        'search'  => '*' . ($normalized_term !== '' ? $normalized_term : $term) . '*',
     ]);
     foreach ($matches as $order) {
         if ($order instanceof WC_Order) {
@@ -1302,6 +1324,12 @@ add_action('wp_ajax_order_creator_search_orders', function () {
             'total'    => (float) $order->get_total(),
             'status'   => wc_get_order_status_name($order->get_status()),
             'date'     => $order->get_date_created() ? $order->get_date_created()->date_i18n('d/m/Y H:i') : '',
+            'edit_url' => $order->get_edit_order_url(),
+            'invoice_url' => add_query_arg([
+                'action'   => 'order_creator_invoice_preview',
+                'order_id' => $order->get_id(),
+                'nonce'    => wp_create_nonce(ORDER_CREATOR_NONCE),
+            ], admin_url('admin-ajax.php')),
         ];
     }
 

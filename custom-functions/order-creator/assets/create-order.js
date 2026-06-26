@@ -695,10 +695,12 @@
             row.innerHTML =
                 '<span><b>#' + order.number + '</b> — ' + order.customer +
                 '<small>' + (order.phone || '') + ' · ' + order.date + ' · ' + order.status + '</small></span>' +
-                '<div class="oc-order-result__actions"><button type="button" class="oc-btn oc-btn--ghost">Chỉnh sửa</button><button type="button" class="oc-btn oc-btn--ghost">Copy</button></div>';
+                '<div class="oc-order-result__actions"><button type="button" class="oc-btn oc-btn--ghost">Xem đơn</button><button type="button" class="oc-btn oc-btn--ghost">Xem hóa đơn</button><button type="button" class="oc-btn oc-btn--ghost">Chỉnh sửa</button><button type="button" class="oc-btn oc-btn--ghost">Copy</button></div>';
             var buttons = row.querySelectorAll('button');
-            buttons[0].addEventListener('click', function () { loadOrder(order.id); box.hidden = true; });
-            buttons[1].addEventListener('click', function () { loadOrder(order.id, true); box.hidden = true; });
+            buttons[0].addEventListener('click', function () { if (order.edit_url) { window.open(order.edit_url, '_blank', 'noopener'); } });
+            buttons[1].addEventListener('click', function () { if (order.invoice_url) { openInvoice(order.invoice_url); box.hidden = true; } });
+            buttons[2].addEventListener('click', function () { loadOrder(order.id); box.hidden = true; });
+            buttons[3].addEventListener('click', function () { loadOrder(order.id, true); box.hidden = true; });
             box.appendChild(row);
         });
         box.hidden = false;
