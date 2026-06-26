@@ -81,7 +81,7 @@ foreach ($items as $item_id => $item) :
             ?>
         </td>
         <td class="td" style="text-align:<?php echo esc_attr($price_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif; white-space: nowrap;">
-            <b><?php echo wp_kses_post(wc_price($order->get_item_total($item, false, true), array('currency' => $order->get_currency()))); ?></b>
+            <b><?php echo wp_kses_post(wc_price($order->get_item_subtotal($item, false, true), array('currency' => $order->get_currency()))); ?></b>
         </td>
         <td class="td" style="text-align:center; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif;">
             <?php
