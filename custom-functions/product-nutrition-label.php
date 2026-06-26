@@ -24,9 +24,11 @@ function hithean_product_nutrition_label_items(int $product_id): array
     return $items;
 }
 
-function hithean_render_product_nutrition_label(int $product_id = 0): void
+function hithean_render_product_nutrition_label($product_id = 0): void
 {
     static $render_count = 0;
+
+    $product_id = absint($product_id);
 
     if (!$product_id) {
         if (!is_product()) return;
@@ -60,7 +62,7 @@ function hithean_render_product_nutrition_label(int $product_id = 0): void
     </div>
     <?php
 }
-add_action('hithean_before_product_chat_ctas', 'hithean_render_product_nutrition_label');
+add_action('hithean_before_product_chat_ctas', 'hithean_render_product_nutrition_label', 10, 0);
 
 function hithean_product_nutrition_label_shortcode(array $atts = []): string
 {
