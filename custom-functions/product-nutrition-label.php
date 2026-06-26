@@ -51,7 +51,7 @@ function hithean_render_product_nutrition_label(): void
     </div>
     <?php
 }
-add_action('woocommerce_before_single_product_summary', 'hithean_render_product_nutrition_label', 25);
+add_action('woocommerce_product_thumbnails', 'hithean_render_product_nutrition_label', 99);
 
 function hithean_product_nutrition_label_assets(): void
 {
