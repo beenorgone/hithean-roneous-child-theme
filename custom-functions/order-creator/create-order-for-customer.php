@@ -1966,6 +1966,7 @@ function order_creator_render_page(): void
 
     <div class="oc-pane" id="oc-pane-create">
     <nav class="oc-section-nav" id="oc-section-nav">
+        <?php if ($oc_logo_url) : ?><img class="oc-section-nav__logo" src="<?php echo esc_url($oc_logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php endif; ?>
         <a href="#oc-section-cart" data-jump="oc-section-cart" class="is-active">Chỉnh giỏ hàng</a>
         <a href="#oc-section-promo" data-jump="oc-section-promo">Ưu đãi / Giảm giá</a>
         <a href="#oc-section-notes" data-jump="oc-section-notes">Ghi chú</a>
