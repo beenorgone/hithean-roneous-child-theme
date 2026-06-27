@@ -90,6 +90,9 @@
     .oc-section-nav a.is-active { border-bottom-color: var(--oc-primary); color: var(--oc-primary-dark); }
     #oc-section-cart, #oc-section-promo, #oc-section-notes,
     #oc-section-orders, #oc-section-customer { scroll-margin-top: 44px; }
+
+    /* khớp lại margin âm với padding 10px của .oc-app ở mobile (gốc tính theo 16px desktop) để thanh nút span đúng hết chiều rộng màn hình */
+    .oc-actionbar { padding: 12px 10px; margin: 16px -10px -10px; }
 }
 
 /* card header (tiêu đề + nút phụ) */
@@ -269,17 +272,20 @@
 .oc-invoice-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .oc-invoice-actions { display: flex; gap: 8px; }
 #oc-invoice-msg { margin-top: 8px; }
+/* hóa đơn luôn render ở chiều rộng cố định (khớp desktop); mobile cuộn ngang để xem, ảnh xuất ra (html2canvas) không bị bóp nhỏ theo viewport */
+#oc-invoice-render { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* thanh nút dưới cùng (sticky) — hiển thị theo chế độ */
 .oc-actionbar {
     position: sticky; bottom: 0; z-index: 20;
-    display: flex; justify-content: flex-end; gap: 8px;
+    display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;
     padding: 12px 16px; margin: 16px -16px -16px;
     background: rgba(255, 255, 255, .96); border-top: 1px solid var(--oc-border);
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
 }
-@media (max-width: 640px) { .oc-actionbar .oc-btn { flex: 1; } }
+/* nhiều nút (vd. mode-result có 7 nút) không đủ chỗ trên 1 dòng ở mobile → xếp lưới 2 cột thay vì tràn ra ngoài màn hình */
+@media (max-width: 640px) { .oc-actionbar .oc-btn { flex: 1 1 calc(50% - 4px); min-width: 0; } }
 
 /* mặc định ẩn hết, từng chế độ bật + sắp xếp thứ tự riêng */
 .oc-actionbar > [data-act] { display: none; }

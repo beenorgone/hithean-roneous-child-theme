@@ -2323,7 +2323,7 @@ function order_creator_render_page(): void
             </div>
         </div>
         <div id="oc-invoice-render">
-            <iframe id="oc-invoice-frame" style="width:100%;height:70vh;border:0;"></iframe>
+            <iframe id="oc-invoice-frame" style="width:800px;max-width:none;height:70vh;border:0;display:block;"></iframe>
         </div>
         <div class="oc-muted" id="oc-invoice-msg"></div>
     </div>
