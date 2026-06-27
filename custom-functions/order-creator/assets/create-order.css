@@ -23,6 +23,8 @@
 .oc-topbar {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 16px;
+    /* trang dùng layout HTML riêng nhưng vẫn nạp CSS theme cha qua wp_head(); ép tĩnh để header theme cha không biến <header> này thành sticky/fixed */
+    position: static !important;
 }
 .oc-topbar h1 { font-size: 20px; margin: 0; }
 .oc-topbar__actions { display: flex; gap: 8px; }
@@ -32,8 +34,8 @@
 /* sticky section nav (nhảy nhanh tới từng phần) */
 .oc-section-nav {
     position: sticky; top: 0; z-index: 15;
-    display: flex; flex-wrap: nowrap; gap: 0;
-    overflow-x: auto;
+    display: flex; flex-wrap: wrap; gap: 0;
+    overflow-x: hidden;
     padding: 0 16px; margin-bottom: 12px;
     background: rgba(255, 255, 255, .96);
     -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
@@ -65,17 +67,13 @@
     .oc-section-nav {
         top: 0;
         z-index: 15;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         gap: 0;
-        overflow-x: auto;
-        overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
+        overflow-x: hidden;
         padding: 0 10px;
         margin: 0 -10px 12px;
-        scrollbar-width: none;
         box-shadow: 0 1px 5px rgba(15, 23, 42, .08);
     }
-    .oc-section-nav::-webkit-scrollbar { display: none; }
     .oc-section-nav a {
         flex: 0 0 auto;
         border: 0;
