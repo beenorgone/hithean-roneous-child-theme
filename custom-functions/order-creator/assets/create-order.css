@@ -156,9 +156,10 @@
 .oc-lines th { font-size: 11px; color: var(--oc-muted); text-transform: uppercase; }
 .oc-col-num { text-align: right; }
 .oc-lines td.oc-col-num input { text-align: right; }
-.oc-order-result { gap: 10px; }
-.oc-order-result__actions { display: flex; flex-shrink: 0; gap: 6px; }
-.oc-order-result__actions .oc-btn { padding: 5px 8px; font-size: 12px; }
+.oc-order-result { gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.oc-order-result > span { min-width: 180px; }
+.oc-order-result__actions { display: flex; flex: 1 1 220px; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; }
+.oc-order-result__actions .oc-btn { flex: 0 1 auto; padding: 5px 8px; font-size: 12px; white-space: nowrap; }
 
 /* Action icons use WordPress core Dashicons; no external icon font is loaded. */
 .oc-btn::before {
