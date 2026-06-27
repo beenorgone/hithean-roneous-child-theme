@@ -1016,6 +1016,7 @@
         var headText = heading || (isDraft ? '📝 Đã lưu nháp đơn ' : (state.editOrderId ? '✅ Đã cập nhật đơn ' : '✅ Đã tạo đơn '));
         box.innerHTML = '<div class="oc-result-head">' + headText + '<b>#' + o.order_number + '</b> — ' + money(o.total) + '</div>';
         $('#oc-view-order').href = o.edit_url || '#';
+        $('#oc-print-pxk').href = OC.ajaxUrl + '?action=inhoadon_ghtk&order_id=' + encodeURIComponent(o.order_id);
         setActionMode('result');
         box.scrollIntoView({ behavior: 'smooth' });
     }
