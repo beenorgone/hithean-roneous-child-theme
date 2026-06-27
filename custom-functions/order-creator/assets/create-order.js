@@ -711,6 +711,21 @@
         return post('order_creator_load_order', { order_id: orderId }).then(function (res) {
             if (!res.success) { alert((res.data && res.data.message) || 'Không nạp được đơn.'); return; }
             var o = res.data;
+            if (readOnly) {
+                state.editOrderId = 0;
+                state.lastOrder = {
+                    order_id: o.order_id,
+                    order_number: o.order_number,
+                    total: o.total,
+                    edit_url: o.edit_url,
+                    invoice_url: o.invoice_url,
+                    payment_total: o.payment_total,
+                    phone: o.phone
+                };
+                setEditorDisabled(true);
+                renderResult(state.lastOrder, false, '↩️ Đã hủy chỉnh sửa đơn ');
+                return;
+            }
             state.editOrderId = isCopy ? 0 : o.order_id;
             setEditorDisabled(false);
             state.items = (o.items || []).map(function (it) {
@@ -743,20 +758,6 @@
                 markCopyMode(o.order_number);
             } else {
                 markEditMode(o.order_number);
-            }
-            if (readOnly) {
-                state.lastOrder = {
-                    order_id: o.order_id,
-                    order_number: o.order_number,
-                    total: o.total,
-                    edit_url: o.edit_url,
-                    invoice_url: o.invoice_url,
-                    payment_total: o.payment_total,
-                    phone: o.phone
-                };
-                setEditorDisabled(true);
-                renderResult(state.lastOrder, false, '↩️ Đã hủy chỉnh sửa đơn ');
-                return;
             }
             doRecalc();
         });
