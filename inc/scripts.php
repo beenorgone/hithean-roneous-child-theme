@@ -65,7 +65,7 @@ if( !function_exists('roneous_load_scripts') ) {
 		    $custom_css .= '.nav-container nav.fixed{position:absolute;}';
 		}
 		if( 'yes' == get_option( 'roneous_header_sticky_mobile', 'no' ) ) {
-		    $custom_css .= '@media (max-width: 990px) {nav.absolute, nav.fixed, nav { position: fixed !important; background: #fff!important; z-index: 99999;} .nav-container nav .module.widget-wrap i, .nav-container nav.transparent .nav-utility { color: #28262b !important; } nav.absolute .logo-light, nav.fixed .logo-light, nav .logo-light{ display: none!important; } nav.absolute .logo-dark, nav.fixed .logo-dark, nav .logo-dark{ display: inline!important; } .site-scrolled.admin-bar nav.fixed, .site-scrolled.admin-bar nav.absolute, .site-scrolled.admin-bar nav { top: 0; }}';
+		    $custom_css .= '@media (max-width: 990px) {nav.absolute, nav.fixed, nav { background: #fff!important; z-index: 99999;} .nav-container nav .module.widget-wrap i, .nav-container nav.transparent .nav-utility { color: #28262b !important; } nav.absolute .logo-light, nav.fixed .logo-light, nav .logo-light{ display: none!important; } nav.absolute .logo-dark, nav.fixed .logo-dark, nav .logo-dark{ display: inline!important; } .site-scrolled.admin-bar nav.fixed, .site-scrolled.admin-bar nav.absolute, .site-scrolled.admin-bar nav { top: 0; }}';
 		}
 		$menu_bgcolor = get_option('roneous_color_menu_bg', '');
 		$menu_color = get_option('roneous_color_menu', '');
