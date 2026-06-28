@@ -37,16 +37,16 @@
     background-color: var(--product-nuocepkytu-green);
 }
 
-/* Color overlay phủ trên ảnh */
+/* Color overlay phủ trên ảnh — đậm phía có chữ (trái), nhạt dần về phía cluster sản phẩm (phải) để ảnh nền vẫn hiện rõ */
 #anc-hero::before {
     content: '';
     position: absolute;
     inset: 0;
     background: linear-gradient(
-        150deg,
-        rgba(13, 40, 35, 0.82) 0%,
-        rgba(19, 81, 80, 0.72) 50%,
-        rgba(0, 60, 40, 0.80) 100%
+        100deg,
+        rgba(13, 40, 35, 0.86) 0%,
+        rgba(13, 40, 35, 0.55) 42%,
+        rgba(0, 60, 40, 0.35) 100%
     );
     z-index: 0;
 }
@@ -627,6 +627,17 @@ body.anc-modal-locked {
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
 }
 
+/* Nhà máy + bản đồ — tách riêng khỏi grid để các card còn lại đồng nhất chiều cao/phong cách */
+.anc-qc-factory {
+    background: #fff;
+    border-radius: 6px;
+    padding: 20px 18px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    max-width: 460px;
+    margin: 0 auto 20px;
+    text-align: left;
+}
+
 .anc-qc-cert-img {
     display: block;
     width: 100%;
@@ -786,6 +797,13 @@ body.anc-modal-locked {
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 20px;
+}
+
+.anc-pf-intro {
+    font-size: 14px;
+    color: var(--default-color-charcoal-grey, #555);
+    line-height: 1.7;
+    margin: 0 0 18px;
 }
 
 .anc-stat-pill {
@@ -1318,6 +1336,13 @@ body.anc-modal-locked {
     display: inline-block;
 }
 
+.anc-calc-microcopy {
+    font-size: 12px;
+    color: var(--default-color-charcoal-grey, #555);
+    margin: 10px 0 0;
+    opacity: 0.75;
+}
+
 /* Calculator nội dung khi mở trong modal */
 .anc-modal-body .anc-calc-card,
 .anc-modal-body #anc-calc-form {
@@ -1668,6 +1693,22 @@ body.anc-modal-locked {
     color: var(--default-color-white);
 }
 
+.anc-cta-band-secondary {
+    display: block;
+    width: fit-content;
+    margin: 16px auto 0;
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none;
+}
+
+.anc-cta-band-secondary:hover {
+    color: var(--default-color-white);
+    text-decoration: underline;
+}
+
 /* =============================================
    SECTION TITLES (shared)
    ============================================= */
@@ -1825,6 +1866,16 @@ body.anc-modal-locked {
     #anc-hero {
         background-image: var(--anc-hero-bg-m, var(--anc-hero-bg, none));
         background-position: center top;
+    }
+
+    /* Mobile: layout xếp chồng (chữ trên, sản phẩm dưới) → overlay đậm trên, nhạt dưới */
+    #anc-hero::before {
+        background: linear-gradient(
+            180deg,
+            rgba(13, 40, 35, 0.84) 0%,
+            rgba(13, 40, 35, 0.55) 45%,
+            rgba(0, 60, 40, 0.35) 100%
+        );
     }
     #anc-cta-band {
         background-image: var(--anc-cta-bg-m, var(--anc-cta-bg, none));

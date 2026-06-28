@@ -12,8 +12,9 @@
        ============================================================ */
 
     function initSectionReorder() {
-        var order = new URLSearchParams(window.location.search).get('order');
-        if (!order) return;
+        var params = new URLSearchParams(window.location.search);
+        var order  = params.get('order');
+        if (!order || params.get('preview_key') !== 'anc2026') return;
 
         var main = document.getElementById('anc-main');
         if (!main) return;
