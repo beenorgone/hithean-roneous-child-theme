@@ -79,6 +79,11 @@ function hithean_product_nutrition_label_shortcode(array $atts = []): string
         $product_id = (int) get_the_ID();
     }
 
+    // Đảm bảo CSS/JS có mặt khi shortcode dùng ngoài trang sản phẩm (vd: landing page).
+    if (hithean_product_nutrition_label_items($product_id)) {
+        hithean_product_nutrition_label_enqueue_front_assets();
+    }
+
     ob_start();
     hithean_render_product_nutrition_label($product_id);
     return (string) ob_get_clean();
@@ -89,6 +94,13 @@ function hithean_product_nutrition_label_assets(): void
 {
     if (!is_product()) return;
     if (!hithean_product_nutrition_label_items((int) get_queried_object_id())) return;
+    hithean_product_nutrition_label_enqueue_front_assets();
+}
+add_action('wp_enqueue_scripts', 'hithean_product_nutrition_label_assets', 30);
+
+function hithean_product_nutrition_label_enqueue_front_assets(): void
+{
+    if (wp_style_is('hithean-product-nutrition-label', 'enqueued')) return;
     $css = '.product-nutrition-label__stage{padding:20px 10px;touch-action:pan-y}.product-nutrition-label{margin:18px 0!important;text-align:left}.product-nutrition-label__trigger{width:235px;max-width:100%;cursor:pointer}.product-nutrition-label__trigger i{margin-right:8px}.product-nutrition-label__modal[hidden]{display:none}.product-nutrition-label__modal{position:fixed;z-index:999999;inset:0;display:grid;place-items:center;padding:20px}.product-nutrition-label__backdrop{position:absolute;inset:0;background:rgba(0,0,0,.68)}.product-nutrition-label__dialog{position:relative;display:grid;gap:14px;width:min(100%,900px);max-height:calc(100vh - 40px);padding:44px 20px 20px;overflow:auto;border-radius:12px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.32)}.product-nutrition-label__close{position:absolute;top:8px;right:10px;width:34px;height:34px;border:0;border-radius:50%;background:#f1f1f1;color:#111;font-size:28px;line-height:1;cursor:pointer}.product-nutrition-label__image{margin:0;text-align:center}.product-nutrition-label__image img{display:block;width:auto;max-width:100%;max-height:70vh;margin:auto}.product-nutrition-label__image figcaption{margin-top:8px;font-weight:600}.product-nutrition-label__thumbs{display:flex;justify-content:center;gap:8px;overflow-x:auto;padding:2px}.product-nutrition-label__thumb{flex:0 0 64px;padding:2px;border:2px solid transparent;border-radius:6px;background:transparent;cursor:pointer}.product-nutrition-label__thumb.is-active{border-color:#111}.product-nutrition-label__thumb img{display:block;width:56px;height:56px;object-fit:cover}@media(max-width:600px){.product-nutrition-label{text-align:center}.product-nutrition-label__modal{padding:10px}.product-nutrition-label__dialog{max-height:calc(100vh - 20px);padding:42px 12px 12px}}';
     wp_register_style('hithean-product-nutrition-label', false, [], '1.0.0');
     wp_enqueue_style('hithean-product-nutrition-label');
@@ -111,7 +123,6 @@ JS;
     wp_enqueue_script('hithean-product-nutrition-label');
     wp_add_inline_script('hithean-product-nutrition-label', $script);
 }
-add_action('wp_enqueue_scripts', 'hithean_product_nutrition_label_assets', 30);
 
 function hithean_product_nutrition_label_admin_assets(string $hook): void
 {

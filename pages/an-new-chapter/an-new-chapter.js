@@ -143,6 +143,38 @@
     }
 
     /* ============================================================
+       PRODUCT SWITCHER (chips → đổi card sản phẩm trong #anc-products)
+       ============================================================ */
+
+    function initProductSwitcher() {
+        var switchers = document.querySelectorAll('[data-product-switcher]');
+        switchers.forEach(function (root) {
+            var chips  = root.querySelectorAll('.anc-pf-chip');
+            var panels = root.querySelectorAll('.anc-pf-panel');
+            if (!chips.length || !panels.length) return;
+
+            chips.forEach(function (chip) {
+                chip.addEventListener('click', function () {
+                    var card = chip.getAttribute('data-card');
+                    if (chip.classList.contains('is-active')) return;
+
+                    chips.forEach(function (c) {
+                        var active = c === chip;
+                        c.classList.toggle('is-active', active);
+                        c.setAttribute('aria-selected', active ? 'true' : 'false');
+                    });
+                    panels.forEach(function (p) {
+                        var match = p.getAttribute('data-card') === card;
+                        p.classList.toggle('is-active', match);
+                        if (match) { p.removeAttribute('hidden'); }
+                        else { p.setAttribute('hidden', ''); }
+                    });
+                });
+            });
+        });
+    }
+
+    /* ============================================================
        LAZY MAP (load Google Maps iframe on details open)
        ============================================================ */
 
@@ -170,6 +202,7 @@
         initScrollAnimations();
         initSmoothScroll();
         initGalleries();
+        initProductSwitcher();
         initLazyMaps();
     }
 

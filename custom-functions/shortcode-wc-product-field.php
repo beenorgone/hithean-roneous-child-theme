@@ -6,7 +6,11 @@
  *
  * Dùng: [wc_product_field slug="ten-san-pham" field="name"]
  * field: name | permalink | regular_price | sale_price | current_price |
- *        discount_percent | cta_text | image
+ *        discount_percent | cta_text | image | gallery
+ *
+ * field="gallery" dựng nguyên khối .anc-gallery (ảnh main + thumbnails) từ
+ * ảnh đại diện + album sản phẩm — khớp markup mà initGalleries() trong JS landing
+ * page đang dùng, nên thumbnail switching chạy luôn không cần sửa JS.
  */
 
 add_shortcode('wc_product_field', 'child_theme_wc_product_field_shortcode');
@@ -81,7 +85,67 @@ function child_theme_wc_product_field_shortcode($atts): string
             $image_id = $product->get_image_id();
             return $image_id ? esc_url((string) wp_get_attachment_url($image_id)) : '';
 
+        case 'gallery':
+            return child_theme_wc_product_field_gallery_html($product);
+
         default:
             return '';
     }
+}
+
+/**
+ * Dựng markup gallery (.anc-gallery) từ ảnh đại diện + album sản phẩm.
+ * Trùng cấu trúc với gallery tĩnh trên landing page để initGalleries() hoạt động.
+ */
+function child_theme_wc_product_field_gallery_html(WC_Product $product): string
+{
+    $ids = [];
+
+    $featured = (int) $product->get_image_id();
+    if ($featured > 0) {
+        $ids[] = $featured;
+    }
+
+    foreach ($product->get_gallery_image_ids() as $gid) {
+        $gid = (int) $gid;
+        if ($gid > 0 && !in_array($gid, $ids, true)) {
+            $ids[] = $gid;
+        }
+    }
+
+    if (!$ids) {
+        return '';
+    }
+
+    $name     = $product->get_name();
+    $main_src = wp_get_attachment_image_url($ids[0], 'woocommerce_single')
+        ?: wp_get_attachment_image_url($ids[0], 'full');
+
+    if (!$main_src) {
+        return '';
+    }
+
+    ob_start();
+    ?>
+    <div class="anc-gallery">
+        <img class="anc-gallery-main" src="<?php echo esc_url((string) $main_src); ?>" alt="<?php echo esc_attr($name); ?>" />
+        <?php if (count($ids) > 1) : ?>
+        <div class="anc-gallery-thumbs">
+            <?php foreach ($ids as $index => $gid) :
+                $full = wp_get_attachment_image_url($gid, 'woocommerce_single')
+                    ?: wp_get_attachment_image_url($gid, 'full');
+                if (!$full) {
+                    continue;
+                }
+                $thumb = wp_get_attachment_image_url($gid, 'woocommerce_thumbnail') ?: $full;
+            ?>
+            <button class="anc-gallery-thumb<?php echo $index === 0 ? ' is-active' : ''; ?>" type="button" data-src="<?php echo esc_url((string) $full); ?>" aria-label="<?php echo esc_attr($name . ' — ảnh ' . ($index + 1)); ?>">
+                <img src="<?php echo esc_url((string) $thumb); ?>" alt="" loading="lazy" decoding="async" />
+            </button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php
+    return (string) ob_get_clean();
 }
