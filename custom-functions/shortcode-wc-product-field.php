@@ -88,9 +88,39 @@ function child_theme_wc_product_field_shortcode($atts): string
         case 'gallery':
             return child_theme_wc_product_field_gallery_html($product);
 
+        case 'price_block':
+            return child_theme_wc_product_field_price_block_html($product);
+
         default:
             return '';
     }
+}
+
+/**
+ * Dựng khối giá: nếu đang sale → giá sale + giá gốc gạch ngang + tag %;
+ * nếu không sale → chỉ hiện giá bán (không gạch ngang, không tag).
+ */
+function child_theme_wc_product_field_price_block_html(WC_Product $product): string
+{
+    $current = wc_price((float) $product->get_price());
+
+    if (!$product->is_on_sale()) {
+        return '<span class="anc-price-sale">' . $current . '</span>';
+    }
+
+    $regular = (float) $product->get_regular_price();
+    $sale    = (float) $product->get_sale_price();
+
+    $html = '<span class="anc-price-sale">' . $current . '</span>';
+    if ($regular > 0) {
+        $html .= '<span class="anc-price-original">' . wc_price($regular) . '</span>';
+        $percent = round((($regular - $sale) / $regular) * 100);
+        if ($percent > 0) {
+            $html .= '<span class="anc-price-tag">-' . $percent . '%</span>';
+        }
+    }
+
+    return $html;
 }
 
 /**

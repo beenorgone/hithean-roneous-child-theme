@@ -82,6 +82,7 @@
   <div class="anc-modal-dialog">
     <button type="button" class="anc-modal-close" data-modal-close aria-label="Đóng">×</button>
     <div class="anc-modal-body">
+      <img class="anc-modal-badge-img" src="https://hithean.com/wp-content/uploads/2025/11/eurofins-logo-1200x663-1-600x332.png.webp" alt="Eurofins" />
       <h3>Đối tác kiểm nghiệm độc lập — Eurofins</h3>
       <p>Eurofins Scientific — 900+ phòng lab · 50+ quốc gia.</p>
       <ul class="anc-modal-list">
@@ -90,6 +91,11 @@
         <li>Báo cáo theo chuẩn quốc tế <strong>ISO/IEC 17025</strong></li>
         <li>Kết quả kiểm nghiệm độc lập, không có lợi ích xung đột</li>
       </ul>
+      <div class="anc-qc-process">
+        <span class="anc-qc-icon" aria-hidden="true">✅</span>
+        <div class="anc-qc-label">Quy trình kiểm tra</div>
+        <div class="anc-qc-value">2 lần: nguyên liệu đầu vào &amp; thành phẩm</div>
+      </div>
     </div>
   </div>
 </div>
@@ -99,6 +105,7 @@
   <div class="anc-modal-dialog">
     <button type="button" class="anc-modal-close" data-modal-close aria-label="Đóng">×</button>
     <div class="anc-modal-body">
+      <img class="anc-modal-badge-img" src="https://hithean.com/wp-content/uploads/2025/11/chung-nhan-nha-xuong-logos-haccp-iso2200-gmp-1200x663-1-600x332.png.webp" alt="ISO 22000 · HACCP · GMP" />
       <h3>Tiêu chuẩn sản xuất quốc tế</h3>
       <p>3 chứng nhận quốc tế · TQC CGLOBAL · Mã: TQC.03.6137</p>
       <ul class="anc-modal-list">
@@ -107,6 +114,23 @@
         <li>GMP — Quy phạm thực hành sản xuất tốt</li>
       </ul>
       <p class="anc-modal-note">🇺🇸 FDA Hoa Kỳ: 18772617074 · CGLOBAL.FDA.9269</p>
+      <div class="anc-qc-factory">
+        <span class="anc-qc-icon anc-qc-icon--lg" aria-hidden="true">🏭</span>
+        <div class="anc-qc-label">Nhà máy</div>
+        <div class="anc-qc-value">Cụm sản xuất dịch vụ, thôn Văn Khê, xã Nghĩa Hương, Hà Nội, Việt Nam</div>
+        <div class="anc-factory-map">
+          <iframe
+            class="anc-factory-iframe"
+            src="https://maps.google.com/maps?q=Van+Khe,+Nghia+Huong,+Quoc+Oai,+Ha+Noi,+Vietnam&amp;output=embed&amp;hl=vi&amp;z=15"
+            height="200"
+            frameborder="0"
+            allowfullscreen
+            loading="lazy"
+            title="Vị trí nhà máy The An Organics"
+          ></iframe>
+          <a href="https://maps.app.goo.gl/FWNMTCZnqEPZofj86" class="anc-factory-map-link" target="_blank" rel="noopener">Mở Google Maps →</a>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -126,56 +150,44 @@
     <div class="anc-trust-grid anc-fade-in-children">
 
       <button type="button" class="anc-trust-item" data-modal-open="modal-trust-cert">
-        <span class="anc-trust-icon" aria-hidden="true">🌿</span>
-        <div class="anc-trust-text">
-          <strong>CU 916118</strong>
-          <span>Chứng nhận hữu cơ USDA &amp; EU</span>
-        </div>
-        <span class="anc-trust-chevron" aria-hidden="true">→</span>
+        <span class="anc-trust-logos">
+          <img class="anc-trust-logo" src="https://hithean.com/wp-content/uploads/2025/11/organic-logos-600x332.png.webp" alt="USDA Organic · EU Organic" loading="lazy" decoding="async" />
+          <img class="anc-trust-logo" src="https://hithean.com/wp-content/uploads/2026/06/control-union-logo.jpg" alt="Control Union" loading="lazy" decoding="async" />
+        </span>
+        <span class="anc-trust-text">
+          <strong>Chứng nhận hữu cơ</strong>
+          <span>USDA &amp; EU Organic · Control Union · CU 916118</span>
+          <span class="anc-trust-subtext"><!-- TODO: subtext viết thêm sau --></span>
+        </span>
+        <span class="anc-trust-more" aria-hidden="true">Xem chi tiết →</span>
       </button>
 
       <button type="button" class="anc-trust-item" data-modal-open="modal-trust-eurofins">
-        <span class="anc-trust-icon" aria-hidden="true">🔬</span>
-        <div class="anc-trust-text">
-          <strong>Eurofins</strong>
-          <span>Kiểm nghiệm độc lập</span>
-        </div>
-        <span class="anc-trust-chevron" aria-hidden="true">→</span>
+        <span class="anc-trust-logos">
+          <img class="anc-trust-logo" src="https://hithean.com/wp-content/uploads/2025/11/eurofins-logo-h195.png" alt="Eurofins" loading="lazy" decoding="async" />
+        </span>
+        <span class="anc-trust-text">
+          <strong>Kiểm nghiệm độc lập</strong>
+          <span>Eurofins Scientific — bên thứ ba</span>
+          <span class="anc-trust-subtext"><!-- TODO: subtext viết thêm sau --></span>
+        </span>
+        <span class="anc-trust-more" aria-hidden="true">Xem chi tiết →</span>
       </button>
 
       <button type="button" class="anc-trust-item" data-modal-open="modal-trust-iso">
-        <span class="anc-trust-icon" aria-hidden="true">🏭</span>
-        <div class="anc-trust-text">
-          <strong>ISO 22000 · HACCP · GMP</strong>
-          <span>Tiêu chuẩn sản xuất quốc tế</span>
-        </div>
-        <span class="anc-trust-chevron" aria-hidden="true">→</span>
+        <span class="anc-trust-logos">
+          <img class="anc-trust-logo" src="https://hithean.com/wp-content/uploads/2025/11/iso-logo-195x195-1.png" alt="ISO 22000" loading="lazy" decoding="async" />
+          <img class="anc-trust-logo" src="https://hithean.com/wp-content/uploads/2025/11/haccp-logo-195x195-1.png" alt="HACCP" loading="lazy" decoding="async" />
+          <img class="anc-trust-logo" src="https://hithean.com/wp-content/uploads/2025/11/gmp-logo-195x195-1.png" alt="GMP" loading="lazy" decoding="async" />
+        </span>
+        <span class="anc-trust-text">
+          <strong>Tiêu chuẩn sản xuất</strong>
+          <span>ISO 22000 · HACCP · GMP</span>
+          <span class="anc-trust-subtext"><!-- TODO: subtext viết thêm sau --></span>
+        </span>
+        <span class="anc-trust-more" aria-hidden="true">Xem chi tiết →</span>
       </button>
 
-    </div>
-
-    <div class="anc-qc-factory anc-fade-in">
-      <span class="anc-qc-icon anc-qc-icon--lg" aria-hidden="true">🏭</span>
-      <div class="anc-qc-label">Nhà máy</div>
-      <div class="anc-qc-value">Cụm sản xuất dịch vụ, thôn Văn Khê, xã Nghĩa Hương, Hà Nội, Việt Nam</div>
-      <div class="anc-factory-map">
-        <iframe
-          class="anc-factory-iframe"
-          src="https://maps.google.com/maps?q=Van+Khe,+Nghia+Huong,+Quoc+Oai,+Ha+Noi,+Vietnam&amp;output=embed&amp;hl=vi&amp;z=15"
-          height="200"
-          frameborder="0"
-          allowfullscreen
-          loading="lazy"
-          title="Vị trí nhà máy The An Organics"
-        ></iframe>
-        <a href="https://maps.app.goo.gl/FWNMTCZnqEPZofj86" class="anc-factory-map-link" target="_blank" rel="noopener">Mở Google Maps →</a>
-      </div>
-    </div>
-
-    <div class="anc-qc-process anc-fade-in">
-      <span class="anc-qc-icon" aria-hidden="true">✅</span>
-      <div class="anc-qc-label">Quy trình kiểm tra</div>
-      <div class="anc-qc-value">2 lần: nguyên liệu đầu vào &amp; thành phẩm</div>
     </div>
 
     <a href="https://hithean.com/ve-chung-toi/kiem-soat-chat-luong/" class="button--light-blue anc-qc-link anc-fade-in" target="_blank" rel="noopener">Tìm hiểu thêm →</a>
@@ -223,11 +235,7 @@
             <li>TODO highlight 1</li>
             <li>TODO highlight 2</li>
           </ul>
-          <div class="anc-product-price">
-            <span class="anc-price-sale">[wc_product_field id="3977" field="current_price"]</span>
-            <span class="anc-price-original">[wc_product_field id="3977" field="regular_price"]</span>
-            <span class="anc-price-tag">[wc_product_field id="3977" field="discount_percent"]</span>
-          </div>
+          <div class="anc-product-price">[wc_product_field id="3977" field="price_block"]</div>
           <a href='[wc_product_field id="3977" field="permalink"]' class="button--light-green anc-pf-cta">[wc_product_field id="3977" field="cta_text"] →</a>
         </div>
       </div>
@@ -272,11 +280,7 @@
               </div>
             </div>
           </div>
-          <div class="anc-product-price">
-            <span class="anc-price-sale">[wc_product_field id="7696" field="current_price"]</span>
-            <span class="anc-price-original">[wc_product_field id="7696" field="regular_price"]</span>
-            <span class="anc-price-tag">[wc_product_field id="7696" field="discount_percent"]</span>
-          </div>
+          <div class="anc-product-price">[wc_product_field id="7696" field="price_block"]</div>
           <p class="anc-price-note">✦ Miễn phí vận chuyển cho đơn ra mắt</p>
           <a href='[wc_product_field id="7696" field="permalink"]' class="button--light-green anc-pf-cta">[wc_product_field id="7696" field="cta_text"] →</a>
         </div>
@@ -302,11 +306,7 @@
             <li>TODO highlight 1</li>
             <li>TODO highlight 2</li>
           </ul>
-          <div class="anc-product-price">
-            <span class="anc-price-sale">[wc_product_field id="4690" field="current_price"]</span>
-            <span class="anc-price-original">[wc_product_field id="4690" field="regular_price"]</span>
-            <span class="anc-price-tag">[wc_product_field id="4690" field="discount_percent"]</span>
-          </div>
+          <div class="anc-product-price">[wc_product_field id="4690" field="price_block"]</div>
           <a href='[wc_product_field id="4690" field="permalink"]' class="button--light-green anc-pf-cta">[wc_product_field id="4690" field="cta_text"] →</a>
         </div>
       </div>
@@ -331,11 +331,7 @@
             <li>TODO highlight 1</li>
             <li>TODO highlight 2</li>
           </ul>
-          <div class="anc-product-price">
-            <span class="anc-price-sale">[wc_product_field id="8548" field="current_price"]</span>
-            <span class="anc-price-original">[wc_product_field id="8548" field="regular_price"]</span>
-            <span class="anc-price-tag">[wc_product_field id="8548" field="discount_percent"]</span>
-          </div>
+          <div class="anc-product-price">[wc_product_field id="8548" field="price_block"]</div>
           <a href='[wc_product_field id="8548" field="permalink"]' class="button--light-green anc-pf-cta">[wc_product_field id="8548" field="cta_text"] →</a>
         </div>
       </div>
@@ -379,8 +375,87 @@
   <p class="anc-section-subtitle anc-fade-in">Nguyên liệu hữu cơ chứng nhận USDA &amp; EU — từ nhà máy CU 916118</p>
   <p class="anc-organic-story anc-fade-in">Từ những trái bơ canh tác theo <strong>mô hình vườn rừng</strong> đến ly protein mỗi ngày — A New Chapter: "Rooted Locally, Inspired Globally".</p>
 
-  <div class="anc-organic-products-shortcode anc-fade-in-children">
-    [products category="sieu-thuc-pham" columns="3"]
+  <div class="anc-pf-switcher anc-fade-in" data-product-switcher>
+
+    <div class="anc-pf-chips" role="tablist" aria-label="Chọn sản phẩm hữu cơ">
+      <button type="button" class="anc-pf-chip is-active" role="tab" aria-selected="true" data-card="inulin">Inulin</button>
+      <button type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="matcha">Matcha</button>
+      <button type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="matcha-latte">Matcha Latte Coconut</button>
+    </div>
+
+    <div class="anc-pf-panels">
+
+      <!-- ========== INULIN (id 6241) — mặc định ========== -->
+      <div class="anc-pf anc-pf-panel is-active" data-card="inulin" role="tabpanel">
+        <div class="anc-pf-visual">
+          [wc_product_field id="6241" field="gallery"]
+          [product_nutrition_label product_id="6241"]
+        </div>
+        <div class="anc-pf-details">
+          <h3 class="anc-pf-name">[wc_product_field id="6241" field="name"]</h3>
+          <!-- TODO: copy bespoke Inulin — pills / intro / highlights -->
+          <div class="anc-pf-pills">
+            <span class="anc-stat-pill">TODO</span>
+            <span class="anc-stat-pill">TODO</span>
+          </div>
+          <p class="anc-pf-intro">TODO: đoạn giới thiệu Inulin hữu cơ.</p>
+          <ul class="anc-product-highlights">
+            <li>TODO highlight 1</li>
+            <li>TODO highlight 2</li>
+          </ul>
+          <div class="anc-product-price">[wc_product_field id="6241" field="price_block"]</div>
+          <a href='[wc_product_field id="6241" field="permalink"]' class="button--light-green anc-pf-cta">[wc_product_field id="6241" field="cta_text"] →</a>
+        </div>
+      </div>
+
+      <!-- ========== MATCHA (id 6228) ========== -->
+      <div class="anc-pf anc-pf-panel" data-card="matcha" role="tabpanel" hidden>
+        <div class="anc-pf-visual">
+          [wc_product_field id="6228" field="gallery"]
+          [product_nutrition_label product_id="6228"]
+        </div>
+        <div class="anc-pf-details">
+          <h3 class="anc-pf-name">[wc_product_field id="6228" field="name"]</h3>
+          <!-- TODO: copy bespoke Matcha — pills / intro / highlights -->
+          <div class="anc-pf-pills">
+            <span class="anc-stat-pill">TODO</span>
+            <span class="anc-stat-pill">TODO</span>
+          </div>
+          <p class="anc-pf-intro">TODO: đoạn giới thiệu Matcha hữu cơ.</p>
+          <ul class="anc-product-highlights">
+            <li>TODO highlight 1</li>
+            <li>TODO highlight 2</li>
+          </ul>
+          <div class="anc-product-price">[wc_product_field id="6228" field="price_block"]</div>
+          <a href='[wc_product_field id="6228" field="permalink"]' class="button--light-green anc-pf-cta">[wc_product_field id="6228" field="cta_text"] →</a>
+        </div>
+      </div>
+
+      <!-- ========== MATCHA LATTE COCONUT (id 6238) ========== -->
+      <div class="anc-pf anc-pf-panel" data-card="matcha-latte" role="tabpanel" hidden>
+        <div class="anc-pf-visual">
+          [wc_product_field id="6238" field="gallery"]
+          [product_nutrition_label product_id="6238"]
+        </div>
+        <div class="anc-pf-details">
+          <h3 class="anc-pf-name">[wc_product_field id="6238" field="name"]</h3>
+          <!-- TODO: copy bespoke Matcha Latte Coconut — pills / intro / highlights -->
+          <div class="anc-pf-pills">
+            <span class="anc-stat-pill">TODO</span>
+            <span class="anc-stat-pill">TODO</span>
+          </div>
+          <p class="anc-pf-intro">TODO: đoạn giới thiệu Matcha Latte Coconut hữu cơ.</p>
+          <ul class="anc-product-highlights">
+            <li>TODO highlight 1</li>
+            <li>TODO highlight 2</li>
+          </ul>
+          <div class="anc-product-price">[wc_product_field id="6238" field="price_block"]</div>
+          <a href='[wc_product_field id="6238" field="permalink"]' class="button--light-green anc-pf-cta">[wc_product_field id="6238" field="cta_text"] →</a>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 </section>
 
