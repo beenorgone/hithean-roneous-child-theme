@@ -38,6 +38,16 @@ function add_custom_actions($actions, $order)
     $bank_code = 'VietinBank';
     $qr_url = "https://qr.sepay.vn/img?bank={$bank_code}&acc={$bank_account}&amount={$order_total}&des=P0{$order_id}&template=compact";
 
+    if (current_user_can('edit_shop_orders') || current_user_can('manage_woocommerce')) {
+        $route = defined('ORDER_CREATOR_ROUTE') ? ORDER_CREATOR_ROUTE : 'tao-don';
+        $actions['chinh-don-tao-don'] = [
+            'url' => home_url('/' . $route . '/?order_id=' . absint($order_id)),
+            'name' => __('Chỉnh đơn trên trang Tạo đơn', 'woocommerce'),
+            'action' => 'chinh-don-tao-don',
+            'target' => '_blank'
+        ];
+    }
+
     // Add QR code action
     $actions['qr-code'] = [
         'url' => $qr_url,
@@ -145,6 +155,7 @@ function add_custom_order_actions_button_css()
         'don-hoan-tien' => 'content: "YC hoàn tiền KH"',
         'theo-doi-boi-hoan' => 'content: "Theo dõi bồi hoàn"',
         'theo-doi-hoan-tien' => 'content: "Theo dõi hoàn tiền KH"',
+        'chinh-don-tao-don' => 'background: #08e097 !important; color: #002b1c !important; content: "Chỉnh đơn"',
         'tra-don-ghtk' => 'background: green !important; opacity: 0.8; color:  #fff !important; content: "Tra đơn GHTK"',
         'tra-don-vtp' => 'background: red !important; opacity: 0.8; color:  #fff !important; content: "Tra đơn Viettel"'
     ];
