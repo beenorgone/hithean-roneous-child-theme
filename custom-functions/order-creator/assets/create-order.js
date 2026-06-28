@@ -105,9 +105,8 @@
     }
 
     function nameSplit(full) {
-        var p = full.trim().split(/\s+/);
-        var last = p.shift() || '';
-        return { last_name: last, first_name: p.join(' ') };
+        full = full.trim();
+        return { first_name: full, last_name: '' };
     }
     function fmtName(addr) { addr = addr || {}; return ((addr.last_name || '') + ' ' + (addr.first_name || '')).trim(); }
 
