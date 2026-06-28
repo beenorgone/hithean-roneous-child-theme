@@ -240,30 +240,6 @@
    TRUST BAR
    ============================================= */
 
-#anc-trust {
-    background-color: var(--product-nuocepkytu-green);
-    padding: 64px 20px;
-    text-align: center;
-    position: relative;
-}
-#anc-trust::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(10, 40, 35, 0.85);
-    z-index: 0;
-}
-#anc-trust > * { position: relative; z-index: 1; }
-
-.anc-trust-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-}
-
-#anc-trust .anc-section-title {
-    color: var(--default-color-white) !important;
-}
-
 .anc-trust-subheading {
     color: rgba(255, 255, 255, 0.8);
     font-size: 14px;
@@ -274,6 +250,7 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 18px;
+    margin-bottom: 36px;
     text-align: left;
 }
 
@@ -480,27 +457,8 @@ body.anc-modal-locked {
     line-height: 1.7;
 }
 
-.anc-qc-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
-    margin-bottom: 36px;
-    text-align: left;
-}
-
-@media (min-width: 700px) {
-    .anc-qc-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-.anc-qc-item {
-    background: #fff;
-    border-radius: 6px;
-    padding: 20px 18px;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
-}
-
-/* Nhà máy + bản đồ — tách riêng khỏi grid để các card còn lại đồng nhất chiều cao/phong cách */
-.anc-qc-factory {
+.anc-qc-factory,
+.anc-qc-process {
     background: #fff;
     border-radius: 6px;
     padding: 20px 18px;
@@ -509,34 +467,6 @@ body.anc-modal-locked {
     margin: 0 auto 20px;
     text-align: left;
 }
-
-.anc-qc-certs-logos {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-.anc-qc-certs-logos img {
-    height: 40px;
-    width: auto;
-    max-width: 33%;
-    object-fit: contain;
-}
-
-.anc-qc-certs-link {
-    display: inline-block;
-    margin-top: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--product-nuocepkytu-green);
-    text-decoration: none;
-}
-
-.anc-qc-certs-link:hover {
-    text-decoration: underline;
-}
-
 
 .anc-qc-icon {
     font-size: 20px;
@@ -1687,7 +1617,6 @@ body.anc-modal-locked {
     }
 
     /* Looser section padding */
-    #anc-trust,
     #anc-qc,
     #anc-products,
     #anc-faq,
