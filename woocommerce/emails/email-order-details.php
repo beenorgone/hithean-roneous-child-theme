@@ -74,7 +74,7 @@ do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain
     }
 
     .awdr-you-saved-text {
-        display: none;
+        display: none !important;
     }
 </style>
 
