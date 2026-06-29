@@ -186,6 +186,7 @@
 #oc-customer-history::before { content: "\f469"; }
 #oc-customer-products::before { content: "\f312"; }
 #oc-coupon-add::before { content: "\f487"; }
+#oc-coupon-create::before { content: "\f132"; }
 #oc-fee-add::before { content: "\f132"; }
 #oc-recalc::before { content: "\f463"; }
 #oc-draft::before { content: "\f119"; }
@@ -352,6 +353,7 @@ body.oc-hide-line-discount .oc-lines td:nth-child(4) { display: none; }
 #oc-copy-order::before { content: "\f105"; }
 .oc-customer-info { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--oc-border); font-size: 13px; }
 .oc-customer-info__row { margin: 5px 0; white-space: pre-wrap; }
+.oc-customer-info__link { padding: 4px 9px; font-size: 12px; white-space: nowrap; }
 .oc-side input { margin-bottom: 10px; }
 .oc-history-list article { padding: 12px 0; border-bottom: 1px solid var(--oc-border); }
 .oc-history-list article:last-child { border-bottom: 0; }

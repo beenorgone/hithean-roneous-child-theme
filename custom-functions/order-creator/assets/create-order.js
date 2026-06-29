@@ -57,6 +57,7 @@
             fees: state.fees.slice(),
             shipping_method: state.shipping_method,
             shipping_cost: $('#oc-shipping-cost').value.trim(),
+            shipping_title: $('#oc-shipping-cost').value.trim() ? $('#oc-shipping-title').value.trim() : '',
             // Address defaults are persisted only by the explicit confirmation action.
             save_customer_addresses: false,
             order_meta: collectOrderMeta(),
@@ -663,8 +664,20 @@
             var row = document.createElement('div');
             row.className = 'oc-customer-info__row';
             var label = document.createElement('b'); label.textContent = defs[key].label + ': ';
-            var text = document.createElement('span'); text.textContent = value || '—';
-            row.appendChild(label); row.appendChild(text); box.appendChild(row);
+            row.appendChild(label);
+            if ((key === 'chat_link' || key === 'facebook') && value && /^https?:\/\//i.test(value)) {
+                var link = document.createElement('a');
+                link.className = 'oc-btn oc-btn--ghost oc-customer-info__link';
+                link.href = value;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = 'Xem tại đây';
+                row.appendChild(link);
+            } else {
+                var text = document.createElement('span'); text.textContent = value || '—';
+                row.appendChild(text);
+            }
+            box.appendChild(row);
         });
         box.hidden = !box.children.length;
     }
@@ -735,6 +748,9 @@
             state._couponNotified = {};
             state.fees = (o.fees || []).slice();
             state.shipping_method = o.shipping_method || '';
+            $('#oc-shipping-cost').value = o.shipping_cost || '';
+            $('#oc-shipping-title').value = o.shipping_title || '';
+            syncShippingTitleField();
 
             // fields đơn
             if (o.status && !isCopy) $('#oc-status').value = o.status;
@@ -814,6 +830,8 @@
         state.fees = [];
         state.shipping_method = '';
         $('#oc-shipping-cost').value = '';
+        $('#oc-shipping-title').value = '';
+        syncShippingTitleField();
         $('#oc-shipping-method').innerHTML = '<option value="">— Tính lại để xem —</option>';
         renderCoupons();
         renderFees();
@@ -842,6 +860,7 @@
         $('#oc-status').value = 'on-hold';
         $('#oc-order-date').value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
         $('#oc-shipping-method').innerHTML = '<option value="">— Tính lại để xem —</option>';
+        syncShippingTitleField();
         $('#oc-customer-card').hidden = true;
         $('#oc-customer-card').innerHTML = '';
         $('#oc-customer-edit').hidden = true;
@@ -993,6 +1012,28 @@
             if (r.id === current) o.selected = true;
             sel.appendChild(o);
         });
+        syncShippingTitleField();
+    }
+
+    function selectedShippingTitle() {
+        var opt = $('#oc-shipping-method').selectedOptions[0];
+        if (!opt || !opt.value) { return ''; }
+        return opt.textContent.replace(/\s+—\s+.*$/, '').trim();
+    }
+
+    function syncShippingTitleField(fillWhenEmpty) {
+        var input = $('#oc-shipping-title');
+        var hasCustomFee = !!$('#oc-shipping-cost').value.trim();
+        input.disabled = !hasCustomFee;
+        if (!hasCustomFee) {
+            input.value = '';
+            input.placeholder = 'Bật khi nhập phí ship điều chỉnh';
+            return;
+        }
+        input.placeholder = selectedShippingTitle() || 'Nhập tên hiển thị trên đơn';
+        if ((fillWhenEmpty || !input.value.trim()) && selectedShippingTitle()) {
+            input.value = selectedShippingTitle();
+        }
     }
 
     // ---------- create order ----------
@@ -1267,8 +1308,8 @@
         $('#oc-lines-body').addEventListener('click', onLineInput);
         $('#oc-coupon-add').addEventListener('click', function () { addCoupon($('#oc-coupon-input').value); $('#oc-coupon-input').value = ''; });
         $('#oc-fee-add').addEventListener('click', addFee);
-        $('#oc-shipping-method').addEventListener('change', function () { state.shipping_method = this.value; recalc(); });
-        $('#oc-shipping-cost').addEventListener('change', recalc);
+        $('#oc-shipping-method').addEventListener('change', function () { state.shipping_method = this.value; syncShippingTitleField(true); recalc(); });
+        $('#oc-shipping-cost').addEventListener('change', function () { syncShippingTitleField(true); recalc(); });
         $('#oc-ship-diff').addEventListener('change', function () {
             $('#oc-ship-fields').hidden = !this.checked;
             if (this.checked) { copyBillingToShipping(); }

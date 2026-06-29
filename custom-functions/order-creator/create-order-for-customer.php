@@ -91,7 +91,7 @@ function order_creator_default_settings(): array
         'hide_manual_price' => false,
         'hide_line_discount' => false,
         'customer_fields'   => ['first_name', 'last_name', 'email', 'username', 'role', 'phone', 'address_1', 'address_2', 'city', 'state'],
-        'customer_info_fields' => [],
+        'customer_info_fields' => ['chat_link', 'facebook'],
         'order_fields'      => ['order_handling_status'],
     ];
 }
@@ -116,7 +116,10 @@ function order_creator_get_settings(): array
  */
 function order_creator_customer_info_field_defs(): array
 {
-    return (array) apply_filters('order_creator_customer_info_field_defs', []);
+    return (array) apply_filters('order_creator_customer_info_field_defs', [
+        'chat_link' => ['label' => 'Chat link', 'meta_key' => 'chat_link'],
+        'facebook' => ['label' => 'Facebook', 'meta_key' => 'facebook'],
+    ]);
 }
 
 /**
@@ -736,7 +739,65 @@ add_action('wp_ajax_order_creator_save_customer_addresses', function () {
  * Đồng bộ line item / fee / shipping / coupon từ giỏ đã tính sang đơn có sẵn.
  * Dùng cho luồng CHỈNH SỬA (xoá item cũ, dựng lại từ giỏ).
  */
-function order_creator_sync_order_from_cart(WC_Order $order): void
+function order_creator_custom_shipping_title(array $payload): string
+{
+    if (!isset($payload['shipping_cost']) || $payload['shipping_cost'] === '' || !is_numeric($payload['shipping_cost'])) {
+        return '';
+    }
+    return sanitize_text_field((string) ($payload['shipping_title'] ?? ''));
+}
+
+function order_creator_shipping_method_parts(string $rate_id): array
+{
+    $parts = explode(':', wc_clean($rate_id), 2);
+    return [
+        'method_id'   => $parts[0] ?? '',
+        'instance_id' => isset($parts[1]) ? absint($parts[1]) : 0,
+    ];
+}
+
+function order_creator_add_custom_shipping_item(WC_Order $order, array $payload): void
+{
+    if (!isset($payload['shipping_cost']) || $payload['shipping_cost'] === '' || !is_numeric($payload['shipping_cost'])) {
+        return;
+    }
+    $method = order_creator_shipping_method_parts((string) ($payload['shipping_method'] ?? ''));
+    if ($method['method_id'] === '') {
+        return;
+    }
+    $cost = max(0, (float) $payload['shipping_cost']);
+    $taxes = wc_tax_enabled() ? WC_Tax::calc_shipping_tax($cost, WC_Tax::get_shipping_tax_rates()) : [];
+    $item = new WC_Order_Item_Shipping();
+    $item->set_props([
+        'method_title' => order_creator_custom_shipping_title($payload) ?: $method['method_id'],
+        'method_id'    => $method['method_id'],
+        'instance_id'  => $method['instance_id'],
+        'total'        => wc_format_decimal($cost),
+        'taxes'        => $taxes,
+    ]);
+    $order->add_item($item);
+}
+
+function order_creator_apply_custom_shipping_title(WC_Order $order, array $payload): void
+{
+    $title = order_creator_custom_shipping_title($payload);
+    if ($title === '') {
+        return;
+    }
+    $has_shipping_item = false;
+    foreach ($order->get_items('shipping') as $item) {
+        if ($item instanceof WC_Order_Item_Shipping) {
+            $has_shipping_item = true;
+            $item->set_method_title($title);
+            $item->save();
+        }
+    }
+    if (!$has_shipping_item) {
+        order_creator_add_custom_shipping_item($order, $payload);
+    }
+}
+
+function order_creator_sync_order_from_cart(WC_Order $order, array $payload): void
 {
     foreach ($order->get_items(['line_item', 'fee', 'shipping', 'coupon', 'tax']) as $item_id => $item) {
         $order->remove_item($item_id);
@@ -777,20 +838,24 @@ function order_creator_sync_order_from_cart(WC_Order $order): void
     }
 
     $chosen = WC()->session ? (array) WC()->session->get('chosen_shipping_methods') : [];
+    $custom_shipping_title = order_creator_custom_shipping_title($payload);
     foreach (WC()->shipping()->get_packages() as $package_key => $package) {
         $rate_id = $chosen[$package_key] ?? '';
-        if ($rate_id !== '' && isset($package['rates'][$rate_id])) {
-            $rate = $package['rates'][$rate_id];
+        if ($rate_id !== '' && (isset($package['rates'][$rate_id]) || $custom_shipping_title !== '')) {
+            $rate = $package['rates'][$rate_id] ?? null;
+            $method = $rate ? ['method_id' => $rate->get_method_id(), 'instance_id' => $rate->get_instance_id()] : order_creator_shipping_method_parts($rate_id);
             $item = new WC_Order_Item_Shipping();
             $item->set_props([
-                'method_title' => $rate->get_label(),
-                'method_id'    => $rate->get_method_id(),
-                'instance_id'  => $rate->get_instance_id(),
-                'total'        => wc_format_decimal($rate->get_cost()),
-                'taxes'        => $rate->get_taxes(),
+                'method_title' => $custom_shipping_title !== '' ? $custom_shipping_title : $rate->get_label(),
+                'method_id'    => $method['method_id'],
+                'instance_id'  => $method['instance_id'],
+                'total'        => wc_format_decimal($rate ? $rate->get_cost() : max(0, (float) ($payload['shipping_cost'] ?? 0))),
+                'taxes'        => $rate ? $rate->get_taxes() : (wc_tax_enabled() ? WC_Tax::calc_shipping_tax(max(0, (float) ($payload['shipping_cost'] ?? 0)), WC_Tax::get_shipping_tax_rates()) : []),
             ]);
-            foreach ($rate->get_meta_data() as $key => $value) {
-                $item->add_meta_data($key, $value, true);
+            if ($rate) {
+                foreach ($rate->get_meta_data() as $key => $value) {
+                    $item->add_meta_data($key, $value, true);
+                }
             }
             $order->add_item($item);
         }
@@ -876,7 +941,7 @@ function order_creator_update_order(int $order_id, array $payload): WC_Order
     }
     $order->set_customer_note(sanitize_textarea_field($payload['customer_note'] ?? ''));
 
-    order_creator_sync_order_from_cart($order);
+    order_creator_sync_order_from_cart($order, $payload);
     $order->calculate_totals(true);
 
     order_creator_apply_status_and_notes($order, $payload, $is_draft, 'Đơn được cập nhật');
@@ -938,6 +1003,7 @@ function order_creator_build_order(array $payload): WC_Order
         $order->set_payment_method_title($gateways[$data['payment_method']]->get_title());
     }
 
+    order_creator_apply_custom_shipping_title($order, $payload);
     order_creator_apply_status_and_notes($order, $payload, $is_draft, 'Đơn được tạo');
     order_creator_save_customer_addresses($payload);
     $order->save();
@@ -1534,9 +1600,13 @@ add_action('wp_ajax_order_creator_load_order', function () {
     }
 
     $shipping_method = '';
+    $shipping_title = '';
+    $shipping_cost = '';
     foreach ($order->get_items('shipping') as $ship) {
         $instance = $ship->get_instance_id();
         $shipping_method = $ship->get_method_id() . ($instance !== '' ? ':' . $instance : '');
+        $shipping_title = $ship->get_method_title();
+        $shipping_cost = (string) $ship->get_total();
         break;
     }
 
@@ -1566,6 +1636,8 @@ add_action('wp_ajax_order_creator_load_order', function () {
         'coupons'         => array_values($order->get_coupon_codes()),
         'fees'            => $fees,
         'shipping_method' => $shipping_method,
+        'shipping_title'  => $shipping_title,
+        'shipping_cost'   => $shipping_cost,
         'billing'         => $addr('billing'),
         'shipping'        => $addr('shipping'),
         'status'          => $order->get_status(),
@@ -2010,6 +2082,7 @@ function order_creator_render_page(): void
                     <div class="oc-inline">
                         <input type="text" id="oc-coupon-input" placeholder="Nhập mã...">
                         <button type="button" class="oc-btn oc-btn--ghost" id="oc-coupon-add">Áp dụng</button>
+                        <a class="oc-btn oc-btn--ghost" id="oc-coupon-create" href="<?php echo esc_url(admin_url('post-new.php?post_type=shop_coupon')); ?>" target="_blank" rel="noopener">Tạo mã ưu đãi</a>
                     </div>
                     <ul class="oc-chips" id="oc-coupon-list"></ul>
                 </div>
@@ -2031,6 +2104,10 @@ function order_creator_render_page(): void
                 <div class="oc-field">
                     <label>Phí ship điều chỉnh</label>
                     <input type="number" id="oc-shipping-cost" min="0" step="1000" placeholder="Để trống để dùng phí WooCommerce">
+                </div>
+                <div class="oc-field">
+                    <label>Tên phương thức vận chuyển</label>
+                    <input type="text" id="oc-shipping-title" placeholder="Bật khi nhập phí ship điều chỉnh" disabled>
                 </div>
             </section>
 
