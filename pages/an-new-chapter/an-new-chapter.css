@@ -534,7 +534,7 @@ body.anc-modal-locked {
    ============================================= */
 
 #anc-qc {
-    background-color: var(--product-nuocepkytu-green);
+    background-color: var(--product-protein-yeast-dark-brown-2);
     padding: 72px 24px;
     text-align: center;
     position: relative;
@@ -543,7 +543,7 @@ body.anc-modal-locked {
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(10, 40, 35, 0.85);
+    background: var(--product-protein-yeast-dark-brown-2);
     z-index: 0;
 }
 #anc-qc > * { position: relative; z-index: 1; }
@@ -1848,4 +1848,73 @@ body.anc-modal-locked {
         background-image: var(--anc-cta-bg-m, var(--anc-cta-bg, none));
         background-position: center top;
     }
+}
+
+/* =============================================
+   #6 — QUY ƯỚC MÀU & CTA (products / organic / qc)
+   headings: dark-blue · pills/chips: light-blue · text: brown
+   primary CTA: .button--dark-blue (#0047ba) · secondary: .button--light-blue
+   ============================================= */
+
+/* Section titles → dark blue */
+#anc-products .anc-section-title,
+#anc-organic .anc-section-title {
+    color: var(--default-color-dark-blue);
+}
+
+/* Tên sản phẩm → màu riêng từng card (--card-accent), fallback dark-blue (#1) */
+#anc-products .anc-pf-name,
+#anc-organic .anc-pf-name {
+    color: var(--card-accent, var(--default-color-dark-blue));
+}
+
+/* Pill: viền theo màu sản phẩm để mỗi card có nhận diện riêng */
+#anc-products .anc-pf-panel .anc-stat-pill,
+#anc-organic .anc-pf-panel .anc-stat-pill {
+    border: 1px solid var(--card-accent, transparent);
+}
+
+/* Body text trong card → brown */
+#anc-products .anc-pf-intro,
+#anc-organic .anc-pf-intro,
+#anc-products .anc-product-highlights li,
+#anc-organic .anc-product-highlights li,
+#anc-products .anc-pf-calc-text,
+#anc-organic .anc-pf-calc-text {
+    color: var(--default-color-brown);
+}
+
+/* Pills → light-blue nền, dark-blue chữ */
+.anc-stat-pill {
+    background: var(--default-color-light-blue);
+    color: var(--default-color-dark-blue);
+}
+
+/* Chips → viền/chữ dark-blue, active nền dark-blue */
+.anc-pf-chip {
+    border-color: var(--default-color-dark-blue);
+    color: var(--default-color-dark-blue);
+}
+
+.anc-pf-chip:hover {
+    background: var(--default-color-light-blue);
+}
+
+.anc-pf-chip.is-active {
+    background: var(--default-color-dark-blue);
+    color: var(--default-color-white);
+    box-shadow: 0 4px 14px rgba(0, 71, 186, 0.28);
+}
+
+/* Primary CTA = solid #0047ba (kế thừa base styling từ [class^="button--"]) */
+.button--dark-blue {
+    background: var(--default-color-dark-blue);
+    color: var(--default-color-white) !important;
+    border: 2px solid var(--default-color-dark-blue);
+}
+
+.button--dark-blue:hover {
+    background: var(--default-color-white);
+    color: var(--default-color-dark-blue) !important;
+    border: 2px solid var(--default-color-dark-blue);
 }
