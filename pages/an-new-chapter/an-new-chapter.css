@@ -391,6 +391,77 @@
     max-width: 680px;
 }
 
+@media (min-width: 760px) {
+    .anc-modal-dialog--lg {
+        max-width: 760px;
+        padding: 44px 40px 32px;
+    }
+}
+
+/* Modal: tiêu đề phụ + quy trình vận hành + kiểm tra chéo */
+.anc-modal-subhead {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-size: 13px;
+    color: var(--product-nuocepkytu-green);
+    margin: 22px 0 10px;
+}
+
+.anc-modal-steps {
+    margin: 0 0 6px;
+    padding-left: 20px;
+    counter-reset: anc-step;
+    list-style: none;
+}
+
+.anc-modal-steps li {
+    position: relative;
+    margin: 0 0 9px;
+    padding-left: 14px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--default-color-charcoal-grey, #555);
+}
+
+.anc-modal-steps li::before {
+    counter-increment: anc-step;
+    content: counter(anc-step);
+    position: absolute;
+    left: -20px;
+    top: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--product-nuocepkytu-green, #2f6b4f);
+    color: #fff;
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    line-height: 22px;
+    text-align: center;
+}
+
+.anc-modal-crosscheck {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-left: 3px solid var(--default-color-yellow);
+    background: var(--default-color-beige, #f7f6f2);
+    border-radius: 0 6px 6px 0;
+}
+
+.anc-modal-crosscheck strong {
+    display: block;
+    font-size: 13px;
+    color: var(--default-color-dark-brown);
+    margin-bottom: 5px;
+}
+
+.anc-modal-crosscheck p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
 .anc-modal-close {
     position: absolute;
     top: 10px;
@@ -598,6 +669,38 @@ body.anc-modal-locked {
 
 .anc-pf-switcher .anc-pf-panel {
     margin: 0;
+}
+
+/* Bộ chip lặp lại dưới card — chỉ hiện trên mobile */
+.anc-pf-chips--bottom {
+    display: none;
+    margin: 24px 0 0;
+}
+
+@media (max-width: 679px) {
+    .anc-pf-chips--bottom {
+        display: flex;
+    }
+}
+
+/* CTA phụ: gợi ý chọn sản phẩm hợp chế độ ăn (mở máy tính protein) */
+.anc-pf-calc {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--default-color-border, #e0ddd5);
+}
+
+.anc-pf-calc-text {
+    font-size: 13px;
+    color: var(--default-color-charcoal-grey, #555);
+}
+
+.anc-pf-calc-btn {
+    cursor: pointer;
 }
 
 /* Nút "Xem bảng dinh dưỡng" đặt dưới album ảnh */

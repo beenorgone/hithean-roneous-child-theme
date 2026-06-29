@@ -159,7 +159,7 @@
                     if (chip.classList.contains('is-active')) return;
 
                     chips.forEach(function (c) {
-                        var active = c === chip;
+                        var active = c.getAttribute('data-card') === card;
                         c.classList.toggle('is-active', active);
                         c.setAttribute('aria-selected', active ? 'true' : 'false');
                     });
