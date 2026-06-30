@@ -154,24 +154,24 @@
             var section = root.closest('section');
             if (!chips.length || !panels.length) return;
 
-            // Đổi background-image của section theo data-section-bg của sản phẩm đang chọn.
-            // Dùng biến --anc-section-bg trên lớp ::before để cross-fade mượt.
-            // Rỗng → xoá inline để fallback về background mặc định trong CSS.
-            function setSectionBg(bg) {
-                if (bg) { section.style.setProperty('--anc-section-bg', "url('" + bg + "')"); }
-                else { section.style.removeProperty('--anc-section-bg'); }
-            }
-
+            // Đổi background section theo data-section-bg của sản phẩm đang chọn.
+            // Cross-fade 2 lớp: nạp ảnh mới vào lớp đang ẩn rồi toggle is-bg-b →
+            // CSS lo phần fade opacity, ảnh cũ tan trực tiếp vào ảnh mới.
             function applySectionBg(card, animate) {
                 if (!section) return;
                 var panel = root.querySelector('.anc-pf-panel[data-card="' + card + '"]');
                 var bg = panel ? panel.getAttribute('data-section-bg') : '';
-                if (!animate) { setSectionBg(bg); return; }
-                section.classList.add('is-bg-swapping'); // fade ảnh cũ ra
-                window.setTimeout(function () {
-                    setSectionBg(bg);                    // đổi ảnh khi đã mờ
-                    section.classList.remove('is-bg-swapping'); // fade ảnh mới vào
-                }, 300);
+                var val = bg ? "url('" + bg + "')" : 'none';
+                var showingB = section.classList.contains('is-bg-b');
+
+                if (!animate) {
+                    // Lúc tải: đặt thẳng vào lớp đang hiển thị, không fade.
+                    section.style.setProperty(showingB ? '--anc-bg-b' : '--anc-bg-a', val);
+                    return;
+                }
+                // Nạp ảnh mới vào lớp đang ẩn, rồi lật sang lớp đó.
+                section.style.setProperty(showingB ? '--anc-bg-a' : '--anc-bg-b', val);
+                section.classList.toggle('is-bg-b');
             }
 
             function selectCard(card) {

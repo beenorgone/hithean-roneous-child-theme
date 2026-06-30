@@ -623,28 +623,50 @@ body.anc-modal-locked {
     background-color: var(--default-color-beige, #f7f6f2);
     aspect-ratio: 0.67 / 1;
     text-align: center;
-    --anc-section-bg: url(https://hithean.com/wp-content/uploads/2026/05/thean-yeast-hero-proteins-mobile-background-202605.jpg);
+    --anc-bg-a: url(https://hithean.com/wp-content/uploads/2026/05/thean-yeast-hero-proteins-mobile-background-202605.jpg);
 }
 
-/* Lớp ảnh nền riêng để cross-fade mượt khi đổi sản phẩm (background-image không transition trực tiếp được) */
-#anc-products::before {
+/* Cross-fade 2 lớp: ::before giữ ảnh A, ::after giữ ảnh B; đổi sản phẩm chỉ
+   chuyển opacity giữa 2 lớp → ảnh cũ tan trực tiếp vào ảnh mới, không chớp nền */
+#anc-products::before,
+#anc-products::after,
+#anc-organic::before,
+#anc-organic::after {
     content: '';
     position: absolute;
     inset: 0;
     z-index: -1;
-    background-image: var(--anc-section-bg);
     background-size: cover;
     background-position: center;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.6s ease;
+    will-change: opacity;
 }
 
-#anc-products.is-bg-swapping::before {
+#anc-products::before,
+#anc-organic::before {
+    background-image: var(--anc-bg-a);
+    opacity: 1;
+}
+
+#anc-products::after,
+#anc-organic::after {
+    background-image: var(--anc-bg-b);
     opacity: 0;
+}
+
+#anc-products.is-bg-b::before,
+#anc-organic.is-bg-b::before {
+    opacity: 0;
+}
+
+#anc-products.is-bg-b::after,
+#anc-organic.is-bg-b::after {
+    opacity: 1;
 }
 
 @media only screen and (min-width: 1000px) {
     #anc-products {
-        --anc-section-bg: url(https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg);
+        --anc-bg-a: url(https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg);
         aspect-ratio: 1.78 / 1;
     }
 }
@@ -660,7 +682,8 @@ body.anc-modal-locked {
 }
 
 /* Wrapper beige bọc title + chips + cards, nổi trên ảnh nền của section */
-#anc-products .anc-pf-switcher {
+#anc-products .anc-pf-switcher,
+#anc-organic .anc-pf-switcher {
     margin: 0 auto;
     padding: 32px 24px 36px;
     background-color: var(--default-color-beige, #f7f6f2);
@@ -668,7 +691,8 @@ body.anc-modal-locked {
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
 }
 
-#anc-products .anc-pf-switcher .anc-section-title {
+#anc-products .anc-pf-switcher .anc-section-title,
+#anc-organic .anc-pf-switcher .anc-section-title {
     margin-top: 0;
 }
 
@@ -731,7 +755,10 @@ body.anc-modal-locked {
 
 @media (prefers-reduced-motion: reduce) {
     .anc-pf-panel.is-active { animation: none; }
-    #anc-products::before { transition: none; }
+    #anc-products::before,
+    #anc-products::after,
+    #anc-organic::before,
+    #anc-organic::after { transition: none; }
 }
 
 /* Bộ chip lặp lại dưới card — chỉ hiện trên mobile */
@@ -1040,6 +1067,8 @@ body.anc-modal-locked {
 }
 
 #anc-organic {
+    position: relative;
+    isolation: isolate;
     background-color: var(--default-color-beige, #f7f6f2);
     padding: 72px 20px;
 }
