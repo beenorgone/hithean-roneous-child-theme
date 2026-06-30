@@ -8,59 +8,61 @@ if (!defined('ABSPATH')) exit;
  *  - social-display + editor-tools: nạp theo ngữ cảnh nội dung.
  *
  * Path module dựa trên hằng HITHEAN_THEME_DIR (thư mục theme), không dùng __DIR__
- * vì file này nằm trong core/.
+ * vì file này nằm trong core/. File module được tổ chức theo nhóm:
+ *   core/  woocommerce/{products,orders,checkout}/  auth/  shortcodes/  admin/  marketing/  integrations/
  */
 
 // =====================================================================
 // 1) General includes — nạp mọi request
 // =====================================================================
 $general_includes = [
-    'custom-functions/backend-optimize.php',
-    'custom-functions/functional.php',
-    'custom-functions/theme-code-cache.php',
-    'custom-functions/woocommerce-settings.php',
-    'custom-functions/swiper-slider.php',
-    'custom-functions/popup-widget.php',
-    'custom-functions/shortcode-field-content.php',
-    'custom-functions/shortcode-greenspark-banner.php',
+    'custom-functions/core/backend-optimize.php',
+    'custom-functions/core/functional.php',
+    'custom-functions/core/theme-code-cache.php',
+    'custom-functions/core/swiper-slider.php',
+
+    'custom-functions/woocommerce/products/woocommerce-settings.php',
+    'custom-functions/marketing/popup-widget.php',
+    'custom-functions/shortcodes/shortcode-field-content.php',
+    'custom-functions/shortcodes/shortcode-greenspark-banner.php',
     // product-page.php, product-linking.php → conditional (xem tpc_loader_modules)
-    'custom-functions/product-nutrition-label.php',
-    'custom-functions/product-list-page.php',
-    'custom-functions/pos-post-type.php',
-    // 'custom-functions/recipe-post-type.php',
-    'custom-functions/shortcode-recipes.php',
-    'custom-functions/shortcode-posts.php',
-    'custom-functions/shortcode-pos.php',
+    'custom-functions/woocommerce/products/product-nutrition-label.php',
+    'custom-functions/woocommerce/products/product-list-page.php',
+    'custom-functions/shortcodes/pos-post-type.php',
+    // 'custom-functions/woocommerce/products/recipe-post-type.php',
+    'custom-functions/shortcodes/shortcode-recipes.php',
+    'custom-functions/shortcodes/shortcode-posts.php',
+    'custom-functions/shortcodes/shortcode-pos.php',
     // shortcode-bank-transfer-confirmation, shortcode-payment-pending-confirm,
     // shortcode-order-shipped, shortcode-order-export-confirm → conditional (tpc_loader_modules)
-    'custom-functions/shortcode-google-docs.php',
-    'custom-functions/shortcode-embed.php',
-    'custom-functions/admin-settings-tools.php',
-    'custom-functions/product-tab-post-type.php',
-    'custom-functions/blogpost-metabox.php',
-    'custom-functions/product-metabox.php',
+    'custom-functions/shortcodes/shortcode-google-docs.php',
+    'custom-functions/shortcodes/shortcode-embed.php',
+    'custom-functions/admin/admin-settings-tools.php',
+    'custom-functions/woocommerce/products/product-tab-post-type.php',
+    'custom-functions/admin/blogpost-metabox.php',
+    'custom-functions/woocommerce/products/product-metabox.php',
 
     /* WOO UI */
-    'custom-functions/lucky-wheel.php',
+    'custom-functions/marketing/lucky-wheel.php',
 
     /* ORDER */
-    'custom-functions/order-metabox.php',
-    'custom-functions/order-number.php',
-    'custom-functions/order-status.php',
-    'custom-functions/order-tracking.php',
-    'custom-functions/order-creator/create-order-for-customer.php', // Trang /tao-don/ — tạo đơn hộ khách
+    'custom-functions/woocommerce/orders/order-metabox.php',
+    'custom-functions/woocommerce/orders/order-number.php',
+    'custom-functions/woocommerce/orders/order-status.php',
+    'custom-functions/woocommerce/orders/order-tracking.php',
+    'custom-functions/woocommerce/orders/order-creator/create-order-for-customer.php', // Trang /tao-don/ — tạo đơn hộ khách
 
     // checkout-page.php → conditional (tpc_loader_modules)
-    'custom-functions/order-auto-tasks.php',
-    'custom-functions/thank-you-page.php', // To ensure order admin page, thank you page, and emails can use this
-    'custom-functions/firebase-sms-login.php',
-    'custom-functions/email-issue.php',
-    'custom-functions/email-login.php',
-    'custom-functions/email-tasks.php',
-    'custom-functions/product-taxonomies.php',
+    'custom-functions/woocommerce/orders/order-auto-tasks.php',
+    'custom-functions/woocommerce/checkout/thank-you-page.php', // order admin page, thank you page, and emails can use this
+    'custom-functions/auth/firebase-sms-login.php',
+    'custom-functions/auth/email-issue.php',
+    'custom-functions/auth/email-login.php',
+    'custom-functions/auth/email-tasks.php',
+    'custom-functions/woocommerce/products/product-taxonomies.php',
 
     /* Plugins */
-    'custom-functions/plugin-devvn-ghtk-tweaks.php',
+    'custom-functions/integrations/plugin-devvn-ghtk-tweaks.php',
 ];
 
 foreach ($general_includes as $include) {
@@ -68,11 +70,6 @@ foreach ($general_includes as $include) {
         require_once(HITHEAN_THEME_DIR . '/' . $include);
     }
 }
-
-// meta-key-rename-tool.php: công cụ admin 1-lần, đã TẮT (bật lại bằng cách bỏ comment).
-// if (is_admin() && file_exists(HITHEAN_THEME_DIR . '/custom-functions/meta-key-rename-tool.php')) {
-//     require_once(HITHEAN_THEME_DIR . '/custom-functions/meta-key-rename-tool.php');
-// }
 
 // =====================================================================
 // 2) Social display shortcodes — nạp theo trang
@@ -167,7 +164,7 @@ function child_theme_should_load_post_editor_tools(): bool
 
 /*
 if (child_theme_should_load_post_editor_tools()) {
-    require_once(HITHEAN_THEME_DIR . '/custom-functions/editor-tools/editor-tools.php');
+    require_once(HITHEAN_THEME_DIR . '/custom-functions/admin/editor-tools/editor-tools.php');
 }
 */
 
@@ -186,7 +183,7 @@ add_action('wp', function (): void {
         return;
     }
 
-    require_once(HITHEAN_THEME_DIR . '/custom-functions/editor-tools/editor-tools.php');
+    require_once(HITHEAN_THEME_DIR . '/custom-functions/admin/editor-tools/editor-tools.php');
 });
 
 // =====================================================================
@@ -300,7 +297,7 @@ function tpc_loader_modules()
     $modules = [
         [
             'id' => 'product_compare',
-            'file' => 'custom-functions/shortcode-product-compare.php',
+            'file' => 'custom-functions/shortcodes/shortcode-product-compare.php',
             'path_groups' => ['tools', 'compare'],
             'paths_filter' => 'tpc_compare_allowed_paths',
             'ajax_actions' => [
@@ -310,7 +307,7 @@ function tpc_loader_modules()
         ],
         [
             'id' => 'protein_calculator',
-            'file' => 'custom-functions/shortcode-protein-calculator.php',
+            'file' => 'custom-functions/shortcodes/shortcode-protein-calculator.php',
             'path_groups' => ['tools', 'protein'],
             'ajax_actions' => [
                 'protein_calculator_get_products',
@@ -318,7 +315,7 @@ function tpc_loader_modules()
         ],
         [
             'id' => 'wc_product_field',
-            'file' => 'custom-functions/shortcode-wc-product-field.php',
+            'file' => 'custom-functions/shortcodes/shortcode-wc-product-field.php',
             'path_groups' => ['anc_landing'],
         ],
 
@@ -330,42 +327,42 @@ function tpc_loader_modules()
          */
         [
             'id' => 'product_page',
-            'file' => 'custom-functions/product-page.php',
+            'file' => 'custom-functions/woocommerce/products/product-page.php',
             'condition' => 'tpc_cond_is_product',
         ],
         [
             'id' => 'checkout_page',
-            'file' => 'custom-functions/checkout-page.php',
+            'file' => 'custom-functions/woocommerce/checkout/checkout-page.php',
             'condition' => 'tpc_cond_is_checkout',
         ],
         [
             'id' => 'product_linking',
-            'file' => 'custom-functions/product-linking.php',
+            'file' => 'custom-functions/woocommerce/products/product-linking.php',
             'admin' => true,
             'condition' => 'tpc_cond_is_product',
             'ajax_actions' => ['hithean_product_linking_search'],
         ],
         [
             'id' => 'bank_transfer_confirm',
-            'file' => 'custom-functions/shortcode-bank-transfer-confirmation.php',
+            'file' => 'custom-functions/woocommerce/checkout/shortcode-bank-transfer-confirmation.php',
             'shortcodes' => ['order_paid_confirmation'],
             'ajax_actions' => ['confirm_order_payment', 'search_order_ajax'],
         ],
         [
             'id' => 'payment_pending_confirm',
-            'file' => 'custom-functions/shortcode-payment-pending-confirm.php',
+            'file' => 'custom-functions/woocommerce/checkout/shortcode-payment-pending-confirm.php',
             'shortcodes' => ['order_payment_pending_confirm'],
             'ajax_actions' => ['oppc_confirm_payment', 'oppc_load_orders'],
         ],
         [
             'id' => 'order_shipped',
-            'file' => 'custom-functions/shortcode-order-shipped.php',
+            'file' => 'custom-functions/shortcodes/shortcode-order-shipped.php',
             'shortcodes' => ['order_shipped_table'],
             'ajax_actions' => ['ajax_load_order_shipped'],
         ],
         [
             'id' => 'order_export_confirm',
-            'file' => 'custom-functions/shortcode-order-export-confirm.php',
+            'file' => 'custom-functions/shortcodes/shortcode-order-export-confirm.php',
             'shortcodes' => ['upload_export_images_form', 'list_unconfirmed_exports', 'list_uploaded_not_shipped_exports'],
             'ajax_actions' => ['ajax_confirm_export', 'ajax_upload_images'],
         ],

@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) exit;
 if (!function_exists('ivar_editor_tools_asset_url')) {
     function ivar_editor_tools_asset_url(string $asset): string
     {
-        $relative_path = 'custom-functions/editor-tools/assets/' . ltrim($asset, '/');
+        $relative_path = 'custom-functions/admin/editor-tools/assets/' . ltrim($asset, '/');
         $asset_path    = get_stylesheet_directory() . '/' . $relative_path;
         $asset_url     = get_stylesheet_directory_uri() . '/' . $relative_path;
 
@@ -27,7 +27,7 @@ if (!function_exists('ivar_editor_tools_add_tinymce_plugins')) {
             return $plugins;
         }
 
-        $asset_path = get_stylesheet_directory() . '/custom-functions/editor-tools/assets/tinymce-table-tools.js';
+        $asset_path = get_stylesheet_directory() . '/custom-functions/admin/editor-tools/assets/tinymce-table-tools.js';
         if (is_readable($asset_path)) {
             $plugins['ivar_table_tools'] = ivar_editor_tools_asset_url('tinymce-table-tools.js');
         }

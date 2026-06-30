@@ -76,13 +76,13 @@ if (!function_exists('thean_theme_code_version')) {
         $watch_files = [
             get_stylesheet_directory() . '/functions.php',
             get_stylesheet_directory() . '/style.css',
-            get_stylesheet_directory() . '/custom-functions/lucky-wheel.php',
-            get_stylesheet_directory() . '/custom-functions/lucky-wheel/admin.php',
-            get_stylesheet_directory() . '/custom-functions/lucky-wheel/ui.php',
-            get_stylesheet_directory() . '/custom-functions/lucky-wheel/lucky-wheel.css',
-            get_stylesheet_directory() . '/custom-functions/lucky-wheel/lucky-wheel.min.css',
-            get_stylesheet_directory() . '/custom-functions/lucky-wheel/lucky-wheel.js',
-            get_stylesheet_directory() . '/custom-functions/lucky-wheel/lucky-wheel.min.js',
+            get_stylesheet_directory() . '/custom-functions/marketing/lucky-wheel.php',
+            get_stylesheet_directory() . '/custom-functions/marketing/lucky-wheel/admin.php',
+            get_stylesheet_directory() . '/custom-functions/marketing/lucky-wheel/ui.php',
+            get_stylesheet_directory() . '/custom-functions/marketing/lucky-wheel/lucky-wheel.css',
+            get_stylesheet_directory() . '/custom-functions/marketing/lucky-wheel/lucky-wheel.min.css',
+            get_stylesheet_directory() . '/custom-functions/marketing/lucky-wheel/lucky-wheel.js',
+            get_stylesheet_directory() . '/custom-functions/marketing/lucky-wheel/lucky-wheel.min.js',
         ];
 
         foreach ($watch_files as $path) {

@@ -155,12 +155,12 @@ function thean_lw_url_pattern_matches(string $pattern, string $path): bool
 
 function thean_lw_feature_dir(): string
 {
-    return get_stylesheet_directory() . '/custom-functions/lucky-wheel';
+    return get_stylesheet_directory() . '/custom-functions/marketing/lucky-wheel';
 }
 
 function thean_lw_feature_url(): string
 {
-    return get_stylesheet_directory_uri() . '/custom-functions/lucky-wheel';
+    return get_stylesheet_directory_uri() . '/custom-functions/marketing/lucky-wheel';
 }
 
 function thean_lw_asset(string $basename): array

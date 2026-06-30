@@ -200,7 +200,8 @@ function custom_firebase_login_handler()
     }
 
     try {
-        $autoload = __DIR__ . '/vendor/autoload.php';
+        // vendor/ vẫn nằm ở custom-functions/vendor/ (file này đã chuyển vào auth/).
+        $autoload = dirname(__DIR__) . '/vendor/autoload.php';
         if (!is_readable($autoload)) {
             error_log('Firebase SMS Login error: Composer autoload file is missing.');
             wp_send_json(['success' => false, 'message' => 'Không thể đăng nhập bằng SMS lúc này. Vui lòng thử lại sau.'], 503);
