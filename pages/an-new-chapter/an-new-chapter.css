@@ -638,7 +638,7 @@ body.anc-modal-locked {
     z-index: -1;
     background-size: cover;
     background-position: center;
-    transition: opacity 0.6s ease;
+    transition: opacity 1.2s ease;
     will-change: opacity;
 }
 
