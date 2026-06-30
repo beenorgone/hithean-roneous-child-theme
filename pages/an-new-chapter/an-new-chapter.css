@@ -628,7 +628,7 @@ body.anc-modal-locked {
 
 @media only screen and (min-width: 1000px) {
     #anc-products {
-        background-image: url(https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg) !important;
+        background-image: url(https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg);
         background-size: cover;
         aspect-ratio: 1.78 / 1;
     }
