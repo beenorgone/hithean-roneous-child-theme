@@ -619,7 +619,19 @@ body.anc-modal-locked {
 #anc-products {
     padding: 72px 20px;
     background-color: var(--default-color-beige, #f7f6f2);
+    background-image: url(https://hithean.com/wp-content/uploads/2026/05/thean-yeast-hero-proteins-mobile-background-202605.jpg);
+    background-size: cover;
+    background-position: center;
+    aspect-ratio: 0.67 / 1;
     text-align: center;
+}
+
+@media only screen and (min-width: 1000px) {
+    #anc-products {
+        background-image: url(https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg) !important;
+        background-size: cover;
+        aspect-ratio: 1.78 / 1;
+    }
 }
 
 #anc-products h2 {
@@ -783,6 +795,15 @@ body.anc-modal-locked {
     margin-bottom: 20px;
 }
 
+/* Pills bar đầu card: full-width (span 2 cột grid), căn giữa, trên ảnh + mô tả */
+.anc-pf-switcher .anc-pf-panel > .anc-pf-pills {
+    grid-column: 1 / -1;
+    justify-content: center;
+    margin: 0 0 4px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--default-color-border, #e7e3da);
+}
+
 .anc-pf-intro {
     font-size: 14px;
     color: var(--default-color-charcoal-grey, #555);
@@ -797,7 +818,6 @@ body.anc-modal-locked {
     padding: 5px 13px;
     border-radius: 100px;
     font-size: 12px;
-    font-weight: 700;
     font-family: 'Oswald', sans-serif;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -1868,20 +1888,15 @@ body.anc-modal-locked {
     color: var(--card-accent, var(--default-color-dark-blue));
 }
 
-/* Pill: viền theo màu sản phẩm để mỗi card có nhận diện riêng */
-#anc-products .anc-pf-panel .anc-stat-pill,
-#anc-organic .anc-pf-panel .anc-stat-pill {
-    border: 1px solid var(--card-accent, transparent);
-}
 
-/* Body text trong card → brown */
-#anc-products .anc-pf-intro,
-#anc-organic .anc-pf-intro,
-#anc-products .anc-product-highlights li,
-#anc-organic .anc-product-highlights li,
-#anc-products .anc-pf-calc-text,
-#anc-organic .anc-pf-calc-text {
-    color: var(--default-color-brown);
+/* Body text trong card → màu riêng từng card (--card-accent), fallback brown (#1, không dùng chung) */
+#anc-products .anc-pf-panel .anc-pf-intro,
+#anc-organic .anc-pf-panel .anc-pf-intro,
+#anc-products .anc-pf-panel .anc-product-highlights li,
+#anc-organic .anc-pf-panel .anc-product-highlights li,
+#anc-products .anc-pf-panel .anc-pf-calc-text,
+#anc-organic .anc-pf-panel .anc-pf-calc-text {
+    color: var(--card-accent, var(--default-color-brown));
 }
 
 /* Pills → light-blue nền, dark-blue chữ */
@@ -1917,4 +1932,11 @@ body.anc-modal-locked {
     background: var(--default-color-white);
     color: var(--default-color-dark-blue) !important;
     border: 2px solid var(--default-color-dark-blue);
+}
+
+/* Section cam kết "Không..." (swiper) — nền beige giống product-card */
+.anc-commitments {
+    background-color: var(--default-color-beige, #f7f6f2);
+    padding: 32px 20px;
+    text-align: center;
 }
