@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 if (!function_exists('ct_get_order_item_display_name')) {
     function ct_get_order_item_display_name($item)

@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 // Filter to add no-link class for shop_order post type
 add_filter('post_class', function ($classes) {
     if (is_admin()) {

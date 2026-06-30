@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 /**
  * Tạo đơn hộ khách hàng — chạy qua cart pipeline.

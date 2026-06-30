@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 /**
  * Thêm nút tùy chỉnh kế bên nút Add to Cart trong danh sách sản phẩm

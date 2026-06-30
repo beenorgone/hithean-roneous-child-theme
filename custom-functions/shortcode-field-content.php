@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 // Thêm mã này vào tệp functions.php của giao diện hoặc plugin tùy chỉnh.
 function display_custom_field_content_shortcode($atts) {
     // Các tham số mặc định

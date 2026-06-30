@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /* Đổi mô tả hình thức giao hàng */
 add_filter('devvn_ghtk_shipping_methob', 'devvn_custom_ghtk_shipping_methob');
 function devvn_custom_ghtk_shipping_methob($methob)

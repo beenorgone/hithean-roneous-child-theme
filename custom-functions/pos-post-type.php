@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 add_action('mb_relationships_init', function () {
     MB_Relationships_API::register([

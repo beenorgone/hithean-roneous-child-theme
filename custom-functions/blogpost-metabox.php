@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 add_filter('rwmb_meta_boxes', function ($meta_boxes) {
     $meta_boxes[] = [
         'id'         => 'post_meta_box', // Unique ID for the meta box

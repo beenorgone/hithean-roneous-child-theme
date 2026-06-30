@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 add_action('admin_menu', function () {
     add_submenu_page('woocommerce', 'Kiểm tra đơn HPOS chưa migrate', 'HPOS Check', 'manage_woocommerce', 'hpos-check', function () {
         global $wpdb;

@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /**
  * Tùy chỉnh hiển thị thông tin chuyển khoản & QR Code (Email + Thank You Page)
  * Tối ưu hóa: Không khai báo lại hàm, sử dụng Hook chuẩn.

@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 function enqueue_swiper_slider() {
     // CSS của Swiper
     wp_enqueue_style('swiper-css', 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css', array(), null);

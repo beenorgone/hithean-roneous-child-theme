@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 /*-------------------------------*\
   REGISTER RECIPE POST TYPE

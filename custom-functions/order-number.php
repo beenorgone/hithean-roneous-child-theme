@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 function change_order_number($order_id)
 {
     // Handle cases where order ID is invalid (0 or non-numeric)

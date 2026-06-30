@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 // Add custom post type for product tabs
 function product_tab_post_type()

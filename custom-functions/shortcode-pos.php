@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 add_shortcode('pos', 'display_points_of_sale_shortcode');
 
 function display_points_of_sale_shortcode($atts)

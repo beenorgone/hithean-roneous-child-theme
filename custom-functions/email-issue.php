@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 // Send processing email manually for testing - Gui email xu ly don hang bang tay
 add_action('woocommerce_thankyou', function($order_id) {
     if (!$order_id) return;

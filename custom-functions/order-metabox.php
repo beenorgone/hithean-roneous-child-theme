@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /**
  * Cấu hình Meta Box cho WooCommerce Order
  * Sử dụng plugin Meta Box để thay thế form thủ công

@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 // Product Additional Info
 function hithean_product_additional_info_metabox($meta_boxes)
 {

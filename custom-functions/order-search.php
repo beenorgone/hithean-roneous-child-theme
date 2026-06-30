@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 // Make custom fields searchable
 
 function custom_order_search( $search_fields ) {

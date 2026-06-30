@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 /**
  * Unified Term Thumbnail for taxonomies: thuong-hieu, product_tag

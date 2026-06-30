@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 add_filter( 'manage_plugins_columns', 'add_plugin_slug_column' );
 function add_plugin_slug_column( $columns ) {

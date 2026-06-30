@@ -1,10 +1,38 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /*
 Plugin Name: Firebase SMS Login (Enhanced)
 Description: Đăng nhập bằng Firebase OTP SMS, shortcode [firebase_sms_login], kiểm tra billing phone
 Version: 1.5
 Author: WP Creator
 */
+
+/**
+ * Đường dẫn tới file Firebase service account.
+ * Đặt NGOÀI webroot (cạnh/trên wp-config.php) để không web-accessible.
+ *   define('FIREBASE_CREDENTIALS_PATH', '/duong/dan/tuyet-doi/firebase_credentials.json');
+ */
+function hithean_firebase_credentials_path()
+{
+    $paths = [];
+
+    if (defined('FIREBASE_CREDENTIALS_PATH') && FIREBASE_CREDENTIALS_PATH) {
+        $paths[] = (string) FIREBASE_CREDENTIALS_PATH;
+    }
+
+    // Trên webroot 1 cấp, ví dụ /var/www/hithean.com/firebase_credentials.json
+    $paths[] = dirname(ABSPATH) . '/firebase_credentials.json';
+    // Legacy fallback nếu môi trường cũ vẫn để trong webroot
+    $paths[] = ABSPATH . 'firebase_credentials.json';
+
+    foreach ($paths as $path) {
+        if ($path && is_readable($path)) {
+            return $path;
+        }
+    }
+
+    return '';
+}
 
 add_action('wp_footer', function () {
     if (is_user_logged_in()) return;
@@ -167,52 +195,42 @@ add_action('wp_ajax_nopriv_custom_firebase_login', 'custom_firebase_login_handle
 function custom_firebase_login_handler()
 {
     $token = $_POST['idToken'] ?? '';
-    $rawPhone = $_POST['rawPhone'] ?? '';
     if (empty($token)) {
         wp_send_json(['success' => false, 'message' => 'Thiếu idToken từ client'], 400);
     }
 
     try {
-        require_once __DIR__ . '/vendor/autoload.php';
-        $factory = (new \Kreait\Firebase\Factory)->withServiceAccount(__DIR__ . '/firebase_credentials.json');
+        $autoload = __DIR__ . '/vendor/autoload.php';
+        if (!is_readable($autoload)) {
+            error_log('Firebase SMS Login error: Composer autoload file is missing.');
+            wp_send_json(['success' => false, 'message' => 'Không thể đăng nhập bằng SMS lúc này. Vui lòng thử lại sau.'], 503);
+        }
+        require_once $autoload;
+
+        $sa_path = hithean_firebase_credentials_path();
+        if ($sa_path === '') {
+            error_log('Firebase SMS Login error: Firebase credentials file is missing.');
+            wp_send_json(['success' => false, 'message' => 'Không thể đăng nhập bằng SMS lúc này. Vui lòng thử lại sau.'], 503);
+        }
+
+        $factory = (new \Kreait\Firebase\Factory)->withServiceAccount($sa_path);
         $auth = $factory->createAuth();
 
         $verified = $auth->verifyIdToken($token);
+
+        // Chỉ tin SĐT lấy từ claim đã được Firebase xác thực.
+        // KHÔNG dùng rawPhone (client tự gửi) để định danh user → tránh chiếm tài khoản.
         $phone = $verified->claims()->get('phone_number');
         if (!$phone) throw new Exception('Không tìm thấy số điện thoại trong token');
 
-        // Xử lý nếu user đã login
-        if (is_user_logged_in() && $rawPhone) {
-            $searchPhones = [$rawPhone, ltrim($rawPhone, '+'), '0' . substr($rawPhone, -9)];
-            $matched_user = false;
-
-            foreach ($searchPhones as $ph) {
-                $users = get_users([
-                    'meta_key' => 'billing_phone',
-                    'meta_value' => $ph,
-                    'number' => 1,
-                    'count_total' => false,
-                ]);
-                if (!empty($users)) {
-                    $matched_user = $users[0];
-                    break;
-                }
-            }
-
-            if ($matched_user) {
-                wp_set_current_user($matched_user->ID);
-                wp_set_auth_cookie($matched_user->ID);
-                if (function_exists('wc_set_customer_auth_cookie')) {
-                    wc_set_customer_auth_cookie($matched_user->ID);
-                }
-                wp_send_json(['success' => true]);
-            }
-        }
-
-        // Nếu chưa login hoặc không khớp, tạo tài khoản mới
+        // Tìm user theo số đã xác thực, nếu chưa có thì tạo mới.
         $user = get_user_by('login', $phone);
         if (!$user) {
             $user_id = wp_create_user($phone, wp_generate_password(), $phone . '@sms.hithean.com');
+            if (is_wp_error($user_id)) {
+                error_log('Firebase SMS Login error: Cannot create SMS user - ' . $user_id->get_error_message());
+                wp_send_json(['success' => false, 'message' => 'Không thể tạo tài khoản bằng SMS lúc này. Vui lòng thử lại sau.'], 500);
+            }
             wp_update_user(['ID' => $user_id, 'role' => 'customer']);
         } else {
             $user_id = $user->ID;
@@ -226,6 +244,7 @@ function custom_firebase_login_handler()
 
         wp_send_json(['success' => true]);
     } catch (Exception $e) {
-        wp_send_json(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()], 400);
+        error_log('Firebase SMS Login error: ' . $e->getMessage());
+        wp_send_json(['success' => false, 'message' => 'Không thể xác thực SMS lúc này. Vui lòng thử lại sau.'], 400);
     }
 }

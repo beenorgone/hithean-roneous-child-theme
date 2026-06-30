@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 function display_recipes_by_products($atts)
 {
     // Lay cac gia tri cua shortcode

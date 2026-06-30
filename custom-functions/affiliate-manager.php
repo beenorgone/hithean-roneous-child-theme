@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /**
  * Plugin Name: The An Affiliate Sample Form
  * Description: Form đăng ký sample (Fix lỗi Invalid Nonce + Honeypot + Redirect Thank You Page with Arg).

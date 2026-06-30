@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /**
  * Shortcode hiển thị Google Sheet (Đã sửa lỗi hiển thị trắng)
  * Cách dùng: [google_sheet_editable id="YOUR_ID"]

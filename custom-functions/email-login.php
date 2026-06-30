@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
 function roneous_child_maybe_start_email_login_session()
 {

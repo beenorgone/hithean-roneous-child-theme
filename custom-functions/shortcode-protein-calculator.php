@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /*
  * Shortcode: [protein_calculator]
  * Tính lượng protein cần thiết theo khuyến nghị VN và Mỹ (2026-2030)

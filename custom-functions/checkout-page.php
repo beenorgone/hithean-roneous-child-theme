@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 add_action('woocommerce_before_checkout_form', 'add_custom_content_before_checkout', 1);
 
 function add_custom_content_before_checkout() {

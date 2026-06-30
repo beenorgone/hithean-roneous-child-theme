@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /**
  * CONFIGURATION & HELPERS - HITHEAN VERSION
  */

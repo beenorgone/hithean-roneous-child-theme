@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 function display_blog_posts_slider($atts)
 {
     // Lấy các giá trị của shortcode

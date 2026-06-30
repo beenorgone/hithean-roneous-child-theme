@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 // Add CSS and JS for the popup widget in the child theme
 function popup_widget_enqueue_scripts() {
     // Register and enqueue CSS

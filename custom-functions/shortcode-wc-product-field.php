@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /*
  * Shortcode: [wc_product_field]
  * Lấy tên / giá / link / CTA của 1 sản phẩm WooCommerce theo id|sku|slug,

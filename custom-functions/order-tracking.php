@@ -1,4 +1,5 @@
 <?php
+if (!defined('ABSPATH')) exit;
 /*
  * Shortcode theo dõi đơn: hỗ trợ SĐT / Order ID / Email
  * Author: levantoan.com + thean
