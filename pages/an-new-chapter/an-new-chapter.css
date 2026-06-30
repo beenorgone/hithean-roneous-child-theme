@@ -739,7 +739,7 @@ body.anc-modal-locked {
     max-width: 920px;
     margin: 40px auto 0;
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     background: #fff;
     border-radius: 14px;
     box-shadow: 0 6px 32px rgba(0, 0, 0, 0.09);
@@ -749,7 +749,7 @@ body.anc-modal-locked {
 
 @media (min-width: 680px) {
     .anc-pf {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 }
 
@@ -825,7 +825,6 @@ body.anc-modal-locked {
     font-family: 'Oswald', sans-serif;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    white-space: nowrap;
 }
 
 .anc-pf-cta {
