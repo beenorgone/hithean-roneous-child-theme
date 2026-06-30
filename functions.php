@@ -1,11 +1,5 @@
 <?php
-
-add_action('pre_get_posts', function ($query) {
-    if (is_admin() && $query->is_main_query() && $query->get('post_type') === 'shop_order') {
-        error_log('✅ Admin search query is active. Query vars: ' . print_r($query->query_vars, true));
-    }
-});
-
+if (!defined('ABSPATH')) exit;
 
 if (!function_exists('roneous_child_enqueue_styles')) {
     function roneous_child_enqueue_styles()
@@ -194,8 +188,6 @@ add_filter('template_include', 'hithean_load_grouped_template', 20);
 
 // General includes with conditionally loaded files commented out
 $general_includes = [
-    //'custom-functions/test.php',
-    //'custom-functions/hpos-order-check.php',
     'custom-functions/backend-optimize.php',
     'custom-functions/functional.php',
     'custom-functions/theme-code-cache.php',
@@ -243,8 +235,6 @@ $general_includes = [
     'custom-functions/email-tasks.php',
     'custom-functions/product-taxonomies.php',
 
-    'custom-functions/affiliate-manager.php',
-
     /* Plugins */
     'custom-functions/plugin-devvn-ghtk-tweaks.php',
 ];
@@ -255,9 +245,10 @@ foreach ($general_includes as $include) {
     }
 }
 
-if (is_admin() && file_exists(__DIR__ . '/custom-functions/meta-key-rename-tool.php')) {
-    require_once(__DIR__ . '/custom-functions/meta-key-rename-tool.php');
-}
+// meta-key-rename-tool.php: công cụ admin 1-lần, đã TẮT (bật lại bằng cách bỏ comment).
+// if (is_admin() && file_exists(__DIR__ . '/custom-functions/meta-key-rename-tool.php')) {
+//     require_once(__DIR__ . '/custom-functions/meta-key-rename-tool.php');
+// }
 
 /**
  * Social display shortcodes ([social_fan] / [social_marquee] / [social_collage] / [social_coverflow])
@@ -677,10 +668,28 @@ function hroneous_render_custom_email_order_details($order, $sent_to_admin, $pla
 }
 
 function check_upload_content( $file ) {
-    $content = file_get_contents( $file['tmp_name'] );
-    if ( strpos( $content, '<?php' ) !== false || strpos( $content, '<?=' ) !== false ) {
-        $file['error'] = 'File bị từ chối — chứa mã PHP độc hại.';
+    if ( empty( $file['tmp_name'] ) || ! is_readable( $file['tmp_name'] ) ) {
+        return $file;
     }
+
+    // Chặn các extension thực thi được trên server, bất kể MIME khai báo.
+    $blocked_ext = [ 'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phps', 'pht', 'phar' ];
+    $ext = strtolower( pathinfo( $file['name'] ?? '', PATHINFO_EXTENSION ) );
+    if ( in_array( $ext, $blocked_ext, true ) ) {
+        $file['error'] = 'File bị từ chối — định dạng không cho phép.';
+        return $file;
+    }
+
+    // Quét đầu file tìm thẻ mở PHP (gồm short tag <? ), giới hạn 1MB để tránh đọc nguyên file lớn vào RAM.
+    $handle = fopen( $file['tmp_name'], 'rb' );
+    if ( $handle ) {
+        $head = fread( $handle, 1024 * 1024 );
+        fclose( $handle );
+        if ( $head !== false && preg_match( '/<\?(php|=|\s|$)/i', $head ) ) {
+            $file['error'] = 'File bị từ chối — chứa mã PHP.';
+        }
+    }
+
     return $file;
 }
 add_filter( 'wp_handle_upload_prefilter', 'check_upload_content' );
