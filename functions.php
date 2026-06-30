@@ -259,6 +259,66 @@ if (is_admin() && file_exists(__DIR__ . '/custom-functions/meta-key-rename-tool.
     require_once(__DIR__ . '/custom-functions/meta-key-rename-tool.php');
 }
 
+/**
+ * Social display shortcodes ([social_fan] / [social_marquee] / [social_collage] / [social_coverflow])
+ * chỉ nạp ở: trang chủ, page "an-new-chapter", page "ve-chung-toi", và trang sản phẩm.
+ *
+ * Thêm/bớt page (theo slug) qua filter nếu cần:
+ *   add_filter('hithean_social_display_page_slugs', fn($slugs) => [...$slugs, 'lien-he']);
+ */
+function hithean_social_display_allowed(): bool
+{
+    // Trang chủ.
+    if (is_front_page()) {
+        return true;
+    }
+
+    // Trang sản phẩm đơn.
+    if (function_exists('is_product') && is_product()) {
+        return true;
+    }
+
+    // Các page chỉ định (theo slug).
+    $page_slugs = (array) apply_filters('hithean_social_display_page_slugs', [
+        'an-new-chapter',
+        've-chung-toi',
+    ]);
+    if (!empty($page_slugs) && is_page($page_slugs)) {
+        return true;
+    }
+
+    return false;
+}
+
+add_action('template_redirect', function (): void {
+    $file = __DIR__ . '/custom-functions/shortcode-social-display.php';
+    if (hithean_social_display_allowed() && file_exists($file)) {
+        require_once($file);
+    }
+});
+
+/**
+ * Đăng ký meta attachment cho 4 shortcode social — LUÔN nạp (kể cả REST upload
+ * từ tool TikTok Research), vì file shortcode ở trên chỉ nạp có điều kiện.
+ * Định nghĩa cùng tên + guard nên khi file shortcode có nạp cũng không trùng.
+ */
+if (!function_exists('social_display_register_media_meta')) {
+    function social_display_register_media_meta(): void
+    {
+        foreach (['_social_display', '_social_display_url'] as $meta_key) {
+            register_post_meta('attachment', $meta_key, [
+                'type'          => 'string',
+                'single'        => true,
+                'show_in_rest'  => true,
+                'auth_callback' => static function (): bool {
+                    return current_user_can('upload_files');
+                },
+            ]);
+        }
+    }
+    add_action('init', 'social_display_register_media_meta');
+}
+
 function child_theme_should_load_post_editor_tools(): bool
 {
     if (!is_admin()) {
@@ -615,3 +675,12 @@ function hroneous_render_custom_email_order_details($order, $sent_to_admin, $pla
         trailingslashit(get_stylesheet_directory()) . 'woocommerce/'
     );
 }
+
+function check_upload_content( $file ) {
+    $content = file_get_contents( $file['tmp_name'] );
+    if ( strpos( $content, '<?php' ) !== false || strpos( $content, '<?=' ) !== false ) {
+        $file['error'] = 'File bị từ chối — chứa mã PHP độc hại.';
+    }
+    return $file;
+}
+add_filter( 'wp_handle_upload_prefilter', 'check_upload_content' );
