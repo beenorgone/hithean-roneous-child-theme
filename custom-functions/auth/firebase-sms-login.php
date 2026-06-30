@@ -84,6 +84,10 @@ add_shortcode('firebase_sms_login', function () {
             margin: 0;
         }
 
+        #firebase-login-box #otp {
+            margin-bottom: 24px;
+        }
+
         #firebase-login-box #phone-input-box button,
         #firebase-login-box #otp-box button {
             width: 100%;
