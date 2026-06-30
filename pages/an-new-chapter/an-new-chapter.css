@@ -794,7 +794,7 @@ body.anc-modal-locked {
     font-family: 'Oswald', sans-serif !important;
     font-size: clamp(2rem, 5vw, 2.8rem) !important;
     font-weight: 600 !important;
-    color: var(--default-color-dark-brown) !important;
+    color: var(--card-accent, var(--default-color-dark-blue)) !important;
     letter-spacing: 1px !important;
     text-transform: uppercase !important;
     line-height: 1.08 !important;
