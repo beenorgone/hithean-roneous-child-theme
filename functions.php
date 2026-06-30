@@ -684,7 +684,7 @@ function tpc_loader_front_module_matches(array $module)
         $post = get_post();
         if ($post instanceof WP_Post && $post->post_content !== '') {
             foreach ((array) $module['shortcodes'] as $shortcode) {
-                if (has_shortcode($post->post_content, $shortcode)) {
+                if (tpc_loader_content_has_shortcode($post->post_content, $shortcode)) {
                     return true;
                 }
             }
@@ -692,6 +692,20 @@ function tpc_loader_front_module_matches(array $module)
     }
 
     return false;
+}
+
+/**
+ * Phát hiện shortcode trong nội dung mà KHÔNG dùng has_shortcode().
+ * has_shortcode() yêu cầu shortcode đã được đăng ký, nhưng file đăng ký lại
+ * chính là file ta đang quyết định có nạp hay không → sẽ không bao giờ nạp.
+ */
+function tpc_loader_content_has_shortcode($content, $shortcode)
+{
+    if ($content === '' || strpos($content, '[') === false) {
+        return false;
+    }
+
+    return (bool) preg_match('/\[\s*' . preg_quote($shortcode, '/') . '(?=[\s\]\/])/', $content);
 }
 
 function tpc_loader_load_front_modules()
