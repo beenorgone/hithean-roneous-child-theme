@@ -149,28 +149,45 @@
     function initProductSwitcher() {
         var switchers = document.querySelectorAll('[data-product-switcher]');
         switchers.forEach(function (root) {
-            var chips  = root.querySelectorAll('.anc-pf-chip');
-            var panels = root.querySelectorAll('.anc-pf-panel');
+            var chips   = root.querySelectorAll('.anc-pf-chip');
+            var panels  = root.querySelectorAll('.anc-pf-panel');
+            var section = root.closest('section');
             if (!chips.length || !panels.length) return;
+
+            // Đổi background-image của section theo data-section-bg của sản phẩm đang chọn.
+            // Rỗng → xoá inline để fallback về background mặc định trong CSS.
+            function applySectionBg(card) {
+                if (!section) return;
+                var panel = root.querySelector('.anc-pf-panel[data-card="' + card + '"]');
+                var bg = panel ? panel.getAttribute('data-section-bg') : '';
+                section.style.backgroundImage = bg ? "url('" + bg + "')" : '';
+            }
+
+            function selectCard(card) {
+                chips.forEach(function (c) {
+                    var active = c.getAttribute('data-card') === card;
+                    c.classList.toggle('is-active', active);
+                    c.setAttribute('aria-selected', active ? 'true' : 'false');
+                });
+                panels.forEach(function (p) {
+                    var match = p.getAttribute('data-card') === card;
+                    p.classList.toggle('is-active', match);
+                    if (match) { p.removeAttribute('hidden'); }
+                    else { p.setAttribute('hidden', ''); }
+                });
+                applySectionBg(card);
+            }
 
             chips.forEach(function (chip) {
                 chip.addEventListener('click', function () {
-                    var card = chip.getAttribute('data-card');
                     if (chip.classList.contains('is-active')) return;
-
-                    chips.forEach(function (c) {
-                        var active = c.getAttribute('data-card') === card;
-                        c.classList.toggle('is-active', active);
-                        c.setAttribute('aria-selected', active ? 'true' : 'false');
-                    });
-                    panels.forEach(function (p) {
-                        var match = p.getAttribute('data-card') === card;
-                        p.classList.toggle('is-active', match);
-                        if (match) { p.removeAttribute('hidden'); }
-                        else { p.setAttribute('hidden', ''); }
-                    });
+                    selectCard(chip.getAttribute('data-card'));
                 });
             });
+
+            // Áp background của sản phẩm đang active lúc tải trang.
+            var initial = root.querySelector('.anc-pf-panel.is-active');
+            if (initial) { applySectionBg(initial.getAttribute('data-card')); }
         });
     }
 

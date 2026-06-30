@@ -644,6 +644,19 @@ body.anc-modal-locked {
     margin: 40px auto 0;
 }
 
+/* Wrapper beige bọc title + chips + cards, nổi trên ảnh nền của section */
+#anc-products .anc-pf-switcher {
+    margin: 0 auto;
+    padding: 32px 24px 36px;
+    background-color: var(--default-color-beige, #f7f6f2);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+}
+
+#anc-products .anc-pf-switcher .anc-section-title {
+    margin-top: 0;
+}
+
 .anc-pf-chips {
     display: flex;
     flex-wrap: wrap;
@@ -793,15 +806,6 @@ body.anc-modal-locked {
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 20px;
-}
-
-/* Pills bar đầu card: full-width (span 2 cột grid), căn giữa, trên ảnh + mô tả */
-.anc-pf-switcher .anc-pf-panel > .anc-pf-pills {
-    grid-column: 1 / -1;
-    justify-content: center;
-    margin: 0 0 4px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid var(--default-color-border, #e7e3da);
 }
 
 .anc-pf-intro {
