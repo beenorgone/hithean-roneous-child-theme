@@ -34,7 +34,7 @@
     background-image: var(--anc-hero-bg);
     background-size: cover;
     background-position: center;
-    background-color: var(var(--default-color-dark-blue));
+    background-color: var(--product-nuocepkytu-green);
 }
 
 /* Color overlay phủ trên ảnh — đậm phía có chữ (trái), nhạt dần về phía cluster sản phẩm (phải) để ảnh nền vẫn hiện rõ */
@@ -326,7 +326,7 @@
     font-family: 'Oswald', sans-serif;
     font-size: 12px;
     letter-spacing: 0.5px;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     opacity: 0.85;
 }
 
@@ -334,7 +334,7 @@
     font-family: 'Oswald', sans-serif;
     font-size: 13px;
     letter-spacing: 0.5px;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     text-transform: uppercase;
 }
 
@@ -346,7 +346,7 @@
 .anc-trust-chevron {
     margin-left: auto;
     flex-shrink: 0;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     opacity: 0.55;
     font-size: 16px;
 }
@@ -404,7 +404,7 @@
     text-transform: uppercase;
     letter-spacing: 0.6px;
     font-size: 13px;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     margin: 22px 0 10px;
 }
 
@@ -433,7 +433,7 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(var(--default-color-dark-blue), #2f6b4f);
+    background: var(--default-color-dark-blue);
     color: #fff;
     font-family: 'Oswald', sans-serif;
     font-size: 12px;
@@ -479,7 +479,7 @@
     font-family: 'Oswald', sans-serif;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     margin: 0 0 14px;
     font-size: 17px;
 }
@@ -588,7 +588,7 @@ body.anc-modal-locked {
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     margin-bottom: 5px;
 }
 
@@ -635,7 +635,7 @@ body.anc-modal-locked {
 }
 
 #anc-products h2 {
-    color: var(--product-) !important;
+    color: var(--default-color-dark-blue) !important;
 }
 
 /* Product switcher: chips chọn vị + panel card tương ứng */
@@ -667,10 +667,10 @@ body.anc-modal-locked {
 
 .anc-pf-chip {
     padding: 9px 20px;
-    border: 1.5px solid var(var(--default-color-dark-blue), #2f6b4f);
+    border: 1.5px solid var(--default-color-dark-blue);
     border-radius: 999px;
     background: transparent;
-    color: var(var(--default-color-dark-blue), #2f6b4f);
+    color: var(--default-color-dark-blue);
     font-size: 0.95rem;
     font-weight: 600;
     line-height: 1;
@@ -683,7 +683,7 @@ body.anc-modal-locked {
 }
 
 .anc-pf-chip.is-active {
-    background: var(var(--default-color-dark-blue), #2f6b4f);
+    background: var(--default-color-dark-blue);
     color: #fff;
     box-shadow: 0 4px 14px rgba(47, 107, 79, 0.28);
 }
@@ -817,7 +817,7 @@ body.anc-modal-locked {
 
 .anc-stat-pill {
     background: rgba(19, 81, 80, 0.07);
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     border: 1px solid rgba(19, 81, 80, 0.2);
     padding: 5px 13px;
     border-radius: 100px;
@@ -897,7 +897,7 @@ body.anc-modal-locked {
 
 .anc-gallery-thumb.is-active,
 .anc-gallery-thumb:hover {
-    border-color: var(var(--default-color-dark-blue));
+    border-color: var(--product-nuocepkytu-green);
 }
 
 /* Factory card: large icon — padding to match cert image visual height */
@@ -930,7 +930,7 @@ body.anc-modal-locked {
     font-size: 11px;
     letter-spacing: 0.8px;
     text-transform: uppercase;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     text-decoration: none;
 }
 
@@ -946,7 +946,7 @@ body.anc-modal-locked {
     margin-bottom: 20px;
     padding: 13px 15px;
     background: var(--default-color-beige, #f7f6f2);
-    border-left: 3px solid var(var(--default-color-dark-blue));
+    border-left: 3px solid var(--product-nuocepkytu-green);
     border-radius: 4px;
 }
 
@@ -1007,7 +1007,7 @@ body.anc-modal-locked {
 }
 
 #anc-organic h2 {
-    color: var(var(--default-color-dark-blue)) !important;
+    color: var(--product-nuocepkytu-green) !important;
 }
 
 #anc-organic .anc-product-card {
@@ -1020,7 +1020,7 @@ body.anc-modal-locked {
     margin: -24px auto 40px;
     font-size: 14px;
     font-style: italic;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     opacity: 0.85;
     line-height: 1.7;
 }
@@ -1056,7 +1056,7 @@ body.anc-modal-locked {
 }
 
 .anc-product-badge.badge-soon {
-    background: var(var(--default-color-dark-blue));
+    background: var(--product-nuocepkytu-green);
 }
 
 .anc-product-badge.badge-new {
@@ -1196,7 +1196,7 @@ body.anc-modal-locked {
     font-size: 11px;
     letter-spacing: 2.5px;
     text-transform: uppercase;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     opacity: 0.65;
     margin: 20px 0 24px;
 }
@@ -1219,7 +1219,7 @@ body.anc-modal-locked {
 .anc-update-card {
     background: var(--default-color-beige, #f7f6f2);
     border: 1px solid rgba(19, 81, 80, 0.10);
-    border-left: 4px solid var(var(--default-color-dark-blue));
+    border-left: 4px solid var(--product-nuocepkytu-green);
     border-radius: 10px;
     padding: 28px 24px;
     transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
@@ -1266,7 +1266,7 @@ body.anc-modal-locked {
 }
 
 .anc-update-detail summary {
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -1300,7 +1300,7 @@ body.anc-modal-locked {
 
 #anc-calculator {
     padding: 80px 20px;
-    background-color: var(var(--default-color-dark-blue));
+    background-color: var(--product-nuocepkytu-green);
     position: relative;
 }
 #anc-calculator::before {
@@ -1320,14 +1320,14 @@ body.anc-modal-locked {
     border-radius: 8px;
     padding: 40px 32px 44px;
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
-    border-top: 4px solid var(var(--default-color-dark-blue));
+    border-top: 4px solid var(--product-nuocepkytu-green);
 }
 
 .anc-calc-cta h2 {
     font-family: 'Oswald', sans-serif !important;
     text-transform: uppercase !important;
     letter-spacing: 2px !important;
-    color: var(var(--default-color-dark-blue)) !important;
+    color: var(--product-nuocepkytu-green) !important;
     font-size: 22px !important;
     margin-bottom: 6px !important;
 }
@@ -1397,7 +1397,7 @@ body.anc-modal-locked {
 
 .anc-field input[type="number"]:focus,
 .anc-field select:focus {
-    border-color: var(var(--default-color-dark-blue));
+    border-color: var(--product-nuocepkytu-green);
     box-shadow: 0 0 0 3px rgba(19, 81, 80, 0.12);
 }
 
@@ -1433,7 +1433,7 @@ body.anc-modal-locked {
     font-family: 'Oswald', sans-serif;
     font-size: 52px;
     font-weight: 600;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     line-height: 1;
     display: block;
 }
@@ -1478,7 +1478,7 @@ body.anc-modal-locked {
 }
 
 .anc-suggestion-card:hover {
-    border-color: var(var(--default-color-dark-blue));
+    border-color: var(--product-nuocepkytu-green);
     box-shadow: 0 2px 14px rgba(19, 81, 80, 0.10);
     transform: translateY(-2px);
 }
@@ -1526,7 +1526,7 @@ body.anc-modal-locked {
 }
 
 .anc-suggestion-arrow {
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     font-size: 18px;
     flex-shrink: 0;
     font-weight: 700;
@@ -1555,7 +1555,7 @@ body.anc-modal-locked {
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     margin: 0 0 14px;
     padding-bottom: 8px;
     border-bottom: 1px solid rgba(19, 81, 80, 0.15);
@@ -1592,7 +1592,7 @@ body.anc-modal-locked {
     content: '+';
     float: right;
     font-size: 18px;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     transition: transform 0.2s ease;
 }
 
@@ -1642,7 +1642,7 @@ body.anc-modal-locked {
     font-family: 'Oswald', sans-serif;
     font-size: 14px;
     letter-spacing: 0.5px;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     text-decoration: none;
 }
 
@@ -1656,7 +1656,7 @@ body.anc-modal-locked {
 
 #anc-cta-band {
     padding: 80px 20px;
-    background-color: var(var(--default-color-dark-blue));
+    background-color: var(--product-nuocepkytu-green);
     background-image: var(--anc-cta-bg, none);
     background-size: cover;
     background-position: center;
@@ -1691,7 +1691,7 @@ body.anc-modal-locked {
 /* Override button--dark-blue-reverse trên nền xanh để dễ nhìn */
 #anc-cta-band .button--dark-blue-reverse {
     background: var(--default-color-white);
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     border-color: var(--default-color-white);
 }
 
@@ -1751,7 +1751,7 @@ body.anc-modal-locked {
     letter-spacing: 1.5px;
     text-transform: uppercase;
     text-align: center;
-    color: var(var(--default-color-dark-blue));
+    color: var(--product-nuocepkytu-green);
     margin: 0 0 24px;
 }
 
