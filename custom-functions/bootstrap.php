@@ -16,4 +16,5 @@ require_once __DIR__ . '/core/enqueue.php';
 require_once __DIR__ . '/core/admin.php';
 require_once __DIR__ . '/core/email-overrides.php';
 require_once __DIR__ . '/core/upload-guard.php';
+require_once __DIR__ . '/core/public-file-guard.php';
 require_once __DIR__ . '/core/module-loader.php';

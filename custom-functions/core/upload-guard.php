@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) exit;
 /**
  * Chặn upload file chứa mã PHP / có extension thực thi trên server.
  */
-function check_upload_content( $file ) {
+function hithean_upload_guard_check_content( $file ) {
     if ( empty( $file['tmp_name'] ) || ! is_readable( $file['tmp_name'] ) ) {
         return $file;
     }
@@ -29,4 +29,4 @@ function check_upload_content( $file ) {
 
     return $file;
 }
-add_filter( 'wp_handle_upload_prefilter', 'check_upload_content' );
+add_filter( 'wp_handle_upload_prefilter', 'hithean_upload_guard_check_content' );
