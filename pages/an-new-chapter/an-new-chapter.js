@@ -155,12 +155,23 @@
             if (!chips.length || !panels.length) return;
 
             // Đổi background-image của section theo data-section-bg của sản phẩm đang chọn.
+            // Dùng biến --anc-section-bg trên lớp ::before để cross-fade mượt.
             // Rỗng → xoá inline để fallback về background mặc định trong CSS.
-            function applySectionBg(card) {
+            function setSectionBg(bg) {
+                if (bg) { section.style.setProperty('--anc-section-bg', "url('" + bg + "')"); }
+                else { section.style.removeProperty('--anc-section-bg'); }
+            }
+
+            function applySectionBg(card, animate) {
                 if (!section) return;
                 var panel = root.querySelector('.anc-pf-panel[data-card="' + card + '"]');
                 var bg = panel ? panel.getAttribute('data-section-bg') : '';
-                section.style.backgroundImage = bg ? "url('" + bg + "')" : '';
+                if (!animate) { setSectionBg(bg); return; }
+                section.classList.add('is-bg-swapping'); // fade ảnh cũ ra
+                window.setTimeout(function () {
+                    setSectionBg(bg);                    // đổi ảnh khi đã mờ
+                    section.classList.remove('is-bg-swapping'); // fade ảnh mới vào
+                }, 300);
             }
 
             function selectCard(card) {
@@ -175,7 +186,7 @@
                     if (match) { p.removeAttribute('hidden'); }
                     else { p.setAttribute('hidden', ''); }
                 });
-                applySectionBg(card);
+                applySectionBg(card, true);
             }
 
             chips.forEach(function (chip) {
@@ -185,9 +196,9 @@
                 });
             });
 
-            // Áp background của sản phẩm đang active lúc tải trang.
+            // Áp background của sản phẩm đang active lúc tải trang (không fade).
             var initial = root.querySelector('.anc-pf-panel.is-active');
-            if (initial) { applySectionBg(initial.getAttribute('data-card')); }
+            if (initial) { applySectionBg(initial.getAttribute('data-card'), false); }
         });
     }
 

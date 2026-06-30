@@ -617,19 +617,34 @@ body.anc-modal-locked {
    ============================================= */
 
 #anc-products {
+    position: relative;
+    isolation: isolate;
     padding: 72px 20px;
     background-color: var(--default-color-beige, #f7f6f2);
-    background-image: url(https://hithean.com/wp-content/uploads/2026/05/thean-yeast-hero-proteins-mobile-background-202605.jpg);
-    background-size: cover;
-    background-position: center;
     aspect-ratio: 0.67 / 1;
     text-align: center;
+    --anc-section-bg: url(https://hithean.com/wp-content/uploads/2026/05/thean-yeast-hero-proteins-mobile-background-202605.jpg);
+}
+
+/* Lớp ảnh nền riêng để cross-fade mượt khi đổi sản phẩm (background-image không transition trực tiếp được) */
+#anc-products::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: var(--anc-section-bg);
+    background-size: cover;
+    background-position: center;
+    transition: opacity 0.3s ease;
+}
+
+#anc-products.is-bg-swapping::before {
+    opacity: 0;
 }
 
 @media only screen and (min-width: 1000px) {
     #anc-products {
-        background-image: url(https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg);
-        background-size: cover;
+        --anc-section-bg: url(https://hithean.com/wp-content/uploads/2026/05/The-An-Organics-Yeast-Hero.jpg);
         aspect-ratio: 1.78 / 1;
     }
 }
@@ -694,6 +709,29 @@ body.anc-modal-locked {
 
 .anc-pf-switcher .anc-pf-panel {
     margin: 0;
+}
+
+/* Chuyển card mượt: panel fade + trượt nhẹ khi trở thành active */
+.anc-pf-panel.is-active {
+    animation: anc-card-in 0.4s ease both;
+}
+
+@keyframes anc-card-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Đổi màu theo card-accent mượt hơn */
+.anc-pf-name,
+.anc-pf-intro,
+.anc-product-highlights li,
+.anc-stat-pill {
+    transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .anc-pf-panel.is-active { animation: none; }
+    #anc-products::before { transition: none; }
 }
 
 /* Bộ chip lặp lại dưới card — chỉ hiện trên mobile */
