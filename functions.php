@@ -196,21 +196,18 @@ $general_includes = [
     'custom-functions/popup-widget.php',
     'custom-functions/shortcode-field-content.php',
     'custom-functions/shortcode-greenspark-banner.php',
-    'custom-functions/product-page.php',
+    // product-page.php, product-linking.php → conditional (xem tpc_loader_modules)
     'custom-functions/product-nutrition-label.php',
-    'custom-functions/product-linking.php',
     'custom-functions/product-list-page.php',
     'custom-functions/pos-post-type.php',
     // 'custom-functions/recipe-post-type.php',
     'custom-functions/shortcode-recipes.php',
     'custom-functions/shortcode-posts.php',
     'custom-functions/shortcode-pos.php',
-    'custom-functions/shortcode-bank-transfer-confirmation.php',
-    'custom-functions/shortcode-payment-pending-confirm.php',
+    // shortcode-bank-transfer-confirmation, shortcode-payment-pending-confirm,
+    // shortcode-order-shipped, shortcode-order-export-confirm → conditional (tpc_loader_modules)
     'custom-functions/shortcode-google-docs.php',
     'custom-functions/shortcode-embed.php',
-    'custom-functions/shortcode-order-shipped.php',
-    'custom-functions/shortcode-order-export-confirm.php',
     'custom-functions/admin-settings-tools.php',
     'custom-functions/product-tab-post-type.php',
     'custom-functions/blogpost-metabox.php',
@@ -226,7 +223,7 @@ $general_includes = [
     'custom-functions/order-tracking.php',
     'custom-functions/order-creator/create-order-for-customer.php', // Trang /tao-don/ — tạo đơn hộ khách
 
-    'custom-functions/checkout-page.php',
+    // checkout-page.php → conditional (tpc_loader_modules)
     'custom-functions/order-auto-tasks.php',
     'custom-functions/thank-you-page.php', // To ensure order admin page, thank you page, and emails can use this
     'custom-functions/firebase-sms-login.php',
@@ -602,20 +599,128 @@ function tpc_loader_modules()
             'file' => 'custom-functions/shortcode-wc-product-field.php',
             'path_groups' => ['anc_landing'],
         ],
+
+        /* ===== Chuyển từ $general_includes sang conditional (Phase 2) =====
+         * 'condition'  : callable, đánh giá ở hook 'wp' (front) để gate theo conditional tag.
+         * 'shortcodes' : load nếu is_singular() và post_content có shortcode tương ứng.
+         * 'admin'      : load ở include-time khi is_admin() (giữ kịp hook admin_menu/admin_init).
+         * 'ajax_actions': load khi admin-ajax có action khớp.
+         */
+        [
+            'id' => 'product_page',
+            'file' => 'custom-functions/product-page.php',
+            'condition' => 'tpc_cond_is_product',
+        ],
+        [
+            'id' => 'checkout_page',
+            'file' => 'custom-functions/checkout-page.php',
+            'condition' => 'tpc_cond_is_checkout',
+        ],
+        [
+            'id' => 'product_linking',
+            'file' => 'custom-functions/product-linking.php',
+            'admin' => true,
+            'condition' => 'tpc_cond_is_product',
+            'ajax_actions' => ['hithean_product_linking_search'],
+        ],
+        [
+            'id' => 'bank_transfer_confirm',
+            'file' => 'custom-functions/shortcode-bank-transfer-confirmation.php',
+            'shortcodes' => ['order_paid_confirmation'],
+            'ajax_actions' => ['confirm_order_payment', 'search_order_ajax'],
+        ],
+        [
+            'id' => 'payment_pending_confirm',
+            'file' => 'custom-functions/shortcode-payment-pending-confirm.php',
+            'shortcodes' => ['order_payment_pending_confirm'],
+            'ajax_actions' => ['oppc_confirm_payment', 'oppc_load_orders'],
+        ],
+        [
+            'id' => 'order_shipped',
+            'file' => 'custom-functions/shortcode-order-shipped.php',
+            'shortcodes' => ['order_shipped_table'],
+            'ajax_actions' => ['ajax_load_order_shipped'],
+        ],
+        [
+            'id' => 'order_export_confirm',
+            'file' => 'custom-functions/shortcode-order-export-confirm.php',
+            'shortcodes' => ['upload_export_images_form', 'list_unconfirmed_exports', 'list_uploaded_not_shipped_exports'],
+            'ajax_actions' => ['ajax_confirm_export', 'ajax_upload_images'],
+        ],
     ];
 
     return apply_filters('tpc_loader_modules', $modules);
 }
 
+/* Conditional-tag helpers cho tpc_loader (đánh giá ở hook 'wp'). */
+function tpc_cond_is_product()
+{
+    return function_exists('is_product') && is_product();
+}
+
+function tpc_cond_is_checkout()
+{
+    return function_exists('is_checkout') && is_checkout();
+}
+
+function tpc_loader_front_module_matches(array $module)
+{
+    if (is_admin()) {
+        return false;
+    }
+
+    // 1) Khớp theo URL path.
+    if (tpc_loader_front_path_matches($module)) {
+        return true;
+    }
+
+    // 2) Khớp theo conditional tag (is_product / is_checkout ...).
+    if (!empty($module['condition']) && is_callable($module['condition']) && call_user_func($module['condition'])) {
+        return true;
+    }
+
+    // 3) Khớp khi trang đơn có chứa shortcode tương ứng.
+    if (!empty($module['shortcodes']) && is_singular()) {
+        $post = get_post();
+        if ($post instanceof WP_Post && $post->post_content !== '') {
+            foreach ((array) $module['shortcodes'] as $shortcode) {
+                if (has_shortcode($post->post_content, $shortcode)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 function tpc_loader_load_front_modules()
 {
     foreach (tpc_loader_modules() as $module) {
-        if (!empty($module['file']) && tpc_loader_front_path_matches($module)) {
+        if (!empty($module['file']) && tpc_loader_front_module_matches($module)) {
             tpc_loader_require_relative($module['file']);
         }
     }
 }
 add_action('wp', 'tpc_loader_load_front_modules', PHP_INT_MAX - 1);
+
+/**
+ * Module gắn cờ 'admin' được nạp ngay ở include-time (không qua hook) để kịp
+ * đăng ký admin_menu/admin_init. Bỏ qua trong admin-ajax (đã có ajax loader lo).
+ */
+function tpc_loader_load_admin_modules()
+{
+    if (!is_admin() || wp_doing_ajax()) {
+        return;
+    }
+
+    foreach (tpc_loader_modules() as $module) {
+        if (!empty($module['file']) && !empty($module['admin'])) {
+            tpc_loader_require_relative($module['file']);
+        }
+    }
+}
+tpc_loader_load_admin_modules();
 
 function tpc_loader_load_ajax_modules()
 {
