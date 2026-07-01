@@ -22,7 +22,7 @@ function hithean_upload_guard_check_content( $file ) {
     if ( $handle ) {
         $head = fread( $handle, 1024 * 1024 );
         fclose( $handle );
-        if ( $head !== false && preg_match( '/<\?(?:php|=)/i', $head ) ) {
+        if ( $head !== false && strpos( $head, "\0" ) === false && preg_match( '/<\?(?:php|=)/i', $head ) ) {
             $file['error'] = 'File bị từ chối — chứa mã PHP.';
         }
     }
