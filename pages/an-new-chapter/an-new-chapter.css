@@ -520,7 +520,7 @@
 
 .anc-modal-badge-img {
     display: block;
-    width: 120px;
+    height: 180px;
     margin: 0 auto 16px;
     object-fit: contain;
 }
