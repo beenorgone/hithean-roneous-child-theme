@@ -479,7 +479,7 @@
     font-family: 'Oswald', sans-serif;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--product-nuocepkytu-green);
+    color: var(--default-color-dark-blue, #0047ba);
     margin: 0 0 14px;
     font-size: 17px;
 }
@@ -501,12 +501,12 @@
 }
 
 .anc-modal-list li {
-    padding: 4px 0;
+    padding: 2px 0;
 }
 
 .anc-modal-list li::before {
     content: '— ';
-    color: var(--product-nuocepkytu-light-green, #3d8f7b);
+    color: var(--default-color-dark-blue, #0047ba);;
     font-weight: 600;
 }
 
