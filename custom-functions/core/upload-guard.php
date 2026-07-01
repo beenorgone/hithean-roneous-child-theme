@@ -17,12 +17,12 @@ function hithean_upload_guard_check_content( $file ) {
         return $file;
     }
 
-    // Quét đầu file tìm thẻ mở PHP (gồm short tag <? ), giới hạn 1MB để tránh đọc nguyên file lớn vào RAM.
+    // Quét đầu file tìm thẻ PHP rõ ràng, giới hạn 1MB để tránh đọc nguyên file lớn vào RAM.
     $handle = fopen( $file['tmp_name'], 'rb' );
     if ( $handle ) {
         $head = fread( $handle, 1024 * 1024 );
         fclose( $handle );
-        if ( $head !== false && preg_match( '/<\?(php|=|\s|$)/i', $head ) ) {
+        if ( $head !== false && preg_match( '/<\?(?:php|=)/i', $head ) ) {
             $file['error'] = 'File bị từ chối — chứa mã PHP.';
         }
     }
