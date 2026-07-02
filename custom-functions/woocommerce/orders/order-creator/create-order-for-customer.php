@@ -1198,6 +1198,58 @@ function order_creator_is_phone_search(string $value): bool
     return (bool) preg_match('/^\+?\d+$/', $value);
 }
 
+function order_creator_customer_has_role_fragment(WP_User $user, array $needles): bool
+{
+    $role_names = wp_roles()->get_names();
+    foreach ((array) $user->roles as $role) {
+        $haystacks = [strtolower((string) $role)];
+        if (isset($role_names[$role])) {
+            $haystacks[] = strtolower((string) $role_names[$role]);
+        }
+        foreach ($needles as $needle) {
+            $needle = strtolower((string) $needle);
+            if ($needle === '') {
+                continue;
+            }
+            foreach ($haystacks as $haystack) {
+                if (strpos($haystack, $needle) !== false) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function order_creator_latest_customer_payment_method(int $user_id): string
+{
+    static $cache = [];
+    if ($user_id <= 0 || !function_exists('wc_get_orders')) {
+        return '';
+    }
+    if (array_key_exists($user_id, $cache)) {
+        return $cache[$user_id];
+    }
+    $orders = wc_get_orders([
+        'customer_id' => $user_id,
+        'limit'       => 1,
+        'orderby'     => 'date',
+        'order'       => 'DESC',
+        'return'      => 'objects',
+    ]);
+    $order = $orders[0] ?? null;
+    $cache[$user_id] = $order instanceof WC_Order ? (string) $order->get_payment_method() : '';
+    return $cache[$user_id];
+}
+
+function order_creator_default_customer_payment_method(WP_User $user): string
+{
+    if (order_creator_customer_has_role_fragment($user, ['dai-ly', 'wholesale'])) {
+        return 'bacs';
+    }
+    return order_creator_latest_customer_payment_method((int) $user->ID);
+}
+
 function order_creator_format_customer(WP_User $user): array
 {
     $addr = function (string $type) use ($user): array {
@@ -1220,9 +1272,11 @@ function order_creator_format_customer(WP_User $user): array
     return [
         'id'          => $user->ID,
         'name'        => $user->display_name,
+        'username'    => $user->user_login,
         'email'       => $user->user_email,
         'phone'       => (string) get_user_meta($user->ID, 'billing_phone', true),
         'roles'       => array_values($user->roles),
+        'default_payment_method' => order_creator_default_customer_payment_method($user),
         'billing'     => $addr('billing'),
         'shipping'    => $addr('shipping'),
         'custom_fields' => $custom_fields,
@@ -1258,11 +1312,13 @@ add_action('wp_ajax_order_creator_search_customers', function () {
         if ($variants !== []) {
             $meta_query = ['relation' => 'OR'];
             foreach ($variants as $variant) {
-                $meta_query[] = [
-                    'key'     => 'billing_phone',
-                    'value'   => $variant,
-                    'compare' => '=',
-                ];
+                foreach (['billing_phone', 'shipping_phone'] as $phone_meta_key) {
+                    $meta_query[] = [
+                        'key'     => $phone_meta_key,
+                        'value'   => $variant,
+                        'compare' => '=',
+                    ];
+                }
             }
             $q = new WP_User_Query([
                 'meta_query' => $meta_query,
@@ -2154,7 +2210,7 @@ function order_creator_render_page(): void
                 <input type="text" id="oc-customer-search" placeholder="SĐT / Email / #ID / Tên...">
                 <div class="oc-search-results" id="oc-customer-results" hidden></div>
                 <div class="oc-customer-card" id="oc-customer-card" hidden></div>
-                <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-edit" hidden>Quản lý địa chỉ khách</button>
+                <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-edit" hidden>Chỉnh thông tin khách</button>
                 <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-history" hidden>Lịch sử đặt hàng</button>
                 <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-products" hidden>Sản phẩm đã đặt</button>
                 <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-new-toggle">Khách hàng mới</button>

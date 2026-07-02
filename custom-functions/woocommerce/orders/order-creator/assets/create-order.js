@@ -126,14 +126,16 @@
 
     function collectShipping() {
         if (!$('#oc-ship-diff').checked) { return collectBilling(); }
+        var c = state.customer || {};
+        var base = c.shipping ? Object.assign({}, c.shipping) : {};
         var nm = nameSplit($('#oc-ship-name').value);
-        return {
-            first_name: nm.first_name,
-            last_name: nm.last_name,
-            phone: $('#oc-ship-phone').value.trim(),
-            address_1: $('#oc-ship-address').value.trim(),
-            city: $('#oc-ship-city').value.trim()
-        };
+        base.first_name = nm.first_name;
+        base.last_name = nm.last_name;
+        base.phone = $('#oc-ship-phone').value.trim();
+        base.address_1 = $('#oc-ship-address').value.trim();
+        base.city = $('#oc-ship-city').value.trim();
+        base.email = base.email || (c.billing && c.billing.email) || c.email || '';
+        return base;
     }
 
     function addrEqual(a, b) {
@@ -218,6 +220,19 @@
             if (selected && o[valueKey] === selected) opt.selected = true;
             el.appendChild(opt);
         });
+    }
+
+    function gatewayExists(id) {
+        return !!id && (CFG.gateways || []).some(function (gateway) { return gateway.id === id; });
+    }
+
+    function setPaymentMethod(id) {
+        if (gatewayExists(id)) { $('#oc-payment').value = id; }
+    }
+
+    function applyCustomerPaymentDefault(customer) {
+        if (!customer || state.editOrderId) { return; }
+        setPaymentMethod(customer.default_payment_method || '');
     }
 
     function initSelects() {
@@ -572,6 +587,7 @@
         $('#oc-customer-products').hidden = false;
         if (!keepShip) {
             applyAddresses(c.billing || {}, c.shipping || {});
+            applyCustomerPaymentDefault(c);
         }
         updateSaveAddressAction();
         recalc();
@@ -599,6 +615,7 @@
         post('order_creator_save_customer_addresses', {
             payload: JSON.stringify({
                 customer_id: state.customer.id,
+                save_customer_addresses: true,
                 billing: collectBilling(),
                 shipping: collectShipping()
             })
@@ -802,6 +819,7 @@
 
     function setEditorDisabled(disabled) {
         document.querySelectorAll('#oc-pane-create .oc-grid input, #oc-pane-create .oc-grid select, #oc-pane-create .oc-grid textarea, #oc-pane-create .oc-grid button').forEach(function (el) {
+            if (['oc-customer-edit', 'oc-customer-history', 'oc-customer-products'].indexOf(el.id) !== -1) { return; }
             el.disabled = disabled;
         });
     }
@@ -904,18 +922,24 @@
         populateRoles();
         applyCustomerFieldVisibility();
         CUST_FIELDS.forEach(function (f) { $('#oc-cust-' + f).value = ''; });
+        $('#oc-cust-username').disabled = false;
+        $('#oc-cust-copy-shipping').checked = true;
         if (mode === 'edit' && state.customer) {
             customerModalEditId = state.customer.id;
-            $('#oc-cust-modal-title').textContent = 'Quản lý địa chỉ: ' + state.customer.name;
+            $('#oc-cust-modal-title').textContent = 'Chỉnh thông tin khách: ' + state.customer.name;
             var b = state.customer.billing || {};
+            var s = state.customer.shipping || {};
             $('#oc-cust-first_name').value = b.first_name || '';
             $('#oc-cust-last_name').value = b.last_name || '';
-            $('#oc-cust-email').value = state.customer.email || '';
+            $('#oc-cust-email').value = b.email || state.customer.email || '';
+            $('#oc-cust-username').value = state.customer.username || '';
+            $('#oc-cust-username').disabled = true;
             $('#oc-cust-phone').value = b.phone || state.customer.phone || '';
             $('#oc-cust-address_1').value = b.address_1 || '';
             $('#oc-cust-address_2').value = b.address_2 || '';
             $('#oc-cust-city').value = b.city || '';
             $('#oc-cust-state').value = b.state || '';
+            $('#oc-cust-copy-shipping').checked = !s.address_1 || addrEqual(b, s);
             $('#oc-cust-role').value = (state.customer.roles && state.customer.roles[0]) || 'customer';
             var custom = state.customer.custom_fields || {};
             Object.keys(CFG.customerCustomFieldDefs || {}).forEach(function (key) {
@@ -954,9 +978,12 @@
         post('order_creator_create_customer', { payload: JSON.stringify(payload) }).then(function (res) {
             btn.disabled = false;
             if (!res.success) { $('#oc-new-result').textContent = '❌ ' + ((res.data && res.data.message) || 'Lỗi tạo khách.'); return; }
-            selectCustomer(res.data.customer);
+            selectCustomer(res.data.customer, !!customerModalEditId);
             $('#oc-new-result').textContent = '';
             closeModals();
+        }).catch(function () {
+            btn.disabled = false;
+            $('#oc-new-result').textContent = '❌ Không thể lưu khách hàng.';
         });
     }
 
