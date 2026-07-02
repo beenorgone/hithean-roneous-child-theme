@@ -127,6 +127,40 @@ function thean_register_order_meta_boxes($meta_boxes)
                 'desc' => esc_html__('Tự động lưu người xác nhận là admin hoặc quản lý cửa hàng.'),
             ],
 
+            /* HOÀN HÀNG — dùng bởi shortcode [order_return_management] */
+            [
+                'id'          => 'return_status',
+                'name'        => esc_html__('HOÀN HÀNG. Trạng thái', 'order-metabox'),
+                'type'        => 'select_advanced',
+                'placeholder' => esc_html__('Nhập trạng thái hoàn hàng tại đây', 'order-metabox'),
+                'options'     => [
+                    // Thường dùng lên trước
+                    'Cần đổi trả'                     => 'Cần đổi trả',
+                    'Cần thu hồi'                     => 'Cần thu hồi',
+                    'Cần giao lại'                    => 'Cần giao lại',
+                    'Chờ hoàn (Hủy)'                  => 'Chờ hoàn (Hủy)',
+                    'Chờ hoàn (Không giao được)'      => 'Chờ hoàn (Không giao được)',
+                    'Chờ hoàn (Đổi trả)'              => 'Chờ hoàn (Đổi trả)',
+                    'Chờ hoàn (Thu hồi)'              => 'Chờ hoàn (Thu hồi)',
+                    'Chờ hoàn (Giao 1 phần)'          => 'Chờ hoàn (Giao 1 phần)',
+                    'Đã nhận hàng hoàn (Không sự cố)' => 'Đã nhận hàng hoàn (Không sự cố)',
+                    'Đã nhận hàng hoàn (Có sự cố)'    => 'Đã nhận hàng hoàn (Có sự cố)',
+                    'Hủy yêu cầu'                     => 'Hủy yêu cầu',
+                ],
+            ],
+            [
+                'id'          => 'return_code',
+                'name'        => esc_html__('HOÀN HÀNG. Log mã giao vận', 'order-metabox'),
+                'type'        => 'text',
+                'placeholder' => esc_html__('Nhập mã hoàn hàng', 'order-metabox'),
+            ],
+            [
+                'id'   => 'issue_result_images',
+                'name' => esc_html__('HOÀN HÀNG. Ảnh trả hàng (URLs)', 'order-metabox'),
+                'type' => 'textarea',
+                'desc' => esc_html__('Mỗi dòng là một URL ảnh (tự thêm khi xác nhận hàng hoàn)', 'order-metabox'),
+            ],
+
         ],
     ];
 
@@ -147,7 +181,9 @@ add_filter('acp/storage_model/meta', function ($meta_keys, $post_type) {
             'order_ship_date',
             'order_shipper',
             'order_ship_code',
-            'order_export_by'
+            'order_export_by',
+            'return_status',
+            'return_code',
         ];
         // Merge mảng để code gọn hơn
         $meta_keys = array_merge($meta_keys, $defined_keys);

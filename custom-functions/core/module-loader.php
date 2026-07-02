@@ -372,6 +372,12 @@ function tpc_loader_modules()
             'file' => 'custom-functions/woocommerce/orders/shortcode-order-status-change.php',
             'shortcodes' => ['bulk_change_order_status_form'],
         ],
+        [
+            'id' => 'order_return_manager',
+            'file' => 'custom-functions/shortcodes/shortcode-order-return-manager.php',
+            'shortcodes' => ['order_return_management'],
+            'ajax_actions' => ['load_return_orders', 'upload_return_images'],
+        ],
     ];
 
     return apply_filters('tpc_loader_modules', $modules);
