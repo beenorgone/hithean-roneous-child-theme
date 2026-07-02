@@ -915,7 +915,9 @@ function process_order_payment($order, $bank_account, $paid_date, $amount_receiv
         if (!empty($paid_date)) update_post_meta($order_id, 'order_paid_date', $paid_date);
         if (!empty($bank_account)) update_post_meta($order_id, 'order_bank_account_received', $bank_account);
 
-        if ($original_method === 'bacs' && in_array($current_status, ['shipping', 'local-shipping'], true)) {
+        if ($current_status === 'completed') {
+            $order->add_order_note("✅ Đã xác nhận thanh toán. Đơn đã Hoàn thành nên giữ nguyên trạng thái hiện tại.");
+        } elseif ($original_method === 'bacs' && in_array($current_status, ['shipping', 'local-shipping'], true)) {
             // Đơn BACS đang giao hàng / giao nhanh → chỉ ghi nhận thanh toán, giữ nguyên trạng thái.
             $order->add_order_note("✅ Đã xác nhận thanh toán. Đơn đang giao nên giữ nguyên trạng thái hiện tại.");
         } elseif ($amount_received > 0 && $amount_received < $order_total) {
