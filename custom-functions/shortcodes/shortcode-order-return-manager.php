@@ -288,6 +288,97 @@ add_shortcode('order_return_management', function () {
 
 
 /**
+ * Có bật HPOS (custom order tables) không?
+ * Quyết định query bảng meta nào: wc_orders_meta (HPOS) hay postmeta (legacy).
+ */
+function hithean_return_hpos_enabled(): bool
+{
+    if (class_exists('\Automattic\WooCommerce\Utilities\OrderUtil')) {
+        return \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+    }
+    return false;
+}
+
+/**
+ * Lấy danh sách order ID theo return_status.
+ * Query trực tiếp bảng meta đúng theo storage — KHÔNG dùng wc_get_orders()+meta_query
+ * vì meta_query bị data store bỏ qua ở một số phiên bản → trả về tất cả đơn.
+ *
+ * @param string $type 'pending' | 'completed'
+ * @return int[]
+ */
+function hithean_return_get_order_ids(string $type): array
+{
+    global $wpdb;
+    $meta_key = 'return_status';
+
+    if (hithean_return_hpos_enabled()) {
+        $orders_table = "{$wpdb->prefix}wc_orders";
+        $meta_table   = "{$wpdb->prefix}wc_orders_meta";
+
+        if ($type === 'completed') {
+            $sql = $wpdb->prepare("
+                SELECT DISTINCT o.id
+                FROM {$orders_table} o
+                INNER JOIN {$meta_table} m ON o.id = m.order_id
+                WHERE o.type = 'shop_order'
+                  AND o.status <> 'trash'
+                  AND m.meta_key = %s
+                  AND m.meta_value <> ''
+                  AND m.meta_value LIKE %s
+                ORDER BY o.id DESC
+                LIMIT 20
+            ", $meta_key, '%Đã nhận%');
+        } else {
+            $sql = $wpdb->prepare("
+                SELECT DISTINCT o.id
+                FROM {$orders_table} o
+                INNER JOIN {$meta_table} m ON o.id = m.order_id
+                WHERE o.type = 'shop_order'
+                  AND o.status <> 'trash'
+                  AND m.meta_key = %s
+                  AND m.meta_value <> ''
+                  AND m.meta_value NOT LIKE %s
+                  AND m.meta_value NOT LIKE %s
+                ORDER BY o.id DESC
+                LIMIT 100
+            ", $meta_key, '%Đã nhận%', '%Hủy yêu cầu%');
+        }
+    } else {
+        if ($type === 'completed') {
+            $sql = $wpdb->prepare("
+                SELECT DISTINCT p.ID
+                FROM {$wpdb->posts} p
+                INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+                WHERE p.post_type = 'shop_order'
+                  AND p.post_status NOT IN ('trash')
+                  AND pm.meta_key = %s
+                  AND pm.meta_value <> ''
+                  AND pm.meta_value LIKE %s
+                ORDER BY p.ID DESC
+                LIMIT 20
+            ", $meta_key, '%Đã nhận%');
+        } else {
+            $sql = $wpdb->prepare("
+                SELECT DISTINCT p.ID
+                FROM {$wpdb->posts} p
+                INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+                WHERE p.post_type = 'shop_order'
+                  AND p.post_status NOT IN ('trash')
+                  AND pm.meta_key = %s
+                  AND pm.meta_value <> ''
+                  AND pm.meta_value NOT LIKE %s
+                  AND pm.meta_value NOT LIKE %s
+                ORDER BY p.ID DESC
+                LIMIT 100
+            ", $meta_key, '%Đã nhận%', '%Hủy yêu cầu%');
+        }
+    }
+
+    return array_map('intval', $wpdb->get_col($sql));
+}
+
+/**
  * AJAX: Load danh sách đơn hoàn hàng
  */
 add_action('wp_ajax_load_return_orders', function () {
@@ -297,6 +388,7 @@ add_action('wp_ajax_load_return_orders', function () {
     }
 
     $type = sanitize_text_field($_POST['list_type'] ?? 'pending');
+    $type = ($type === 'completed') ? 'completed' : 'pending';
     $cache_key = 'return_orders_' . $type . '_v4';
 
     $cached = wp_cache_get($cache_key, 'orders');
@@ -304,35 +396,7 @@ add_action('wp_ajax_load_return_orders', function () {
         wp_send_json_success(['html' => $cached]);
     }
 
-    // wc_get_orders() → storage-agnostic (HPOS + legacy).
-    if ($type === 'completed') {
-        $query_args = [
-            'limit'    => 20,
-            'orderby'  => 'ID',
-            'order'    => 'DESC',
-            'return'   => 'ids',
-            'status'   => array_keys(wc_get_order_statuses()),
-            'meta_query' => [
-                ['key' => 'return_status', 'value' => 'Đã nhận', 'compare' => 'LIKE'],
-            ],
-        ];
-    } else {
-        $query_args = [
-            'limit'    => 100,
-            'orderby'  => 'ID',
-            'order'    => 'DESC',
-            'return'   => 'ids',
-            'status'   => array_keys(wc_get_order_statuses()),
-            'meta_query' => [
-                'relation' => 'AND',
-                ['key' => 'return_status', 'value' => '', 'compare' => '!='],
-                ['key' => 'return_status', 'value' => 'Đã nhận', 'compare' => 'NOT LIKE'],
-                ['key' => 'return_status', 'value' => 'Hủy yêu cầu', 'compare' => 'NOT LIKE'],
-            ],
-        ];
-    }
-
-    $order_ids = wc_get_orders($query_args);
+    $order_ids = hithean_return_get_order_ids($type);
     if (empty($order_ids)) wp_send_json_error('Không có đơn nào.');
 
     ob_start(); ?>
