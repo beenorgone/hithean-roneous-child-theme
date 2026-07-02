@@ -17,26 +17,50 @@ if (!function_exists('thean_customer_note_templates_user_can_manage')) {
     }
 }
 
+if (!function_exists('thean_customer_note_templates_normalize_type')) {
+    function thean_customer_note_templates_normalize_type(string $type): string
+    {
+        return in_array($type, ['customer', 'private'], true) ? $type : 'customer';
+    }
+}
+
 if (!function_exists('thean_customer_note_templates_defaults')) {
     function thean_customer_note_templates_defaults(): array
     {
         return [
             [
                 'id' => 'pickup-ready',
+                'type' => 'customer',
                 'title' => 'Khách tự đặt ship đến lấy hàng',
                 'content' => 'Đơn hàng của anh/chị đã chuẩn bị xong. Anh/chị có thể đặt ship đến lấy hàng giúp shop nhé.',
                 'updated_at' => 0,
             ],
             [
                 'id' => 'payment-reminder',
+                'type' => 'customer',
                 'title' => 'Nhắc thanh toán chuyển khoản',
                 'content' => 'Shop chưa ghi nhận thanh toán cho đơn hàng này. Anh/chị kiểm tra và chuyển khoản giúp shop để đơn được xử lý tiếp nhé.',
                 'updated_at' => 0,
             ],
             [
                 'id' => 'delivery-delay',
+                'type' => 'customer',
                 'title' => 'Báo giao hàng chậm',
                 'content' => 'Đơn hàng của anh/chị đang cần thêm thời gian xử lý/giao hàng. Shop sẽ cập nhật sớm nhất khi có thông tin mới.',
+                'updated_at' => 0,
+            ],
+            [
+                'id' => 'private-follow-up',
+                'type' => 'private',
+                'title' => 'Nội bộ: cần theo dõi',
+                'content' => 'Cần theo dõi lại đơn này trong ca tiếp theo.',
+                'updated_at' => 0,
+            ],
+            [
+                'id' => 'private-customer-called',
+                'type' => 'private',
+                'title' => 'Nội bộ: đã gọi khách',
+                'content' => 'Đã gọi khách, chờ khách phản hồi.',
                 'updated_at' => 0,
             ],
         ];
@@ -57,6 +81,7 @@ if (!function_exists('thean_customer_note_templates_normalize')) {
             }
 
             $id = isset($template['id']) ? sanitize_key((string) $template['id']) : '';
+            $type = isset($template['type']) ? thean_customer_note_templates_normalize_type(sanitize_key((string) $template['type'])) : 'customer';
             $title = isset($template['title']) ? sanitize_text_field((string) $template['title']) : '';
             $content = isset($template['content']) ? sanitize_textarea_field((string) $template['content']) : '';
             $updated_at = isset($template['updated_at']) ? absint($template['updated_at']) : 0;
@@ -67,6 +92,7 @@ if (!function_exists('thean_customer_note_templates_normalize')) {
 
             $normalized[] = [
                 'id' => $id !== '' ? $id : sanitize_key(wp_generate_uuid4()),
+                'type' => $type,
                 'title' => $title,
                 'content' => $content,
                 'updated_at' => $updated_at,
@@ -139,6 +165,7 @@ if (!function_exists('thean_customer_note_templates_ajax_response')) {
 
         if ($mode === 'save') {
             $id = isset($_POST['id']) ? sanitize_key((string) wp_unslash($_POST['id'])) : '';
+            $type = isset($_POST['type']) ? thean_customer_note_templates_normalize_type(sanitize_key((string) wp_unslash($_POST['type']))) : 'customer';
             $title = isset($_POST['title']) ? sanitize_text_field((string) wp_unslash($_POST['title'])) : '';
             $content = isset($_POST['content']) ? sanitize_textarea_field((string) wp_unslash($_POST['content'])) : '';
 
@@ -148,6 +175,7 @@ if (!function_exists('thean_customer_note_templates_ajax_response')) {
 
             $entry = [
                 'id' => $id !== '' ? $id : sanitize_key(wp_generate_uuid4()),
+                'type' => $type,
                 'title' => $title,
                 'content' => $content,
                 'updated_at' => time(),
@@ -189,6 +217,9 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
             #thean-customer-note-templates .thean-cnt-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
             #thean-customer-note-templates select,#thean-customer-note-templates input,#thean-customer-note-templates textarea{width:100%;max-width:100%}
             #thean-customer-note-templates textarea{min-height:82px;resize:vertical}
+            #thean-customer-note-templates .thean-cnt-type{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+            #thean-customer-note-templates .thean-cnt-type .button{justify-content:center}
+            #thean-customer-note-templates .thean-cnt-type .is-active{background:#2271b1;border-color:#2271b1;color:#fff}
             #thean-customer-note-templates .thean-cnt-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
             #thean-customer-note-templates .button{min-height:32px;text-align:center}
             #thean-customer-note-templates .thean-cnt-status{min-height:18px;margin-top:6px;color:#646970}
@@ -210,6 +241,7 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
 
     const state = {
         templates: Array.isArray(window.theanCustomerNoteTemplates.templates) ? window.theanCustomerNoteTemplates.templates : [],
+        type: 'customer',
         selected: ''
     };
 
@@ -222,6 +254,10 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
         return state.templates.find(function(template){ return template.id === state.selected; }) || null;
     }
 
+    function typeLabel(type) {
+        return type === 'private' ? 'ghi chú nội bộ' : 'ghi chú gửi khách';
+    }
+
     function setStatus($box, message, isError) {
         $box.find('.thean-cnt-status').text(message || '').toggleClass('thean-cnt-danger', !!isError);
     }
@@ -230,13 +266,19 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
         const $select = $box.find('.thean-cnt-select');
         $select.empty().append($('<option>', {value: '', text: 'Chọn mẫu ghi chú...'}));
         state.templates.forEach(function(template){
+            if ((template.type || 'customer') !== state.type) {
+                return;
+            }
             $select.append($('<option>', {value: template.id, text: template.title}));
         });
         $select.val(state.selected);
+        $box.find('.thean-cnt-type-btn').removeClass('is-active').filter('[data-type="' + state.type + '"]').addClass('is-active');
+        $box.find('.thean-cnt-type-input').val(state.type);
     }
 
     function fillEditor($box, template) {
         $box.find('.thean-cnt-id').val(template ? template.id : '');
+        $box.find('.thean-cnt-type-input').val(template ? (template.type || 'customer') : state.type);
         $box.find('.thean-cnt-title').val(template ? template.title : '');
         $box.find('.thean-cnt-content').val(template ? template.content : '');
     }
@@ -253,8 +295,10 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
             }
             state.templates = response.data.templates || [];
             state.selected = response.data.selected || state.selected;
+            const current = selectedTemplate();
+            state.type = current ? (current.type || state.type) : state.type;
             renderOptions($box);
-            fillEditor($box, selectedTemplate());
+            fillEditor($box, current);
             setStatus($box, 'Đã lưu mẫu.', false);
         }).fail(function(xhr){
             const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : 'Không lưu được mẫu.';
@@ -270,12 +314,17 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
 
         const $box = $([
             '<div id="thean-customer-note-templates">',
+                '<div class="thean-cnt-type" role="group" aria-label="Loại mẫu ghi chú">',
+                    '<button type="button" class="button thean-cnt-type-btn is-active" data-type="customer">Gửi khách</button>',
+                    '<button type="button" class="button thean-cnt-type-btn" data-type="private">Nội bộ</button>',
+                '</div>',
                 '<div class="thean-cnt-row">',
                     '<select class="thean-cnt-select" aria-label="Chọn mẫu ghi chú"></select>',
                 '</div>',
                 '<input type="hidden" class="thean-cnt-id">',
+                '<input type="hidden" class="thean-cnt-type-input" value="customer">',
                 '<div class="thean-cnt-row"><input type="text" class="thean-cnt-title" placeholder="Tên mẫu ghi chú"></div>',
-                '<div class="thean-cnt-row"><textarea class="thean-cnt-content" placeholder="Nội dung gửi cho khách"></textarea></div>',
+                '<div class="thean-cnt-row"><textarea class="thean-cnt-content" placeholder="Nội dung ghi chú"></textarea></div>',
                 '<div class="thean-cnt-actions">',
                     '<button type="button" class="button button-primary thean-cnt-use">Chọn</button>',
                     '<button type="button" class="button thean-cnt-new">Tạo mới</button>',
@@ -289,10 +338,23 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
         $textarea.before($box);
         renderOptions($box);
 
+        $box.on('click', '.thean-cnt-type-btn', function(){
+            state.type = $(this).data('type') === 'private' ? 'private' : 'customer';
+            state.selected = '';
+            renderOptions($box);
+            fillEditor($box, null);
+            setStatus($box, 'Đang quản lý mẫu ' + typeLabel(state.type) + '.', false);
+        });
+
         $box.on('change', '.thean-cnt-select', function(){
             state.selected = $(this).val();
-            fillEditor($box, selectedTemplate());
-            setStatus($box, state.selected ? 'Đã tải mẫu. Bấm Chọn để đưa vào ghi chú.' : '', false);
+            const template = selectedTemplate();
+            if (template) {
+                state.type = template.type || state.type;
+            }
+            fillEditor($box, template);
+            renderOptions($box);
+            setStatus($box, state.selected ? 'Đã tải mẫu. Bấm Chọn để đưa vào ' + typeLabel(state.type) + '.' : '', false);
         });
 
         $box.on('click', '.thean-cnt-use', function(){
@@ -302,8 +364,8 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
                 return;
             }
             $textarea.val(content).trigger('input').trigger('change').focus();
-            $('#order_note_type').val('customer').trigger('change');
-            setStatus($box, 'Đã đưa mẫu vào ghi chú gửi khách.', false);
+            $('#order_note_type').val(state.type).trigger('change');
+            setStatus($box, 'Đã đưa mẫu vào ' + typeLabel(state.type) + '.', false);
         });
 
         $box.on('click', '.thean-cnt-new', function(){
@@ -311,13 +373,14 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
             renderOptions($box);
             fillEditor($box, null);
             $box.find('.thean-cnt-title').focus();
-            setStatus($box, 'Nhập nội dung rồi bấm Lưu để tạo mẫu mới.', false);
+            setStatus($box, 'Nhập nội dung rồi bấm Lưu để tạo mẫu ' + typeLabel(state.type) + ' mới.', false);
         });
 
         $box.on('click', '.thean-cnt-save', function(){
             ajaxSave($box, {
                 mode: 'save',
                 id: $box.find('.thean-cnt-id').val(),
+                type: $box.find('.thean-cnt-type-input').val(),
                 title: $box.find('.thean-cnt-title').val(),
                 content: $box.find('.thean-cnt-content').val()
             });
