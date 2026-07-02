@@ -196,6 +196,44 @@
                 });
             });
 
+            // Điều hướng trái/phải: thứ tự sản phẩm theo DOM của panels, cuộn vòng.
+            var order = Array.prototype.map.call(panels, function (p) {
+                return p.getAttribute('data-card');
+            });
+
+            function step(dir) {
+                var activePanel = root.querySelector('.anc-pf-panel.is-active');
+                var cur = activePanel ? order.indexOf(activePanel.getAttribute('data-card')) : 0;
+                var next = (cur + dir + order.length) % order.length;
+                selectCard(order[next]);
+            }
+
+            root.querySelectorAll('.anc-pf-nav--prev').forEach(function (b) {
+                b.addEventListener('click', function () { step(-1); });
+            });
+            root.querySelectorAll('.anc-pf-nav--next').forEach(function (b) {
+                b.addEventListener('click', function () { step(1); });
+            });
+
+            // Vuốt trái/phải trên vùng card (mobile).
+            var panelsWrap = root.querySelector('.anc-pf-panels');
+            if (panelsWrap) {
+                var swipeX = null, swipeY = null;
+                panelsWrap.addEventListener('touchstart', function (e) {
+                    var t = e.changedTouches[0];
+                    swipeX = t.clientX; swipeY = t.clientY;
+                }, { passive: true });
+                panelsWrap.addEventListener('touchend', function (e) {
+                    if (swipeX === null) return;
+                    var t = e.changedTouches[0];
+                    var dx = t.clientX - swipeX, dy = t.clientY - swipeY;
+                    swipeX = swipeY = null;
+                    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+                        step(dx < 0 ? 1 : -1);
+                    }
+                }, { passive: true });
+            }
+
             // Áp background của sản phẩm đang active lúc tải trang (không fade).
             var initial = root.querySelector('.anc-pf-panel.is-active');
             if (initial) { applySectionBg(initial.getAttribute('data-card'), false); }

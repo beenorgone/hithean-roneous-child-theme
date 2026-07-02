@@ -810,6 +810,50 @@ body.anc-modal-locked {
     margin: 0;
 }
 
+/* Nút điều hướng trái/phải để chuyển sản phẩm (kèm chips) */
+.anc-pf-panels {
+    position: relative;
+}
+
+.anc-pf-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: var(--default-color-dark-blue, #0047ba);
+    color: #fff;
+    font-size: 26px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.anc-pf-nav:hover {
+    background: var(--default-color-navy-blue, #001f3f);
+    transform: translateY(-50%) scale(1.06);
+}
+
+.anc-pf-nav:focus-visible {
+    outline: 3px solid var(--default-color-light-blue, #b0dded);
+    outline-offset: 2px;
+}
+
+.anc-pf-nav--prev { left: -6px; }
+.anc-pf-nav--next { right: -6px; }
+
+@media (min-width: 680px) {
+    .anc-pf-nav--prev { left: -18px; }
+    .anc-pf-nav--next { right: -18px; }
+}
+
 /* Chuyển card mượt: panel fade + trượt nhẹ khi trở thành active */
 .anc-pf-panel.is-active {
     animation: anc-card-in 0.4s ease both;
