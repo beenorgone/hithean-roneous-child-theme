@@ -47,6 +47,7 @@ $general_includes = [
 
     /* ORDER */
     'custom-functions/woocommerce/orders/order-metabox.php',
+    'custom-functions/woocommerce/orders/customer-note-templates.php',
     'custom-functions/woocommerce/orders/order-number.php',
     'custom-functions/woocommerce/orders/order-status.php',
     'custom-functions/woocommerce/orders/order-tracking.php',
