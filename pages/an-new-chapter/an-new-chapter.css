@@ -86,7 +86,7 @@
 .anc-hero-products-cluster {
     position: relative;
     width: 100%;
-    aspect-ratio: 1.1 / 1;
+    aspect-ratio: 1.9 / 1;
 }
 
 /* Tất cả ảnh cùng width cơ bản, bottom sẽ override per-image cho arc */
@@ -156,7 +156,7 @@
     text-transform: uppercase !important;
     color: var(--default-color-white) !important;
     margin: 0 auto 14px !important;
-    line-height: 1.12 !important;
+    line-height: 1.4 !important;
     max-width: 20ch;
     text-wrap: balance;
 }
