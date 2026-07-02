@@ -100,6 +100,17 @@ add_shortcode('order_return_management', function () {
     <div class="order-return-list">
         <h2>Quản lý đơn hoàn hàng</h2>
 
+        <div class="return-attach-box">
+            <h3 style="margin-top:0;">➕ Gắn đơn phát sinh trả hàng</h3>
+            <p style="margin:0 0 8px;">Tìm đơn theo <strong>SĐT, mã đơn hoặc email</strong> (nhiều giá trị cách nhau bởi dấu cách/phẩy):</p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <input type="text" id="return_search_input" placeholder="VD: 0912345678, P0123, email@abc.com" style="min-width:300px; padding:6px 10px;">
+                <button id="return_search_btn" class="button--green">Tìm đơn</button>
+            </div>
+            <p class="return-search-msg" style="margin:8px 0 0; color:#0073aa;"></p>
+            <div id="return_search_results" style="margin-top:12px;"></div>
+        </div>
+
         <div style="display:flex; gap:10px; margin-bottom:15px;">
             <button id="load_pending_btn" class="button--green">Tải đơn chưa trả</button>
             <button id="load_completed_btn" class="button--white">Tải đơn đã trả</button>
@@ -144,6 +155,23 @@ add_shortcode('order_return_management', function () {
             border: 1px solid #ddd;
         }
 
+        .return-attach-box {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: #fbfbfb;
+        }
+
+        .attach-return-form select,
+        .attach-return-form input[type="text"] {
+            padding: 4px 8px;
+        }
+
+        .attach-return-form input[name="return_code"] {
+            margin-left: 6px;
+        }
+
         /* Stripe table rows cho cả 2 bảng */
         .widefat.striped tbody tr:nth-child(odd) {
             background-color: #ffffff;
@@ -161,6 +189,8 @@ add_shortcode('order_return_management', function () {
     <script>
         var ormLoadNonce = "<?php echo esc_js(wp_create_nonce('load_return_orders_nonce')); ?>";
         var ormUploadNonce = "<?php echo esc_js(wp_create_nonce('upload_return_images_nonce')); ?>";
+        var ormLookupNonce = "<?php echo esc_js(wp_create_nonce('return_lookup_order_nonce')); ?>";
+        var ormAttachNonce = "<?php echo esc_js(wp_create_nonce('attach_return_order_nonce')); ?>";
         jQuery(function($) {
             if (typeof ajaxurl === 'undefined') {
                 var ajaxurl = '<?php echo esc_url(admin_url('admin-ajax.php')); ?>';
@@ -198,6 +228,82 @@ add_shortcode('order_return_management', function () {
             });
             $('#load_completed_btn').on('click', function() {
                 loadOrders('completed');
+            });
+
+            // ===== Gắn đơn phát sinh trả hàng: tìm đơn theo SĐT / mã đơn / email =====
+            function runReturnSearch() {
+                const q = $('#return_search_input').val().trim();
+                const msg = $('.return-search-msg');
+                const box = $('#return_search_results');
+                if (!q) {
+                    msg.text('Vui lòng nhập SĐT, mã đơn hoặc email.');
+                    return;
+                }
+                msg.text('⏳ Đang tìm...');
+                box.empty();
+                $.post(ajaxurl, {
+                    action: 'return_lookup_order',
+                    search: q,
+                    nonce: ormLookupNonce
+                }, function(resp) {
+                    if (resp.success) {
+                        msg.text(resp.data.message || '');
+                        box.html(resp.data.html);
+                    } else {
+                        msg.text('❌ ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
+                    }
+                }).fail(function() {
+                    msg.text('❌ Lỗi tìm kiếm.');
+                });
+            }
+            $('#return_search_btn').on('click', runReturnSearch);
+            $('#return_search_input').on('keypress', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    runReturnSearch();
+                }
+            });
+
+            // Gắn trả hàng cho 1 đơn (kèm mã vận đơn hoàn + ảnh sự cố phát sinh)
+            $(document).on('submit', '.attach-return-form', function(e) {
+                e.preventDefault();
+                const form = $(this);
+                const orderId = form.data('order-id');
+                const status = form.find('select[name=return_status]').val();
+                const st = form.find('.attach-status');
+                if (!status) {
+                    st.text('Vui lòng chọn trạng thái hoàn.');
+                    return;
+                }
+
+                const fd = new FormData();
+                fd.append('action', 'attach_return_order');
+                fd.append('order_id', orderId);
+                fd.append('return_status', status);
+                fd.append('return_code', form.find('input[name=return_code]').val());
+                fd.append('nonce', ormAttachNonce);
+                const files = form.find('input[type=file]')[0].files;
+                for (let i = 0; i < files.length; i++) fd.append('issue_images[]', files[i]);
+
+                st.text('⏳ Đang gắn...');
+                $.ajax({
+                    url: ajaxurl,
+                    method: 'POST',
+                    data: fd,
+                    processData: false,
+                    contentType: false,
+                    success: function(resp) {
+                        if (resp.success) {
+                            form.replaceWith('<span style="color:#16a085;font-weight:600;">✅ Đã gắn trả hàng: ' + resp.data.status + '</span>');
+                            loadOrders('pending'); // làm mới bảng chưa trả
+                        } else {
+                            st.text('❌ ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
+                        }
+                    },
+                    error: function() {
+                        st.text('❌ Lỗi hệ thống.');
+                    }
+                });
             });
 
             // Mở form upload ảnh
@@ -379,6 +485,226 @@ function hithean_return_get_order_ids(string $type): array
 }
 
 /**
+ * Danh sách trạng thái hoàn "cần xử lý" — dùng cho form gắn đơn phát sinh.
+ */
+function hithean_return_pending_statuses(): array
+{
+    return [
+        'Cần đổi trả',
+        'Cần thu hồi',
+        'Cần giao lại',
+        'Chờ hoàn (Hủy)',
+        'Chờ hoàn (Không giao được)',
+        'Chờ hoàn (Đổi trả)',
+        'Chờ hoàn (Thu hồi)',
+        'Chờ hoàn (Giao 1 phần)',
+    ];
+}
+
+/* ---- Resolver mã đơn (mô phỏng bank-transfer: bỏ tiền tố P0/P1, thử ID và ID bỏ 2 số cuối) ---- */
+function hithean_return_normalize_code($token): string
+{
+    $code = strtoupper(trim((string) $token));
+    $code = str_replace('#', '', $code);
+    if (strpos($code, 'P0') === 0 || strpos($code, 'P1') === 0) {
+        $code = substr($code, 2);
+    }
+    return preg_replace('/\D+/', '', $code);
+}
+
+function hithean_return_resolve_code($token)
+{
+    $normalized = hithean_return_normalize_code($token);
+    if ($normalized === '') return null;
+
+    $attempts = [$normalized];
+    if (strlen($normalized) > 2) {
+        $attempts[] = substr($normalized, 0, -2);
+    }
+
+    foreach ($attempts as $candidate) {
+        if ($candidate === '' || !is_numeric($candidate)) continue;
+        $order = wc_get_order((int) $candidate);
+        if ($order && $order->get_type() === 'shop_order') return $order;
+    }
+    return null;
+}
+
+/* ---- Tìm theo SĐT (storage-aware) ---- */
+function hithean_return_phone_core($phone): string
+{
+    $digits = preg_replace('/\D+/', '', (string) $phone);
+    if (strpos($digits, '84') === 0) $digits = substr($digits, 2);
+    return ltrim($digits, '0');
+}
+
+function hithean_return_find_ids_by_phone($phone): array
+{
+    global $wpdb;
+    $core = hithean_return_phone_core($phone);
+    if (strlen($core) < 8) return [];
+    $like = '%' . $wpdb->esc_like($core) . '%';
+
+    if (hithean_return_hpos_enabled()) {
+        $sql = $wpdb->prepare("
+            SELECT DISTINCT o.id
+            FROM {$wpdb->prefix}wc_orders o
+            INNER JOIN {$wpdb->prefix}wc_order_addresses a ON o.id = a.order_id AND a.address_type = 'billing'
+            WHERE o.type = 'shop_order' AND o.status <> 'trash' AND a.phone LIKE %s
+            ORDER BY o.id DESC LIMIT 30
+        ", $like);
+    } else {
+        $sql = $wpdb->prepare("
+            SELECT DISTINCT p.ID
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+            WHERE p.post_type = 'shop_order' AND p.post_status NOT IN ('trash')
+              AND pm.meta_key = '_billing_phone' AND pm.meta_value LIKE %s
+            ORDER BY p.ID DESC LIMIT 30
+        ", $like);
+    }
+    return array_map('intval', $wpdb->get_col($sql));
+}
+
+/* ---- Tìm theo email (storage-aware) ---- */
+function hithean_return_find_ids_by_email($email): array
+{
+    global $wpdb;
+    $email = sanitize_email((string) $email);
+    if (!$email) return [];
+    $like = '%' . $wpdb->esc_like($email) . '%';
+
+    if (hithean_return_hpos_enabled()) {
+        $sql = $wpdb->prepare("
+            SELECT DISTINCT id FROM {$wpdb->prefix}wc_orders
+            WHERE type = 'shop_order' AND status <> 'trash' AND billing_email LIKE %s
+            ORDER BY id DESC LIMIT 30
+        ", $like);
+    } else {
+        $sql = $wpdb->prepare("
+            SELECT DISTINCT p.ID
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+            WHERE p.post_type = 'shop_order' AND p.post_status NOT IN ('trash')
+              AND pm.meta_key = '_billing_email' AND pm.meta_value LIKE %s
+            ORDER BY p.ID DESC LIMIT 30
+        ", $like);
+    }
+    return array_map('intval', $wpdb->get_col($sql));
+}
+
+/**
+ * Tìm đơn hợp nhất: tách token, dispatch theo loại (email / SĐT / mã đơn).
+ * @return WC_Order[]
+ */
+function hithean_return_search_orders($raw): array
+{
+    $parts = preg_split('/[\s,]+/', (string) $raw, -1, PREG_SPLIT_NO_EMPTY);
+    if (empty($parts)) return [];
+
+    $seen = [];
+    $orders = [];
+    $push = function ($oid) use (&$seen, &$orders) {
+        $oid = (int) $oid;
+        if (!$oid || isset($seen[$oid])) return;
+        $order = wc_get_order($oid);
+        if ($order && $order->get_type() === 'shop_order') {
+            $seen[$oid] = true;
+            $orders[] = $order;
+        }
+    };
+
+    foreach ($parts as $token) {
+        if (strpos($token, '@') !== false) {
+            foreach (hithean_return_find_ids_by_email($token) as $id) $push($id);
+            continue;
+        }
+        $digits = preg_replace('/\D+/', '', $token);
+        if (strlen($digits) >= 9) {
+            foreach (hithean_return_find_ids_by_phone($token) as $id) $push($id);
+            continue;
+        }
+        $order = hithean_return_resolve_code($token);
+        if ($order) $push($order->get_id());
+    }
+
+    return $orders;
+}
+
+/**
+ * Render bảng kết quả tìm đơn — mỗi đơn chưa có return_status thì hiện form gắn
+ * (chọn trạng thái + mã vận đơn hoàn + upload ảnh sự cố). Đơn đã có thì chặn (chống ghi đè).
+ */
+function hithean_return_render_search_results(array $orders): string
+{
+    $statuses = hithean_return_pending_statuses();
+    ob_start(); ?>
+    <table class="widefat striped">
+        <thead>
+            <tr>
+                <th>Mã đơn</th>
+                <th>Khách hàng</th>
+                <th>Ngày</th>
+                <th>Trạng thái đơn</th>
+                <th>Sản phẩm</th>
+                <th>Gắn trả hàng</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($orders as $order):
+                $oid = $order->get_id();
+                $rs  = trim((string) $order->get_meta('return_status'));
+                $items = '';
+                foreach ($order->get_items() as $item) {
+                    $items .= esc_html($item->get_name() . ' x ' . $item->get_quantity()) . '<br>';
+                }
+            ?>
+                <tr>
+                    <td>
+                        <a href="<?= esc_url($order->get_edit_order_url()) ?>" target="_blank" style="color:#0073aa;">#<?= esc_html($oid) ?></a>
+                    </td>
+                    <td>
+                        <?= esc_html($order->get_formatted_billing_full_name()) ?>
+                        <br><small><?= esc_html($order->get_billing_phone()) ?></small>
+                        <?php if ($order->get_billing_email()): ?><br><small><?= esc_html($order->get_billing_email()) ?></small><?php endif; ?>
+                    </td>
+                    <td><?= esc_html(wc_format_datetime($order->get_date_created())) ?></td>
+                    <td><?= esc_html(wc_get_order_status_name($order->get_status())) ?></td>
+                    <td><?= $items ?></td>
+                    <td>
+                        <?php if ($rs !== ''): ?>
+                            <span style="color:#888;">Đã có: <strong><?= esc_html($rs) ?></strong><br>(không thể ghi đè)</span>
+                        <?php else: ?>
+                            <form class="attach-return-form" data-order-id="<?= esc_attr($oid) ?>" enctype="multipart/form-data">
+                                <div>
+                                    <select name="return_status">
+                                        <option value="">— Chọn trạng thái hoàn —</option>
+                                        <?php foreach ($statuses as $s): ?>
+                                            <option value="<?= esc_attr($s) ?>"><?= esc_html($s) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <input type="text" name="return_code" placeholder="Mã vận đơn hoàn hàng (tuỳ chọn)">
+                                </div>
+                                <div style="margin-top:6px;">
+                                    <label>Ảnh sự cố phát sinh (tuỳ chọn):<br>
+                                        <input type="file" name="issue_images[]" multiple accept="image/*"></label>
+                                </div>
+                                <div style="margin-top:6px;">
+                                    <button type="submit" class="button-green button-small">Gắn trả hàng</button>
+                                </div>
+                                <div class="attach-status" style="color:#0073aa;margin-top:4px;"></div>
+                            </form>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php
+    return ob_get_clean();
+}
+
+/**
  * AJAX: Load danh sách đơn hoàn hàng
  */
 add_action('wp_ajax_load_return_orders', function () {
@@ -535,4 +861,104 @@ add_action('wp_ajax_upload_return_images', function () {
     wp_cache_delete('return_orders_completed_v4', 'orders');
 
     wp_send_json_success(['urls' => $uploaded_urls]);
+});
+
+
+/**
+ * AJAX: Tìm đơn để gắn trả hàng (theo SĐT / mã đơn / email)
+ */
+add_action('wp_ajax_return_lookup_order', function () {
+    check_ajax_referer('return_lookup_order_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => 'Không có quyền truy cập'], 403);
+    }
+
+    $search = sanitize_text_field($_POST['search'] ?? '');
+    if ($search === '') {
+        wp_send_json_error(['message' => 'Vui lòng nhập SĐT, mã đơn hoặc email.']);
+    }
+
+    $orders = hithean_return_search_orders($search);
+    if (empty($orders)) {
+        wp_send_json_error(['message' => 'Không tìm thấy đơn phù hợp.']);
+    }
+
+    wp_send_json_success([
+        'html'    => hithean_return_render_search_results($orders),
+        'message' => sprintf('Tìm thấy %d đơn.', count($orders)),
+    ]);
+});
+
+
+/**
+ * AJAX: Gắn 1 đơn phát sinh trả hàng (chặn ghi đè nếu đã có return_status).
+ * Kèm upload ảnh sự cố phát sinh (issue_report_images) + mã vận đơn hoàn (return_code).
+ */
+add_action('wp_ajax_attach_return_order', function () {
+    check_ajax_referer('attach_return_order_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => 'Không có quyền'], 403);
+    }
+
+    $order_id = intval($_POST['order_id'] ?? 0);
+    $status   = sanitize_text_field($_POST['return_status'] ?? '');
+    $code     = sanitize_text_field($_POST['return_code'] ?? '');
+
+    if (!$order_id) wp_send_json_error(['message' => 'Thiếu ID đơn']);
+    if (!in_array($status, hithean_return_pending_statuses(), true)) {
+        wp_send_json_error(['message' => 'Trạng thái hoàn không hợp lệ']);
+    }
+
+    $order = wc_get_order($order_id);
+    if (!$order || $order->get_type() !== 'shop_order') {
+        wp_send_json_error(['message' => 'Không tìm thấy đơn']);
+    }
+
+    // Chặn ghi đè.
+    $existing = trim((string) $order->get_meta('return_status'));
+    if ($existing !== '') {
+        wp_send_json_error(['message' => 'Đơn #' . $order_id . ' đã có trạng thái hoàn: ' . $existing . ' — không thể ghi đè.']);
+    }
+
+    // Upload ảnh sự cố phát sinh (tuỳ chọn).
+    $uploaded_urls = [];
+    if (!empty($_FILES['issue_images']['name'][0])) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+
+        foreach ($_FILES['issue_images']['name'] as $i => $name) {
+            $ext = strtolower(pathinfo((string) $name, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+                continue;
+            }
+            $filename = sprintf('order-return-issue-%d-%s-%d.%s', $order_id, date('Ymd-His'), $i + 1, $ext);
+            $file = [
+                'name' => $filename,
+                'type' => $_FILES['issue_images']['type'][$i],
+                'tmp_name' => $_FILES['issue_images']['tmp_name'][$i],
+                'error' => $_FILES['issue_images']['error'][$i],
+                'size' => $_FILES['issue_images']['size'][$i],
+            ];
+            $aid = hithean_upload_internal_order_image($file, $order_id, $filename);
+            if (!is_wp_error($aid)) {
+                $uploaded_urls[] = wp_get_attachment_url($aid);
+            }
+        }
+    }
+
+    $order->update_meta_data('return_status', $status);
+    if ($code !== '') {
+        $order->update_meta_data('return_code', $code);
+    }
+    if (!empty($uploaded_urls)) {
+        $old = (string) $order->get_meta('issue_report_images');
+        $order->update_meta_data('issue_report_images', trim($old . "\n" . implode("\n", $uploaded_urls)));
+    }
+    $order->save();
+
+    wp_cache_delete('return_orders_pending_v4', 'orders');
+    wp_cache_delete('return_orders_completed_v4', 'orders');
+
+    wp_send_json_success(['status' => $status, 'images' => $uploaded_urls]);
 });

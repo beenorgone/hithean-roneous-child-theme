@@ -376,7 +376,7 @@ function tpc_loader_modules()
             'id' => 'order_return_manager',
             'file' => 'custom-functions/shortcodes/shortcode-order-return-manager.php',
             'shortcodes' => ['order_return_management'],
-            'ajax_actions' => ['load_return_orders', 'upload_return_images'],
+            'ajax_actions' => ['load_return_orders', 'upload_return_images', 'return_lookup_order', 'attach_return_order'],
         ],
     ];
 

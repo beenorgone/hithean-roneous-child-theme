@@ -155,6 +155,12 @@ function thean_register_order_meta_boxes($meta_boxes)
                 'placeholder' => esc_html__('Nhập mã hoàn hàng', 'order-metabox'),
             ],
             [
+                'id'   => 'issue_report_images',
+                'name' => esc_html__('HOÀN HÀNG. Ảnh sự cố phát sinh (URLs)', 'order-metabox'),
+                'type' => 'textarea',
+                'desc' => esc_html__('Mỗi dòng là một URL ảnh (tự thêm khi gắn đơn phát sinh trả hàng)', 'order-metabox'),
+            ],
+            [
                 'id'   => 'issue_result_images',
                 'name' => esc_html__('HOÀN HÀNG. Ảnh trả hàng (URLs)', 'order-metabox'),
                 'type' => 'textarea',
