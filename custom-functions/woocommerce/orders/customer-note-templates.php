@@ -213,18 +213,18 @@ if (!function_exists('thean_customer_note_templates_enqueue')) {
         wp_register_style('thean-customer-note-templates', false, [], '1.0.0');
         wp_enqueue_style('thean-customer-note-templates');
         wp_add_inline_style('thean-customer-note-templates', '
-            #thean-customer-note-templates{margin:0 0 12px;padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#f6f7f7}
-            #thean-customer-note-templates .thean-cnt-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-            #thean-customer-note-templates select,#thean-customer-note-templates input,#thean-customer-note-templates textarea{width:100%;max-width:100%}
+            #thean-customer-note-templates{display:inline-block;width:auto;max-width:100%;margin:0 0 12px;padding:12px;border:1px solid #dcdcde;border-radius:6px;background:#f6f7f7}
+            #thean-customer-note-templates .thean-cnt-row{display:flex;gap:8px;align-items:center;width:auto;max-width:520px;margin-bottom:8px}
+            #thean-customer-note-templates select,#thean-customer-note-templates input,#thean-customer-note-templates textarea{width:420px;max-width:100%}
             #thean-customer-note-templates textarea{min-height:82px;resize:vertical}
-            #thean-customer-note-templates .thean-cnt-type{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+            #thean-customer-note-templates .thean-cnt-type{display:flex;flex-wrap:wrap;gap:6px;width:auto;max-width:520px;margin-bottom:8px}
             #thean-customer-note-templates .thean-cnt-type .button{justify-content:center}
             #thean-customer-note-templates .thean-cnt-type .is-active{background:#2271b1;border-color:#2271b1;color:#fff}
-            #thean-customer-note-templates .thean-cnt-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
-            #thean-customer-note-templates .button{min-height:32px;text-align:center}
+            #thean-customer-note-templates .thean-cnt-actions{display:flex;flex-wrap:wrap;gap:6px;width:auto;max-width:520px;margin-top:8px}
+            #thean-customer-note-templates .button{width:auto;min-height:32px;text-align:center}
             #thean-customer-note-templates .thean-cnt-status{min-height:18px;margin-top:6px;color:#646970}
             #thean-customer-note-templates .thean-cnt-danger{color:#b32d2e}
-            @media (max-width:782px){#thean-customer-note-templates .thean-cnt-row{display:block}#thean-customer-note-templates .thean-cnt-actions{grid-template-columns:1fr 1fr}}
+            @media (max-width:782px){#thean-customer-note-templates{display:block}#thean-customer-note-templates .thean-cnt-row{display:block}#thean-customer-note-templates select,#thean-customer-note-templates input,#thean-customer-note-templates textarea{width:100%}}
         ');
 
         wp_register_script('thean-customer-note-templates', false, ['jquery'], '1.0.0', true);
