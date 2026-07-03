@@ -259,6 +259,49 @@
     }
 
     /* ============================================================
+       HERO PRODUCT COVERFLOW (Swiper — nạp toàn cục qua swiper-slider.php)
+       ============================================================ */
+
+    function initHeroCoverflow() {
+        var el = document.querySelector('.anc-hero-coverflow');
+        if (!el || el.dataset.swiperInit) return;
+
+        function build() {
+            if (!window.Swiper) return false;
+            el.dataset.swiperInit = '1';
+            var reduce = window.matchMedia &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            new window.Swiper(el, {
+                effect: 'coverflow',
+                grabCursor: true,
+                centeredSlides: true,
+                slidesPerView: 'auto',
+                loop: true,
+                speed: 700,
+                a11y: false,
+                coverflowEffect: {
+                    rotate: 32,
+                    stretch: 0,
+                    depth: 130,
+                    modifier: 1,
+                    slideShadows: false
+                },
+                autoplay: reduce ? false : {
+                    delay: 2600,
+                    disableOnInteraction: false,
+                    pauseOnMouseEnter: true
+                }
+            });
+            return true;
+        }
+
+        // Swiper là script footer — nếu chưa sẵn sàng lúc DOMContentLoaded thì đợi window load.
+        if (!build()) {
+            window.addEventListener('load', build, { once: true });
+        }
+    }
+
+    /* ============================================================
        INIT
        ============================================================ */
 
@@ -269,6 +312,7 @@
         initSmoothScroll();
         initGalleries();
         initProductSwitcher();
+        initHeroCoverflow();
         initLazyMaps();
     }
 

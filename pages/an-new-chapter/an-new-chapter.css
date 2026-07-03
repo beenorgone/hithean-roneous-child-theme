@@ -76,54 +76,41 @@
     width: 100%;
 }
 
-/* ---- Product cluster — shelf lineup, same baseline ---- */
+/* ---- Product coverflow (Swiper effect) ---- */
 .anc-hero-products {
-    width: min(92vw, 360px);
+    width: min(94vw, 420px);
     margin: 0 auto;
     flex-shrink: 0;
 }
 
-.anc-hero-products-cluster {
-    position: relative;
+.anc-hero-coverflow {
     width: 100%;
-    aspect-ratio: 1.9 / 1;
+    padding: 6px 0 16px;
 }
 
-/* Tất cả ảnh cùng width cơ bản, bottom sẽ override per-image cho arc */
-.anc-float-img {
-    position: absolute;
-    width: 46%;
-    bottom: 0;
+.anc-hero-coverflow .swiper-slide {
+    width: 58%;
+    max-width: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.45));
+    transition: opacity 0.35s ease, filter 0.35s ease;
+}
+
+.anc-hero-coverflow .swiper-slide img {
+    width: 100%;
+    height: auto;
     object-fit: contain;
-    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.55));
+    display: block;
+    pointer-events: none;
 }
 
-/* Mobile/tablet default: step 16% — giãn rộng hơn, container tự co theo vw nên không bị quá rộng */
-.anc-float-img--1 { left: 0;    bottom: 0%;  z-index: 3; animation: anc-float-1 5.4s ease-in-out infinite 0s; }
-.anc-float-img--2 { left: 13%;  bottom: 5%;  z-index: 4; animation: anc-float-2 5.4s ease-in-out infinite 0.6s; }
-.anc-float-img--3 { left: 25%;  bottom: 11%; width: 52%; z-index: 6; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.65)); animation: anc-float-3 5.4s ease-in-out infinite 1.2s; }
-.anc-float-img--4 { left: 41%;  bottom: 5%;  z-index: 5; animation: anc-float-4 5.4s ease-in-out infinite 1.8s; }
-.anc-float-img--5 { left: 54%;  bottom: 0%;  z-index: 2; animation: anc-float-5 5.4s ease-in-out infinite 2.4s; }
-
-@keyframes anc-float-1 {
-    0%, 100% { transform: rotate(-7deg) translateY(0); }
-    50%       { transform: rotate(-7deg) translateY(-13px); }
-}
-@keyframes anc-float-2 {
-    0%, 100% { transform: rotate(5deg) translateY(0); }
-    50%       { transform: rotate(5deg) translateY(-16px); }
-}
-@keyframes anc-float-3 {
-    0%, 100% { transform: rotate(-3deg) translateY(0); }
-    50%       { transform: rotate(-3deg) translateY(-14px); }
-}
-@keyframes anc-float-4 {
-    0%, 100% { transform: rotate(8deg) translateY(0); }
-    50%       { transform: rotate(8deg) translateY(-11px); }
-}
-@keyframes anc-float-5 {
-    0%, 100% { transform: rotate(-5deg) translateY(0); }
-    50%       { transform: rotate(-5deg) translateY(-13px); }
+/* Slide trung tâm nổi bật */
+.anc-hero-coverflow .swiper-slide-active {
+    opacity: 1;
+    filter: drop-shadow(0 18px 42px rgba(0, 0, 0, 0.6));
 }
 
 /* USDA + EU Organic logos cạnh logo brand trong hero */
@@ -294,21 +281,17 @@
     .anc-hero-trust {
         justify-content: flex-start;
     }
-    /* Desktop: 5 ảnh — container rộng hơn */
+    /* Desktop: coverflow rộng hơn */
     .anc-hero-products {
         flex: 0 0 520px;
         max-width: 520px;
         width: 520px;
         margin: 0;
     }
-
-    /* Desktop float: contain trong container (left + width ≤ 100%) */
-    .anc-float-img          { width: 46%; }
-    .anc-float-img--1       { left: 0;    }
-    .anc-float-img--2       { left: 13%;  }
-    .anc-float-img--3       { left: 24%; width: 52%; }
-    .anc-float-img--4       { left: 41%;  }
-    .anc-float-img--5       { left: 54%;  }
+    .anc-hero-coverflow .swiper-slide {
+        width: 54%;
+        max-width: 300px;
+    }
 }
 
 /* =============================================
@@ -810,9 +793,19 @@ body.anc-modal-locked {
     margin: 0;
 }
 
-/* Nút điều hướng trái/phải để chuyển sản phẩm (kèm chips) */
-.anc-pf-panels {
+/* Hàng điều khiển card: nút "Xem bảng dinh dưỡng" ở giữa, ‹ › overlay 2 mép cùng hàng */
+.anc-pf-controls {
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin-top: 14px;
+}
+
+.anc-pf-controls .product-nutrition-label {
+    margin: 0 !important;
+    min-width: 0;
 }
 
 .anc-pf-nav {
@@ -846,13 +839,8 @@ body.anc-modal-locked {
     outline-offset: 2px;
 }
 
-.anc-pf-nav--prev { left: -6px; }
-.anc-pf-nav--next { right: -6px; }
-
-@media (min-width: 680px) {
-    .anc-pf-nav--prev { left: -18px; }
-    .anc-pf-nav--next { right: -18px; }
-}
+.anc-pf-nav--prev { left: 0; }
+.anc-pf-nav--next { right: 0; }
 
 /* Chuyển card mượt: panel fade + trượt nhẹ khi trở thành active */
 .anc-pf-panel.is-active {
@@ -878,7 +866,6 @@ body.anc-modal-locked {
     #anc-products::after,
     #anc-organic::before,
     #anc-organic::after { transition: none; }
-    .anc-float-img,
     .anc-scroll-arrow { animation: none !important; }
 }
 

@@ -50,12 +50,14 @@
     </div>
 
     <div class="anc-hero-products anc-fade-in" aria-hidden="true">
-      <div class="anc-hero-products-cluster">
-        <img class="anc-float-img anc-float-img--1" src="https://hithean.com/wp-content/uploads/2024/08/Yeast-Hero-Protein-Powder-Original-1-600x600.png" alt="" />
-        <img class="anc-float-img anc-float-img--2" src="https://hithean.com/wp-content/uploads/2024/11/Label-sachet-Yeast-Hero-Overnight-Protein-Powder-front.png" alt="" />
-        <img class="anc-float-img anc-float-img--3" src="https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png" alt="" />
-        <img class="anc-float-img anc-float-img--4" src="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin-8-1-600x600.png" alt="" />
-        <img class="anc-float-img anc-float-img--5" src="https://hithean.com/wp-content/uploads/2025/09/Organic-Matcha-Powder-The-An-Organics-13-600x600.png.webp" alt="" />
+      <div class="swiper anc-hero-coverflow">
+        <div class="swiper-wrapper">
+          <div class="swiper-slide"><img src="https://hithean.com/wp-content/uploads/2024/08/Yeast-Hero-Protein-Powder-Original-1-600x600.png" alt="" /></div>
+          <div class="swiper-slide"><img src="https://hithean.com/wp-content/uploads/2024/11/Label-sachet-Yeast-Hero-Overnight-Protein-Powder-front.png" alt="" /></div>
+          <div class="swiper-slide"><img src="https://hithean.com/wp-content/uploads/2026/04/Label-sachet-Yeast-Hero-Protein-Avocado-Matcha-front-and-back-1.png" alt="" /></div>
+          <div class="swiper-slide"><img src="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin-8-1-600x600.png" alt="" /></div>
+          <div class="swiper-slide"><img src="https://hithean.com/wp-content/uploads/2025/09/Organic-Matcha-Powder-The-An-Organics-13-600x600.png.webp" alt="" /></div>
+        </div>
       </div>
     </div>
 
@@ -330,14 +332,16 @@
     </div>
 
     <div class="anc-pf-panels">
-      <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
-      <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
 
       <!-- ========== ORIGINAL / NHẠT (id 3977) — mặc định ========== -->
       <div class="anc-pf anc-pf-panel is-active" data-card="original" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2026/04/background-yeast-hero-original-2.jpg" style="--card-accent: var(--product-protein-yeast-dark-brown);">
         <div class="anc-pf-visual">
           [wc_product_field id="3977" field="gallery"]
-          [product_nutrition_label product_id="3977"]
+          <div class="anc-pf-controls">
+            <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
+            [product_nutrition_label product_id="3977"]
+            <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
+          </div>
         </div>
         <div class="anc-pf-details">
           <h3 class="anc-pf-name">[wc_product_field id="3977" field="name"]</h3>
@@ -365,7 +369,11 @@
       <div class="anc-pf anc-pf-panel" data-card="matcha" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2026/05/background-yeast-hero.jpg" hidden style="--card-accent: var(--product-protein-yeast-matcha-green);">
         <div class="anc-pf-visual">
           [wc_product_field id="7696" field="gallery"]
-          [product_nutrition_label product_id="7696"]
+          <div class="anc-pf-controls">
+            <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
+            [product_nutrition_label product_id="7696"]
+            <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
+          </div>
         </div>
         <div class="anc-pf-details">
           <span class="anc-pf-badge">KẾT HỢP BƠ VƯỜN RỪNG, MATCHA HỮU CƠ</span>
@@ -415,7 +423,11 @@
       <div class="anc-pf anc-pf-panel" data-card="overnight" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2026/06/background-yeast-hero-overnight-original.jpg" hidden style="--card-accent: var(--product-protein-yeast-overnight-dark-brown);">
         <div class="anc-pf-visual">
           [wc_product_field id="4690" field="gallery"]
-          [product_nutrition_label product_id="4690"]
+          <div class="anc-pf-controls">
+            <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
+            [product_nutrition_label product_id="4690"]
+            <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
+          </div>
         </div>
         <div class="anc-pf-details">
           <span class="anc-pf-badge">CẢM HỨNG TỪ MÓN YẾN MẠCH QUA ĐÊM</span>
@@ -445,7 +457,11 @@
       <div class="anc-pf anc-pf-panel" data-card="midnight" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2026/06/background-yeast-hero.jpg" hidden style="--card-accent: var(--product-protein-yeast-midinight-silk-purple);">
         <div class="anc-pf-visual">
           [wc_product_field id="8548" field="gallery"]
-          [product_nutrition_label product_id="8548"]
+          <div class="anc-pf-controls">
+            <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
+            [product_nutrition_label product_id="8548"]
+            <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
+          </div>
         </div>
         <div class="anc-pf-details">
           <h3 class="anc-pf-name">[wc_product_field id="8548" field="name"]</h3>
@@ -530,14 +546,16 @@
     </div>
 
     <div class="anc-pf-panels">
-      <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
-      <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
 
       <!-- ========== INULIN (id 6241) — mặc định ========== -->
       <div class="anc-pf anc-pf-panel is-active" data-card="inulin" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin.png" style="--card-accent: var(--product-inulin-blue);">
         <div class="anc-pf-visual">
           [wc_product_field id="6241" field="gallery"]
-          [product_nutrition_label product_id="6241"]
+          <div class="anc-pf-controls">
+            <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
+            [product_nutrition_label product_id="6241"]
+            <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
+          </div>
         </div>
         <div class="anc-pf-details">
           <h3 class="anc-pf-name">[wc_product_field id="6241" field="name"]</h3>
@@ -560,7 +578,11 @@
       <div class="anc-pf anc-pf-panel" data-card="matcha" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2026/06/web-background-Organic-Matcha-Powder-The-An-Organics.png" hidden style="--card-accent: var(--product-matcha-green);">
         <div class="anc-pf-visual">
           [wc_product_field id="6228" field="gallery"]
-          [product_nutrition_label product_id="6228"]
+          <div class="anc-pf-controls">
+            <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
+            [product_nutrition_label product_id="6228"]
+            <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
+          </div>
         </div>
         <div class="anc-pf-details">
           <h3 class="anc-pf-name">[wc_product_field id="6228" field="name"]</h3>
@@ -583,7 +605,11 @@
       <div class="anc-pf anc-pf-panel" data-card="matcha-latte" role="tabpanel" data-section-bg="" hidden style="--card-accent: var(--product-matcha-green);">
         <div class="anc-pf-visual">
           [wc_product_field id="6238" field="gallery"]
-          [product_nutrition_label product_id="6238"]
+          <div class="anc-pf-controls">
+            <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
+            [product_nutrition_label product_id="6238"]
+            <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
+          </div>
         </div>
         <div class="anc-pf-details">
           <h3 class="anc-pf-name">[wc_product_field id="6238" field="name"]</h3>
