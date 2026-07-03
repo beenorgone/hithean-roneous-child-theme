@@ -1246,7 +1246,11 @@ function thean_lw_create_coupon(array $reward, array $contact, array $claim_iden
     $code = 'LW-' . strtoupper(wp_generate_password(8, false, false));
     $coupon = new WC_Coupon();
     $coupon->set_code($code);
-    $coupon->set_description('Lucky Wheel');
+    $coupon->set_description(sprintf(
+        'Lucky Wheel - %s: %s',
+        $contact['type'] === 'email' ? 'email' : 'phone',
+        $contact['value']
+    ));
     $coupon->set_usage_limit(1);
     $coupon->set_usage_limit_per_user(1);
     $coupon->set_individual_use(true);
