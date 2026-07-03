@@ -94,6 +94,48 @@ function hithean_product_nutrition_label_shortcode(array $atts = []): string
 }
 add_shortcode('product_nutrition_label', 'hithean_product_nutrition_label_shortcode');
 
+function hithean_product_nutrition_label_register_guide_page(): void
+{
+    add_submenu_page(
+        'edit.php?post_type=product',
+        __('Hướng dẫn Nutrition Label', 'hithean-product-metabox'),
+        __('Nutrition Label Guide', 'hithean-product-metabox'),
+        'edit_products',
+        'hithean-product-nutrition-label-guide',
+        'hithean_product_nutrition_label_render_guide_page'
+    );
+}
+add_action('admin_menu', 'hithean_product_nutrition_label_register_guide_page', 30);
+
+function hithean_product_nutrition_label_render_guide_page(): void
+{
+    if (!current_user_can('edit_products')) wp_die(esc_html__('Không có quyền truy cập.', 'hithean-product-metabox'));
+
+    $shortcode_current = '[product_nutrition_label]';
+    $shortcode_product = '[product_nutrition_label product_id="123"]';
+    $remove_auto_hook  = "add_action('wp', function () {\n    remove_action('hithean_before_product_chat_ctas', 'hithean_render_product_nutrition_label', 10);\n});";
+    $template_snippet  = "<?php echo do_shortcode('[product_nutrition_label]'); ?>";
+    ?>
+    <div class="wrap">
+        <h1><?php esc_html_e('Hướng dẫn setup nút Xem bảng dinh dưỡng', 'hithean-product-metabox'); ?></h1>
+        <p><?php esc_html_e('Mặc định Hithean hiển thị nút ngay phía trên cụm Chat với The An. Nếu cần đặt ở vị trí khác, dùng shortcode hoặc snippet code bên dưới.', 'hithean-product-metabox'); ?></p>
+
+        <h2><?php esc_html_e('1. Nhập dữ liệu ảnh', 'hithean-product-metabox'); ?></h2>
+        <p><?php esc_html_e('Trong trang sửa sản phẩm, điền field Bảng thành phần / dinh dưỡng (CSV). Mỗi dòng gồm: Tiêu đề ảnh, URL ảnh.', 'hithean-product-metabox'); ?></p>
+
+        <h2><?php esc_html_e('2. Đặt thủ công bằng shortcode', 'hithean-product-metabox'); ?></h2>
+        <pre><code><?php echo esc_html($shortcode_current); ?></code></pre>
+        <pre><code><?php echo esc_html($shortcode_product); ?></code></pre>
+
+        <h2><?php esc_html_e('3. Dời vị trí bằng code', 'hithean-product-metabox'); ?></h2>
+        <p><?php esc_html_e('Nếu đặt shortcode trực tiếp vào template, nên bỏ auto hook mặc định để tránh hiện 2 nút.', 'hithean-product-metabox'); ?></p>
+        <pre><code><?php echo esc_html($remove_auto_hook); ?></code></pre>
+        <p><?php esc_html_e('Sau đó chèn shortcode vào vị trí mong muốn trong template sản phẩm:', 'hithean-product-metabox'); ?></p>
+        <pre><code><?php echo esc_html($template_snippet); ?></code></pre>
+    </div>
+    <?php
+}
+
 function hithean_product_nutrition_label_assets(): void
 {
     if (!is_product()) return;
