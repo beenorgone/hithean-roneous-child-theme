@@ -349,6 +349,9 @@ if (!function_exists('social_display_print_assets')) {
     var lb=document.getElementById('sd-lightbox');
     if(lb && !lb.dataset.bound){
       lb.dataset.bound='1';
+      /* Đưa lightbox ra body: tránh bị neo vào ancestor có transform (vd .anc-fade-in)
+         khiến position:fixed lệch về giữa widget thay vì giữa màn hình. */
+      if(lb.parentNode!==document.body){document.body.appendChild(lb);}
       var frame=lb.querySelector('.sd-lightbox__frame');
       function openLB(id){
         frame.innerHTML='<iframe src="https://www.tiktok.com/player/v1/'+id+'?autoplay=1&loop=1&rel=0&description=0&music_info=0" allow="autoplay;encrypted-media;fullscreen" allowfullscreen></iframe>';
