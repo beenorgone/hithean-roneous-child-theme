@@ -1247,9 +1247,10 @@ function thean_lw_create_coupon(array $reward, array $contact, array $claim_iden
     $coupon = new WC_Coupon();
     $coupon->set_code($code);
     $coupon->set_description(sprintf(
-        'Lucky Wheel - %s: %s',
+        'Lucky Wheel - %s: %s - IP: %s',
         $contact['type'] === 'email' ? 'email' : 'phone',
-        $contact['value']
+        $contact['value'],
+        thean_lw_client_ip()
     ));
     $coupon->set_usage_limit(1);
     $coupon->set_usage_limit_per_user(1);
@@ -1362,6 +1363,11 @@ function thean_lw_pass_interaction_gate(array $state, int $min_age_seconds): boo
 
 function thean_lw_client_ip_hash(): string
 {
-    $ip = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : 'unknown';
-    return hash('sha256', $ip);
+    return hash('sha256', thean_lw_client_ip());
+}
+
+function thean_lw_client_ip(): string
+{
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? trim((string) $_SERVER['REMOTE_ADDR']) : '';
+    return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : 'unknown';
 }
