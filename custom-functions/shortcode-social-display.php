@@ -253,6 +253,7 @@ if (!function_exists('social_display_print_assets')) {
 .social-display--collage{padding-bottom:3rem}
 .social-display__collage{position:relative;z-index:10;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:1rem 1.25rem;max-width:80rem;margin:2.5rem auto 0;padding:0 1.5rem}
 .social-display__collage .social-display__card{width:13rem;transition:transform .35s}
+@media(min-width:769px){.social-display[style*="--sd-cols"] .social-display__collage .social-display__card{width:calc((100% - (var(--sd-cols) - 1) * 1.25rem) / var(--sd-cols))}}
 .social-display__collage .social-display__card:nth-child(odd){transform:rotate(-5deg) translateY(1.5rem)}
 .social-display__collage .social-display__card:nth-child(even){transform:rotate(4deg)}
 .social-display__collage .social-display__card:nth-child(3n){transform:rotate(-2deg) translateY(2.75rem)}
@@ -384,6 +385,7 @@ if (!function_exists('social_display_prepare')) {
             'ids'       => '',
             'urls'      => '',
             'limit'     => 20,
+            'columns'   => 0,
             'bg'        => '#fdf6e3',
             'accent'    => '#0f766e',
             'heading_color' => '#0a1912',
@@ -401,12 +403,20 @@ if (!function_exists('social_display_prepare')) {
 if (!function_exists('social_display_style_vars')) {
     function social_display_style_vars(array $atts): string
     {
-        return sprintf(
+        $vars = sprintf(
             '--sd-bg:%s;--sd-accent:%s;--sd-heading:%s',
             esc_attr($atts['bg']),
             esc_attr($atts['accent']),
             esc_attr($atts['heading_color'])
         );
+
+        // Số cột cố định cho collage (0 = tự động theo chiều rộng).
+        $cols = (int) ($atts['columns'] ?? 0);
+        if ($cols > 0) {
+            $vars .= ';--sd-cols:' . $cols;
+        }
+
+        return $vars;
     }
 }
 
