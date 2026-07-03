@@ -75,6 +75,12 @@
         html.classList.remove('thean-lw-open');
     }
 
+    function dismissModalForSession() {
+        window.sessionStorage.setItem('thean_lw_dismissed', '1');
+        dismissed = true;
+        closeModal();
+    }
+
     function contextTriggerText() {
         if (TheanLuckyWheel.context === 'cart') return 'Giữ ưu đãi ' + TheanLuckyWheel.couponHoldHours + 'h';
         return 'Nhận ưu đãi hôm nay';
@@ -371,20 +377,16 @@
     });
 
     closeNodes.forEach(function (node) {
-        node.addEventListener('click', closeModal);
+        node.addEventListener('click', dismissModalForSession);
     });
 
     if (dismissBtn) {
-        dismissBtn.addEventListener('click', function () {
-            window.sessionStorage.setItem('thean_lw_dismissed', '1');
-            dismissed = true;
-            closeModal();
-        });
+        dismissBtn.addEventListener('click', dismissModalForSession);
     }
 
     document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            closeModal();
+        if (event.key === 'Escape' && !modal.hidden) {
+            dismissModalForSession();
         }
     });
 
