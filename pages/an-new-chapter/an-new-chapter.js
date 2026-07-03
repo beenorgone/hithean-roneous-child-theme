@@ -281,9 +281,9 @@
                 a11y: false,
                 slideToClickedSlide: true,
                 coverflowEffect: {
-                    rotate: 26,
-                    stretch: -28,
-                    depth: 90,
+                    rotate: 20,
+                    stretch: 0,
+                    depth: 100,
                     modifier: 1,
                     slideShadows: false
                 },

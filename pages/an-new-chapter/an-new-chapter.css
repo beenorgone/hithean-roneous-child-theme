@@ -78,7 +78,7 @@
 
 /* ---- Product coverflow (Swiper effect) ---- */
 .anc-hero-products {
-    width: min(96vw, 480px);
+    width: min(96vw, 500px);
     margin: 0 auto;
     flex-shrink: 0;
 }
@@ -89,8 +89,8 @@
 }
 
 .anc-hero-coverflow .swiper-slide {
-    width: 68%;
-    max-width: 300px;
+    width: 55%;
+    max-width: 280px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -283,14 +283,14 @@
     }
     /* Desktop: coverflow rộng hơn */
     .anc-hero-products {
-        flex: 0 0 560px;
-        max-width: 560px;
-        width: 560px;
+        flex: 0 0 580px;
+        max-width: 580px;
+        width: 580px;
         margin: 0;
     }
     .anc-hero-coverflow .swiper-slide {
-        width: 60%;
-        max-width: 340px;
+        width: 52%;
+        max-width: 320px;
     }
 }
 
