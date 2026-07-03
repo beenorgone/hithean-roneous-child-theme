@@ -1142,6 +1142,8 @@ function thean_lw_latest_claim_time(array $identity): int
 
 function thean_lw_claim_coupon_ids(array $identities, int $limit = 1, array $date_query = []): array
 {
+    static $cache = [];
+
     $meta_query = [
         'relation' => 'OR',
     ];
@@ -1195,7 +1197,24 @@ function thean_lw_claim_coupon_ids(array $identities, int $limit = 1, array $dat
         $args['date_query'] = $date_query;
     }
 
-    return array_map('intval', get_posts($args));
+    $cache_key = md5(wp_json_encode([
+        'identities' => array_map(static function ($identity) {
+            return [
+                'type' => (string) ($identity['type'] ?? ''),
+                'value' => (string) ($identity['value'] ?? ''),
+                'hash' => (string) ($identity['hash'] ?? ''),
+            ];
+        }, $identities),
+        'limit' => $limit,
+        'date_query' => $date_query,
+    ]));
+
+    if (isset($cache[$cache_key])) {
+        return $cache[$cache_key];
+    }
+
+    $cache[$cache_key] = array_map('intval', get_posts($args));
+    return $cache[$cache_key];
 }
 
 function thean_lw_set_claim_locks(array $identities): void
@@ -1298,7 +1317,7 @@ function thean_lw_send_to_sheets(array $payload): void
     }
 
     $args = [
-        'timeout' => 5,
+        'timeout' => 0.01,
         'blocking' => false,
         'headers' => [
             'Content-Type' => 'application/json',
