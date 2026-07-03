@@ -1803,6 +1803,11 @@ body.anc-modal-locked {
     margin: 0 auto;
 }
 
+/* Social display span full-width (tràn hết padding ngang 20px của #anc-social) */
+.anc-social-display {
+    margin-inline: -20px;
+}
+
 .anc-social-embed {
     max-width: 605px;
     margin: 0 auto 24px;
