@@ -1808,6 +1808,15 @@ body.anc-modal-locked {
     margin-inline: -20px;
 }
 
+/* Nới rộng lưới collage (mặc định shortcode 80rem) → dùng gần hết chiều rộng */
+.anc-social-display .social-display__collage {
+    max-width: 160rem;
+}
+
+.anc-social-display .social-display__heading {
+    max-width: none;
+}
+
 .anc-social-embed {
     max-width: 605px;
     margin: 0 auto 24px;
