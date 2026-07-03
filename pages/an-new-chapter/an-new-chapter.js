@@ -279,10 +279,11 @@
                 loop: true,
                 speed: 700,
                 a11y: false,
+                slideToClickedSlide: true,
                 coverflowEffect: {
-                    rotate: 32,
-                    stretch: 0,
-                    depth: 130,
+                    rotate: 26,
+                    stretch: -28,
+                    depth: 90,
                     modifier: 1,
                     slideShadows: false
                 },
