@@ -364,6 +364,22 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
     }
 }
 
+/**
+ * Link sửa coupon cho operator. Không dùng get_edit_post_link() trong lúc
+ * mạo danh khách vì hàm đó kiểm tra quyền theo current user hiện tại.
+ */
+function order_creator_coupon_edit_url(int $coupon_id): string
+{
+    if ($coupon_id <= 0 || empty(order_creator_state()['is_admin'])) {
+        return '';
+    }
+
+    return (string) add_query_arg([
+        'post'   => $coupon_id,
+        'action' => 'edit',
+    ], admin_url('post.php'));
+}
+
 /** Nạp SP, coupon, phí, ship vào giỏ theo payload (chưa tính tổng). */
 function order_creator_populate_cart(array $payload): void
 {
@@ -572,7 +588,7 @@ function order_creator_coupon_detail(string $code): ?array
         'code'        => $coupon->get_code(),
         'description' => wp_strip_all_tags($coupon->get_description()),
         'rows'        => $rows,
-        'edit_url'    => $is_admin ? (string) get_edit_post_link($id, 'raw') : '',
+        'edit_url'    => $is_admin ? order_creator_coupon_edit_url($id) : '',
     ];
 }
 
