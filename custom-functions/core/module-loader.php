@@ -37,6 +37,7 @@ $general_includes = [
     // shortcode-order-shipped, shortcode-order-export-confirm → conditional (tpc_loader_modules)
     'custom-functions/shortcodes/shortcode-google-docs.php',
     'custom-functions/shortcodes/shortcode-embed.php',
+    'custom-functions/shortcodes/shortcode-certifications.php',
     'custom-functions/admin/admin-settings-tools.php',
     'custom-functions/woocommerce/products/product-tab-post-type.php',
     'custom-functions/admin/blogpost-metabox.php',

@@ -594,40 +594,9 @@ body.anc-modal-locked {
 }
 
 /* =============================================
-   QC / PRODUCTION SYSTEM
+   QC / PRODUCTION SYSTEM → chuyển sang shortcode [certifications]
+   (styling nằm inline trong shortcode-certifications.php)
    ============================================= */
-
-#anc-qc {
-    background-color: var(--product-protein-yeast-dark-brown-2);
-    padding: 72px 24px;
-    text-align: center;
-    position: relative;
-}
-#anc-qc::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--product-protein-yeast-dark-brown-2);
-    z-index: 0;
-}
-#anc-qc > * { position: relative; z-index: 1; }
-
-.anc-qc-inner {
-    max-width: 960px;
-    margin: 0 auto;
-}
-
-#anc-qc .anc-section-title {
-    color: var(--default-color-white) !important;
-}
-
-.anc-qc-desc {
-    max-width: 600px;
-    margin: 0 auto 40px;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 15px;
-    line-height: 1.7;
-}
 
 .anc-qc-factory,
 .anc-qc-process {
