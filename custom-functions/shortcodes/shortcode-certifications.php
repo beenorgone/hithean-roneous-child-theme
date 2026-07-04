@@ -183,6 +183,13 @@ if (!function_exists('ivar_certifications_shortcode')) {
         $atts = shortcode_atts([
             'id'         => '',
             'class'      => '',                 // thêm class vào <section> để nhắm CSS tự do
+            // Tiêu đề/mô tả — MẶC ĐỊNH RỖNG (shortcode không tự áp .certs-title).
+            // Cách 1 (khuyến nghị, tuỳ ý styling): dùng nội dung bao
+            //   [certifications]<h2 style="...">...</h2>...[/certifications] → render y nguyên markup của bạn.
+            // Cách 2 (tiện, có sẵn style .certs-*): truyền atts title/desc/subheading.
+            'title'      => '',
+            'desc'       => '',
+            'subheading' => '',
             'more_label' => 'Tìm hiểu thêm →',
             // Style qua CSS variables — để trống = dùng mặc định trong CSS:
             'bg'         => '#614132',          // nền section
@@ -273,9 +280,23 @@ if (!function_exists('ivar_certifications_shortcode')) {
         $id_attr    = $atts['id'] !== '' ? ' id="' . esc_attr($atts['id']) . '"' : '';
         $class_attr = 'certs' . ($atts['class'] !== '' ? ' ' . esc_attr($atts['class']) : '');
 
-        // Tiêu đề/subtitle: do người dùng tự viết trong nội dung bao của shortcode.
-        //   [certifications]<h2 class="certs-title">…</h2>…[/certifications]
-        $head = ($content !== null && trim($content) !== '') ? do_shortcode($content) : '';
+        // Tiêu đề/subtitle: mặc định render sẵn với class styled từ atts (title/desc/subheading).
+        // Nếu có nội dung bao [certifications]…[/certifications] thì dùng nó thay cho các atts trên.
+        $inner = $content !== null ? trim($content) : '';
+        if ($inner !== '') {
+            $head = do_shortcode($content);
+        } else {
+            $head = '';
+            if ($atts['title'] !== '') {
+                $head .= '<h2 class="certs-title">' . wp_kses_post($atts['title']) . '</h2>';
+            }
+            if ($atts['desc'] !== '') {
+                $head .= '<p class="certs-desc">' . wp_kses_post($atts['desc']) . '</p>';
+            }
+            if ($atts['subheading'] !== '') {
+                $head .= '<p class="certs-subheading">' . wp_kses_post($atts['subheading']) . '</p>';
+            }
+        }
 
         $section = sprintf(
             '<section class="%s"' . $id_attr . ' style="%s">'
