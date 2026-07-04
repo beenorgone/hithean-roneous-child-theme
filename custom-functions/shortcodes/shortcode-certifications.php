@@ -330,7 +330,7 @@ if (!function_exists('ivar_cert_assets')) {
 
         $css = <<<'CSS'
 <style id="cert-styles">
-.certs{background:var(--cert-bg,#614132) !important;padding:var(--cert-padding,72px 24px);text-align:center}
+.certs{background:var(--cert-bg) !important;padding:var(--cert-padding,72px 24px);text-align:center}
 .certs *{box-sizing:border-box}
 .certs-inner{max-width:var(--cert-maxw,960px);margin:0 auto}
 .certs-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:2px;text-align:center;margin:0 0 10px;color:var(--cert-on-bg,#fff);font-size:clamp(1.6rem,4vw,2.4rem);line-height:1.15}
