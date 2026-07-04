@@ -257,15 +257,44 @@ add_action('woocommerce_cart_calculate_fees', function ($cart) {
     }
 }, 1000);
 
+/** Woo Discount Rules Pro có rule freeship riêng nhưng đôi khi chưa register rate trong AJAX. */
+function order_creator_wdr_free_shipping_applies(): bool
+{
+    if (class_exists('\WDRPro\App\Rules\FreeShipping') && is_callable(['\WDRPro\App\Rules\FreeShipping', 'cartHasFreeShipping'])) {
+        return (bool) \WDRPro\App\Rules\FreeShipping::cartHasFreeShipping();
+    }
+    if (class_exists('\Wdr\App\Controllers\DiscountCalculator') && is_callable(['\Wdr\App\Controllers\DiscountCalculator', 'getFreeshippingMethod'])) {
+        $discount = \Wdr\App\Controllers\DiscountCalculator::getFreeshippingMethod();
+        return !empty($discount['free_shipping']);
+    }
+    return false;
+}
+
 /**
- * Ghi đè phí ship khi nhân viên nhập phí thủ công.
- * Áp cho TẤT CẢ phương thức (không chỉ method đang chọn) vì lúc WC tính & cache
- * rate trong add_to_cart thì chosen_shipping_methods chưa được set → nếu chỉ ghi
- * đè method đang chọn sẽ trượt và đơn lấy phí ship mặc định.
+ * Ship trong order creator:
+ * - Không nhập phí thủ công: giữ pipeline checkout, bổ sung rate WDR freeship nếu rule đang apply.
+ * - Có nhập phí thủ công: ghi đè cost của mọi rate để đơn lưu đúng phí nhân viên đặt.
  */
 add_filter('woocommerce_package_rates', function ($rates) {
     $state = &order_creator_state();
-    if (!$state['active'] || empty($state['manual_shipping']) || $state['shipping_cost'] === null || !is_array($rates)) {
+    if (!$state['active'] || !is_array($rates)) {
+        return $rates;
+    }
+
+    if (empty($state['manual_shipping'])) {
+        if (order_creator_wdr_free_shipping_applies() && !isset($rates['wdr_free_shipping'])) {
+            $rates['wdr_free_shipping'] = new WC_Shipping_Rate(
+                'wdr_free_shipping',
+                __('Free shipping', 'woo-discount-rules-pro'),
+                0,
+                [],
+                'wdr_free_shipping'
+            );
+        }
+        return $rates;
+    }
+
+    if ($state['shipping_cost'] === null) {
         return $rates;
     }
 
