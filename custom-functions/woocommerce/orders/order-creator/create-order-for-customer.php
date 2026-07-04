@@ -38,7 +38,7 @@ if (!defined('ORDER_CREATOR_CAP')) {
 
 function &order_creator_state(): array
 {
-    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'shipping_cost' => null, 'source_prices' => [], 'coupon_results' => []];
+    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'manual_shipping' => false, 'shipping_cost' => null, 'source_prices' => [], 'coupon_results' => []];
     return $state;
 }
 
@@ -265,7 +265,7 @@ add_action('woocommerce_cart_calculate_fees', function ($cart) {
  */
 add_filter('woocommerce_package_rates', function ($rates) {
     $state = &order_creator_state();
-    if (!$state['active'] || $state['shipping_cost'] === null || !is_array($rates)) {
+    if (!$state['active'] || empty($state['manual_shipping']) || $state['shipping_cost'] === null || !is_array($rates)) {
         return $rates;
     }
 
@@ -347,6 +347,7 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
     } finally {
         $state['active'] = false;
         $state['fees']   = [];
+        $state['manual_shipping'] = false;
         $state['shipping_cost'] = null;
         $state['source_prices'] = [];
         $state['coupon_results'] = [];
@@ -391,8 +392,8 @@ function order_creator_reset_shipping_cache(): void
     }
 }
 
-/** Chọn rate freeship khi rule tạo rate miễn phí nhưng session vẫn giữ rate cũ. */
-function order_creator_choose_free_shipping_rate(): void
+/** Chọn shipping rate giống checkout: ưu tiên freeship, rồi rate đang chọn, rồi rate đầu tiên. */
+function order_creator_choose_checkout_shipping_rate(): void
 {
     if (!function_exists('WC') || !WC()->session || !WC()->shipping()) {
         return;
@@ -404,10 +405,12 @@ function order_creator_choose_free_shipping_rate(): void
         $rates = (array) ($package['rates'] ?? []);
         $current_id = (string) ($chosen[$package_key] ?? '');
         $current_rate = $current_id !== '' && isset($rates[$current_id]) ? $rates[$current_id] : null;
-        if ($current_rate && (float) $current_rate->get_cost() <= 0) {
-            continue;
-        }
+        $fallback_id = '';
+        $package_changed = false;
         foreach ($rates as $rate_id => $rate) {
+            if ($fallback_id === '') {
+                $fallback_id = (string) $rate_id;
+            }
             if (!is_callable([$rate, 'get_method_id'])) {
                 continue;
             }
@@ -415,8 +418,13 @@ function order_creator_choose_free_shipping_rate(): void
             if (in_array($method_id, ['wdr_free_shipping', 'free_shipping'], true) && (float) $rate->get_cost() <= 0) {
                 $chosen[$package_key] = $rate_id;
                 $changed = true;
+                $package_changed = true;
                 break;
             }
+        }
+        if (!$package_changed && !$current_rate && $fallback_id !== '') {
+            $chosen[$package_key] = $fallback_id;
+            $changed = true;
         }
     }
 
@@ -436,7 +444,7 @@ function order_creator_calculate_cart_totals(): void
     WC()->cart->calculate_totals();
     order_creator_reset_shipping_cache();
     WC()->cart->calculate_shipping();
-    order_creator_choose_free_shipping_rate();
+    order_creator_choose_checkout_shipping_rate();
     WC()->cart->calculate_totals();
 }
 
@@ -445,7 +453,8 @@ function order_creator_populate_cart(array $payload): void
 {
     $state = &order_creator_state();
     $state['fees'] = [];
-    $state['shipping_cost'] = isset($payload['shipping_cost']) && $payload['shipping_cost'] !== '' && is_numeric($payload['shipping_cost'])
+    $state['manual_shipping'] = isset($payload['shipping_cost']) && $payload['shipping_cost'] !== '' && is_numeric($payload['shipping_cost']);
+    $state['shipping_cost'] = $state['manual_shipping']
         ? max(0, (float) $payload['shipping_cost'])
         : null;
 
@@ -543,8 +552,10 @@ function order_creator_populate_cart(array $payload): void
         ];
     }
 
-    if (!empty($payload['shipping_method']) && WC()->session) {
+    if ($state['manual_shipping'] && !empty($payload['shipping_method']) && WC()->session) {
         WC()->session->set('chosen_shipping_methods', [wc_clean((string) $payload['shipping_method'])]);
+    } elseif (!$state['manual_shipping'] && WC()->session) {
+        WC()->session->set('chosen_shipping_methods', []);
     }
     // Xoá cache rate (WC cache theo hash gói hàng, không gồm phí ship thủ công) để
     // filter woocommerce_package_rates chạy lại với shipping_cost mới mỗi lần tính.
