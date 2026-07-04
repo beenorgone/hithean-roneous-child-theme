@@ -178,17 +178,21 @@ if (!function_exists('ivar_cert_modal_body')) {
 }
 
 if (!function_exists('ivar_certifications_shortcode')) {
-    function ivar_certifications_shortcode($atts): string
+    function ivar_certifications_shortcode($atts, $content = null): string
     {
         $atts = shortcode_atts([
             'id'         => '',
-            'title'      => 'HỆ THỐNG SẢN XUẤT &amp; CHỨNG NHẬN',
-            'desc'       => 'Mọi sản phẩm được xây dựng trên nền tảng khoa học và minh bạch — từ nguyên liệu đầu vào đến thành phẩm trên kệ.',
-            'subheading' => 'Chứng nhận &amp; kiểm nghiệm độc lập — bấm vào từng mục để xem chi tiết',
+            'class'      => '',                 // thêm class vào <section> để nhắm CSS tự do
             'more_label' => 'Tìm hiểu thêm →',
-            'bg'         => '#614132',
-            'primary'    => '#0047ba',
-            'accent'     => '#fbb917',
+            // Style qua CSS variables — để trống = dùng mặc định trong CSS:
+            'bg'         => '#614132',          // nền section
+            'primary'    => '#0047ba',          // màu chính: tiêu đề, số bước, link, tiêu đề card
+            'accent'     => '#fbb917',          // viền trên card, viền trái "kiểm tra chéo", nút
+            'on_bg'      => '',                 // màu chữ tiêu đề/mô tả trên nền section (mặc định trắng)
+            'card_bg'    => '',                 // nền card + nền modal (mặc định #fff)
+            'text'       => '',                 // màu chữ nội dung (mặc định #555)
+            'padding'    => '',                 // padding section, vd "56px 20px"
+            'max_width'  => '',                 // bề rộng vùng nội dung, vd "1100px"
         ], $atts, 'certifications');
 
         $cfg   = ivar_certifications_config();
@@ -197,12 +201,23 @@ if (!function_exists('ivar_certifications_shortcode')) {
             return '';
         }
 
-        $style_vars = sprintf(
-            '--cert-bg:%s;--cert-primary:%s;--cert-accent:%s',
-            esc_attr($atts['bg']),
-            esc_attr($atts['primary']),
-            esc_attr($atts['accent'])
-        );
+        $var_map = [
+            '--cert-bg'      => $atts['bg'],
+            '--cert-primary' => $atts['primary'],
+            '--cert-accent'  => $atts['accent'],
+            '--cert-on-bg'   => $atts['on_bg'],
+            '--cert-card-bg' => $atts['card_bg'],
+            '--cert-text'    => $atts['text'],
+            '--cert-padding' => $atts['padding'],
+            '--cert-maxw'    => $atts['max_width'],
+        ];
+        $parts = [];
+        foreach ($var_map as $k => $v) {
+            if (trim((string) $v) !== '') {
+                $parts[] = $k . ':' . $v;
+            }
+        }
+        $style_vars = implode(';', $parts);
 
         // Grid các card + modal đơn
         $grid    = '';
@@ -255,26 +270,29 @@ if (!function_exists('ivar_certifications_shortcode')) {
             . '<div class="cert-modal-dialog"><button type="button" class="cert-modal-close" data-cert-close aria-label="Đóng">&times;</button>'
             . '<div class="cert-modal-body">' . $all_body . '</div></div></div>';
 
-        $id_attr = $atts['id'] !== '' ? ' id="' . esc_attr($atts['id']) . '"' : '';
+        $id_attr    = $atts['id'] !== '' ? ' id="' . esc_attr($atts['id']) . '"' : '';
+        $class_attr = 'certs' . ($atts['class'] !== '' ? ' ' . esc_attr($atts['class']) : '');
+
+        // Tiêu đề/subtitle: do người dùng tự viết trong nội dung bao của shortcode.
+        //   [certifications]<h2 class="certs-title">…</h2>…[/certifications]
+        $head = ($content !== null && trim($content) !== '') ? do_shortcode($content) : '';
 
         $section = sprintf(
-            '<section class="certs"' . $id_attr . ' style="%s">'
+            '<section class="%s"' . $id_attr . ' style="%s">'
                 . '<div class="certs-inner">'
-                . '<h2 class="certs-title">%s</h2>'
-                . '<p class="certs-desc">%s</p>'
-                . '<p class="certs-subheading">%s</p>'
+                . '%s'
                 . '<div class="certs-grid">%s</div>'
                 . '<button type="button" class="cert-more-btn" data-cert-open="cert-modal-all">%s</button>'
                 . '</div></section>',
+            esc_attr($class_attr),
             esc_attr($style_vars),
-            wp_kses_post($atts['title']),
-            wp_kses_post($atts['desc']),
-            wp_kses_post($atts['subheading']),
+            $head,
             $grid,
             esc_html($atts['more_label'])
         );
 
-        return ivar_cert_assets() . $section . '<div class="cert-modals">' . $modals . '</div>';
+        return ivar_cert_assets() . $section
+            . '<div class="cert-modals" style="' . esc_attr($style_vars) . '">' . $modals . '</div>';
     }
     add_shortcode('certifications', 'ivar_certifications_shortcode');
 }
@@ -291,21 +309,21 @@ if (!function_exists('ivar_cert_assets')) {
 
         $css = <<<'CSS'
 <style id="cert-styles">
-.certs{background:var(--cert-bg,#614132);padding:72px 24px;text-align:center}
+.certs{background:var(--cert-bg,#614132);padding:var(--cert-padding,72px 24px);text-align:center}
 .certs *{box-sizing:border-box}
-.certs-inner{max-width:960px;margin:0 auto}
-.certs-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:2px;text-align:center;margin:0 0 10px;color:#fff;font-size:clamp(1.6rem,4vw,2.4rem);line-height:1.15}
-.certs-desc{max-width:600px;margin:0 auto 40px;color:rgba(255,255,255,.85);font-size:15px;line-height:1.7}
-.certs-subheading{color:rgba(255,255,255,.8);font-size:14px;margin:0 0 36px}
+.certs-inner{max-width:var(--cert-maxw,960px);margin:0 auto}
+.certs-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:2px;text-align:center;margin:0 0 10px;color:var(--cert-on-bg,#fff);font-size:clamp(1.6rem,4vw,2.4rem);line-height:1.15}
+.certs-desc{max-width:600px;margin:0 auto 40px;color:var(--cert-on-bg,rgba(255,255,255,.85));font-size:15px;line-height:1.7}
+.certs-subheading{color:var(--cert-on-bg,rgba(255,255,255,.8));font-size:14px;margin:0 0 36px}
 .certs-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:36px;text-align:left}
 @media(min-width:700px){.certs-grid{grid-template-columns:repeat(3,1fr)}}
-.cert-item{display:flex;flex-direction:column;align-items:flex-start;gap:12px;width:100%;background:#fff;border:none;border-top:4px solid var(--cert-accent,#fbb917);padding:20px 18px;margin:0;text-align:left;font-family:inherit;cursor:pointer;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);transition:transform .15s ease,box-shadow .15s ease}
+.cert-item{display:flex;flex-direction:column;align-items:flex-start;gap:12px;width:100%;background:var(--cert-card-bg,#fff);border:none;border-top:4px solid var(--cert-accent,#fbb917);padding:20px 18px;margin:0;text-align:left;font-family:inherit;cursor:pointer;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);transition:transform .15s ease,box-shadow .15s ease}
 .cert-item:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.18)}
 .cert-logos{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-height:44px}
 .cert-logo{height:120px;width:auto;max-width:100%;object-fit:contain;display:block}
 .cert-text{display:flex;flex-direction:column;gap:3px;line-height:1.3}
 .cert-text strong{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.5px;color:var(--cert-primary,#0047ba);text-transform:uppercase}
-.cert-text>span{font-size:12px;color:#555}
+.cert-text>span{font-size:12px;color:var(--cert-text,#555)}
 .cert-subtext{font-size:12px;font-style:italic;color:#666}
 .cert-subtext:empty{display:none}
 .cert-more{margin-top:auto;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.5px;color:var(--cert-primary,#0047ba);opacity:.85}
@@ -315,23 +333,23 @@ if (!function_exists('ivar_cert_assets')) {
 .cert-modal{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:20px}
 .cert-modal.is-open{display:flex}
 .cert-modal-backdrop{position:absolute;inset:0;background:rgba(10,40,35,.72)}
-.cert-modal-dialog{position:relative;background:#fff;border-radius:10px;max-width:680px;width:100%;max-height:86vh;overflow-y:auto;padding:40px 28px 28px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.cert-modal-dialog{position:relative;background:var(--cert-card-bg,#fff);border-radius:10px;max-width:680px;width:100%;max-height:86vh;overflow-y:auto;padding:40px 28px 28px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 @media(min-width:760px){.cert-modal-dialog{max-width:760px;padding:44px 40px 32px}}
 .cert-modal-close{position:absolute;top:10px;right:12px;background:none;border:none;font-size:26px;line-height:1;color:#555;cursor:pointer;padding:4px 10px}
 .cert-modal-body h3{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;color:var(--cert-primary,#0047ba);margin:0 0 14px;font-size:17px}
-.cert-modal-body p{margin:0 0 12px;font-size:14px;color:#555;line-height:1.6}
+.cert-modal-body p{margin:0 0 12px;font-size:14px;color:var(--cert-text,#555);line-height:1.6}
 .cert-badge-img{display:block;height:180px;margin:0 auto 16px;object-fit:contain;max-width:100%}
-.cert-list{list-style:none;padding:0;margin:0;font-size:14px;color:#555;line-height:1.6}
+.cert-list{list-style:none;padding:0;margin:0;font-size:14px;color:var(--cert-text,#555);line-height:1.6}
 .cert-list li{padding:2px 0}
 .cert-list li::before{content:'— ';color:var(--cert-primary,#0047ba);font-weight:600}
 .cert-subhead{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.6px;font-size:13px;color:var(--cert-primary,#0047ba);margin:22px 0 10px}
 .cert-steps{margin:0 0 6px;padding-left:20px;counter-reset:cert-step;list-style:none}
-.cert-steps li{position:relative;margin:0 0 9px;padding-left:14px;font-size:14px;line-height:1.55;color:#555}
+.cert-steps li{position:relative;margin:0 0 9px;padding-left:14px;font-size:14px;line-height:1.55;color:var(--cert-text,#555)}
 .cert-steps li::before{counter-increment:cert-step;content:counter(cert-step);position:absolute;left:-20px;top:0;width:22px;height:22px;border-radius:50%;background:var(--cert-primary,#0047ba);color:#fff;font-family:'Oswald',sans-serif;font-size:12px;line-height:22px;text-align:center}
 .cert-crosscheck{margin-top:16px;padding:14px 16px;border-left:3px solid var(--cert-accent,#fbb917);background:#f7f6f2;border-radius:0 6px 6px 0}
 .cert-crosscheck strong{display:block;font-size:13px;color:#3b2222;margin-bottom:5px}
 .cert-crosscheck p{margin:0;font-size:13px;line-height:1.55}
-.cert-factory{background:#fff;border-radius:6px;padding:20px 18px;box-shadow:0 1px 6px rgba(0,0,0,.06);max-width:460px;margin:16px auto 0;text-align:left}
+.cert-factory{background:var(--cert-card-bg,#fff);border-radius:6px;padding:20px 18px;box-shadow:0 1px 6px rgba(0,0,0,.06);max-width:460px;margin:16px auto 0;text-align:left}
 .cert-factory-icon{font-size:20px;display:block;margin-bottom:8px;line-height:1}
 .cert-factory-label{font-family:'Oswald',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--cert-primary,#0047ba);margin-bottom:5px}
 .cert-factory-value{font-size:13px;font-weight:600;color:#3b2222;line-height:1.45}
