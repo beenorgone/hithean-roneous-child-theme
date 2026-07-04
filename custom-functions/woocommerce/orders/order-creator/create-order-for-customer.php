@@ -408,7 +408,11 @@ function order_creator_choose_free_shipping_rate(): void
             continue;
         }
         foreach ($rates as $rate_id => $rate) {
-            if (is_callable([$rate, 'get_method_id']) && $rate->get_method_id() === 'free_shipping' && (float) $rate->get_cost() <= 0) {
+            if (!is_callable([$rate, 'get_method_id'])) {
+                continue;
+            }
+            $method_id = (string) $rate->get_method_id();
+            if (in_array($method_id, ['wdr_free_shipping', 'free_shipping'], true) && (float) $rate->get_cost() <= 0) {
                 $chosen[$package_key] = $rate_id;
                 $changed = true;
                 break;

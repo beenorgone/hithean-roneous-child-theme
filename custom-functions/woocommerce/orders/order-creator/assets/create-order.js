@@ -1016,6 +1016,9 @@
     function updateShippingOptions(snap) {
         var sel = $('#oc-shipping-method');
         var rates = (snap && snap.shipping_rates) || [];
+        if (snap && snap.chosen_shipping && snap.chosen_shipping !== state.shipping_method) {
+            state.shipping_method = snap.chosen_shipping;
+        }
         var current = state.shipping_method || (snap && snap.chosen_shipping) || '';
         sel.innerHTML = '';
         var configured = CFG.shippingMethods || [];
