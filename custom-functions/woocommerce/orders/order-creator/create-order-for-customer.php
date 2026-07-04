@@ -380,6 +380,62 @@ function order_creator_coupon_edit_url(int $coupon_id): string
     ], admin_url('post.php'));
 }
 
+/** Xoá cache rate để các rule ship/free-ship chạy lại theo cart hiện tại. */
+function order_creator_reset_shipping_cache(): void
+{
+    if (!WC()->session || !WC()->cart) {
+        return;
+    }
+    foreach (array_keys(WC()->cart->get_shipping_packages()) as $package_key) {
+        WC()->session->set('shipping_for_package_' . $package_key, false);
+    }
+}
+
+/** Chọn rate freeship khi rule tạo rate miễn phí nhưng session vẫn giữ rate cũ. */
+function order_creator_choose_free_shipping_rate(): void
+{
+    if (!function_exists('WC') || !WC()->session || !WC()->shipping()) {
+        return;
+    }
+
+    $chosen = (array) WC()->session->get('chosen_shipping_methods', []);
+    $changed = false;
+    foreach (WC()->shipping()->get_packages() as $package_key => $package) {
+        $rates = (array) ($package['rates'] ?? []);
+        $current_id = (string) ($chosen[$package_key] ?? '');
+        $current_rate = $current_id !== '' && isset($rates[$current_id]) ? $rates[$current_id] : null;
+        if ($current_rate && (float) $current_rate->get_cost() <= 0) {
+            continue;
+        }
+        foreach ($rates as $rate_id => $rate) {
+            if (is_callable([$rate, 'get_method_id']) && $rate->get_method_id() === 'free_shipping' && (float) $rate->get_cost() <= 0) {
+                $chosen[$package_key] = $rate_id;
+                $changed = true;
+                break;
+            }
+        }
+    }
+
+    if ($changed) {
+        WC()->session->set('chosen_shipping_methods', $chosen);
+    }
+}
+
+/**
+ * Tính tổng theo checkout pipeline và refresh shipping sau khi discount rules
+ * đã chạy, vì một số rule freeship chỉ quyết định trong pha calculate_totals.
+ */
+function order_creator_calculate_cart_totals(): void
+{
+    order_creator_reset_shipping_cache();
+    WC()->cart->calculate_shipping();
+    WC()->cart->calculate_totals();
+    order_creator_reset_shipping_cache();
+    WC()->cart->calculate_shipping();
+    order_creator_choose_free_shipping_rate();
+    WC()->cart->calculate_totals();
+}
+
 /** Nạp SP, coupon, phí, ship vào giỏ theo payload (chưa tính tổng). */
 function order_creator_populate_cart(array $payload): void
 {
@@ -488,11 +544,7 @@ function order_creator_populate_cart(array $payload): void
     }
     // Xoá cache rate (WC cache theo hash gói hàng, không gồm phí ship thủ công) để
     // filter woocommerce_package_rates chạy lại với shipping_cost mới mỗi lần tính.
-    if (WC()->session) {
-        foreach (array_keys(WC()->cart->get_shipping_packages()) as $package_key) {
-            WC()->session->set('shipping_for_package_' . $package_key, false);
-        }
-    }
+    order_creator_reset_shipping_cache();
     WC()->cart->calculate_shipping();
 }
 
@@ -940,7 +992,7 @@ function order_creator_update_order(int $order_id, array $payload): WC_Order
     }
 
     order_creator_populate_cart($payload);
-    WC()->cart->calculate_totals();
+    order_creator_calculate_cart_totals();
     if (WC()->cart->is_empty()) {
         throw new Exception('Đơn không có sản phẩm.');
     }
@@ -977,7 +1029,7 @@ function order_creator_build_order(array $payload): WC_Order
     }
 
     order_creator_populate_cart($payload);
-    WC()->cart->calculate_totals();
+    order_creator_calculate_cart_totals();
 
     if (WC()->cart->is_empty()) {
         throw new Exception('Chưa có sản phẩm nào trong đơn.');
@@ -1601,7 +1653,7 @@ add_action('wp_ajax_order_creator_recalculate', function () {
     try {
         $result = order_creator_with_customer_context(absint($payload['customer_id'] ?? 0), function () use ($payload) {
             order_creator_populate_cart($payload);
-            WC()->cart->calculate_totals();
+            order_creator_calculate_cart_totals();
             return order_creator_snapshot_cart();
         });
         wp_send_json_success($result);
