@@ -73,6 +73,13 @@ foreach ($general_includes as $include) {
     }
 }
 
+if (is_admin() && (!function_exists('wp_doing_ajax') || !wp_doing_ajax())) {
+    $shortcodes_guide_file = HITHEAN_THEME_DIR . '/custom-functions/admin/shortcodes-guide.php';
+    if (file_exists($shortcodes_guide_file)) {
+        require_once $shortcodes_guide_file;
+    }
+}
+
 // =====================================================================
 // 2) Social display shortcodes — nạp theo trang
 // =====================================================================
