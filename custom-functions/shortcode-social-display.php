@@ -135,8 +135,7 @@ if (!function_exists('social_display_render_card')) {
             }
             if ($vid !== '') {
                 $inner = sprintf(
-                    '<a href="#sd-video-%s" rel="noopener noreferrer" aria-label="Xem video" data-sd-video="%s" data-sd-source="%s">%s</a>',
-                    esc_attr($vid),
+                    '<button type="button" aria-label="Xem video" data-sd-video="%s" data-sd-source="%s" onclick="return window.socialDisplayOpenVideo ? window.socialDisplayOpenVideo(event,this) : false;">%s</button>',
                     esc_attr($vid),
                     esc_url($it['link']),
                     $inner
@@ -236,7 +235,7 @@ if (!function_exists('social_display_print_assets')) {
 .social-display__links a:hover{transform:translateY(-2px);opacity:.8}
 .social-display__links svg{width:2.1rem;height:2.1rem;fill:currentColor}
 .social-display__card{position:relative;aspect-ratio:9/16;overflow:hidden;border-radius:var(--card-r);background:#0001;box-shadow:0 10px 30px -12px #0003}
-.social-display__card a{display:block;width:100%;height:100%}
+.social-display__card a,.social-display__card button[data-sd-video]{display:block;width:100%;height:100%;padding:0;border:0;background:transparent;color:inherit;text-align:inherit;font:inherit;cursor:pointer}
 .social-display__media{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
 
 /* ---------- FAN / ORBIT ---------- */
@@ -287,9 +286,9 @@ if (!function_exists('social_display_print_assets')) {
 .social-display__cf-nav button{width:2.75rem;height:2.75rem;border-radius:999px;border:none;cursor:pointer;font-size:1.2rem;line-height:1;background:var(--sd-accent,#0f766e);color:#fff;transition:transform .2s,opacity .2s}
 .social-display__cf-nav button:hover{transform:scale(1.08)}
 @media(max-width:768px){.social-display__cf-nav{position:relative;bottom:auto;left:auto;transform:none;justify-content:center;margin-top:.35rem}}
-.social-display__card a[data-sd-video]{cursor:pointer}
-.social-display__card a[data-sd-video]::after{content:"";position:absolute;inset:0;background:no-repeat center/3rem url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23000' opacity='.45'/%3E%3Cpath d='M26 22l18 10-18 10z' fill='%23fff'/%3E%3C/svg%3E");opacity:0;transition:opacity .25s;pointer-events:none}
-.social-display__card:hover a[data-sd-video]::after{opacity:1}
+.social-display__card [data-sd-video]{cursor:pointer}
+.social-display__card [data-sd-video]::after{content:"";position:absolute;inset:0;background:no-repeat center/3rem url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23000' opacity='.45'/%3E%3Cpath d='M26 22l18 10-18 10z' fill='%23fff'/%3E%3C/svg%3E");opacity:0;transition:opacity .25s;pointer-events:none}
+.social-display__card:hover [data-sd-video]::after{opacity:1}
 
 /* ---------- LIGHTBOX (phát video TikTok inline) ---------- */
 .sd-lightbox{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center}
@@ -416,24 +415,42 @@ if (!function_exists('social_display_print_assets')) {
     });
 
     /* LIGHTBOX: bấm thẻ có data-sd-video → phát player TikTok nhúng ngay trên trang */
-    var lb=document.getElementById('sd-lightbox');
-    if(lb && !lb.dataset.bound){
-      lb.dataset.bound='1';
+    function getLB(){
+      var lb=document.getElementById('sd-lightbox');
+      if(!lb)return null;
       /* Đưa lightbox ra body: tránh bị neo vào ancestor có transform (vd .anc-fade-in)
          khiến position:fixed lệch về giữa widget thay vì giữa màn hình. */
       if(lb.parentNode!==document.body){document.body.appendChild(lb);}
+      return lb;
+    }
+    window.socialDisplayOpenVideo=function(e,el){
+      if(e){e.preventDefault();e.stopPropagation();}
+      var id=el&&el.getAttribute('data-sd-video');
+      var lb=getLB();
+      if(!id||!lb)return false;
       var frame=lb.querySelector('.sd-lightbox__frame');
-      function openLB(id){
-        frame.innerHTML='<iframe src="https://www.tiktok.com/player/v1/'+id+'?autoplay=1&loop=1&rel=0&description=0&music_info=0" allow="autoplay;encrypted-media;fullscreen" allowfullscreen></iframe>';
-        lb.hidden=false; document.documentElement.style.overflow='hidden';
-      }
-      function closeLB(){ frame.innerHTML=''; lb.hidden=true; document.documentElement.style.overflow=''; }
+      if(!frame)return false;
+      frame.innerHTML='<iframe src="https://www.tiktok.com/player/v1/'+id+'?autoplay=1&loop=1&rel=0&description=0&music_info=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
+      lb.hidden=false;
+      lb.removeAttribute('hidden');
+      document.documentElement.style.overflow='hidden';
+      return false;
+    };
+    function closeLB(){
+      var lb=getLB();
+      if(!lb)return;
+      var frame=lb.querySelector('.sd-lightbox__frame');
+      if(frame)frame.innerHTML='';
+      lb.hidden=true;
+      document.documentElement.style.overflow='';
+    }
+    var lb=getLB();
+    if(lb && !lb.dataset.bound){
+      lb.dataset.bound='1';
       document.addEventListener('click',function(e){
-        var a=e.target.closest('a[data-sd-video]');
+        var a=e.target.closest('[data-sd-video]');
         if(a){
-          e.preventDefault();
-          e.stopPropagation();
-          openLB(a.getAttribute('data-sd-video'));
+          window.socialDisplayOpenVideo(e,a);
           return;
         }
         if(e.target.closest('[data-sd-close]')) closeLB();
