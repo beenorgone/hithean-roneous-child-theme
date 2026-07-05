@@ -21,6 +21,7 @@
  *   ids       — attachment IDs, phân tách bằng dấu phẩy
  *   urls      — URL ảnh, phân tách bằng dấu phẩy
  *   limit     — số media tối đa (mặc định 20)
+ *   autoplay  — 1 (mặc định) tự chạy coverflow/fan/marquee · 0 để tắt
  *   bg        — màu nền section
  *   accent    — màu chữ đậm (mặc định teal)
  *   instagram / tiktok / youtube / facebook — URL social (rỗng = ẩn icon)
@@ -245,6 +246,7 @@ if (!function_exists('social_display_print_assets')) {
 .social-display__track{display:flex;gap:1rem;width:max-content;animation:ivs-scroll var(--dur,40s) linear infinite}
 .social-display__row--rev .social-display__track{animation-direction:reverse}
 .social-display__rows:hover .social-display__track{animation-play-state:paused}
+.social-display[data-sd-autoplay="0"] .social-display__track{animation:none}
 .social-display__track .social-display__card{width:13rem;flex:0 0 auto}
 @media(max-width:768px){.social-display__track .social-display__card{width:9rem}}
 @keyframes ivs-scroll{to{transform:translateX(-50%)}}
@@ -319,6 +321,7 @@ if (!function_exists('social_display_print_footer_runner')) {
       var step=15,start=-((orbits.length-1)/2)*step;
       orbits.forEach(function(o,i){o.style.setProperty('--a',(start+i*step)+'deg');});
       var iv=parseFloat(sec.getAttribute('data-interval')||'3')*1000;
+      if(sec.getAttribute('data-sd-autoplay')==='0')return;
       var ang=0,paused=false;
       sec.addEventListener('mouseenter',function(){paused=true;});
       sec.addEventListener('mouseleave',function(){paused=false;});
@@ -386,6 +389,7 @@ if (!function_exists('social_display_print_footer_runner')) {
         });
         layout();
         window.addEventListener('resize',layout,{passive:true});
+        if(sec.getAttribute('data-sd-autoplay')==='0')return;
         var paused=false;
         sec.addEventListener('mouseenter',function(){paused=true;});
         sec.addEventListener('mouseleave',function(){paused=false;});
@@ -462,6 +466,7 @@ if (!function_exists('social_display_prepare')) {
             'accent'    => '#0f766e',
             'heading_color' => '#0a1912',
             'padding'   => '',
+            'autoplay'  => '1',   // 1/true = tự chạy (coverflow/fan/marquee); 0/false = tắt
             'instagram' => '',
             'tiktok'    => '',
             'youtube'   => '',
@@ -533,6 +538,7 @@ if (!function_exists('social_display_build_section')) {
     {
         $header = social_display_render_header($atts);
         $style  = social_display_style_vars($atts);
+        $ap     = filter_var($atts['autoplay'] ?? '1', FILTER_VALIDATE_BOOLEAN) ? '1' : '0';
 
         $cards = static function (array $list): string {
             $out = '';
@@ -548,9 +554,10 @@ if (!function_exists('social_display_build_section')) {
                 $orbits .= '<div class="social-display__orbit">' . social_display_render_card($it) . '</div>';
             }
             return sprintf(
-                '<section class="social-display social-display--fan" style="%s" data-interval="%s">%s<div class="social-display__rotor">%s</div></section>',
+                '<section class="social-display social-display--fan" style="%s" data-interval="%s" data-sd-autoplay="%s">%s<div class="social-display__rotor">%s</div></section>',
                 $style,
                 esc_attr((string) $atts['interval']),
+                $ap,
                 $header,
                 $orbits
             );
@@ -561,7 +568,7 @@ if (!function_exists('social_display_build_section')) {
             $rowA = array_slice($items, 0, $half);
             $rowB = array_slice($items, $half) ?: $rowA;
             return sprintf(
-                '<section class="social-display social-display--marquee" style="%s">%s<div class="social-display__rows">'
+                '<section class="social-display social-display--marquee" style="%s" data-sd-autoplay="' . $ap . '">%s<div class="social-display__rows">'
                     . '<div class="social-display__row"><div class="social-display__track">%s</div></div>'
                     . '<div class="social-display__row social-display__row--rev"><div class="social-display__track">%s</div></div>'
                     . '</div></section>',
@@ -574,7 +581,7 @@ if (!function_exists('social_display_build_section')) {
 
         if ($variant === 'coverflow') {
             return sprintf(
-                '<section class="social-display social-display--coverflow" style="%s">%s'
+                '<section class="social-display social-display--coverflow" style="%s" data-sd-autoplay="' . $ap . '">%s'
                     . '<div class="social-display__stage"><div class="social-display__cf-track">%s</div></div>'
                     . '<div class="social-display__cf-nav"><button type="button" data-dir="prev" aria-label="Trước">‹</button>'
                     . '<button type="button" data-dir="next" aria-label="Sau">›</button></div></section>',
