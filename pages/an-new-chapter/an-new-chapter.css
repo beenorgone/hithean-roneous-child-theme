@@ -1802,9 +1802,9 @@ body.anc-modal-locked {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin-top: 8px;
+    margin-top: 40px;
     font-family: 'Oswald', sans-serif;
-    font-size: 14px;
+    font-size: 18px;
     letter-spacing: 0.5px;
     color: var(--default-color-dark-blue, #0047ba);
     text-decoration: none;
