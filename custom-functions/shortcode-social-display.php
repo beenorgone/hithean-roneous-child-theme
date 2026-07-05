@@ -392,6 +392,7 @@ if (!function_exists('social_display_prepare')) {
             'bg'        => '#fdf6e3',
             'accent'    => '#0f766e',
             'heading_color' => '#0a1912',
+            'padding'   => '',
             'instagram' => '',
             'tiktok'    => '',
             'youtube'   => '',
@@ -400,6 +401,29 @@ if (!function_exists('social_display_prepare')) {
         ], $atts, $tag);
 
         return [$atts, social_display_get_items($atts)];
+    }
+}
+
+if (!function_exists('social_display_sanitize_css_spacing')) {
+    function social_display_sanitize_css_spacing(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $parts = preg_split('/\s+/', $value);
+        if ($parts === false || count($parts) > 4) {
+            return '';
+        }
+
+        foreach ($parts as $part) {
+            if (!preg_match('/^(?:0|-?\d+(?:\.\d+)?(?:px|em|rem|%|vh|vw|vmin|vmax|ch|ex|pt|pc|cm|mm|in))$/i', $part)) {
+                return '';
+            }
+        }
+
+        return implode(' ', $parts);
     }
 }
 
@@ -417,6 +441,11 @@ if (!function_exists('social_display_style_vars')) {
         $cols = (int) ($atts['columns'] ?? 0);
         if ($cols > 0) {
             $vars .= ';--sd-cols:' . $cols;
+        }
+
+        $padding = social_display_sanitize_css_spacing((string) ($atts['padding'] ?? ''));
+        if ($padding !== '') {
+            $vars .= ';padding:' . esc_attr($padding);
         }
 
         return $vars;
