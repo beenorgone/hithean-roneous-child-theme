@@ -298,10 +298,20 @@ if (!function_exists('social_display_print_assets')) {
     <div class="sd-lightbox__frame"></div>
   </div>
 </div>
-<script id="social-display-js">
+<?php
+        return (string) ob_get_clean();
+    }
+}
+
+if (!function_exists('social_display_print_footer_runner')) {
+    function social_display_print_footer_runner(): void
+    {
+        ?>
+<script id="social-display-footer-runner">
 (function(){
+  if(window.socialDisplayAssetsReady)return;
+  window.socialDisplayAssetsReady='1';
   function init(){
-    /* FAN: dàn các thẻ thành vòng cung + tự xoay đưa thẻ qua đỉnh */
     document.querySelectorAll('.social-display--fan').forEach(function(sec){
       var rotor=sec.querySelector('.social-display__rotor');
       var orbits=[].slice.call(sec.querySelectorAll('.social-display__orbit'));
@@ -315,12 +325,12 @@ if (!function_exists('social_display_print_assets')) {
       setInterval(function(){if(paused)return;ang-=step;rotor.style.transform='rotate('+ang+'deg)';},iv);
     });
 
-    /* MARQUEE: nhân đôi track để cuộn liền mạch */
     document.querySelectorAll('.social-display--marquee .social-display__track').forEach(function(t){
+      if(t.dataset.sdMarqueeReady==='1')return;
+      t.dataset.sdMarqueeReady='1';
       t.innerHTML+=t.innerHTML;
     });
 
-    /* COVERFLOW: xếp 3D, prev/next + auto */
     function initCoverflow(root){
       var scope=root || document;
       var sections=[].slice.call(scope.querySelectorAll('.social-display--coverflow'));
@@ -398,20 +408,18 @@ if (!function_exists('social_display_print_assets')) {
       window.socialDisplayCoverflowObserver.observe(document.documentElement,{childList:true,subtree:true});
     }
 
-    /* VIDEO: autoplay khi hover, dừng khi rời */
     document.querySelectorAll('.social-display video').forEach(function(v){
+      if(v.dataset.sdVideoReady==='1')return;
+      v.dataset.sdVideoReady='1';
       var card=v.closest('.social-display__card');
       if(!card)return;
       card.addEventListener('mouseenter',function(){v.play().catch(function(){});});
       card.addEventListener('mouseleave',function(){v.pause();v.currentTime=0;});
     });
 
-    /* LIGHTBOX: bấm thẻ có data-sd-video → phát player TikTok nhúng ngay trên trang */
     var lb=document.getElementById('sd-lightbox');
     if(lb && !lb.dataset.bound){
       lb.dataset.bound='1';
-      /* Đưa lightbox ra body: tránh bị neo vào ancestor có transform (vd .anc-fade-in)
-         khiến position:fixed lệch về giữa widget thay vì giữa màn hình. */
       if(lb.parentNode!==document.body){document.body.appendChild(lb);}
       var frame=lb.querySelector('.sd-lightbox__frame');
       function openLB(id){
@@ -423,7 +431,7 @@ if (!function_exists('social_display_print_assets')) {
         var a=e.target.closest('a[data-sd-video]');
         if(a){ e.preventDefault(); openLB(a.getAttribute('data-sd-video')); return; }
         if(e.target.closest('[data-sd-close]')) closeLB();
-      });
+      },true);
       document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!lb.hidden) closeLB(); });
     }
   }
@@ -431,9 +439,9 @@ if (!function_exists('social_display_print_assets')) {
 })();
 </script>
 <?php
-        return (string) ob_get_clean();
     }
 }
+add_action('wp_footer', 'social_display_print_footer_runner', 99);
 
 /**
  * Atts mặc định + style nền dùng chung.
