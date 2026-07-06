@@ -348,7 +348,7 @@ if (!function_exists('ivar_cert_assets')) {
 .cert-subtext{font-size:12px;font-style:italic;color:#666}
 .cert-subtext:empty{display:none}
 .cert-more{margin-top:auto;font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.5px;color:var(--cert-primary,#0047ba);opacity:.85}
-.cert-more-btn{display:inline-block;font-family:'Oswald',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:1px;padding:0 22px;height:45px;line-height:45px;border:2px solid #b0dded;border-radius:4px;background:#b0dded;color:var(--cert-primary,#0047ba);cursor:pointer}
+.cert-more-btn{display:inline-block;width: fit-content;font-family:'Oswald',sans-serif;font-size:14px;text-transform:uppercase;letter-spacing:1px;padding:0 22px;height:45px;line-height:45px;border:2px solid #b0dded;border-radius:4px;background:#b0dded;color:var(--cert-primary,#0047ba);cursor:pointer}
 .cert-more-btn:hover{background:var(--cert-primary,#0047ba);color:#fff;border-color:var(--cert-primary,#0047ba)}
 /* Modal */
 .cert-modal{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:20px}
