@@ -1305,9 +1305,43 @@ function order_creator_phone_variants(string $raw): array
     return array_values(array_unique(array_filter($variants)));
 }
 
+function order_creator_user_phone_meta_query(string $term): array
+{
+    $variants = order_creator_phone_variants($term);
+    if ($variants === []) {
+        return [];
+    }
+
+    $queries = ['relation' => 'OR'];
+    foreach ($variants as $variant) {
+        foreach (['billing_phone', 'shipping_phone'] as $phone_meta_key) {
+            $queries[] = [
+                'key'     => $phone_meta_key,
+                'value'   => $variant,
+                'compare' => '=',
+            ];
+        }
+    }
+
+    $digits = preg_replace('/\D+/', '', $term) ?: '';
+    if (strlen($digits) >= 7) {
+        $tail = substr($digits, -7);
+        foreach (['billing_phone', 'shipping_phone'] as $phone_meta_key) {
+            $queries[] = [
+                'key'     => $phone_meta_key,
+                'value'   => $tail,
+                'compare' => 'LIKE',
+            ];
+        }
+    }
+
+    return count($queries) > 1 ? $queries : [];
+}
+
 function order_creator_is_phone_search(string $value): bool
 {
-    return (bool) preg_match('/^\+?\d+$/', $value);
+    $digits = preg_replace('/\D+/', '', $value) ?: '';
+    return strlen($digits) >= 6;
 }
 
 function order_creator_customer_has_role_fragment(WP_User $user, array $needles): bool
@@ -1418,20 +1452,10 @@ add_action('wp_ajax_order_creator_search_customers', function () {
         }
     }
 
-    // Số điện thoại: cùng quy tắc 0… / 84… / +84… như Coupon Creator.
+    // Số điện thoại: tìm trong cả billing_phone và shipping_phone của tài khoản.
     if (order_creator_is_phone_search($term)) {
-        $variants = order_creator_phone_variants($term);
-        if ($variants !== []) {
-            $meta_query = ['relation' => 'OR'];
-            foreach ($variants as $variant) {
-                foreach (['billing_phone', 'shipping_phone'] as $phone_meta_key) {
-                    $meta_query[] = [
-                        'key'     => $phone_meta_key,
-                        'value'   => $variant,
-                        'compare' => '=',
-                    ];
-                }
-            }
+        $meta_query = order_creator_user_phone_meta_query($term);
+        if ($meta_query !== []) {
             $q = new WP_User_Query([
                 'meta_query' => $meta_query,
                 'number'     => 20,
@@ -1488,12 +1512,17 @@ add_action('wp_ajax_order_creator_customer_history', function () {
             if (!isset($products[$key])) { $products[$key] = $entry; }
             else { $products[$key]['qty'] += $entry['qty']; }
         }
+        $address_html = $order->get_formatted_shipping_address() ?: $order->get_formatted_billing_address();
+        $address_lines = array_values(array_filter(array_map('trim', preg_split('/\s*<br\s*\/?\s*>\s*/i', $address_html))));
         $rows[] = [
+            'id' => $order->get_id(),
             'number' => (string) (function_exists('change_order_number') ? change_order_number($order->get_id()) : $order->get_order_number()),
             'date' => $order->get_date_created() ? $order->get_date_created()->date_i18n('d/m/Y') : '',
-            'address' => wp_strip_all_tags($order->get_formatted_shipping_address() ?: $order->get_formatted_billing_address()),
+            'address' => implode("\n", array_map('wp_strip_all_tags', $address_lines)),
+            'address_lines' => array_map('wp_strip_all_tags', $address_lines),
             'items' => $items,
             'total' => (float) $order->get_total(),
+            'edit_url' => $order->get_edit_order_url(),
         ];
     }
     wp_send_json_success(['orders' => $rows, 'products' => array_values($products)]);

@@ -358,6 +358,11 @@ body.oc-hide-line-discount .oc-lines td:nth-child(4) { display: none; }
 .oc-history-list article { padding: 12px 0; border-bottom: 1px solid var(--oc-border); }
 .oc-history-list article:last-child { border-bottom: 0; }
 .oc-history-list small { color: var(--oc-muted); }
+.oc-history-meta { margin-bottom: 6px; }
+.oc-history-address,
+.oc-history-items { display: block; white-space: pre-line; line-height: 1.45; }
+.oc-history-address { margin-bottom: 8px; }
+.oc-history-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .oc-history-products { display: grid; gap: 8px; margin-bottom: 16px; }
 
 /* modals */

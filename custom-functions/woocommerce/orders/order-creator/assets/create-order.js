@@ -659,12 +659,53 @@
                 });
                 return;
             }
-            var html = '<div class="oc-history-list">';
-            (data.orders || []).forEach(function (o) {
-                html += '<article><b>#' + o.number + '</b> · ' + o.date + ' · ' + money(o.total) +
-                    '<div><small>' + o.address + '</small></div><div>' + o.items.map(function (i) { return i.name + ' ×' + i.qty; }).join('<br>') + '</div></article>';
+            var orders = data.orders || [];
+            if (!orders.length) { $('#oc-history-content').textContent = 'Chưa có đơn hàng.'; return; }
+            var list = document.createElement('div');
+            list.className = 'oc-history-list';
+            orders.forEach(function (o) {
+                var article = document.createElement('article');
+
+                var meta = document.createElement('div');
+                meta.className = 'oc-history-meta';
+                var number = document.createElement('b');
+                number.textContent = '#' + (o.number || o.id || '');
+                meta.appendChild(number);
+                meta.appendChild(document.createTextNode(' · ' + (o.date || '') + ' · ' + money(o.total || 0)));
+                article.appendChild(meta);
+
+                var address = document.createElement('small');
+                address.className = 'oc-history-address';
+                address.textContent = (o.address_lines && o.address_lines.length) ? o.address_lines.join('\n') : (o.address || '');
+                article.appendChild(address);
+
+                var items = document.createElement('div');
+                items.className = 'oc-history-items';
+                items.textContent = (o.items || []).map(function (i) { return (i.name || '') + ' ×' + i.qty; }).join('\n');
+                article.appendChild(items);
+
+                var actions = document.createElement('div');
+                actions.className = 'oc-history-actions';
+                var editInline = document.createElement('button');
+                editInline.type = 'button';
+                editInline.className = 'oc-btn oc-btn--primary';
+                editInline.textContent = 'Chỉnh trên trang tạo đơn';
+                editInline.addEventListener('click', function () {
+                    if (o.id) { closeModals(); loadOrder(o.id); }
+                });
+                var editAdmin = document.createElement('a');
+                editAdmin.className = 'oc-btn oc-btn--ghost';
+                editAdmin.textContent = 'Xem đơn';
+                editAdmin.href = o.edit_url || '#';
+                editAdmin.target = '_blank';
+                editAdmin.rel = 'noopener';
+                actions.appendChild(editInline);
+                actions.appendChild(editAdmin);
+                article.appendChild(actions);
+
+                list.appendChild(article);
             });
-            $('#oc-history-content').innerHTML = html || 'Chưa có đơn hàng.';
+            $('#oc-history-content').replaceChildren(list);
         });
     }
 
