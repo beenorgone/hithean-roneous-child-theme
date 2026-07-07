@@ -2005,13 +2005,13 @@ body.anc-modal-locked {
         font-size: 15px;
         line-height: 1.5;
         max-width: 30ch;
-        margin-bottom: 18px;
+        margin-bottom: 0;
     }
 
     .anc-hero-ctas {
         width: 100%;
         max-width: 280px;
-        margin: 0 auto;
+        margin: clamp(118px, 28svh, 210px) auto 0;
     }
 
     .anc-hero-ctas .button--dark-blue {
@@ -2025,7 +2025,7 @@ body.anc-modal-locked {
 
     .anc-hero-trust {
         max-width: 340px;
-        margin: 14px auto 0;
+        margin: 12px auto 0;
     }
 
     .anc-hero-trust li {
@@ -2034,30 +2034,7 @@ body.anc-modal-locked {
     }
 
     .anc-hero-products {
-        width: min(86vw, 320px);
-        margin-top: 0;
-    }
-
-    .anc-hero-coverflow {
-        height: 13.5rem;
-    }
-
-    .anc-hero-cf-card {
-        width: 12.5rem;
-    }
-
-    .anc-hero-cf-card:not(:first-child) {
         display: none;
-    }
-
-    .anc-hero-cf-card:first-child {
-        opacity: 1 !important;
-        z-index: 100 !important;
-        transform: translate(-50%, -50%) !important;
-    }
-
-    .anc-hero-cf-card img {
-        filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.42));
     }
 
     /* Feature product */
