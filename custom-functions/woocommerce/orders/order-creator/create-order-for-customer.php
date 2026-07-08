@@ -38,7 +38,7 @@ if (!defined('ORDER_CREATOR_CAP')) {
 
 function &order_creator_state(): array
 {
-    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'manual_shipping' => false, 'shipping_cost' => null, 'source_prices' => [], 'coupon_results' => []];
+    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'manual_shipping' => false, 'shipping_cost' => null, 'source_prices' => [], 'coupon_results' => [], 'editing_order_coupons' => [], 'editing_order_customer_id' => 0];
     return $state;
 }
 
@@ -257,6 +257,37 @@ add_action('woocommerce_cart_calculate_fees', function ($cart) {
     }
 }, 1000);
 
+/**
+ * Khi chỉnh sửa đơn đã dùng mã ưu đãi: lượt dùng của mã đã bị chính đơn này
+ * ghi nhận (WooCommerce tăng usage khi đơn sang trạng thái tính phí), nên áp
+ * lại mã trong lúc sửa sẽ bị chặn "đã hết lượt". Trừ ảo 1 lượt của đơn đang
+ * sửa lúc validate — không ghi DB nên usage thật không bị lệch.
+ */
+add_filter('woocommerce_coupon_get_usage_count', function ($count, $coupon) {
+    $state = &order_creator_state();
+    if (!$state['active'] || empty($state['editing_order_coupons']) || !($coupon instanceof WC_Coupon)) {
+        return $count;
+    }
+    $code = wc_format_coupon_code($coupon->get_code());
+    if (in_array($code, $state['editing_order_coupons'], true)) {
+        return max(0, (int) $count - 1);
+    }
+    return $count;
+}, 1000, 2);
+
+/** Tương tự cho giới hạn lượt dùng / khách: bỏ qua check khi lượt đó là của chính đơn đang sửa. */
+add_filter('woocommerce_coupon_validate_user_usage_limit', function ($validate, $user_id, $coupon) {
+    $state = &order_creator_state();
+    if (!$validate || !$state['active'] || empty($state['editing_order_coupons']) || !($coupon instanceof WC_Coupon)) {
+        return $validate;
+    }
+    $code = wc_format_coupon_code($coupon->get_code());
+    if (in_array($code, $state['editing_order_coupons'], true) && (int) $user_id === (int) $state['editing_order_customer_id']) {
+        return false;
+    }
+    return $validate;
+}, 1000, 3);
+
 /** Woo Discount Rules Pro có rule freeship riêng nhưng đôi khi chưa register rate trong AJAX. */
 function order_creator_wdr_free_shipping_applies(): bool
 {
@@ -380,6 +411,8 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
         $state['shipping_cost'] = null;
         $state['source_prices'] = [];
         $state['coupon_results'] = [];
+        $state['editing_order_coupons'] = [];
+        $state['editing_order_customer_id'] = 0;
 
         WC()->cart->empty_cart(false);
         if (WC()->session) {
@@ -492,6 +525,28 @@ function order_creator_populate_cart(array $payload): void
     $state['shipping_cost'] = $state['manual_shipping']
         ? max(0, (float) $payload['shipping_cost'])
         : null;
+
+    // Đang sửa đơn: gom các mã ưu đãi mà đơn này ĐÃ ghi nhận lượt dùng, để filter
+    // validate coupon trừ ảo lượt của chính đơn này (xem hook phía trên).
+    $state['editing_order_coupons'] = [];
+    $state['editing_order_customer_id'] = 0;
+    $edit_order_id = absint($payload['order_id'] ?? 0);
+    if ($edit_order_id > 0) {
+        $edit_order = wc_get_order($edit_order_id);
+        if ($edit_order instanceof WC_Order) {
+            $data_store = $edit_order->get_data_store();
+            $usage_recorded = is_callable([$data_store, 'get_recorded_coupon_usage_counts'])
+                ? (bool) $data_store->get_recorded_coupon_usage_counts($edit_order)
+                : wc_string_to_bool((string) $edit_order->get_meta('_recorded_coupon_usage_counts'));
+            if ($usage_recorded) {
+                $codes = method_exists($edit_order, 'get_coupon_codes') ? $edit_order->get_coupon_codes() : $edit_order->get_used_coupons();
+                foreach ((array) $codes as $code) {
+                    $state['editing_order_coupons'][] = wc_format_coupon_code((string) $code);
+                }
+                $state['editing_order_customer_id'] = (int) $edit_order->get_customer_id();
+            }
+        }
+    }
 
     $billing  = isset($payload['billing']) && is_array($payload['billing']) ? $payload['billing'] : [];
     $shipping = isset($payload['shipping']) && is_array($payload['shipping']) ? $payload['shipping'] : [];
