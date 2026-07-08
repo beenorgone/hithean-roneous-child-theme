@@ -471,6 +471,12 @@ function order_creator_calculate_cart_totals(): void
     order_creator_reset_shipping_cache();
     WC()->cart->calculate_shipping();
     WC()->cart->calculate_totals();
+    // Nạp lại product object sạch từ session trước khi tính tổng lần 2, vì
+    // lần 1 có thể đã set_price() giá đã giảm lên object hiện tại (WDR, hook giá
+    // thủ công...). Không reload thì lần 2 tính discount tiếp trên giá ĐÃ giảm
+    // của lần 1 thay vì giá gốc → sai tier luỹ tiến (VD: 3 SP cùng mã giảm
+    // 5%/5%/10% ở checkout nhưng lệch bậc khi tạo đơn).
+    WC()->cart->get_cart_from_session();
     order_creator_reset_shipping_cache();
     WC()->cart->calculate_shipping();
     order_creator_choose_checkout_shipping_rate();
@@ -501,6 +507,13 @@ function order_creator_populate_cart(array $payload): void
     }
 
     $items = isset($payload['items']) && is_array($payload['items']) ? $payload['items'] : [];
+    // WooCommerce core hook calculate_totals chạy sau MỖI add_to_cart. Vì trang
+    // tạo đơn nạp cả giỏ trong 1 request (khác web: mỗi lần thêm giỏ là 1 request
+    // riêng), rule số lượng của WDR sẽ tính khi giỏ chưa đủ hàng và cache kết quả
+    // theo từng variation trong suốt request → 2 dòng đầu kẹt ở bậc thấp (5%) dù
+    // tổng qty đạt bậc cao (10%). Tắt auto-calc khi nạp, nạp đủ rồi tính 1 lần.
+    remove_action('woocommerce_add_to_cart', [WC()->cart, 'calculate_totals'], 20);
+    remove_action('woocommerce_applied_coupon', [WC()->cart, 'calculate_totals'], 20);
     foreach ($items as $item) {
         $product_id   = absint($item['product_id'] ?? 0);
         $variation_id = absint($item['variation_id'] ?? 0);
@@ -539,6 +552,13 @@ function order_creator_populate_cart(array $payload): void
 
         WC()->cart->add_to_cart($product_id, $qty, $variation_id, $variation_attrs, $cart_item_data);
     }
+
+    // Giỏ đã đủ hàng: bật lại auto-calc rồi tính tổng 1 lần để (1) WDR chạy đúng
+    // bậc số lượng ngay từ lần tính đầu tiên (cache trong request giữ giá trị đúng)
+    // và (2) coupon validation phía dưới đọc đúng subtotal.
+    add_action('woocommerce_add_to_cart', [WC()->cart, 'calculate_totals'], 20, 0);
+    add_action('woocommerce_applied_coupon', [WC()->cart, 'calculate_totals'], 20, 0);
+    WC()->cart->calculate_totals();
 
     $fees = isset($payload['fees']) && is_array($payload['fees']) ? $payload['fees'] : [];
     foreach ($fees as $fee) {
