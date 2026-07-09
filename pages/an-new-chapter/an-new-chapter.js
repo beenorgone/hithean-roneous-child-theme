@@ -259,57 +259,6 @@
     }
 
     /* ============================================================
-       HERO PRODUCT COVERFLOW (3D thuần — port từ tool tiktok-research)
-       Card overlap: bước dịch 9rem < card 17-20rem → ảnh bên chui sau ảnh chính.
-       ============================================================ */
-
-    function initHeroCoverflow() {
-        var sec = document.querySelector('.anc-hero-coverflow');
-        if (!sec || sec.dataset.cfInit) return;
-        var track = sec.querySelector('.anc-hero-cf-track');
-        var cards = [].slice.call(sec.querySelectorAll('.anc-hero-cf-card'));
-        if (!track || !cards.length) return;
-        sec.dataset.cfInit = '1';
-
-        var cur = Math.floor(cards.length / 2);
-
-        function layout() {
-            cards.forEach(function (c, i) {
-                var d = i - cur, ad = Math.abs(d);
-                c.style.transform = 'translate(-50%,-50%) translateX(' + (d * 9) + 'rem)' +
-                    ' translateZ(' + (-ad * 9) + 'rem) rotateY(' + (d * -22) + 'deg)';
-                c.style.opacity = ad > 2 ? '0' : '1';
-                c.style.zIndex = String(100 - ad);
-            });
-        }
-
-        // Click ảnh bên (trái/phải) → đưa ảnh đó vào giữa
-        cards.forEach(function (c, i) {
-            c.addEventListener('click', function () {
-                if (i === cur) return;
-                cur = i;
-                layout();
-            });
-        });
-
-        layout();
-
-        // Auto-advance, dừng khi hover; tắt nếu người dùng giảm chuyển động
-        var reduce = window.matchMedia &&
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (!reduce) {
-            var paused = false;
-            sec.addEventListener('mouseenter', function () { paused = true; });
-            sec.addEventListener('mouseleave', function () { paused = false; });
-            setInterval(function () {
-                if (paused) return;
-                cur = (cur + 1) % cards.length;
-                layout();
-            }, 4000);
-        }
-    }
-
-    /* ============================================================
        INIT
        ============================================================ */
 
@@ -320,7 +269,6 @@
         initSmoothScroll();
         initGalleries();
         initProductSwitcher();
-        initHeroCoverflow();
         initLazyMaps();
     }
 

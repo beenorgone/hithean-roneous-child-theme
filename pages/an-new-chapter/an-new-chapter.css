@@ -25,8 +25,8 @@
 }
 
 #anc-hero {
-    min-height: 100vh;
-    min-height: 100svh;
+    min-height: 92vh;
+    min-height: 92svh;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -39,16 +39,16 @@
     background-color: var(--default-color-dark-blue, #0047ba);
 }
 
-/* Color overlay phủ trên ảnh — đậm phía có chữ (trái), nhạt dần về phía cluster sản phẩm (phải) để ảnh nền vẫn hiện rõ. Tông xanh dương brand. */
+/* Color overlay phủ trên ảnh để chữ và CTA là điểm tập trung chính. */
 #anc-hero::before {
     content: '';
     position: absolute;
     inset: 0;
     background: linear-gradient(
         100deg,
-        rgba(0, 20, 60, 0.88) 0%,
-        rgba(0, 45, 130, 0.60) 45%,
-        rgba(0, 71, 186, 0.30) 100%
+        rgba(0, 20, 60, 0.84) 0%,
+        rgba(0, 45, 130, 0.62) 52%,
+        rgba(0, 71, 186, 0.36) 100%
     );
     z-index: 0;
 }
@@ -66,7 +66,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 56px 24px 32px;
+    padding: 64px 24px 52px;
     gap: 28px;
 }
 
@@ -74,51 +74,8 @@
     text-align: center;
     color: var(--default-color-white);
     width: 100%;
-}
-
-/* ---- Product coverflow 3D (port design tiktok-research) ---- */
-.anc-hero-products {
-    width: min(96vw, 560px);
+    max-width: 720px;
     margin: 0 auto;
-    flex-shrink: 0;
-}
-
-.anc-hero-coverflow {
-    position: relative;
-    width: 100%;
-    height: 30rem;
-    perspective: 1600px;
-    overflow: hidden;
-}
-
-.anc-hero-cf-track {
-    position: absolute;
-    inset: 0;
-    transform-style: preserve-3d;
-}
-
-.anc-hero-cf-card {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 17rem;
-    cursor: pointer;
-    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease;
-    will-change: transform;
-}
-
-.anc-hero-cf-card img {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    display: block;
-    filter: drop-shadow(0 16px 34px rgba(0, 0, 0, 0.5));
-    pointer-events: none;
-}
-
-@media (max-width: 768px) {
-    .anc-hero-coverflow { height: 22rem; }
-    .anc-hero-cf-card { width: 12rem; }
 }
 
 /* USDA + EU Organic logos cạnh logo brand trong hero */
@@ -152,7 +109,7 @@
     color: var(--default-color-white) !important;
     margin: 0 auto 12px !important;
     line-height: 1.16 !important;
-    max-width: 16ch;
+    max-width: 17ch;
     text-wrap: balance;
 }
 
@@ -162,7 +119,7 @@
     line-height: 1.55;
     color: rgba(255, 255, 255, 0.9);
     margin: 0 auto 24px;
-    max-width: 34ch;
+    max-width: 38ch;
     font-weight: 400;
     letter-spacing: 0;
 }
@@ -236,6 +193,11 @@
 .anc-hero-ctas [class*="button--"],
 .anc-hero-ctas [class^="button--"] {
     letter-spacing: 0;
+    min-width: 172px;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* CTA trên nền hero tối: primary = trắng đặc (nổi bật), secondary = viền trắng (ghost) */
@@ -278,38 +240,12 @@
 }
 
 @media screen and (min-width: 1000px) {
+    /* Hero 1 cột, nội dung căn giữa trên ảnh nền (đã bỏ coverflow) */
     .anc-hero-layout {
-        flex-direction: row;
+        flex-direction: column;
         align-items: center;
-        padding: 80px 28px 60px;
-        gap: 48px;
+        padding: 88px 28px 68px;
     }
-    .anc-hero-content {
-        flex: 1 1 auto;
-        min-width: 0;
-        text-align: left;
-    }
-    .anc-hero-brand {
-        justify-content: flex-start;
-    }
-    .anc-hero-title,
-    .anc-hero-subtitle {
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
-    .anc-hero-ctas,
-    .anc-hero-trust {
-        justify-content: flex-start;
-    }
-    /* Desktop: coverflow rộng hơn, card lớn hơn */
-    .anc-hero-products {
-        flex: 0 0 620px;
-        max-width: 620px;
-        width: 620px;
-        margin: 0;
-    }
-    .anc-hero-coverflow { height: 32rem; }
-    .anc-hero-cf-card { width: 20rem; }
 }
 
 /* =============================================
@@ -690,7 +626,7 @@ body.anc-modal-locked {
 #anc-products::before,
 #anc-organic::before {
     background-image: var(--anc-bg-a);
-    opacity: 1;
+    opacity: 0.18;
 }
 
 #anc-products::after,
@@ -706,7 +642,7 @@ body.anc-modal-locked {
 
 #anc-products.is-bg-b::after,
 #anc-organic.is-bg-b::after {
-    opacity: 1;
+    opacity: 0.18;
 }
 
 @media only screen and (min-width: 1000px) {
@@ -726,14 +662,14 @@ body.anc-modal-locked {
     margin: 40px auto 0;
 }
 
-/* Wrapper beige bọc title + chips + cards, nổi trên ảnh nền của section */
+/* Product switcher stays unframed; the product panel itself is the only card. */
 #anc-products .anc-pf-switcher,
 #anc-organic .anc-pf-switcher {
     margin: 0 auto;
-    padding: 32px 24px 36px;
-    background-color: var(--default-color-beige, #f7f6f2);
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+    padding: 0;
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 #anc-products .anc-pf-switcher .anc-section-title,
@@ -752,7 +688,7 @@ body.anc-modal-locked {
 .anc-pf-chip {
     padding: 9px 20px;
     border: 1.5px solid var(--default-color-dark-blue);
-    border-radius: 999px;
+    border-radius: 6px;
     background: transparent;
     color: var(--default-color-dark-blue);
     font-size: 0.95rem;
@@ -901,7 +837,7 @@ body.anc-modal-locked {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     background: #fff;
-    border-radius: 14px;
+    border-radius: 8px;
     box-shadow: 0 6px 32px rgba(0, 0, 0, 0.09);
     overflow: hidden;
     text-align: left;
@@ -945,7 +881,7 @@ body.anc-modal-locked {
     letter-spacing: 1.5px;
     text-transform: uppercase;
     padding: 4px 12px;
-    border-radius: 2px;
+    border-radius: 4px;
     margin-bottom: 14px;
     align-self: flex-start;
 }
@@ -1964,14 +1900,14 @@ body.anc-modal-locked {
 @media (max-width: 600px) {
 
     #anc-hero {
-        min-height: 92svh;
+        min-height: auto;
         justify-content: flex-start;
     }
 
     .anc-hero-layout {
-        min-height: auto;
+        min-height: 88svh;
         justify-content: flex-start;
-        padding: 24px 18px 42px;
+        padding: 22px 18px 34px;
         gap: 16px;
     }
 
@@ -2010,11 +1946,12 @@ body.anc-modal-locked {
 
     .anc-hero-ctas {
         width: 100%;
-        max-width: 280px;
-        margin: clamp(118px, 28svh, 210px) auto 0;
+        max-width: 300px;
+        margin: clamp(72px, 18svh, 132px) auto 0;
+        flex-direction: column;
     }
 
-    .anc-hero-ctas .button--dark-blue {
+    .anc-hero-ctas [class*="button--"] {
         width: 100%;
         min-height: 48px;
         display: inline-flex;
@@ -2031,10 +1968,6 @@ body.anc-modal-locked {
     .anc-hero-trust li {
         font-size: 10.5px;
         line-height: 1.15;
-    }
-
-    .anc-hero-products {
-        display: none;
     }
 
     /* Feature product */
@@ -2094,13 +2027,13 @@ body.anc-modal-locked {
         background-position: center top;
     }
 
-    /* Mobile: layout xếp chồng (chữ trên, sản phẩm dưới) → overlay đậm trên, nhạt dưới */
+    /* Mobile: overlay đậm ở vùng chữ/CTA, nhẹ hơn ở vùng ảnh sản phẩm. */
     #anc-hero::before {
         background: linear-gradient(
             180deg,
-            rgba(13, 40, 35, 0.84) 0%,
-            rgba(13, 40, 35, 0.55) 45%,
-            rgba(0, 60, 40, 0.35) 100%
+            rgba(0, 20, 60, 0.84) 0%,
+            rgba(0, 45, 130, 0.58) 48%,
+            rgba(0, 71, 186, 0.34) 100%
         );
     }
     #anc-cta-band {
