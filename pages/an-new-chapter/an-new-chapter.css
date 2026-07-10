@@ -240,11 +240,29 @@
 }
 
 @media screen and (min-width: 1000px) {
-    /* Hero 1 cột, nội dung căn giữa trên ảnh nền (đã bỏ coverflow) */
+    /* Desktop: nội dung bám trái để ảnh nền sản phẩm giữ vai trò visual bên phải. */
     .anc-hero-layout {
         flex-direction: column;
-        align-items: center;
+        align-items: flex-start;
         padding: 88px 28px 68px;
+    }
+
+    .anc-hero-content {
+        text-align: left;
+        margin-left: 0;
+        margin-right: auto;
+    }
+
+    .anc-hero-brand,
+    .anc-hero-ctas,
+    .anc-hero-trust {
+        justify-content: flex-start;
+    }
+
+    .anc-hero-title,
+    .anc-hero-subtitle {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
 }
 
