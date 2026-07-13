@@ -43,7 +43,7 @@ function display_recipes_by_products($atts)
     $args = [
         'post_type'      => 'post',
         'post_status'    => 'publish',
-        'posts_per_page' => $is_product_context ? $product_limit + 1 : -1,
+        'posts_per_page' => $is_product_context ? $product_limit : -1,
         'no_found_rows'  => true,
         'category_name'  => 'cong-thuc', // Chi cac bai viet thuoc danh muc 'cong-thuc'
         'meta_query'     => [
@@ -65,13 +65,11 @@ function display_recipes_by_products($atts)
     // Bat dau tao noi dung hien thi
     $output = '<div class="recipes-list">';
     $shown_recipes = 0;
-    $has_more      = false;
 
     while ($query->have_posts()) {
         $query->the_post();
 
         if ($is_product_context && $shown_recipes >= $product_limit) {
-            $has_more = true;
             break;
         }
 
@@ -100,7 +98,7 @@ function display_recipes_by_products($atts)
     }
     $output .= '</div>';
 
-    if ($has_more) {
+    if ($is_product_context) {
         $output .= '<div class="recipes-list-more"><a class="button--light-blue" href="' . esc_url(hithean_recipe_category_url()) . '">Xem thêm</a></div>';
     }
 
