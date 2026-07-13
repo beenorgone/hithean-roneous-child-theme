@@ -1,5 +1,21 @@
 <?php
 if (!defined('ABSPATH')) exit;
+
+function hithean_recipe_category_url(): string
+{
+    $category = get_category_by_slug('cong-thuc');
+
+    if ($category instanceof WP_Term) {
+        $category_url = get_category_link($category);
+
+        if (!is_wp_error($category_url)) {
+            return $category_url;
+        }
+    }
+
+    return home_url('/category/cong-thuc/');
+}
+
 function display_recipes_by_products($atts)
 {
     // Lay cac gia tri cua shortcode
@@ -20,10 +36,15 @@ function display_recipes_by_products($atts)
         return '<p>Khong co san pham hop le duoc cung cap.</p>';
     }
 
+    $is_product_context = function_exists('is_product') && is_product();
+    $product_limit      = 6;
+
     // Query cac bai viet thuoc danh muc 'cong-thuc' va co san pham trong custom field 'post_san_pham'
     $args = [
         'post_type'      => 'post',
-        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'posts_per_page' => $is_product_context ? $product_limit + 1 : -1,
+        'no_found_rows'  => true,
         'category_name'  => 'cong-thuc', // Chi cac bai viet thuoc danh muc 'cong-thuc'
         'meta_query'     => [
             [
@@ -43,8 +64,16 @@ function display_recipes_by_products($atts)
 
     // Bat dau tao noi dung hien thi
     $output = '<div class="recipes-list">';
+    $shown_recipes = 0;
+    $has_more      = false;
+
     while ($query->have_posts()) {
         $query->the_post();
+
+        if ($is_product_context && $shown_recipes >= $product_limit) {
+            $has_more = true;
+            break;
+        }
 
         // Boc moi cong thuc trong the <div class="recipe-item">
         $output .= '<div class="recipe-item">';
@@ -67,8 +96,13 @@ function display_recipes_by_products($atts)
 
         // Dong the <div class="recipe-item">
         $output .= '</div>';
+        $shown_recipes++;
     }
     $output .= '</div>';
+
+    if ($has_more) {
+        $output .= '<div class="recipes-list-more"><a class="button--light-blue" href="' . esc_url(hithean_recipe_category_url()) . '">Xem thêm</a></div>';
+    }
 
     // Reset lai WP Query
     wp_reset_postdata();
@@ -165,4 +199,3 @@ function display_recipes_slider($atts)
     return $output;
 }
 add_shortcode('recipes-slider', 'display_recipes_slider');
-
