@@ -1061,6 +1061,65 @@ function order_creator_sync_order_from_cart(WC_Order $order, array $payload): vo
     }
 }
 
+function order_creator_order_stock_was_reduced(WC_Order $order): bool
+{
+    $data_store = WC_Data_Store::load('order');
+    if (is_callable([$data_store, 'get_stock_reduced'])) {
+        return (bool) $data_store->get_stock_reduced($order->get_id());
+    }
+
+    return wc_string_to_bool((string) $order->get_meta('_order_stock_reduced', true));
+}
+
+function order_creator_order_status_should_reduce_stock(WC_Order $order, bool $is_draft): bool
+{
+    if ($is_draft) {
+        return false;
+    }
+
+    $status = $order->get_status();
+    $restore_statuses = (array) apply_filters('woocommerce_order_statuses_that_restore_stock', ['cancelled', 'pending', 'failed']);
+    $restore_statuses = array_map(static function ($restore_status) {
+        return preg_replace('/^wc-/', '', (string) $restore_status);
+    }, $restore_statuses);
+
+    return !in_array($status, $restore_statuses, true);
+}
+
+function order_creator_restore_reduced_stock_before_edit(WC_Order $order): bool
+{
+    if (!function_exists('wc_increase_stock_levels') || !order_creator_order_stock_was_reduced($order)) {
+        return false;
+    }
+
+    wc_increase_stock_levels($order);
+    $order->add_order_note('Hoàn tồn kho dòng cũ trước khi cập nhật đơn từ trang Tạo đơn.', false);
+    return true;
+}
+
+function order_creator_reduce_stock_after_edit(WC_Order $order, bool $is_draft): void
+{
+    if (!order_creator_order_status_should_reduce_stock($order, $is_draft) || order_creator_order_stock_was_reduced($order)) {
+        return;
+    }
+
+    if (function_exists('wc_maybe_reduce_stock_levels')) {
+        wc_maybe_reduce_stock_levels($order->get_id());
+        return;
+    }
+
+    if (function_exists('wc_reduce_stock_levels')) {
+        wc_reduce_stock_levels($order);
+        $data_store = WC_Data_Store::load('order');
+        if (is_callable([$data_store, 'set_stock_reduced'])) {
+            $data_store->set_stock_reduced($order->get_id(), true);
+        } else {
+            $order->update_meta_data('_order_stock_reduced', 'yes');
+            $order->save();
+        }
+    }
+}
+
 /** Gán trạng thái / ngày / ghi chú nội bộ cho đơn. */
 /**
  * Gắn nguồn đơn = "Quản trị web" (WooCommerce Order Attribution).
@@ -1129,12 +1188,14 @@ function order_creator_update_order(int $order_id, array $payload): WC_Order
     }
     $order->set_customer_note(sanitize_textarea_field($payload['customer_note'] ?? ''));
 
+    order_creator_restore_reduced_stock_before_edit($order);
     order_creator_sync_order_from_cart($order, $payload);
     $order->calculate_totals(true);
 
     order_creator_apply_status_and_notes($order, $payload, $is_draft, 'Đơn được cập nhật');
     order_creator_save_customer_addresses($payload);
     $order->save();
+    order_creator_reduce_stock_after_edit($order, $is_draft);
 
     return $order;
 }
