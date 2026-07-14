@@ -1057,11 +1057,13 @@ body.anc-modal-locked {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-top: 20px;
     margin-bottom: 20px;
     padding: 13px 15px;
     background: var(--default-color-beige, #f7f6f2);
     border-left: 3px solid var(--default-color-dark-blue, #0047ba);
-    border-radius: 4px;
+    border-radius: 8px;
+    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.09);
 }
 
 .anc-pf-update-item {
