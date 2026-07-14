@@ -1071,6 +1071,18 @@ function order_creator_order_stock_was_reduced(WC_Order $order): bool
     return wc_string_to_bool((string) $order->get_meta('_order_stock_reduced', true));
 }
 
+function order_creator_set_order_stock_reduced(WC_Order $order, bool $reduced): void
+{
+    $data_store = WC_Data_Store::load('order');
+    if (is_callable([$data_store, 'set_stock_reduced'])) {
+        $data_store->set_stock_reduced($order->get_id(), $reduced);
+        return;
+    }
+
+    $order->update_meta_data('_order_stock_reduced', $reduced ? 'yes' : 'no');
+    $order->save();
+}
+
 function order_creator_order_status_should_reduce_stock(WC_Order $order, bool $is_draft): bool
 {
     if ($is_draft) {
@@ -1093,6 +1105,7 @@ function order_creator_restore_reduced_stock_before_edit(WC_Order $order): bool
     }
 
     wc_increase_stock_levels($order);
+    order_creator_set_order_stock_reduced($order, false);
     $order->add_order_note('Hoàn tồn kho dòng cũ trước khi cập nhật đơn từ trang Tạo đơn.', false);
     return true;
 }
@@ -1103,20 +1116,9 @@ function order_creator_reduce_stock_after_edit(WC_Order $order, bool $is_draft):
         return;
     }
 
-    if (function_exists('wc_maybe_reduce_stock_levels')) {
-        wc_maybe_reduce_stock_levels($order->get_id());
-        return;
-    }
-
     if (function_exists('wc_reduce_stock_levels')) {
         wc_reduce_stock_levels($order);
-        $data_store = WC_Data_Store::load('order');
-        if (is_callable([$data_store, 'set_stock_reduced'])) {
-            $data_store->set_stock_reduced($order->get_id(), true);
-        } else {
-            $order->update_meta_data('_order_stock_reduced', 'yes');
-            $order->save();
-        }
+        order_creator_set_order_stock_reduced($order, true);
     }
 }
 
