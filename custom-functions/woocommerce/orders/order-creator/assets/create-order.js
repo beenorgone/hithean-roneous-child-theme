@@ -1132,8 +1132,40 @@
         box.innerHTML = '<div class="oc-result-head">' + headText + '<b>#' + o.order_number + '</b> — ' + money(o.total) + '</div>';
         $('#oc-view-order').href = o.edit_url || '#';
         $('#oc-print-pxk').href = CFG.ajaxUrl + '?action=inhoadon_ghtk&order_id=' + encodeURIComponent(o.order_id);
+        syncCustomerConfirmedButton(o, isDraft);
         setActionMode('result');
         box.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function syncCustomerConfirmedButton(o, isDraft) {
+        var btn = $('#oc-customer-confirmed');
+        if (!btn) { return; }
+        var show = !isDraft && o && o.payment_method === 'cod' && ['on-hold', 'processing'].indexOf(o.status) !== -1;
+        btn.hidden = !show;
+        btn.style.display = show ? '' : 'none';
+        btn.disabled = false;
+        btn.textContent = 'Khách đã xác nhận';
+    }
+
+    function customerConfirmed() {
+        var o = state.lastOrder;
+        if (!o || !o.order_id) { return; }
+        var btn = $('#oc-customer-confirmed');
+        btn.disabled = true;
+        btn.textContent = 'Đang chuyển...';
+        post('order_creator_customer_confirmed', { order_id: o.order_id }).then(function (res) {
+            if (!res.success) {
+                btn.disabled = false;
+                btn.textContent = 'Khách đã xác nhận';
+                alert((res.data && res.data.message) || 'Không chuyển được trạng thái đơn.');
+                return;
+            }
+            state.lastOrder = Object.assign({}, state.lastOrder, res.data);
+            renderResult(state.lastOrder, false, '✅ Khách đã xác nhận, đơn chuyển sang ' + (res.data.status_label || res.data.status) + ' ');
+        }).catch(function () {
+            btn.disabled = false;
+            btn.textContent = 'Khách đã xác nhận';
+        });
     }
 
     function editInline() {
@@ -1407,6 +1439,7 @@
         $('#oc-copy-order').addEventListener('click', copyCurrent);
         $('#oc-new-order').addEventListener('click', startNewOrder);
         $('#oc-edit-inline').addEventListener('click', editInline);
+        $('#oc-customer-confirmed').addEventListener('click', customerConfirmed);
         $('#oc-view-invoice').addEventListener('click', function () { if (state.lastOrder) { openInvoice(state.lastOrder.invoice_url); } });
         $('#oc-open-pay').addEventListener('click', function () { if (state.lastOrder) { openPayModal(state.lastOrder); } });
         document.querySelectorAll('.oc-section-nav a[data-jump]').forEach(function (link) {

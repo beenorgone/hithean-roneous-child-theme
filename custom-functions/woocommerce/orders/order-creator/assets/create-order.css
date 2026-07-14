@@ -315,6 +315,7 @@
 .oc-actionbar.mode-edit [data-act="create"] { order: 4; }
 .oc-actionbar.mode-edit [data-act="new"] { order: 5; }
 
+.oc-actionbar.mode-result [data-act="customer-confirm"],
 .oc-actionbar.mode-result [data-act="pay"],
 .oc-actionbar.mode-result [data-act="view"],
 .oc-actionbar.mode-result [data-act="invoice"],
@@ -322,13 +323,15 @@
 .oc-actionbar.mode-result [data-act="edit"],
 .oc-actionbar.mode-result [data-act="copy"],
 .oc-actionbar.mode-result [data-act="new"] { display: inline-flex; }
-.oc-actionbar.mode-result [data-act="pay"] { order: 1; }
-.oc-actionbar.mode-result [data-act="view"] { order: 2; }
-.oc-actionbar.mode-result [data-act="invoice"] { order: 3; }
-.oc-actionbar.mode-result [data-act="print"] { order: 4; }
-.oc-actionbar.mode-result [data-act="edit"] { order: 5; }
-.oc-actionbar.mode-result [data-act="copy"] { order: 6; }
-.oc-actionbar.mode-result [data-act="new"] { order: 7; }
+.oc-actionbar.mode-result [data-act="customer-confirm"][hidden] { display: none !important; }
+.oc-actionbar.mode-result [data-act="customer-confirm"] { order: 1; }
+.oc-actionbar.mode-result [data-act="pay"] { order: 2; }
+.oc-actionbar.mode-result [data-act="view"] { order: 3; }
+.oc-actionbar.mode-result [data-act="invoice"] { order: 4; }
+.oc-actionbar.mode-result [data-act="print"] { order: 5; }
+.oc-actionbar.mode-result [data-act="edit"] { order: 6; }
+.oc-actionbar.mode-result [data-act="copy"] { order: 7; }
+.oc-actionbar.mode-result [data-act="new"] { order: 8; }
 
 /* cột "Giá sửa" + "Giảm/SP" chỉ Admin thấy */
 body.oc-no-admin .oc-lines th:nth-child(3),

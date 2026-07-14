@@ -1262,6 +1262,89 @@ function order_creator_build_order(array $payload): WC_Order
     return $order;
 }
 
+function order_creator_order_meta_text(WC_Order $order, array $keys): string
+{
+    $values = [];
+    foreach ($keys as $key) {
+        foreach ($order->get_meta($key, false) as $value) {
+            foreach ((array) $value as $entry) {
+                if ($entry !== '') {
+                    $values[] = (string) $entry;
+                }
+            }
+        }
+        $single = $order->get_meta($key, true);
+        foreach ((array) $single as $entry) {
+            if ($entry !== '') {
+                $values[] = (string) $entry;
+            }
+        }
+    }
+
+    return implode(' ', array_unique($values));
+}
+
+function order_creator_order_has_quick_shipping(WC_Order $order): bool
+{
+    $text = order_creator_order_meta_text($order, ['order_handling_status', 'handling_status']);
+    $normalized = function_exists('remove_accents') ? remove_accents($text) : $text;
+    return preg_match('/giao\s*nhanh/i', $normalized) === 1;
+}
+
+function order_creator_order_is_local_delivery(WC_Order $order): bool
+{
+    $address = implode(' ', array_filter([
+        $order->get_shipping_state(),
+        $order->get_shipping_city(),
+        $order->get_shipping_address_1(),
+        $order->get_billing_state(),
+        $order->get_billing_city(),
+        $order->get_billing_address_1(),
+    ]));
+    $normalized = strtolower(function_exists('remove_accents') ? remove_accents($address) : $address);
+
+    return strpos($normalized, 'ha noi') !== false
+        || strpos($normalized, 'hanoi') !== false
+        || preg_match('/(^|\s)hn($|\s)/', $normalized) === 1;
+}
+
+function order_creator_customer_confirmed_cod_order(WC_Order $order): array
+{
+    if ($order->get_payment_method() !== 'cod') {
+        throw new Exception('Chỉ áp dụng cho đơn COD.');
+    }
+    if (!in_array($order->get_status(), ['on-hold', 'processing'], true)) {
+        throw new Exception('Chỉ áp dụng khi đơn đang ở trạng thái Tạm giữ hoặc Đang xử lý.');
+    }
+
+    $is_quick = order_creator_order_has_quick_shipping($order);
+    $is_local = order_creator_order_is_local_delivery($order);
+    $target_status = $is_quick ? 'local-shipping' : 'packaging';
+    $reason = $is_quick
+        ? 'Khách đã xác nhận COD, đơn có trạng thái xử lý Giao nhanh nên chuyển sang Giao nhanh.'
+        : ($is_local
+            ? 'Khách đã xác nhận COD, chuyển sang Chuẩn bị bàn giao vận chuyển.'
+            : 'Khách đã xác nhận COD ngoại tỉnh, chuyển sang Chuẩn bị bàn giao vận chuyển.');
+
+    $user = wp_get_current_user();
+    $order->update_meta_data('_order_creator_customer_confirmed_at', current_time('mysql'));
+    $order->update_meta_data('_order_creator_customer_confirmed_by', $user ? (int) $user->ID : 0);
+    if ($order->get_status() !== $target_status) {
+        $order->update_status($target_status, $reason);
+    } else {
+        $order->add_order_note($reason, false);
+    }
+    $order->save();
+
+    $statuses = wc_get_order_statuses();
+    return [
+        'status'       => $order->get_status(),
+        'status_label' => $statuses['wc-' . $order->get_status()] ?? $order->get_status(),
+        'is_quick'     => $is_quick,
+        'is_local'     => $is_local,
+    ];
+}
+
 // ================================================================
 // AJAX — TÌM SẢN PHẨM
 // ================================================================
@@ -1898,8 +1981,33 @@ add_action('wp_ajax_order_creator_create_order', function () {
                 'nonce'    => wp_create_nonce(ORDER_CREATOR_NONCE),
             ], admin_url('admin-ajax.php')),
             'payment_total' => wc_format_decimal($order->get_total(), 0),
+            'payment_method'=> $order->get_payment_method(),
+            'status'        => $order->get_status(),
             'phone'         => $order->get_billing_phone(),
         ]);
+    } catch (Throwable $e) {
+        wp_send_json_error(['message' => $e->getMessage()]);
+    }
+});
+
+add_action('wp_ajax_order_creator_customer_confirmed', function () {
+    order_creator_verify_ajax();
+
+    $order_id = absint($_POST['order_id'] ?? 0);
+    $order = $order_id ? wc_get_order($order_id) : false;
+    if (!$order instanceof WC_Order) {
+        wp_send_json_error(['message' => 'Không tìm thấy đơn hàng.']);
+    }
+
+    try {
+        $result = order_creator_customer_confirmed_cod_order($order);
+        wp_send_json_success(array_merge($result, [
+            'order_id'      => $order->get_id(),
+            'order_number'  => function_exists('change_order_number') ? (string) change_order_number($order->get_id()) : (string) $order->get_order_number(),
+            'total'         => (float) $order->get_total(),
+            'edit_url'      => $order->get_edit_order_url(),
+            'payment_method'=> $order->get_payment_method(),
+        ]));
     } catch (Throwable $e) {
         wp_send_json_error(['message' => $e->getMessage()]);
     }
@@ -2566,6 +2674,7 @@ function order_creator_render_page(): void
         <button type="button" class="oc-btn oc-btn--ghost" id="oc-copy-order" data-act="copy">Copy</button>
         <button type="button" class="oc-btn oc-btn--ghost" id="oc-draft" data-act="draft">Lưu nháp</button>
         <button type="button" class="oc-btn oc-btn--primary" id="oc-create" data-act="create">Tạo đơn</button>
+        <button type="button" class="oc-btn oc-btn--primary" id="oc-customer-confirmed" data-act="customer-confirm" hidden>Khách đã xác nhận</button>
         <button type="button" class="oc-btn oc-btn--primary" id="oc-open-pay" data-act="pay">Xác nhận thanh toán</button>
         <a class="oc-btn oc-btn--ghost" id="oc-view-order" data-act="view" target="_blank" rel="noopener" href="#">Xem đơn</a>
         <button type="button" class="oc-btn oc-btn--ghost" id="oc-view-invoice" data-act="invoice">Xem hóa đơn</button>
