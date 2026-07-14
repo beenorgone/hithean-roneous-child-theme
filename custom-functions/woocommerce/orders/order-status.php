@@ -10,6 +10,18 @@ if (!defined('ABSPATH')) exit;
 
 if (!defined('ABSPATH')) exit;
 
+function cws_get_custom_statuses(): array
+{
+    return [
+        'paid'           => 'Đã CK',
+        'partial-paid'   => 'CK 1 phần',
+        'packaging'      => 'Chuẩn bị giao VC',
+        'local-shipping' => 'Giao nhanh',
+        'shipping'       => 'Đang giao',
+        'delivered'      => 'Đã giao',
+    ];
+}
+
 /**
  * Register Custom Order Statuses
  */
@@ -71,6 +83,7 @@ add_action('init', 'register_custom_order_statuses');
 function add_custom_wc_order_statuses($order_statuses)
 {
     $order_statuses['wc-paid'] = 'Đã CK';
+    $order_statuses['wc-partial-paid'] = 'CK 1 phần';
     $order_statuses['wc-packaging'] = 'Chuẩn bị giao VC';
     $order_statuses['wc-local-shipping'] = 'Giao nhanh';
     $order_statuses['wc-shipping'] = 'Đang giao';
