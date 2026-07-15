@@ -147,6 +147,23 @@ add_shortcode('order_return_management', function () {
             background: #fafafa;
         }
 
+        .return-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .widefat.striped tbody tr.return-active-row td {
+            background-color: #fff7d6 !important;
+            box-shadow: inset 4px 0 0 #f2b705;
+        }
+
+        .widefat.striped tbody tr.return-busy-row td {
+            background-color: #e8f5ff !important;
+            box-shadow: inset 4px 0 0 #0073aa;
+        }
+
         .return-images-preview img {
             max-width: 80px;
             height: auto;
@@ -316,14 +333,20 @@ add_shortcode('order_return_management', function () {
                 const nextStatus = btn.data('next-status');
                 if (tr.next().hasClass('return-form-row')) {
                     tr.next().remove();
+                    tr.removeClass('return-active-row return-busy-row');
                     return;
                 }
+                $('.return-active-row, .return-busy-row').removeClass('return-active-row return-busy-row');
+                $('.return-form-row').remove();
+                tr.addClass('return-active-row');
 
                 const formHtml = `
             <tr class="return-form-row">
                 <td colspan="9">
                     <form class="return-process-form" data-order-id="${orderId}">
                         <p style="margin-top:0;"><strong>Chuyển HOÀN HÀNG sang:</strong> ${nextStatus}</p>
+                        <p><label>Mã vận đơn hoàn hàng:<br>
+                        <input type="text" name="return_code" style="min-width:360px;width:100%;" placeholder="Nhập mã vận đơn hoàn hàng"></label></p>
                         <p><label>Ghi chú xử lý (tuỳ chọn):<br>
                         <textarea name="return_note" rows="3" style="min-width:360px;width:100%;" placeholder="Ghi chú nội bộ lưu vào đơn hàng"></textarea></label></p>
                         <button type="submit" class="button-green">Xác nhận đã xử lý</button>
@@ -339,9 +362,11 @@ add_shortcode('order_return_management', function () {
                 const form = $(this);
                 const orderId = form.data('order-id');
                 const tr = $('tr[data-order-id="' + orderId + '"]');
+                tr.removeClass('return-active-row').addClass('return-busy-row');
                 const fd = new FormData();
                 fd.append('action', 'process_return_order');
                 fd.append('order_id', orderId);
+                fd.append('return_code', form.find('input[name=return_code]').val());
                 fd.append('return_note', form.find('textarea[name=return_note]').val());
                 fd.append('nonce', ormProcessNonce);
 
@@ -359,12 +384,15 @@ add_shortcode('order_return_management', function () {
                             form.find('.process-status').text('✅ Đã chuyển sang ' + resp.data.status + '.');
                             setTimeout(() => form.closest('tr.return-form-row').fadeOut(300, function() {
                                 $(this).remove();
+                                tr.removeClass('return-busy-row');
                             }), 800);
                         } else {
+                            tr.removeClass('return-busy-row').addClass('return-active-row');
                             form.find('.process-status').text('❌ ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
                         }
                     },
                     error: function() {
+                        tr.removeClass('return-busy-row').addClass('return-active-row');
                         form.find('.process-status').text('❌ Lỗi hệ thống.');
                     }
                 });
@@ -376,8 +404,12 @@ add_shortcode('order_return_management', function () {
                 const orderId = tr.data('order-id');
                 if (tr.next().hasClass('return-form-row')) {
                     tr.next().remove();
+                    tr.removeClass('return-active-row return-busy-row');
                     return;
                 }
+                $('.return-active-row, .return-busy-row').removeClass('return-active-row return-busy-row');
+                $('.return-form-row').remove();
+                tr.addClass('return-active-row');
 
                 const formHtml = `
             <tr class="return-form-row">
@@ -411,6 +443,7 @@ add_shortcode('order_return_management', function () {
                     return;
                 }
 
+                tr.removeClass('return-active-row').addClass('return-busy-row');
                 const fd = new FormData();
                 fd.append('action', 'upload_return_images');
                 fd.append('order_id', orderId);
@@ -439,12 +472,15 @@ add_shortcode('order_return_management', function () {
                             // Xóa form sau 1s
                             setTimeout(() => form.closest('tr.return-form-row').fadeOut(300, function() {
                                 $(this).remove();
+                                tr.removeClass('return-busy-row');
                             }), 800);
                         } else {
+                            tr.removeClass('return-busy-row').addClass('return-active-row');
                             form.find('.upload-status').text('❌ ' + resp.data);
                         }
                     },
                     error: function() {
+                        tr.removeClass('return-busy-row').addClass('return-active-row');
                         form.find('.upload-status').text('❌ Lỗi hệ thống.');
                     }
                 });
@@ -794,7 +830,7 @@ add_action('wp_ajax_load_return_orders', function () {
 
     $type = sanitize_text_field($_POST['list_type'] ?? 'pending');
     $type = ($type === 'completed') ? 'completed' : 'pending';
-    $cache_key = 'return_orders_' . $type . '_v5';
+    $cache_key = 'return_orders_' . $type . '_v7';
 
     $cached = wp_cache_get($cache_key, 'orders');
     if ($cached !== false) {
@@ -858,6 +894,7 @@ add_action('wp_ajax_load_return_orders', function () {
                     <td class="return-status-cell"><?= esc_html($return_status) ?></td>
                     <?php if ($type === 'pending'): ?>
                         <td>
+                            <div class="return-actions">
                             <?php if ($next_status !== ''): ?>
                                 <button class="button-white button-small process-return-btn" data-next-status="<?= esc_attr($next_status) ?>">
                                     Đã xử lý
@@ -866,6 +903,7 @@ add_action('wp_ajax_load_return_orders', function () {
                             <button class="button-green button-small confirm-return-btn">
                                 Đã nhận hàng hoàn
                             </button>
+                            </div>
                         </td>
                     <?php else: ?>
                         <td class="return-images-preview">
@@ -942,8 +980,8 @@ add_action('wp_ajax_upload_return_images', function () {
     $order->update_meta_data('return_status', $new_status);
     $order->save();
 
-    wp_cache_delete('return_orders_pending_v5', 'orders');
-    wp_cache_delete('return_orders_completed_v5', 'orders');
+    wp_cache_delete('return_orders_pending_v7', 'orders');
+    wp_cache_delete('return_orders_completed_v7', 'orders');
 
     wp_send_json_success(['urls' => $uploaded_urls]);
 });
@@ -959,6 +997,7 @@ add_action('wp_ajax_process_return_order', function () {
     }
 
     $order_id = intval($_POST['order_id'] ?? 0);
+    $code = sanitize_text_field(wp_unslash($_POST['return_code'] ?? ''));
     $note = sanitize_textarea_field(wp_unslash($_POST['return_note'] ?? ''));
     if (!$order_id) {
         wp_send_json_error(['message' => 'Thiếu ID đơn']);
@@ -977,14 +1016,24 @@ add_action('wp_ajax_process_return_order', function () {
 
     $order->update_meta_data('return_status', $next_status);
     $order_note = sprintf('HOÀN HÀNG đã xử lý: %s → %s', $current_status, $next_status);
+    if ($code !== '') {
+        $existing_code = trim((string) $order->get_meta('return_code'));
+        $existing_codes = array_map('trim', explode(',', $existing_code));
+        if ($existing_code === '') {
+            $order->update_meta_data('return_code', $code);
+        } elseif (!in_array($code, $existing_codes, true)) {
+            $order->update_meta_data('return_code', $existing_code . ', ' . $code);
+        }
+        $order_note .= "\nMã vận đơn hoàn hàng: " . $code;
+    }
     if ($note !== '') {
         $order_note .= "\nGhi chú: " . $note;
     }
     $order->add_order_note($order_note, false, true);
     $order->save();
 
-    wp_cache_delete('return_orders_pending_v5', 'orders');
-    wp_cache_delete('return_orders_completed_v5', 'orders');
+    wp_cache_delete('return_orders_pending_v7', 'orders');
+    wp_cache_delete('return_orders_completed_v7', 'orders');
 
     wp_send_json_success(['status' => $next_status]);
 });
@@ -1087,8 +1136,8 @@ add_action('wp_ajax_attach_return_order', function () {
     }
     $order->save();
 
-    wp_cache_delete('return_orders_pending_v5', 'orders');
-    wp_cache_delete('return_orders_completed_v5', 'orders');
+    wp_cache_delete('return_orders_pending_v7', 'orders');
+    wp_cache_delete('return_orders_completed_v7', 'orders');
 
     wp_send_json_success(['status' => $status, 'images' => $uploaded_urls]);
 });
