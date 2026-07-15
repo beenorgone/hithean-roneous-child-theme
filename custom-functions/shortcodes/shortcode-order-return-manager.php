@@ -191,6 +191,7 @@ add_shortcode('order_return_management', function () {
         var ormUploadNonce = "<?php echo esc_js(wp_create_nonce('upload_return_images_nonce')); ?>";
         var ormLookupNonce = "<?php echo esc_js(wp_create_nonce('return_lookup_order_nonce')); ?>";
         var ormAttachNonce = "<?php echo esc_js(wp_create_nonce('attach_return_order_nonce')); ?>";
+        var ormProcessNonce = "<?php echo esc_js(wp_create_nonce('process_return_order_nonce')); ?>";
         jQuery(function($) {
             if (typeof ajaxurl === 'undefined') {
                 var ajaxurl = '<?php echo esc_url(admin_url('admin-ajax.php')); ?>';
@@ -281,6 +282,7 @@ add_shortcode('order_return_management', function () {
                 fd.append('order_id', orderId);
                 fd.append('return_status', status);
                 fd.append('return_code', form.find('input[name=return_code]').val());
+                fd.append('return_note', form.find('textarea[name=return_note]').val());
                 fd.append('nonce', ormAttachNonce);
                 const files = form.find('input[type=file]')[0].files;
                 for (let i = 0; i < files.length; i++) fd.append('issue_images[]', files[i]);
@@ -302,6 +304,68 @@ add_shortcode('order_return_management', function () {
                     },
                     error: function() {
                         st.text('❌ Lỗi hệ thống.');
+                    }
+                });
+            });
+
+            // Chuyển trạng thái HOÀN HÀNG từ "Cần..." sang "Chờ hoàn..."
+            $(document).on('click', '.process-return-btn', function() {
+                const btn = $(this);
+                const tr = btn.closest('tr');
+                const orderId = tr.data('order-id');
+                const nextStatus = btn.data('next-status');
+                if (tr.next().hasClass('return-form-row')) {
+                    tr.next().remove();
+                    return;
+                }
+
+                const formHtml = `
+            <tr class="return-form-row">
+                <td colspan="9">
+                    <form class="return-process-form" data-order-id="${orderId}">
+                        <p style="margin-top:0;"><strong>Chuyển HOÀN HÀNG sang:</strong> ${nextStatus}</p>
+                        <p><label>Ghi chú xử lý (tuỳ chọn):<br>
+                        <textarea name="return_note" rows="3" style="min-width:360px;width:100%;" placeholder="Ghi chú nội bộ lưu vào đơn hàng"></textarea></label></p>
+                        <button type="submit" class="button-green">Xác nhận đã xử lý</button>
+                        <div class="process-status" style="margin-top:5px;color:#0073aa;"></div>
+                    </form>
+                </td>
+            </tr>`;
+                tr.after(formHtml);
+            });
+
+            $(document).on('submit', '.return-process-form', function(e) {
+                e.preventDefault();
+                const form = $(this);
+                const orderId = form.data('order-id');
+                const tr = $('tr[data-order-id="' + orderId + '"]');
+                const fd = new FormData();
+                fd.append('action', 'process_return_order');
+                fd.append('order_id', orderId);
+                fd.append('return_note', form.find('textarea[name=return_note]').val());
+                fd.append('nonce', ormProcessNonce);
+
+                form.find('.process-status').text('⏳ Đang chuyển trạng thái...');
+                $.ajax({
+                    url: ajaxurl,
+                    method: 'POST',
+                    data: fd,
+                    processData: false,
+                    contentType: false,
+                    success: function(resp) {
+                        if (resp.success) {
+                            tr.find('.return-status-cell').text(resp.data.status);
+                            tr.find('.process-return-btn').replaceWith('<span class="status-done" style="color:#16a085;font-weight:600;">Đã xử lý</span>');
+                            form.find('.process-status').text('✅ Đã chuyển sang ' + resp.data.status + '.');
+                            setTimeout(() => form.closest('tr.return-form-row').fadeOut(300, function() {
+                                $(this).remove();
+                            }), 800);
+                        } else {
+                            form.find('.process-status').text('❌ ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
+                        }
+                    },
+                    error: function() {
+                        form.find('.process-status').text('❌ Lỗi hệ thống.');
                     }
                 });
             });
@@ -501,6 +565,17 @@ function hithean_return_pending_statuses(): array
     ];
 }
 
+function hithean_return_next_status(string $status): string
+{
+    $map = [
+        'Cần đổi trả' => 'Chờ hoàn (Đổi trả)',
+        'Cần thu hồi' => 'Chờ hoàn (Thu hồi)',
+        'Cần giao lại' => 'Chờ hoàn (Giao 1 phần)',
+    ];
+
+    return $map[trim($status)] ?? '';
+}
+
 /* ---- Resolver mã đơn (mô phỏng bank-transfer: bỏ tiền tố P0/P1, thử ID và ID bỏ 2 số cuối) ---- */
 function hithean_return_normalize_code($token): string
 {
@@ -690,6 +765,10 @@ function hithean_return_render_search_results(array $orders): string
                                         <input type="file" name="issue_images[]" multiple accept="image/*"></label>
                                 </div>
                                 <div style="margin-top:6px;">
+                                    <label>Ghi chú đơn (tuỳ chọn):<br>
+                                        <textarea name="return_note" rows="3" style="min-width:300px;width:100%;" placeholder="Ghi chú nội bộ lưu vào đơn hàng"></textarea></label>
+                                </div>
+                                <div style="margin-top:6px;">
                                     <button type="submit" class="button-green button-small">Gắn trả hàng</button>
                                 </div>
                                 <div class="attach-status" style="color:#0073aa;margin-top:4px;"></div>
@@ -715,7 +794,7 @@ add_action('wp_ajax_load_return_orders', function () {
 
     $type = sanitize_text_field($_POST['list_type'] ?? 'pending');
     $type = ($type === 'completed') ? 'completed' : 'pending';
-    $cache_key = 'return_orders_' . $type . '_v4';
+    $cache_key = 'return_orders_' . $type . '_v5';
 
     $cached = wp_cache_get($cache_key, 'orders');
     if ($cached !== false) {
@@ -752,6 +831,7 @@ add_action('wp_ajax_load_return_orders', function () {
                 $return_status = $order->get_meta('return_status');
                 $return_code   = $order->get_meta('return_code');
                 $return_images = $order->get_meta('issue_result_images');
+                $next_status   = hithean_return_next_status($return_status);
                 $billing_phone = $order->get_billing_phone();
                 $billing_name  = $order->get_formatted_billing_full_name();
 
@@ -775,9 +855,14 @@ add_action('wp_ajax_load_return_orders', function () {
                     <td><?= esc_html($billing_name) ?></td>
                     <td><?= $items_html ?></td>
                     <td><?= esc_html($return_code) ?></td>
-                    <td><?= esc_html($return_status) ?></td>
+                    <td class="return-status-cell"><?= esc_html($return_status) ?></td>
                     <?php if ($type === 'pending'): ?>
                         <td>
+                            <?php if ($next_status !== ''): ?>
+                                <button class="button-white button-small process-return-btn" data-next-status="<?= esc_attr($next_status) ?>">
+                                    Đã xử lý
+                                </button>
+                            <?php endif; ?>
                             <button class="button-green button-small confirm-return-btn">
                                 Đã nhận hàng hoàn
                             </button>
@@ -857,10 +942,51 @@ add_action('wp_ajax_upload_return_images', function () {
     $order->update_meta_data('return_status', $new_status);
     $order->save();
 
-    wp_cache_delete('return_orders_pending_v4', 'orders');
-    wp_cache_delete('return_orders_completed_v4', 'orders');
+    wp_cache_delete('return_orders_pending_v5', 'orders');
+    wp_cache_delete('return_orders_completed_v5', 'orders');
 
     wp_send_json_success(['urls' => $uploaded_urls]);
+});
+
+
+/**
+ * AJAX: Đánh dấu đã xử lý yêu cầu hoàn hàng và chuyển sang trạng thái chờ hoàn tương ứng.
+ */
+add_action('wp_ajax_process_return_order', function () {
+    check_ajax_referer('process_return_order_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => 'Không có quyền'], 403);
+    }
+
+    $order_id = intval($_POST['order_id'] ?? 0);
+    $note = sanitize_textarea_field(wp_unslash($_POST['return_note'] ?? ''));
+    if (!$order_id) {
+        wp_send_json_error(['message' => 'Thiếu ID đơn']);
+    }
+
+    $order = wc_get_order($order_id);
+    if (!$order || $order->get_type() !== 'shop_order') {
+        wp_send_json_error(['message' => 'Không tìm thấy đơn']);
+    }
+
+    $current_status = trim((string) $order->get_meta('return_status'));
+    $next_status = hithean_return_next_status($current_status);
+    if ($next_status === '') {
+        wp_send_json_error(['message' => 'Trạng thái hiện tại không có bước xử lý tiếp theo']);
+    }
+
+    $order->update_meta_data('return_status', $next_status);
+    $order_note = sprintf('HOÀN HÀNG đã xử lý: %s → %s', $current_status, $next_status);
+    if ($note !== '') {
+        $order_note .= "\nGhi chú: " . $note;
+    }
+    $order->add_order_note($order_note, false, true);
+    $order->save();
+
+    wp_cache_delete('return_orders_pending_v5', 'orders');
+    wp_cache_delete('return_orders_completed_v5', 'orders');
+
+    wp_send_json_success(['status' => $next_status]);
 });
 
 
@@ -903,6 +1029,7 @@ add_action('wp_ajax_attach_return_order', function () {
     $order_id = intval($_POST['order_id'] ?? 0);
     $status   = sanitize_text_field($_POST['return_status'] ?? '');
     $code     = sanitize_text_field($_POST['return_code'] ?? '');
+    $note     = sanitize_textarea_field(wp_unslash($_POST['return_note'] ?? ''));
 
     if (!$order_id) wp_send_json_error(['message' => 'Thiếu ID đơn']);
     if (!in_array($status, hithean_return_pending_statuses(), true)) {
@@ -955,10 +1082,13 @@ add_action('wp_ajax_attach_return_order', function () {
         $old = (string) $order->get_meta('issue_report_images');
         $order->update_meta_data('issue_report_images', trim($old . "\n" . implode("\n", $uploaded_urls)));
     }
+    if ($note !== '') {
+        $order->add_order_note('Ghi chú hoàn hàng: ' . $note, false, true);
+    }
     $order->save();
 
-    wp_cache_delete('return_orders_pending_v4', 'orders');
-    wp_cache_delete('return_orders_completed_v4', 'orders');
+    wp_cache_delete('return_orders_pending_v5', 'orders');
+    wp_cache_delete('return_orders_completed_v5', 'orders');
 
     wp_send_json_success(['status' => $status, 'images' => $uploaded_urls]);
 });
