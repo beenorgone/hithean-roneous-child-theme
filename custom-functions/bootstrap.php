@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) exit;
  */
 
 require_once __DIR__ . '/core/template-router.php';
+require_once __DIR__ . '/core/guest-page-access.php';
 require_once __DIR__ . '/core/enqueue.php';
 require_once __DIR__ . '/core/admin.php';
 require_once __DIR__ . '/core/email-overrides.php';
