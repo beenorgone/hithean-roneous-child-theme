@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 
 
 if (!function_exists("hithean_order_edit_current_post_id")) {
-    function hithean_order_edit_current_post_id(): int
+    function hithean_order_edit_current_post_id()
     {
         if (isset($_GET["post"])) {
             return absint(wp_unslash($_GET["post"]));
@@ -18,7 +18,7 @@ if (!function_exists("hithean_order_edit_current_post_id")) {
 }
 
 if (!function_exists("hithean_is_legacy_shop_order_edit_request")) {
-    function hithean_is_legacy_shop_order_edit_request(): bool
+    function hithean_is_legacy_shop_order_edit_request()
     {
         if (!is_admin()) {
             return false;
@@ -35,8 +35,12 @@ if (!function_exists("hithean_is_legacy_shop_order_edit_request")) {
 }
 
 if (!function_exists("hithean_keep_order_edit_redirect")) {
-    function hithean_keep_order_edit_redirect(string $location, int $post_id): string
+    function hithean_keep_order_edit_redirect($location, $post_id = 0)
     {
+        $location = is_scalar($location) ? (string) $location : admin_url("post.php");
+        $post_id = is_object($post_id) && isset($post_id->ID) ? $post_id->ID : $post_id;
+        $post_id = absint($post_id);
+
         if ($post_id <= 0 || get_post_type($post_id) !== "shop_order") {
             return $location;
         }
@@ -66,7 +70,7 @@ if (!function_exists("hithean_keep_order_edit_redirect")) {
 }
 
 if (!function_exists("hithean_order_edit_form_action_guard")) {
-    function hithean_order_edit_form_action_guard(): void
+    function hithean_order_edit_form_action_guard()
     {
         if (!hithean_is_legacy_shop_order_edit_request()) {
             return;
