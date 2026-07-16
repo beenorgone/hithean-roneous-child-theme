@@ -82,32 +82,37 @@ if (!function_exists("hithean_order_save_error_solver")) {
         }
 
         register_shutdown_function(function () {
-            $error = error_get_last();
-            if (!is_array($error)) {
-                return;
-            }
-
-            $fatal_types = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
-            if (!in_array((int) ($error["type"] ?? 0), $fatal_types, true)) {
-                return;
-            }
-
             $post_id = hithean_order_admin_current_post_id();
             if ($post_id <= 0 || get_post_type($post_id) !== "shop_order") {
                 return;
             }
 
-            $line = sprintf(
-                "[%s] order_id=%d uri=%s message=%s file=%s line=%s\n",
+            $error = error_get_last();
+            $status = function_exists("http_response_code") ? (int) http_response_code() : 0;
+            $error_type = is_array($error) ? (int) ($error["type"] ?? 0) : 0;
+            $error_message = is_array($error) ? (string) ($error["message"] ?? "") : "";
+            $error_file = is_array($error) ? (string) ($error["file"] ?? "") : "";
+            $error_line = is_array($error) ? (string) ($error["line"] ?? "") : "";
+
+            $diagnostic_line = sprintf(
+                "[%s] end order_id=%d status=%d uri=%s error_type=%d message=%s file=%s line=%s\n",
                 gmdate("c"),
                 $post_id,
+                $status,
                 isset($_SERVER["REQUEST_URI"]) ? (string) $_SERVER["REQUEST_URI"] : "",
-                isset($error["message"]) ? (string) $error["message"] : "",
-                isset($error["file"]) ? (string) $error["file"] : "",
-                isset($error["line"]) ? (string) $error["line"] : ""
+                $error_type,
+                $error_message,
+                $error_file,
+                $error_line
             );
+            file_put_contents(WP_CONTENT_DIR . "/hithean-order-save-diagnostic.log", $diagnostic_line, FILE_APPEND | LOCK_EX);
 
-            file_put_contents(WP_CONTENT_DIR . "/hithean-order-save-fatal.log", $line, FILE_APPEND | LOCK_EX);
+            $fatal_types = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+            if (!in_array($error_type, $fatal_types, true)) {
+                return;
+            }
+
+            file_put_contents(WP_CONTENT_DIR . "/hithean-order-save-fatal.log", $diagnostic_line, FILE_APPEND | LOCK_EX);
         });
     }
     hithean_order_save_error_solver();
