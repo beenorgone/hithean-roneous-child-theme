@@ -21,6 +21,29 @@ if (!function_exists("hithean_order_admin_current_post_id")) {
     }
 }
 
+if (!function_exists("hithean_order_save_solver_mark")) {
+    function hithean_order_save_solver_mark($event, $post_id = 0)
+    {
+        $post_id = absint($post_id);
+        if ($post_id <= 0) {
+            $post_id = hithean_order_admin_current_post_id();
+        }
+        if ($post_id <= 0 || get_post_type($post_id) !== "shop_order") {
+            return;
+        }
+
+        $line = sprintf(
+            "[%s] event=%s order_id=%d status=%d uri=%s\n",
+            gmdate("c"),
+            sanitize_key((string) $event),
+            $post_id,
+            function_exists("http_response_code") ? (int) http_response_code() : 0,
+            isset($_SERVER["REQUEST_URI"]) ? (string) $_SERVER["REQUEST_URI"] : ""
+        );
+        file_put_contents(WP_CONTENT_DIR . "/hithean-order-save-progress.log", $line, FILE_APPEND | LOCK_EX);
+    }
+}
+
 if (!function_exists("hithean_keep_order_edit_redirect")) {
     function hithean_keep_order_edit_redirect($location, $post_id = 0)
     {
@@ -42,6 +65,8 @@ if (!function_exists("hithean_keep_order_edit_redirect")) {
         if (!empty($query["post"]) || !empty($query["action"])) {
             return $location;
         }
+
+        hithean_order_save_solver_mark("redirect_post_location", $post_id);
 
         return add_query_arg([
             "post" => $post_id,
@@ -81,6 +106,8 @@ if (!function_exists("hithean_order_save_error_solver")) {
             );
         }
 
+        hithean_order_save_solver_mark("php_shutdown_registered", $trace_post_id);
+
         register_shutdown_function(function () {
             $post_id = hithean_order_admin_current_post_id();
             if ($post_id <= 0 || get_post_type($post_id) !== "shop_order") {
@@ -115,5 +142,17 @@ if (!function_exists("hithean_order_save_error_solver")) {
             file_put_contents(WP_CONTENT_DIR . "/hithean-order-save-fatal.log", $diagnostic_line, FILE_APPEND | LOCK_EX);
         });
     }
+    add_action("save_post_shop_order", function ($post_id) {
+        hithean_order_save_solver_mark("save_post_shop_order", $post_id);
+    }, 1);
+
+    add_action("woocommerce_process_shop_order_meta", function ($post_id) {
+        hithean_order_save_solver_mark("woocommerce_process_shop_order_meta", $post_id);
+    }, 1);
+
+    add_action("shutdown", function () {
+        hithean_order_save_solver_mark("wp_shutdown", hithean_order_admin_current_post_id());
+    }, PHP_INT_MAX);
+
     hithean_order_save_error_solver();
 }
