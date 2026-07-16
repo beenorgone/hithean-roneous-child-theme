@@ -69,32 +69,6 @@ if (!function_exists("hithean_keep_order_edit_redirect")) {
     add_filter("redirect_post_location", "hithean_keep_order_edit_redirect", 20, 2);
 }
 
-if (!function_exists("hithean_order_edit_form_action_guard")) {
-    function hithean_order_edit_form_action_guard()
-    {
-        if (!hithean_is_legacy_shop_order_edit_request()) {
-            return;
-        }
-
-        $post_id = hithean_order_edit_current_post_id();
-        $action_url = add_query_arg([
-            "post"   => $post_id,
-            "action" => "edit",
-        ], admin_url("post.php"));
-        ?>
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                var form = document.getElementById("post");
-                if (form) {
-                    form.setAttribute("action", <?php echo wp_json_encode($action_url); ?>);
-                }
-            });
-        </script>
-        <?php
-    }
-    add_action("admin_footer-post.php", "hithean_order_edit_form_action_guard", 20);
-}
-
 if (!function_exists('hithean_order_item_has_the_an_organics_brand')) {
     function hithean_order_item_has_the_an_organics_brand($product)
     {
