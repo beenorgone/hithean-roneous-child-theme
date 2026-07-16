@@ -47,6 +47,7 @@ $general_includes = [
     'custom-functions/marketing/lucky-wheel.php',
 
     /* ORDER */
+    'custom-functions/woocommerce/orders/order-admin-error-solver.php',
     'custom-functions/woocommerce/orders/order-metabox.php',
     'custom-functions/woocommerce/orders/customer-note-templates.php',
     'custom-functions/woocommerce/orders/order-number.php',
