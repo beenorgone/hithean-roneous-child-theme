@@ -4,6 +4,93 @@ if (!defined('ABSPATH')) {
 }
 
 
+if (!function_exists("hithean_order_edit_current_post_id")) {
+    function hithean_order_edit_current_post_id(): int
+    {
+        if (isset($_GET["post"])) {
+            return absint(wp_unslash($_GET["post"]));
+        }
+        if (isset($_POST["post_ID"])) {
+            return absint(wp_unslash($_POST["post_ID"]));
+        }
+        return 0;
+    }
+}
+
+if (!function_exists("hithean_is_legacy_shop_order_edit_request")) {
+    function hithean_is_legacy_shop_order_edit_request(): bool
+    {
+        if (!is_admin()) {
+            return false;
+        }
+
+        $admin_page = isset($_SERVER["PHP_SELF"]) ? basename((string) wp_unslash($_SERVER["PHP_SELF"])) : "";
+        if ($admin_page !== "post.php") {
+            return false;
+        }
+
+        $post_id = hithean_order_edit_current_post_id();
+        return $post_id > 0 && get_post_type($post_id) === "shop_order";
+    }
+}
+
+if (!function_exists("hithean_keep_order_edit_redirect")) {
+    function hithean_keep_order_edit_redirect(string $location, int $post_id): string
+    {
+        if ($post_id <= 0 || get_post_type($post_id) !== "shop_order") {
+            return $location;
+        }
+
+        $path = (string) wp_parse_url($location, PHP_URL_PATH);
+        if (basename($path) !== "post.php") {
+            return $location;
+        }
+
+        $query = [];
+        parse_str((string) wp_parse_url($location, PHP_URL_QUERY), $query);
+        if (!empty($query["post"]) || !empty($query["action"])) {
+            return $location;
+        }
+
+        $args = [
+            "post"   => $post_id,
+            "action" => "edit",
+        ];
+        if (!empty($_POST["publish"]) || !empty($_POST["save"])) {
+            $args["message"] = 1;
+        }
+
+        return add_query_arg($args, admin_url("post.php"));
+    }
+    add_filter("redirect_post_location", "hithean_keep_order_edit_redirect", 20, 2);
+}
+
+if (!function_exists("hithean_order_edit_form_action_guard")) {
+    function hithean_order_edit_form_action_guard(): void
+    {
+        if (!hithean_is_legacy_shop_order_edit_request()) {
+            return;
+        }
+
+        $post_id = hithean_order_edit_current_post_id();
+        $action_url = add_query_arg([
+            "post"   => $post_id,
+            "action" => "edit",
+        ], admin_url("post.php"));
+        ?>
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                var form = document.getElementById("post");
+                if (form) {
+                    form.setAttribute("action", <?php echo wp_json_encode($action_url); ?>);
+                }
+            });
+        </script>
+        <?php
+    }
+    add_action("admin_footer-post.php", "hithean_order_edit_form_action_guard", 20);
+}
+
 if (!function_exists('hithean_order_item_has_the_an_organics_brand')) {
     function hithean_order_item_has_the_an_organics_brand($product)
     {
