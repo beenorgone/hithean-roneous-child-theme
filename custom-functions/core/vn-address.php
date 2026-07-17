@@ -3,8 +3,9 @@ defined('ABSPATH') || exit;
 
 /**
  * Cầu nối dữ liệu địa chỉ hành chính VN — định dạng mới 2025 (2 cấp):
- * _state = Tỉnh/Thành (34 đơn vị, lưu MÃ, VD "HANOI"),
- * _city  = Phường/Xã (lưu TÊN, VD "Phường Ba Đình"). Không còn cấp quận/huyện.
+ * _state = Tỉnh/Thành (34 đơn vị, lưu MÃ matp, VD "HANOI"),
+ * _city  = Phường/Xã (lưu MÃ maqh, VD "00004" — UI hiển thị tên thân thiện).
+ * Không còn cấp quận/huyện.
  *
  * Nguồn dữ liệu: plugin devvn-woo-ghtk (vietnam-checkout/cities):
  *  - tinh_thanhpho.php     → $tinh_thanhpho: [matp => tên tỉnh/thành]

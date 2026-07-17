@@ -983,16 +983,25 @@
         sel.appendChild(empty);
         wards.forEach(function (w) {
             var o = document.createElement('option');
-            o.value = w.name; o.textContent = w.name;
+            o.value = w.code; o.textContent = w.name; // value = MÃ phường/xã, hiển thị tên
             sel.appendChild(o);
         });
         if (selected) {
             sel.value = selected;
-            if (sel.value !== selected) { // giá trị cũ không còn trong danh mục → giữ lại, không làm mất dữ liệu
-                var legacy = document.createElement('option');
-                legacy.value = selected; legacy.textContent = selected + ' (cũ)';
-                sel.appendChild(legacy);
-                sel.value = selected;
+            if (sel.value !== selected) {
+                // Dữ liệu cũ có thể lưu TÊN phường/xã → map sang mã theo tên.
+                var byName = '';
+                Array.prototype.forEach.call(sel.options, function (o) {
+                    if (!byName && o.value && o.textContent === selected) { byName = o.value; }
+                });
+                if (byName) {
+                    sel.value = byName;
+                } else { // không còn trong danh mục → giữ lại, không làm mất dữ liệu
+                    var legacy = document.createElement('option');
+                    legacy.value = selected; legacy.textContent = selected + ' (cũ)';
+                    sel.appendChild(legacy);
+                    sel.value = selected;
+                }
             }
         }
         vnComboSync(sel);

@@ -2050,7 +2050,7 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     if ($fields['city'] !== '' && !$ward) {
         $unmatched['city'] = $fields['city'];
     }
-    $fields['city'] = $ward['name'] ?? '';
+    $fields['city'] = $ward['code'] ?? ''; // field lưu MÃ phường/xã, dropdown hiển thị tên
 
     wp_send_json_success(['fields' => $fields, 'unmatched' => $unmatched]);
 });
