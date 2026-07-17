@@ -121,6 +121,7 @@
         base.email = $('#oc-bill-email').value.trim() || base.email || c.email || '';
         base.address_1 = $('#oc-bill-address').value.trim();
         base.state = $('#oc-bill-state').value.trim();
+        base.city = $('#oc-bill-city').value.trim();
         return base;
     }
 
@@ -133,6 +134,7 @@
         base.last_name = nm.last_name;
         base.phone = $('#oc-ship-phone').value.trim();
         base.address_1 = $('#oc-ship-address').value.trim();
+        base.state = $('#oc-ship-state').value.trim();
         base.city = $('#oc-ship-city').value.trim();
         base.email = base.email || (c.billing && c.billing.email) || c.email || '';
         return base;
@@ -142,6 +144,7 @@
         a = a || {}; b = b || {};
         return (a.address_1 || '') === (b.address_1 || '')
             && (a.city || '') === (b.city || '')
+            && (a.state || '') === (b.state || '')
             && (a.phone || '') === (b.phone || '')
             && fmtName(a) === fmtName(b);
     }
@@ -152,14 +155,14 @@
         $('#oc-bill-phone').value = b.phone || '';
         $('#oc-bill-email').value = b.email || '';
         $('#oc-bill-address').value = b.address_1 || '';
-        $('#oc-bill-state').value = b.state || '';
+        vnSetAddress($('#oc-bill-state'), $('#oc-bill-city'), b.state || '', b.city || '');
     }
     function fillShipping(s) {
         s = s || {};
         $('#oc-ship-name').value = fmtName(s);
         $('#oc-ship-phone').value = s.phone || '';
         $('#oc-ship-address').value = s.address_1 || '';
-        $('#oc-ship-city').value = s.city || '';
+        vnSetAddress($('#oc-ship-state'), $('#oc-ship-city'), s.state || '', s.city || '');
     }
     function setShipDiff(on) { $('#oc-ship-diff').checked = !!on; $('#oc-ship-fields').hidden = !on; }
 
@@ -170,7 +173,8 @@
             last_name: billing.last_name,
             phone: billing.phone,
             address_1: billing.address_1,
-            city: billing.city || billing.state || ''
+            state: billing.state || '',
+            city: billing.city || ''
         });
     }
 
@@ -957,12 +961,75 @@
         });
     }
 
+    // ---------- Địa chỉ hành chính VN mới: state = tỉnh/thành (mã), city = phường/xã (tên) ----------
+    var vnWardsCache = {};
+
+    function vnLoadWards(matp) {
+        if (!matp) { return Promise.resolve([]); }
+        if (vnWardsCache[matp]) { return Promise.resolve(vnWardsCache[matp]); }
+        return post('order_creator_vn_wards', { matp: matp }).then(function (res) {
+            var wards = (res.success && res.data && res.data.wards) || [];
+            vnWardsCache[matp] = wards;
+            return wards;
+        });
+    }
+
+    function vnFillWardSelect(sel, wards, selected) {
+        if (!sel) { return; }
+        sel.innerHTML = '';
+        var empty = document.createElement('option');
+        empty.value = '';
+        empty.textContent = wards.length ? '— Chọn Phường/Xã —' : '— Chọn Tỉnh/Thành trước —';
+        sel.appendChild(empty);
+        wards.forEach(function (w) {
+            var o = document.createElement('option');
+            o.value = w.name; o.textContent = w.name;
+            sel.appendChild(o);
+        });
+        if (selected) {
+            sel.value = selected;
+            if (sel.value !== selected) { // giá trị cũ không còn trong danh mục → giữ lại, không làm mất dữ liệu
+                var legacy = document.createElement('option');
+                legacy.value = selected; legacy.textContent = selected + ' (cũ)';
+                sel.appendChild(legacy);
+                sel.value = selected;
+            }
+        }
+    }
+
+    function vnSetAddress(stateSel, citySel, state, city) {
+        if (!stateSel || !citySel) { return Promise.resolve(); }
+        stateSel.value = state || '';
+        if ((state || '') !== '' && stateSel.value !== state) { // mã/tên tỉnh cũ không còn trong danh mục
+            var legacy = document.createElement('option');
+            legacy.value = state; legacy.textContent = state + ' (cũ)';
+            stateSel.appendChild(legacy);
+            stateSel.value = state;
+        }
+        return vnLoadWards(stateSel.value).then(function (wards) {
+            vnFillWardSelect(citySel, wards, city || '');
+        });
+    }
+
+    function vnBindStateCascade(stateSel, citySel) {
+        if (!stateSel || !citySel) { return; }
+        stateSel.addEventListener('change', function () {
+            vnLoadWards(this.value).then(function (wards) { vnFillWardSelect(citySel, wards, ''); });
+        });
+    }
+
+    function custSetAddress(state, city) {
+        return vnSetAddress($('#oc-cust-state'), $('#oc-cust-city'), state, city);
+    }
+
     function openCustomerModal(mode) {
         customerModalEditId = 0;
         $('#oc-new-result').textContent = '';
+        aiResetPanel();
         populateRoles();
         applyCustomerFieldVisibility();
         CUST_FIELDS.forEach(function (f) { $('#oc-cust-' + f).value = ''; });
+        vnFillWardSelect($('#oc-cust-city'), [], '');
         $('#oc-cust-username').disabled = false;
         $('#oc-cust-copy-shipping').checked = true;
         if (mode === 'edit' && state.customer) {
@@ -978,8 +1045,7 @@
             $('#oc-cust-phone').value = b.phone || state.customer.phone || '';
             $('#oc-cust-address_1').value = b.address_1 || '';
             $('#oc-cust-address_2').value = b.address_2 || '';
-            $('#oc-cust-city').value = b.city || '';
-            $('#oc-cust-state').value = b.state || '';
+            custSetAddress(b.state || '', b.city || '');
             $('#oc-cust-copy-shipping').checked = !s.address_1 || addrEqual(b, s);
             $('#oc-cust-role').value = (state.customer.roles && state.customer.roles[0]) || 'customer';
             var custom = state.customer.custom_fields || {};
@@ -1007,8 +1073,7 @@
             $('#oc-cust-phone').value = b.phone || '';
             $('#oc-cust-address_1').value = b.address_1 || '';
             $('#oc-cust-address_2').value = b.address_2 || '';
-            $('#oc-cust-city').value = b.city || '';
-            $('#oc-cust-state').value = b.state || '';
+            custSetAddress(b.state || '', b.city || '');
         });
     }
 
@@ -1025,6 +1090,73 @@
         }).catch(function () {
             btn.disabled = false;
             $('#oc-new-result').textContent = '❌ Không thể lưu khách hàng.';
+        });
+    }
+
+    // ---------- AI bóc tách khách hàng ----------
+    var aiCustImage = null;
+
+    function aiSetImage(file) {
+        if (!file) { return; }
+        if (file.size > 5 * 1024 * 1024) { $('#oc-cust-ai-status').textContent = '❌ Ảnh vượt quá 5MB.'; return; }
+        aiCustImage = file;
+        var img = $('#oc-cust-ai-preview-img');
+        if (img.src) { URL.revokeObjectURL(img.src); }
+        img.src = URL.createObjectURL(file);
+        $('#oc-cust-ai-preview').hidden = false;
+        $('#oc-cust-ai-status').textContent = '';
+    }
+
+    function aiClearImage() {
+        aiCustImage = null;
+        var img = $('#oc-cust-ai-preview-img');
+        if (img && img.src) { URL.revokeObjectURL(img.src); img.removeAttribute('src'); }
+        $('#oc-cust-ai-preview').hidden = true;
+        $('#oc-cust-ai-image').value = '';
+    }
+
+    function aiResetPanel() {
+        var panel = $('#oc-cust-ai-panel');
+        if (!panel) { return; }
+        panel.hidden = true;
+        $('#oc-cust-ai-text').value = '';
+        $('#oc-cust-ai-status').textContent = '';
+        aiClearImage();
+    }
+
+    function aiExtractCustomer() {
+        var text = $('#oc-cust-ai-text').value.trim();
+        if (!text && !aiCustImage) { $('#oc-cust-ai-status').textContent = 'Dán dữ liệu hoặc chọn ảnh trước.'; return; }
+        var btn = $('#oc-cust-ai-run');
+        btn.disabled = true;
+        $('#oc-cust-ai-status').textContent = '⏳ Đang bóc tách bằng AI...';
+        var params = { text: text };
+        if (aiCustImage) { params.image = aiCustImage; }
+        post('order_creator_ai_extract_customer', params).then(function (res) {
+            btn.disabled = false;
+            if (!res.success) { $('#oc-cust-ai-status').textContent = '❌ ' + ((res.data && res.data.message) || 'Bóc tách thất bại.'); return; }
+            var f = (res.data && res.data.fields) || {};
+            var un = (res.data && res.data.unmatched) || {};
+            var filled = 0;
+            ['first_name', 'last_name', 'email', 'phone', 'address_1', 'address_2'].forEach(function (k) {
+                var el = $('#oc-cust-' + k);
+                if (el && f[k]) { el.value = f[k]; filled++; }
+            });
+            if (f.state) { filled++; }
+            if (f.city) { filled++; }
+            custSetAddress(f.state || '', f.city || '').then(function () {
+                var msg = filled
+                    ? '✅ Đã điền ' + filled + ' trường — kiểm tra lại trước khi lưu.'
+                    : 'Không tìm thấy thông tin khách trong dữ liệu.';
+                var warn = [];
+                if (un.state) { warn.push('Tỉnh/Thành "' + un.state + '"'); }
+                if (un.city) { warn.push('Phường/Xã "' + un.city + '"'); }
+                if (warn.length) { msg += ' ⚠️ Không khớp danh mục: ' + warn.join(', ') + ' — vui lòng chọn tay.'; }
+                $('#oc-cust-ai-status').textContent = msg;
+            });
+        }).catch(function () {
+            btn.disabled = false;
+            $('#oc-cust-ai-status').textContent = '❌ Không gọi được AI, thử lại sau.';
         });
     }
 
@@ -1245,6 +1377,7 @@
         document.querySelectorAll('.oc-tab').forEach(function (b) { b.classList.toggle('is-active', b.dataset.tab === tab); });
         $('#oc-pane-create').hidden = (tab !== 'create');
         var sp = $('#oc-pane-settings'); if (sp) { sp.hidden = (tab !== 'settings'); }
+        var hp = $('#oc-pane-hdsd'); if (hp) { hp.hidden = (tab !== 'hdsd'); }
         var ca = $('#oc-create-actions'); if (ca) { ca.style.visibility = (tab === 'create') ? '' : 'hidden'; }
         if (tab === 'settings') { initSettingsPane(); }
     }
@@ -1419,7 +1552,7 @@
             recalc();
         });
         $('#oc-ship-load-btn').addEventListener('click', loadShippingFromOrder);
-        ['oc-bill-state', 'oc-bill-address', 'oc-ship-city', 'oc-ship-address'].forEach(function (id) {
+        ['oc-bill-state', 'oc-bill-city', 'oc-bill-address', 'oc-ship-state', 'oc-ship-city', 'oc-ship-address'].forEach(function (id) {
             var el = $('#' + id); if (el) { el.addEventListener('change', recalc); }
         });
         $('#oc-customer-new-toggle').addEventListener('click', function () { openCustomerModal('new'); });
@@ -1428,6 +1561,29 @@
         $('#oc-customer-products').addEventListener('click', function () { loadCustomerHistory('products'); });
         $('#oc-cust-load-btn').addEventListener('click', loadCustomerFromOrder);
         $('#oc-new-save').addEventListener('click', createCustomer);
+        vnBindStateCascade($('#oc-cust-state'), $('#oc-cust-city'));
+        vnBindStateCascade($('#oc-bill-state'), $('#oc-bill-city'));
+        vnBindStateCascade($('#oc-ship-state'), $('#oc-ship-city'));
+        if ($('#oc-cust-ai-toggle')) { // panel AI chỉ render khi feature bật trong Cài đặt ERP
+            $('#oc-cust-ai-toggle').addEventListener('click', function () {
+                var panel = $('#oc-cust-ai-panel');
+                panel.hidden = !panel.hidden;
+                if (!panel.hidden) { $('#oc-cust-ai-text').focus(); }
+            });
+            $('#oc-cust-ai-run').addEventListener('click', aiExtractCustomer);
+            $('#oc-cust-ai-image').addEventListener('change', function () { aiSetImage(this.files && this.files[0]); });
+            $('#oc-cust-ai-remove-img').addEventListener('click', aiClearImage);
+            $('#oc-cust-ai-text').addEventListener('paste', function (e) {
+                var items = (e.clipboardData && e.clipboardData.items) || [];
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i].type && items[i].type.indexOf('image/') === 0) {
+                        aiSetImage(items[i].getAsFile());
+                        e.preventDefault();
+                        return;
+                    }
+                }
+            });
+        }
         document.querySelectorAll('.oc-tab').forEach(function (b) { b.addEventListener('click', function () { switchTab(b.dataset.tab); }); });
         $('#oc-invoice-jpg').addEventListener('click', invoiceToJpg);
         $('#oc-invoice-copy').addEventListener('click', invoiceCopy);

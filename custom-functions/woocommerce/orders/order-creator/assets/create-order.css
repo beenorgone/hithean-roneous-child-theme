@@ -382,3 +382,30 @@ body.oc-hide-line-discount .oc-lines td:nth-child(4) { display: none; }
 .oc-modal__actions { display: flex; justify-content: flex-end; gap: 8px; }
 .oc-modal__result { margin-top: 12px; font-size: 13px; }
 body.oc-modal-open { overflow: hidden; }
+
+/* ---------- AI bóc tách khách hàng ---------- */
+.oc-ai-panel {
+    margin-top: 8px;
+    padding: 10px;
+    border: 1px dashed #c3c4c7;
+    border-radius: 6px;
+    background: #fafafa;
+}
+.oc-ai-panel textarea { width: 100%; }
+.oc-ai-preview { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; }
+.oc-ai-preview img { max-height: 120px; max-width: 100%; border: 1px solid #c3c4c7; border-radius: 4px; }
+
+/* ---------- Tab HDSD (hướng dẫn sử dụng) ---------- */
+.oc-hdsd { max-width: 860px; margin: 0 auto; }
+.oc-hdsd .oc-card { margin-bottom: 16px; }
+.oc-hdsd ol, .oc-hdsd ul { margin: 0; padding-left: 22px; }
+.oc-hdsd li { margin-bottom: 8px; line-height: 1.55; }
+.oc-hdsd li:last-child { margin-bottom: 0; }
+.oc-hdsd kbd {
+    padding: 1px 6px;
+    border: 1px solid #c3c4c7;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: #f6f7f7;
+    font-size: 12px;
+}

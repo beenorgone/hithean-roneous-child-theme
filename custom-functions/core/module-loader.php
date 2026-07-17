@@ -79,6 +79,9 @@ if (is_admin() && (!function_exists('wp_doing_ajax') || !wp_doing_ajax())) {
     if (file_exists($shortcodes_guide_file)) {
         require_once $shortcodes_guide_file;
     }
+
+    // Settings → Cài đặt ERP (mục AI: bật/tắt tính năng, provider/model mặc định)
+    require_once HITHEAN_THEME_DIR . '/custom-functions/core/ai-settings.php';
 }
 
 // =====================================================================

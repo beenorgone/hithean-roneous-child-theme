@@ -1937,6 +1937,128 @@ add_action('wp_ajax_order_creator_create_customer', function () {
 });
 
 // ================================================================
+// AJAX — AI BÓC TÁCH THÔNG TIN KHÁCH (popup Khách hàng mới)
+// ================================================================
+
+/**
+ * Cấu hình AI riêng cho feature bóc tách khách hàng.
+ * Mặc định lấy từ trang Settings → Cài đặt ERP (mục AI); override qua wp-config.php:
+ *   define('ORDER_CREATOR_AI_PROVIDER', 'claude'); // claude | gemini | openai | auto
+ *   define('ORDER_CREATOR_AI_MODEL', 'claude-haiku-4-5');
+ * hoặc qua filter 'order_creator_ai_config'. API key: CLAUDE_API_KEY /
+ * GEMINI_API_KEY / OPENAI_API_KEY trong wp-config.php.
+ */
+function order_creator_ai_config(): array
+{
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
+
+    return apply_filters('order_creator_ai_config', [
+        'provider' => defined('ORDER_CREATOR_AI_PROVIDER') ? ORDER_CREATOR_AI_PROVIDER : theme_ai_default_provider(),
+        'model'    => defined('ORDER_CREATOR_AI_MODEL') ? ORDER_CREATOR_AI_MODEL : theme_ai_default_model(),
+    ]);
+}
+
+add_action('wp_ajax_order_creator_ai_extract_customer', function () {
+    order_creator_verify_ajax();
+
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
+    if (!theme_ai_feature_enabled('order_creator_ai_extract_customer')) {
+        wp_send_json_error(['message' => 'Tính năng AI đang tắt trong Cài đặt ERP.'], 403);
+    }
+
+    $text = sanitize_textarea_field(wp_unslash($_POST['text'] ?? ''));
+
+    $image = null;
+    if (!empty($_FILES['image']['tmp_name']) && is_uploaded_file($_FILES['image']['tmp_name'])) {
+        if (!empty($_FILES['image']['error'])) {
+            wp_send_json_error(['message' => 'Tải ảnh lên thất bại.']);
+        }
+        if ((int) $_FILES['image']['size'] > 5 * MB_IN_BYTES) {
+            wp_send_json_error(['message' => 'Ảnh vượt quá 5MB.']);
+        }
+        $mime = function_exists('mime_content_type') ? (string) mime_content_type($_FILES['image']['tmp_name']) : '';
+        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
+            wp_send_json_error(['message' => 'Chỉ hỗ trợ ảnh JPG/PNG/WebP/GIF.']);
+        }
+        $image = ['path' => (string) $_FILES['image']['tmp_name'], 'mime_type' => $mime];
+    }
+
+    if ($text === '' && !$image) {
+        wp_send_json_error(['message' => 'Dán dữ liệu hoặc chọn ảnh trước khi bóc tách.']);
+    }
+
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-providers.php';
+    require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php';
+
+    $system = 'Bạn là công cụ bóc tách thông tin khách hàng cho cửa hàng online Việt Nam. '
+        . 'Từ dữ liệu được cung cấp (tin nhắn, comment, ảnh chụp màn hình chat, phiếu ship...), trích xuất thông tin khách và trả về DUY NHẤT một JSON object với đúng các khóa: '
+        . 'first_name, last_name, email, phone, address_1, address_2, city, state. '
+        . 'Địa chỉ dùng cấu trúc hành chính VN MỚI (sau sáp nhập 07/2025, 2 cấp, không còn quận/huyện): '
+        . 'state = tên tỉnh/thành, chỉ chọn trong danh sách: ' . implode('; ', theme_vn_address_provinces()) . '. '
+        . 'city = tên phường/xã theo cấu trúc mới kèm tiền tố, VD "Phường Ba Đình", "Xã Tiên Lữ" — nếu địa chỉ gốc ghi theo cấu trúc cũ (có quận/huyện), quy đổi sang phường/xã mới khi biết chắc, không chắc thì giữ nguyên tên phường/xã gốc. '
+        . 'Quy tắc khác: first_name = tên gọi (VD "Hằng" trong "Nguyễn Thị Hằng"); last_name = họ + tên đệm (VD "Nguyễn Thị"); '
+        . 'phone = SĐT Việt Nam, giữ số 0 đầu, chỉ gồm chữ số; '
+        . 'address_1 = số nhà + tên đường/thôn/xóm; address_2 = thông tin bổ sung (tòa nhà, ngõ ngách, quận/huyện cũ...). '
+        . 'Trường không tìm thấy → chuỗi rỗng. Không markdown, không giải thích, chỉ trả về JSON.';
+
+    $prompt = $text !== '' ? "Dữ liệu khách hàng:\n" . $text : 'Bóc tách thông tin khách hàng từ ảnh đính kèm.';
+    if ($image && $text !== '') {
+        $prompt .= "\n(Kết hợp thêm thông tin trong ảnh đính kèm nếu có.)";
+    }
+
+    $cfg = order_creator_ai_config();
+    $raw = $image
+        ? theme_ai_call_provider_with_documents($cfg['provider'], $system, $prompt, [$image], 1024, 90, $cfg['model'])
+        : theme_ai_call_provider($cfg['provider'], $system, [['role' => 'user', 'content' => $prompt]], 1024, $cfg['model']);
+
+    if (is_wp_error($raw)) {
+        wp_send_json_error(['message' => $raw->get_error_message()]);
+    }
+
+    $data = theme_ai_parse_json_object($raw);
+    if (is_wp_error($data)) {
+        wp_send_json_error(['message' => $data->get_error_message()]);
+    }
+
+    $fields = [];
+    foreach (['first_name', 'last_name', 'email', 'phone', 'address_1', 'address_2', 'city', 'state'] as $key) {
+        $value = isset($data[$key]) && is_string($data[$key]) ? trim($data[$key]) : '';
+        $fields[$key] = $key === 'email' ? sanitize_email($value) : sanitize_text_field($value);
+    }
+
+    // Chuẩn hóa về danh mục hành chính: state → mã tỉnh, city → tên phường/xã đúng danh mục.
+    $unmatched = [];
+    $province  = theme_vn_address_match_province($fields['state']);
+    if ($fields['state'] !== '' && !$province) {
+        $unmatched['state'] = $fields['state'];
+    }
+    $fields['state'] = $province['code'] ?? '';
+
+    $ward = $province ? theme_vn_address_match_ward($province['code'], $fields['city']) : [];
+    if ($fields['city'] !== '' && !$ward) {
+        $unmatched['city'] = $fields['city'];
+    }
+    $fields['city'] = $ward['name'] ?? '';
+
+    wp_send_json_success(['fields' => $fields, 'unmatched' => $unmatched]);
+});
+
+/** Danh sách phường/xã theo tỉnh cho dropdown cascade trong popup khách hàng. */
+add_action('wp_ajax_order_creator_vn_wards', function () {
+    order_creator_verify_ajax();
+
+    require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php';
+
+    $matp  = strtoupper(preg_replace('/[^A-Za-z]/', '', (string) wp_unslash($_POST['matp'] ?? '')));
+    $wards = [];
+    foreach (theme_vn_address_wards($matp) as $code => $name) {
+        $wards[] = ['code' => (string) $code, 'name' => $name];
+    }
+
+    wp_send_json_success(['wards' => $wards]);
+});
+
+// ================================================================
 // AJAX — TÍNH LẠI (PREVIEW) & TẠO ĐƠN
 // ================================================================
 
@@ -2476,6 +2598,7 @@ function order_creator_render_page(): void
                 <?php if (current_user_can('manage_options')) : ?>
                     <button type="button" class="oc-tab" data-tab="settings">Tùy chỉnh</button>
                 <?php endif; ?>
+                <button type="button" class="oc-tab" data-tab="hdsd">HDSD</button>
             </nav>
         </div>
     </header>
@@ -2608,9 +2731,17 @@ function order_creator_render_page(): void
                 <input type="text" id="oc-bill-name" placeholder="Họ tên">
                 <input type="text" id="oc-bill-phone" placeholder="SĐT">
                 <input type="text" id="oc-bill-email" placeholder="Email">
-                <input type="text" id="oc-bill-address" placeholder="Địa chỉ">
-                <input type="text" id="oc-bill-state" placeholder="Tỉnh/Thành (state)">
-                <small class="oc-muted">Nhập tên Tỉnh/Thành viết hoa, liền nhau, không dấu. VD: HUNGYEN, HANOI, HOCHIMINH.</small>
+                <input type="text" id="oc-bill-address" placeholder="Địa chỉ (số nhà, đường/thôn xóm)">
+                <?php require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php'; ?>
+                <select id="oc-bill-state">
+                    <option value="">— Tỉnh/Thành —</option>
+                    <?php foreach (theme_vn_address_provinces() as $vn_matp => $vn_province) : ?>
+                        <option value="<?php echo esc_attr($vn_matp); ?>"><?php echo esc_html($vn_province); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <select id="oc-bill-city">
+                    <option value="">— Chọn Tỉnh/Thành trước —</option>
+                </select>
                 <div class="oc-customer-info" id="oc-customer-info" hidden></div>
                 <div class="oc-field oc-check">
                     <label><input type="checkbox" id="oc-save-customer-addresses"> Lưu địa chỉ này vào thông tin mặc định của khách</label>
@@ -2630,8 +2761,16 @@ function order_creator_render_page(): void
                     <small class="oc-muted" id="oc-ship-load-status" aria-live="polite"></small>
                     <input type="text" id="oc-ship-name" placeholder="Họ tên người nhận">
                     <input type="text" id="oc-ship-phone" placeholder="SĐT">
-                    <input type="text" id="oc-ship-address" placeholder="Địa chỉ">
-                    <input type="text" id="oc-ship-city" placeholder="Tỉnh/Thành (city)">
+                    <input type="text" id="oc-ship-address" placeholder="Địa chỉ (số nhà, đường/thôn xóm)">
+                    <select id="oc-ship-state">
+                        <option value="">— Tỉnh/Thành —</option>
+                        <?php foreach (theme_vn_address_provinces() as $vn_matp => $vn_province) : ?>
+                            <option value="<?php echo esc_attr($vn_matp); ?>"><?php echo esc_html($vn_province); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select id="oc-ship-city">
+                        <option value="">— Chọn Tỉnh/Thành trước —</option>
+                    </select>
                 </div>
             </section>
 
@@ -2721,6 +2860,90 @@ function order_creator_render_page(): void
         </div>
     </div>
     <?php endif; ?>
+
+    <div class="oc-pane oc-hdsd" id="oc-pane-hdsd" hidden>
+        <div class="oc-card">
+            <h2>📋 Quy trình đăng đơn chuẩn</h2>
+            <ol>
+                <li><strong>Chọn khách hàng</strong> — tìm theo SĐT / email / tên ở mục <em>Khách hàng</em>. Khách chưa có trong hệ thống → bấm <em>Khách hàng mới</em>.</li>
+                <li><strong>Kiểm tra địa chỉ</strong> — mục <em>Địa chỉ đặt hàng</em> tự điền theo hồ sơ khách. Giao nơi khác → tick <em>Giao đến địa chỉ khác?</em> và điền địa chỉ giao.</li>
+                <li><strong>Thêm sản phẩm</strong> — gõ tên hoặc SKU vào ô <em>Tìm sản phẩm</em>, chỉnh số lượng / giá nếu cần.</li>
+                <li><strong>Ưu đãi &amp; phí</strong> — nhập mã ưu đãi hoặc thêm phí phát sinh (nếu có).</li>
+                <li><strong>Kiểm tra tổng</strong> — bấm <em>Tính lại</em>, đối chiếu tạm tính, giảm giá, phí vận chuyển, tổng đơn.</li>
+                <li><strong>Tạo đơn</strong> — chọn Trạng thái + Thanh toán ở mục <em>Thông tin đơn</em>, rồi bấm <em>Tạo đơn</em> (hoặc <em>Lưu nháp</em> nếu khách chưa chốt).</li>
+            </ol>
+        </div>
+
+        <div class="oc-card">
+            <h2>👤 Khách hàng</h2>
+            <ul>
+                <li><strong>Tìm khách:</strong> nhập SĐT / email / #ID / tên. Chọn đúng khách để đơn được gắn vào tài khoản và tích lũy lịch sử mua.</li>
+                <li><strong>Lịch sử đặt hàng / Sản phẩm đã đặt:</strong> xem nhanh các đơn cũ và món khách hay mua — dùng để tư vấn và đối chiếu.</li>
+                <li><strong>Khách hàng mới:</strong> tối thiểu cần <strong>Tên + SĐT hợp lệ</strong> (hoặc email). Không có email → hệ thống tự tạo email từ SĐT.</li>
+                <li><strong>Nạp thông tin khách từ đơn:</strong> trong popup, nhập số đơn cũ rồi bấm <em>Nạp</em> — dùng khi khách từng mua nhưng chưa có tài khoản.</li>
+                <li><strong>Chỉnh thông tin khách:</strong> chọn khách xong sẽ hiện nút chỉnh sửa — cập nhật hồ sơ trước khi tạo đơn nếu khách đổi SĐT/địa chỉ.</li>
+            </ul>
+        </div>
+
+        <div class="oc-card">
+            <h2>✨ Nhập khách hàng bằng AI</h2>
+            <ol>
+                <li>Trong popup <em>Khách hàng mới</em>, bấm <em>✨ Nhập khách hàng bằng AI</em>.</li>
+                <li>Dán tin nhắn / comment của khách vào ô nhập, <strong>hoặc</strong> dán ảnh chụp màn hình bằng <kbd>Ctrl+V</kbd> / chọn file ảnh (JPG/PNG/WebP/GIF, tối đa 5MB). Có thể kết hợp cả text lẫn ảnh.</li>
+                <li>Bấm <em>Bóc tách &amp; điền</em> — AI tự điền Tên, Họ, SĐT, email và địa chỉ vào form.</li>
+                <li><strong>Luôn kiểm tra lại từng trường trước khi bấm Lưu khách hàng</strong> — AI chỉ hỗ trợ điền, không tự lưu.</li>
+            </ol>
+            <ul>
+                <li>⚠️ Báo <em>"Không khớp danh mục"</em>: tên tỉnh / phường AI đọc được không trùng danh mục mới → tự chọn lại ở 2 ô Tỉnh/Thành và Phường/Xã.</li>
+                <li>Không thấy nút AI = tính năng đang tắt trong <em>Cài đặt ERP</em>, hoặc AI báo thiếu API key → báo quản trị viên.</li>
+            </ul>
+        </div>
+
+        <div class="oc-card">
+            <h2>🗺️ Địa chỉ theo cấu trúc hành chính mới (từ 07/2025)</h2>
+            <ul>
+                <li>Địa chỉ chỉ còn <strong>2 cấp</strong>: <strong>Tỉnh/Thành</strong> (34 đơn vị) → <strong>Phường/Xã</strong>. <strong>Không còn quận/huyện.</strong></li>
+                <li>Chọn Tỉnh/Thành trước — danh sách Phường/Xã tự tải theo tỉnh đã chọn.</li>
+                <li>Ô <em>Địa chỉ</em> chỉ ghi <strong>số nhà + tên đường / thôn xóm</strong>. Thông tin phụ (tòa nhà, ngõ ngách, tên quận cũ...) ghi vào <em>Địa chỉ 2</em> trong hồ sơ khách.</li>
+                <li>Khách / đơn cũ có thể hiện giá trị <em>"... (cũ)"</em> trong dropdown — <strong>chọn lại Phường/Xã theo danh mục mới</strong> trước khi tạo đơn.</li>
+                <li>Địa chỉ đúng danh mục thì đơn đẩy sang đơn vị vận chuyển (GHTK) mới không lỗi.</li>
+            </ul>
+        </div>
+
+        <div class="oc-card">
+            <h2>🛒 Giỏ hàng, ưu đãi &amp; vận chuyển</h2>
+            <ul>
+                <li><strong>Giá sửa:</strong> ghi đè giá bán của dòng sản phẩm (để trống = giá gốc). <strong>Giảm/SP:</strong> giảm tiền trực tiếp trên từng sản phẩm.</li>
+                <li><strong>Mã ưu đãi:</strong> nhập mã rồi thêm — nếu mã không áp được, hệ thống hiện popup giải thích lý do.</li>
+                <li><strong>Phí:</strong> thêm các khoản thu ngoài (phụ phí, đóng gói...) với tên + số tiền.</li>
+                <li><strong>Vận chuyển:</strong> phí ship tự tính lại khi đổi địa chỉ; có thể chọn phương thức khác trong ô chọn hoặc sửa phí ship thủ công.</li>
+                <li>Sau mọi thay đổi lớn, bấm <em>Tính lại</em> để cập nhật bảng tổng trước khi tạo đơn.</li>
+            </ul>
+        </div>
+
+        <div class="oc-card">
+            <h2>💾 Tạo đơn, sửa đơn &amp; thanh toán</h2>
+            <ul>
+                <li><strong>Tạo đơn</strong> = đơn chính thức theo trạng thái đã chọn. <strong>Lưu nháp</strong> = giữ đơn ở trạng thái nháp để chốt sau.</li>
+                <li><strong>Sửa đơn:</strong> tìm đơn ở mục <em>Tìm đơn</em> (mã đơn / tên / SĐT / email) rồi mở để chỉnh — nhớ bấm lưu thay đổi; <em>Hủy chỉnh sửa</em> để thoát không lưu.</li>
+                <li><strong>Copy:</strong> nhân bản đơn hiện tại thành đơn mới (giữ khách + giỏ hàng) — dùng cho khách đặt lại y hệt.</li>
+                <li><strong>Khách đã xác nhận:</strong> bấm khi khách chốt COD — trạng thái đơn tự chuyển bước tiếp theo.</li>
+                <li><strong>Xác nhận thanh toán:</strong> mở popup nhập tài khoản nhận, ngày nhận, số tiền, người chuyển — dùng khi khách đã chuyển khoản.</li>
+                <li><strong>Hóa đơn:</strong> xem hóa đơn của đơn vừa tạo, <em>Xuất JPG</em> để tải ảnh hoặc <em>Copy ảnh</em> để dán thẳng vào chat gửi khách.</li>
+            </ul>
+        </div>
+
+        <div class="oc-card">
+            <h2>❗ Lỗi thường gặp</h2>
+            <ul>
+                <li><em>"Phiên làm việc hết hạn"</em> → tải lại trang (<kbd>F5</kbd>) rồi thao tác lại.</li>
+                <li><em>"Bạn không có quyền tạo đơn"</em> → tài khoản chưa được cấp quyền, báo quản trị viên.</li>
+                <li>Phí ship không đổi sau khi sửa địa chỉ → bấm <em>Tính lại</em>.</li>
+                <li>Dropdown Phường/Xã trống → chưa chọn Tỉnh/Thành, hoặc mạng chậm — chọn lại Tỉnh/Thành.</li>
+                <li>Nút AI không bóc tách được ảnh → thử ảnh rõ nét hơn hoặc dán nội dung dạng text.</li>
+            </ul>
+        </div>
+    </div>
 </div>
 
 <div class="oc-modal" id="oc-history-modal" hidden>
@@ -2746,6 +2969,28 @@ function order_creator_render_page(): void
             </div>
         </div>
 
+        <?php
+        require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
+        if (theme_ai_feature_enabled('order_creator_ai_extract_customer')) :
+        ?>
+        <div class="oc-field" id="oc-cust-ai-wrap">
+            <button type="button" class="oc-btn oc-btn--ghost" id="oc-cust-ai-toggle">✨ Nhập khách hàng bằng AI</button>
+            <div id="oc-cust-ai-panel" class="oc-ai-panel" hidden>
+                <label for="oc-cust-ai-text">Dán tin nhắn / comment / địa chỉ khách gửi — hoặc dán (Ctrl+V) / chọn ảnh chụp màn hình</label>
+                <textarea id="oc-cust-ai-text" rows="4" placeholder="VD: Nguyễn Thị Hằng, 0912345678, 25 Lê Lợi, P. Bến Nghé, Q.1, TP.HCM&#10;(Có thể dán ảnh trực tiếp vào ô này)"></textarea>
+                <div class="oc-ai-preview" id="oc-cust-ai-preview" hidden>
+                    <img id="oc-cust-ai-preview-img" alt="Ảnh đã chọn">
+                    <button type="button" class="oc-btn oc-btn--ghost" id="oc-cust-ai-remove-img">Bỏ ảnh</button>
+                </div>
+                <div class="oc-inline">
+                    <input type="file" id="oc-cust-ai-image" accept="image/jpeg,image/png,image/webp,image/gif">
+                    <button type="button" class="oc-btn oc-btn--primary" id="oc-cust-ai-run">Bóc tách &amp; điền</button>
+                </div>
+                <div class="oc-muted" id="oc-cust-ai-status"></div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <h4 class="oc-subhead">Thông tin chung</h4>
         <div class="oc-form-grid">
             <div class="oc-cust-field" data-cust="first_name"><label>Tên *</label><input type="text" id="oc-cust-first_name"></div>
@@ -2756,12 +3001,24 @@ function order_creator_render_page(): void
         </div>
 
         <h4 class="oc-subhead">Địa chỉ</h4>
+        <?php require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php'; ?>
         <div class="oc-form-grid">
             <div class="oc-cust-field" data-cust="phone"><label>SĐT *</label><input type="text" id="oc-cust-phone"></div>
-            <div class="oc-cust-field" data-cust="address_1"><label>Địa chỉ 1 *</label><input type="text" id="oc-cust-address_1"></div>
+            <div class="oc-cust-field" data-cust="address_1"><label>Địa chỉ 1 * (số nhà, đường/thôn xóm)</label><input type="text" id="oc-cust-address_1"></div>
             <div class="oc-cust-field" data-cust="address_2"><label>Địa chỉ 2</label><input type="text" id="oc-cust-address_2"></div>
-            <div class="oc-cust-field" data-cust="city"><label>Thành phố</label><input type="text" id="oc-cust-city"></div>
-            <div class="oc-cust-field" data-cust="state"><label>Tỉnh/Thành</label><input type="text" id="oc-cust-state"></div>
+            <div class="oc-cust-field" data-cust="state"><label>Tỉnh/Thành *</label>
+                <select id="oc-cust-state">
+                    <option value="">— Chọn Tỉnh/Thành —</option>
+                    <?php foreach (theme_vn_address_provinces() as $vn_matp => $vn_province) : ?>
+                        <option value="<?php echo esc_attr($vn_matp); ?>"><?php echo esc_html($vn_province); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="oc-cust-field" data-cust="city"><label>Phường/Xã</label>
+                <select id="oc-cust-city">
+                    <option value="">— Chọn Tỉnh/Thành trước —</option>
+                </select>
+            </div>
         </div>
 
         <?php $oc_custom_defs = order_creator_customer_custom_field_defs(); ?>
