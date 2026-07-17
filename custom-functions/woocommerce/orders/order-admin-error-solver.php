@@ -1,6 +1,14 @@
 <?php
 if (!defined("ABSPATH")) exit;
 
+if (!defined("HITHEAN_ADMIN_ERROR_SOLVER_LOG_ENABLED")) {
+    define("HITHEAN_ADMIN_ERROR_SOLVER_LOG_ENABLED", false);
+}
+
+if (!defined("HITHEAN_ADMIN_ERROR_SOLVER_LOG_PREFIX")) {
+    define("HITHEAN_ADMIN_ERROR_SOLVER_LOG_PREFIX", "hithean-admin-error-solver");
+}
+
 /**
  * Error solver for legacy WooCommerce order admin saves.
  *
@@ -18,6 +26,26 @@ if (!function_exists("hithean_order_admin_current_post_id")) {
             return absint(wp_unslash($_GET["post"]));
         }
         return 0;
+    }
+}
+
+if (!function_exists("hithean_admin_error_solver_write_log")) {
+    function hithean_admin_error_solver_write_log($name, $line)
+    {
+        if (!HITHEAN_ADMIN_ERROR_SOLVER_LOG_ENABLED) {
+            return;
+        }
+
+        $name = sanitize_key((string) $name);
+        if ($name === "") {
+            return;
+        }
+
+        file_put_contents(
+            WP_CONTENT_DIR . "/" . HITHEAN_ADMIN_ERROR_SOLVER_LOG_PREFIX . "-" . $name . ".log",
+            (string) $line,
+            FILE_APPEND | LOCK_EX
+        );
     }
 }
 
@@ -40,7 +68,7 @@ if (!function_exists("hithean_order_save_solver_mark")) {
             function_exists("http_response_code") ? (int) http_response_code() : 0,
             isset($_SERVER["REQUEST_URI"]) ? (string) $_SERVER["REQUEST_URI"] : ""
         );
-        file_put_contents(WP_CONTENT_DIR . "/hithean-order-save-progress.log", $line, FILE_APPEND | LOCK_EX);
+        hithean_admin_error_solver_write_log("progress", $line);
     }
 }
 
@@ -92,8 +120,8 @@ if (!function_exists("hithean_order_save_error_solver")) {
 
         $trace_post_id = hithean_order_admin_current_post_id();
         if ($trace_post_id > 0) {
-            file_put_contents(
-                WP_CONTENT_DIR . "/hithean-order-save-trace.log",
+            hithean_admin_error_solver_write_log(
+                "trace",
                 sprintf(
                     "[%s] begin post_id=%d type=%s uri=%s keys=%s\n",
                     gmdate("c"),
@@ -101,8 +129,7 @@ if (!function_exists("hithean_order_save_error_solver")) {
                     (string) get_post_type($trace_post_id),
                     isset($_SERVER["REQUEST_URI"]) ? (string) $_SERVER["REQUEST_URI"] : "",
                     implode(",", array_slice(array_keys($_POST), 0, 40))
-                ),
-                FILE_APPEND | LOCK_EX
+                )
             );
         }
 
@@ -132,14 +159,14 @@ if (!function_exists("hithean_order_save_error_solver")) {
                 $error_file,
                 $error_line
             );
-            file_put_contents(WP_CONTENT_DIR . "/hithean-order-save-diagnostic.log", $diagnostic_line, FILE_APPEND | LOCK_EX);
+            hithean_admin_error_solver_write_log("diagnostic", $diagnostic_line);
 
             $fatal_types = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
             if (!in_array($error_type, $fatal_types, true)) {
                 return;
             }
 
-            file_put_contents(WP_CONTENT_DIR . "/hithean-order-save-fatal.log", $diagnostic_line, FILE_APPEND | LOCK_EX);
+            hithean_admin_error_solver_write_log("fatal", $diagnostic_line);
         });
     }
     add_action("save_post_shop_order", function ($post_id) {
