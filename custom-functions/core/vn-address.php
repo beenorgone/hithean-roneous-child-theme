@@ -15,8 +15,11 @@ defined('ABSPATH') || exit;
  */
 
 /**
- * Thư mục cities của plugin. Ưu tiên plugin đang cài trên site (data mới nhất),
- * fallback về bản copy trong theme.
+ * Thư mục cities chứa data ĐỊNH DẠNG MỚI (2 cấp, 34 tỉnh).
+ * Trong plugin gốc, cities/ gốc là bộ CŨ (63 tỉnh, 3 cấp — nhận diện bằng
+ * file xa_phuong_thitran.php), bộ mới nằm ở cities/v2.1. Vì vậy: ưu tiên
+ * v2.1 của plugin, và LOẠI mọi thư mục còn file xa_phuong_thitran.php;
+ * fallback cuối là bản copy trong theme (đã là bộ mới).
  */
 function theme_vn_address_cities_dir(): string
 {
@@ -26,15 +29,20 @@ function theme_vn_address_cities_dir(): string
     }
 
     $candidates = (array) apply_filters('theme_vn_address_cities_dirs', [
+        WP_PLUGIN_DIR . '/devvn-woo-ghtk/vietnam-checkout/cities/v2.1',
         WP_PLUGIN_DIR . '/devvn-woo-ghtk/vietnam-checkout/cities',
         get_stylesheet_directory() . '/custom-plugins/devvn-woo-ghtk/vietnam-checkout/cities',
     ]);
 
     foreach ($candidates as $candidate) {
-        if (is_readable($candidate . '/tinh_thanhpho.php')) {
-            $dir = (string) $candidate;
-            return $dir;
+        if (!is_readable($candidate . '/tinh_thanhpho.php')) {
+            continue;
         }
+        if (file_exists($candidate . '/xa_phuong_thitran.php')) {
+            continue; // bộ data cũ 3 cấp → bỏ qua
+        }
+        $dir = (string) $candidate;
+        return $dir;
     }
 
     $dir = '';
