@@ -103,6 +103,8 @@ function order_creator_get_settings(): array
     $settings = wp_parse_args(is_array($saved) ? $saved : [], order_creator_default_settings());
     $settings['default_products'] = array_values(array_filter(array_map('absint', (array) $settings['default_products'])));
     $settings['customer_fields']  = array_values(array_map('sanitize_key', (array) $settings['customer_fields']));
+    // Địa chỉ mới (GHTK) bắt buộc Tỉnh/Thành + Phường/Xã — luôn hiện trong popup dù cài đặt cũ không tick.
+    $settings['customer_fields']  = array_values(array_unique(array_merge($settings['customer_fields'], ['city', 'state'])));
     $settings['customer_info_fields'] = array_values(array_map('sanitize_key', (array) $settings['customer_info_fields']));
     $settings['order_fields']     = array_values(array_map('sanitize_key', (array) $settings['order_fields']));
     return $settings;
@@ -207,8 +209,8 @@ function order_creator_customer_field_defs(): array
         'phone'      => 'Phone',
         'address_1'  => 'Address 1',
         'address_2'  => 'Address 2',
-        'city'       => 'City',
-        'state'      => 'State/County',
+        'city'       => 'Phường/Xã (city)',
+        'state'      => 'Tỉnh/Thành (state)',
     ], wp_list_pluck(order_creator_customer_custom_field_defs(), 'label'));
 }
 
@@ -1952,8 +1954,18 @@ function order_creator_ai_config(): array
 {
     require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
 
+    // Feature này mặc định dùng Gemini. Ghi đè: constant ORDER_CREATOR_AI_PROVIDER
+    // > provider chọn cụ thể trong Cài đặt ERP (khác 'auto') > gemini.
+    $provider = theme_ai_default_provider();
+    if ($provider === 'auto') {
+        $provider = 'gemini';
+    }
+    if (defined('ORDER_CREATOR_AI_PROVIDER') && ORDER_CREATOR_AI_PROVIDER) {
+        $provider = ORDER_CREATOR_AI_PROVIDER;
+    }
+
     return apply_filters('order_creator_ai_config', [
-        'provider' => defined('ORDER_CREATOR_AI_PROVIDER') ? ORDER_CREATOR_AI_PROVIDER : theme_ai_default_provider(),
+        'provider' => $provider,
         'model'    => defined('ORDER_CREATOR_AI_MODEL') ? ORDER_CREATOR_AI_MODEL : theme_ai_default_model(),
     ]);
 }
