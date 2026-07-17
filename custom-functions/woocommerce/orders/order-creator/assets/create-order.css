@@ -409,3 +409,18 @@ body.oc-modal-open { overflow: hidden; }
     background: #f6f7f7;
     font-size: 12px;
 }
+
+/* ---------- Combobox địa chỉ có tìm kiếm ---------- */
+.oc-combo { position: relative; }
+.oc-combo > select { display: none; }
+.oc-side .oc-combo { margin-bottom: 10px; }
+.oc-side .oc-combo .oc-combo__input { margin-bottom: 0; }
+.oc-combo__list {
+    position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 2px);
+    background: #fff; border: 1px solid var(--oc-border); border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+    max-height: 240px; overflow-y: auto;
+}
+.oc-combo__item { padding: 7px 10px; font-size: 13px; cursor: pointer; }
+.oc-combo__item:hover, .oc-combo__item.is-selected { background: #f0f6f4; }
+.oc-combo__empty { padding: 8px 10px; font-size: 13px; color: var(--oc-muted); }

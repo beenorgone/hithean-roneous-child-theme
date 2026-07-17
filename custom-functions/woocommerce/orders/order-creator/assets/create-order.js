@@ -995,6 +995,7 @@
                 sel.value = selected;
             }
         }
+        vnComboSync(sel);
     }
 
     function vnSetAddress(stateSel, citySel, state, city) {
@@ -1006,6 +1007,7 @@
             stateSel.appendChild(legacy);
             stateSel.value = state;
         }
+        vnComboSync(stateSel);
         return vnLoadWards(stateSel.value).then(function (wards) {
             vnFillWardSelect(citySel, wards, city || '');
         });
@@ -1016,6 +1018,87 @@
         stateSel.addEventListener('change', function () {
             vnLoadWards(this.value).then(function (wards) { vnFillWardSelect(citySel, wards, ''); });
         });
+    }
+
+    // ----- Combobox tìm kiếm cho select địa chỉ: gõ để lọc (không dấu), chọn xong
+    // ghi vào select gốc + bắn 'change' nên cascade/recalc chạy như chọn tay. -----
+    function vnComboSync(sel) {
+        if (sel && sel._vnComboSync) { sel._vnComboSync(); }
+    }
+
+    function vnStrip(s) {
+        return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0111/g, 'd');
+    }
+
+    function vnMakeSearchable(sel, placeholder) {
+        if (!sel || sel._vnComboSync) { return; }
+        var wrap = document.createElement('div');
+        wrap.className = 'oc-combo';
+        sel.parentNode.insertBefore(wrap, sel);
+        wrap.appendChild(sel);
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'oc-combo__input';
+        input.placeholder = placeholder || '';
+        input.autocomplete = 'off';
+        var list = document.createElement('div');
+        list.className = 'oc-combo__list';
+        list.hidden = true;
+        wrap.appendChild(input);
+        wrap.appendChild(list);
+
+        function syncFromSelect() {
+            var o = sel.options[sel.selectedIndex];
+            input.value = (sel.value && o) ? o.textContent : '';
+        }
+        function pick(value) {
+            sel.value = value;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            list.hidden = true;
+            syncFromSelect();
+        }
+        function render(filter) {
+            list.innerHTML = '';
+            var q = vnStrip(filter);
+            var shown = 0;
+            Array.prototype.forEach.call(sel.options, function (o) {
+                if (!o.value) { return; }
+                if (q && vnStrip(o.textContent).indexOf(q) === -1) { return; }
+                var item = document.createElement('div');
+                item.className = 'oc-combo__item' + (o.value === sel.value ? ' is-selected' : '');
+                item.textContent = o.textContent;
+                item.dataset.value = o.value;
+                list.appendChild(item);
+                shown++;
+            });
+            if (!shown) {
+                var empty = document.createElement('div');
+                empty.className = 'oc-combo__empty';
+                empty.textContent = 'Không có kết quả';
+                list.appendChild(empty);
+            }
+        }
+        input.addEventListener('focus', function () { render(''); list.hidden = false; input.select(); });
+        input.addEventListener('input', function () { render(input.value); list.hidden = false; });
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                var first = list.querySelector('.oc-combo__item');
+                if (!list.hidden && first) { pick(first.dataset.value); }
+                e.preventDefault();
+            } else if (e.key === 'Escape') {
+                list.hidden = true;
+                syncFromSelect();
+            }
+        });
+        input.addEventListener('blur', function () {
+            setTimeout(function () { list.hidden = true; syncFromSelect(); }, 150);
+        });
+        list.addEventListener('mousedown', function (e) {
+            var item = e.target.closest('.oc-combo__item');
+            if (item) { e.preventDefault(); pick(item.dataset.value); }
+        });
+        sel._vnComboSync = syncFromSelect;
+        syncFromSelect();
     }
 
     function custSetAddress(state, city) {
@@ -1030,6 +1113,7 @@
         applyCustomerFieldVisibility();
         CUST_FIELDS.forEach(function (f) { $('#oc-cust-' + f).value = ''; });
         vnFillWardSelect($('#oc-cust-city'), [], '');
+        vnComboSync($('#oc-cust-state'));
         $('#oc-cust-username').disabled = false;
         $('#oc-cust-copy-shipping').checked = true;
         if (mode === 'edit' && state.customer) {
@@ -1564,6 +1648,12 @@
         vnBindStateCascade($('#oc-cust-state'), $('#oc-cust-city'));
         vnBindStateCascade($('#oc-bill-state'), $('#oc-bill-city'));
         vnBindStateCascade($('#oc-ship-state'), $('#oc-ship-city'));
+        ['oc-cust-state', 'oc-bill-state', 'oc-ship-state'].forEach(function (id) {
+            vnMakeSearchable($('#' + id), 'Tỉnh/Thành — gõ để tìm');
+        });
+        ['oc-cust-city', 'oc-bill-city', 'oc-ship-city'].forEach(function (id) {
+            vnMakeSearchable($('#' + id), 'Phường/Xã — gõ để tìm');
+        });
         if ($('#oc-cust-ai-toggle')) { // panel AI chỉ render khi feature bật trong Cài đặt ERP
             $('#oc-cust-ai-toggle').addEventListener('click', function () {
                 var panel = $('#oc-cust-ai-panel');
