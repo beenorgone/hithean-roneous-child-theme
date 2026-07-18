@@ -56,3 +56,21 @@ add_filter('eim_order_shipper_tracking_code', function ($code, $order) {
     $v = trim((string) $order->get_meta('order_ship_code', true));
     return $v !== '' ? $v : $code;
 }, 10, 2);
+
+/**
+ * Map meta xuất kho cho plugin kế toán (eim) — hithean đặt tên field có tiền tố
+ * "order_" (Meta Box, order-metabox.php), khác default không tiền tố của plugin.
+ */
+add_filter('eim_export_meta_map', function (array $map): array {
+    return array_merge($map, [
+        'export_date'  => 'order_ship_date',
+        'shipper'      => 'order_shipper',
+        'ship_code'    => 'order_ship_code',
+        'export_by'    => 'order_export_by',
+        'paid_date'    => 'order_paid_date',
+        'bank'         => 'order_bank_account_received',
+        'handling'     => 'order_handling_status',
+        // images + confirmed_by: hithean dùng cùng tên default
+        // (warehouse_export_images, export_confirmed_by).
+    ]);
+});
