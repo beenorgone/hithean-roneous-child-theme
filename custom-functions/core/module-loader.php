@@ -19,6 +19,7 @@ $general_includes = [
     'custom-functions/core/backend-optimize.php',
     'custom-functions/core/functional.php',
     'custom-functions/core/theme-code-cache.php',
+    'custom-functions/core/cpt-revisions.php',
     'custom-functions/core/swiper-slider.php',
 
     'custom-functions/woocommerce/products/woocommerce-settings.php',
