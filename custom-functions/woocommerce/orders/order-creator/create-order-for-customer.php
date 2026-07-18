@@ -2624,7 +2624,7 @@ function order_creator_render_page(): void
                 <?php if (current_user_can('manage_options')) : ?>
                     <button type="button" class="oc-tab" data-tab="settings">Tùy chỉnh</button>
                 <?php endif; ?>
-                <button type="button" class="oc-tab" data-tab="address">Tra địa chỉ</button>
+                <a class="oc-tab" href="https://tinhthanhpho.com/convert" target="_blank" rel="noopener">Tra địa chỉ ↗</a>
                 <button type="button" class="oc-tab" data-tab="hdsd">HDSD</button>
             </nav>
         </div>
@@ -2888,15 +2888,7 @@ function order_creator_render_page(): void
     </div>
     <?php endif; ?>
 
-    <div class="oc-pane oc-address" id="oc-pane-address" hidden>
-        <div class="oc-card oc-address-card">
-            <h2>Tra cứu địa chỉ (Tỉnh/Thành → Phường/Xã mới)</h2>
-            <p class="oc-muted">Công cụ tra cứu địa chỉ theo cấu trúc hành chính mới, nguồn: <a href="https://tinhthanhpho.com/convert" target="_blank" rel="noopener">tinhthanhpho.com/convert</a></p>
-            <iframe id="oc-address-frame" data-src="https://tinhthanhpho.com/convert" title="Tra cứu địa chỉ" loading="lazy"></iframe>
-        </div>
-    </div>
-
-    <div class="oc-pane oc-hdsd" id="oc-pane-hdsd" hidden>
+<div class="oc-pane oc-hdsd" id="oc-pane-hdsd" hidden>
         <div class="oc-card">
             <h2>📋 Quy trình đăng đơn chuẩn</h2>
             <ol>

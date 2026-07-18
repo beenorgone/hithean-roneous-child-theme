@@ -245,7 +245,7 @@
 /* tabs */
 .oc-topbar__left { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .oc-tabs { display: flex; gap: 4px; }
-.oc-tab { border: 0; background: transparent; padding: 8px 14px; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--oc-muted); border-bottom: 2px solid transparent; }
+.oc-tab { display: inline-block; border: 0; background: transparent; padding: 8px 14px; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--oc-muted); border-bottom: 2px solid transparent; text-decoration: none; }
 .oc-tab.is-active { color: var(--oc-primary-dark); border-bottom-color: var(--oc-primary); }
 .oc-pane[hidden] { display: none; }
 
@@ -394,11 +394,6 @@ body.oc-modal-open { overflow: hidden; }
 .oc-ai-panel textarea { width: 100%; }
 .oc-ai-preview { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; }
 .oc-ai-preview img { max-height: 120px; max-width: 100%; border: 1px solid #c3c4c7; border-radius: 4px; }
-
-/* ---------- Tab Tra địa chỉ ---------- */
-.oc-address { max-width: 1100px; margin: 0 auto; }
-.oc-address-card { display: flex; flex-direction: column; height: calc(100vh - 160px); }
-.oc-address-card #oc-address-frame { flex: 1; width: 100%; min-height: 500px; border: 1px solid #c3c4c7; border-radius: 4px; margin-top: 8px; }
 
 /* ---------- Tab HDSD (hướng dẫn sử dụng) ---------- */
 .oc-hdsd { max-width: 860px; margin: 0 auto; }
