@@ -165,8 +165,21 @@ function hithean_save_post_meta_revision(int $post_id)
 /**
  * Kích hoạt revisions và theo dõi meta cho mọi CPT (bao gồm không public).
  */
-function hithean_enable_revisions_for_all_custom_post_types_with_meta()
+function enable_revisions_for_all_custom_post_types_with_meta()
 {
+    add_filter('register_post_type_args', function (array $args, string $post_type): array {
+        if ($post_type !== 'product') {
+            return $args;
+        }
+
+        $supports = isset($args['supports']) ? (array) $args['supports'] : [];
+        if (!in_array('revisions', $supports, true)) {
+            $supports[] = 'revisions';
+        }
+
+        $args['supports'] = array_values(array_unique(array_filter($supports, 'is_string')));
+        return $args;
+    }, 20, 2);
 
     // Bật revisions cho mọi CPT không phải mặc định
     add_action('init', function () {
@@ -175,6 +188,10 @@ function hithean_enable_revisions_for_all_custom_post_types_with_meta()
 
         foreach ($custom_post_types as $cpt) {
             add_post_type_support($cpt, 'revisions');
+        }
+
+        if (post_type_exists('product')) {
+            add_post_type_support('product', 'revisions');
         }
     });
 
@@ -255,4 +272,4 @@ function hithean_enable_revisions_for_all_custom_post_types_with_meta()
         }, 10, 3);
     }
 }
-hithean_enable_revisions_for_all_custom_post_types_with_meta();
+enable_revisions_for_all_custom_post_types_with_meta();
