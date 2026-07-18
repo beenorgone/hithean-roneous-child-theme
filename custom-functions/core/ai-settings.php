@@ -57,7 +57,7 @@ function theme_ai_default_provider(): string
 {
     $provider = sanitize_key((string) (theme_erp_settings()['ai_provider'] ?? 'auto'));
 
-    return in_array($provider, ['claude', 'gemini', 'openai'], true) ? $provider : 'auto';
+    return in_array($provider, ['claude', 'gemini', 'gemini_billing', 'openai'], true) ? $provider : 'auto';
 }
 
 function theme_ai_default_model(): string
@@ -88,7 +88,7 @@ function theme_erp_settings_sanitize($input): array
     $out   = [];
 
     $provider           = sanitize_key((string) ($input['ai_provider'] ?? 'auto'));
-    $out['ai_provider'] = in_array($provider, ['claude', 'gemini', 'openai', 'auto'], true) ? $provider : 'auto';
+    $out['ai_provider'] = in_array($provider, ['claude', 'gemini', 'gemini_billing', 'openai', 'auto'], true) ? $provider : 'auto';
     $out['ai_model']    = sanitize_text_field((string) ($input['ai_model'] ?? ''));
 
     // Checkbox không tick sẽ không gửi lên → ghi rõ '0' để phân biệt "tắt" với "chưa cấu hình".
@@ -110,7 +110,7 @@ function theme_erp_settings_render_page(): void
     $settings = theme_erp_settings();
 
     $key_status = [];
-    foreach (['CLAUDE_API_KEY' => 'Claude', 'GEMINI_API_KEY' => 'Gemini', 'OPENAI_API_KEY' => 'OpenAI'] as $const => $label) {
+    foreach (['CLAUDE_API_KEY' => 'Claude', 'GEMINI_API_KEY' => 'Gemini (free)', 'GEMINI_API_KEY_BILLING' => 'Gemini (billing)', 'OPENAI_API_KEY' => 'OpenAI'] as $const => $label) {
         $key_status[$label] = (defined($const) && constant($const)) || getenv($const);
     }
     ?>
@@ -134,7 +134,7 @@ function theme_erp_settings_render_page(): void
                     <th scope="row"><label for="theme-erp-ai-provider">Nhà cung cấp mặc định</label></th>
                     <td>
                         <select id="theme-erp-ai-provider" name="theme_erp_settings[ai_provider]">
-                            <?php foreach (['auto' => 'Tự động (theo API key có sẵn: Claude → Gemini → OpenAI)', 'claude' => 'Claude (Anthropic)', 'gemini' => 'Gemini (Google)', 'openai' => 'OpenAI'] as $value => $label) : ?>
+                            <?php foreach (['auto' => 'Tự động (theo API key có sẵn: Claude → Gemini → OpenAI)', 'claude' => 'Claude (Anthropic)', 'gemini' => 'Gemini free (GEMINI_API_KEY — tính năng đơn giản)', 'gemini_billing' => 'Gemini billing (GEMINI_API_KEY_BILLING — trả phí, mặc định gemini-2.5-flash)', 'openai' => 'OpenAI'] as $value => $label) : ?>
                                 <option value="<?php echo esc_attr($value); ?>" <?php selected($settings['ai_provider'], $value); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -144,7 +144,7 @@ function theme_erp_settings_render_page(): void
                     <th scope="row"><label for="theme-erp-ai-model">Model mặc định</label></th>
                     <td>
                         <input type="text" class="regular-text" id="theme-erp-ai-model" name="theme_erp_settings[ai_model]" value="<?php echo esc_attr($settings['ai_model']); ?>" placeholder="VD: claude-haiku-4-5">
-                        <p class="description">Bỏ trống = mặc định theo provider (Claude: <code>claude-opus-4-8</code>, Gemini: <code>gemini-2.5-flash</code>, OpenAI: <code>gpt-4o-mini</code>).<br>Feature vẫn override được bằng constant riêng trong wp-config, VD <code>ORDER_CREATOR_AI_MODEL</code>.</p>
+                        <p class="description">Bỏ trống = mặc định theo provider (Claude: <code>claude-opus-4-8</code>, Gemini: <code>gemini-3.1-flash-lite</code>, OpenAI: <code>gpt-4o-mini</code>).<br>Feature vẫn override được bằng constant riêng trong wp-config, VD <code>ORDER_CREATOR_AI_MODEL</code>.</p>
                     </td>
                 </tr>
                 <tr>

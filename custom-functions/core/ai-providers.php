@@ -12,6 +12,9 @@ defined('ABSPATH') || exit;
  *      theme_ai_call_provider_with_documents(...) và truyền model override.
  *   3. API key đặt trong wp-config.php: CLAUDE_API_KEY / GEMINI_API_KEY /
  *      OPENAI_API_KEY (hoặc biến môi trường cùng tên).
+ *      Riêng Gemini có 2 bậc: GEMINI_API_KEY (free — tính năng đơn giản)
+ *      và GEMINI_API_KEY_BILLING (đã bật billing — tính năng trả phí,
+ *      provider 'gemini_billing', mặc định gemini-2.5-flash).
  *
  * File này chỉ được require khi feature cần AI thật sự chạy — không load global.
  *
@@ -36,6 +39,19 @@ function theme_ai_get_api_key(string $provider): string
         return (string) getenv('GEMINI_API_KEY');
     }
 
+    // Gemini với key ĐÃ BẬT BILLING — dành cho tính năng xác định trả phí
+    // (data không bị dùng để train, không giới hạn quota free).
+    if ($provider === 'gemini_billing') {
+        if (defined('GEMINI_API_KEY_BILLING') && GEMINI_API_KEY_BILLING) {
+            return (string) GEMINI_API_KEY_BILLING;
+        }
+        $env = (string) getenv('GEMINI_API_KEY_BILLING');
+        if ($env !== '') {
+            return $env;
+        }
+        return theme_ai_get_api_key('gemini'); // chưa có key billing → tạm dùng key free
+    }
+
     if ($provider === 'claude') {
         if (defined('CLAUDE_API_KEY') && CLAUDE_API_KEY) {
             return (string) CLAUDE_API_KEY;
@@ -58,7 +74,15 @@ function theme_ai_get_model(string $provider): string
         if (defined('GEMINI_CHAT_MODEL') && GEMINI_CHAT_MODEL) {
             return (string) GEMINI_CHAT_MODEL;
         }
-        return 'gemini-2.5-flash';
+        // 2.5-flash đã bị Google khóa với API key mới (07/2026).
+        return 'gemini-3.1-flash-lite';
+    }
+
+    if ($provider === 'gemini_billing') {
+        if (defined('GEMINI_BILLING_CHAT_MODEL') && GEMINI_BILLING_CHAT_MODEL) {
+            return (string) GEMINI_BILLING_CHAT_MODEL;
+        }
+        return 'gemini-2.5-flash'; // key billing/tài khoản cũ vẫn dùng được — rẻ, ổn định
     }
 
     if ($provider === 'openai') {
@@ -84,7 +108,7 @@ function theme_ai_get_model(string $provider): string
 function theme_ai_resolve_provider(string $requested): string
 {
     $requested = sanitize_key($requested ?: 'auto');
-    if (in_array($requested, ['openai', 'gemini', 'claude'], true)) {
+    if (in_array($requested, ['openai', 'gemini', 'gemini_billing', 'claude'], true)) {
         return $requested;
     }
 
@@ -113,9 +137,10 @@ function theme_ai_call_provider(string $provider, string $system, array $message
     $api_key  = theme_ai_get_api_key($provider);
 
     if ($api_key === '') {
+        $key_hint = $provider === 'gemini_billing' ? 'GEMINI_API_KEY_BILLING' : strtoupper($provider) . '_API_KEY';
         return new WP_Error(
             'theme_ai_missing_key',
-            sprintf('Chưa có API key cho %1$s. Thêm %1$s_API_KEY vào wp-config.php.', strtoupper($provider)),
+            sprintf('Chưa có API key cho %s. Thêm %s vào wp-config.php.', strtoupper($provider), $key_hint),
             ['provider' => $provider]
         );
     }
@@ -124,7 +149,7 @@ function theme_ai_call_provider(string $provider, string $system, array $message
         $model = theme_ai_get_model($provider);
     }
 
-    if ($provider === 'gemini') {
+    if ($provider === 'gemini' || $provider === 'gemini_billing') {
         return theme_ai_call_gemini($api_key, $model, $system, $messages, $max_tokens);
     }
 
@@ -133,6 +158,20 @@ function theme_ai_call_provider(string $provider, string $system, array $message
     }
 
     return theme_ai_call_claude($api_key, $model, $system, $messages, $max_tokens);
+}
+
+/**
+ * thinkingConfig tương thích theo đời model Gemini:
+ * 2.x nhận thinkingBudget (0 = tắt hẳn); 3.x nhận thinkingLevel
+ * (không tắt hẳn được — dùng mức thấp nhất; bản pro không có 'minimal').
+ */
+function theme_ai_gemini_thinking_config(string $model): array
+{
+    if (strpos($model, 'gemini-2.') === 0) {
+        return ['thinkingBudget' => 0];
+    }
+
+    return ['thinkingLevel' => strpos($model, 'pro') !== false ? 'low' : 'minimal'];
 }
 
 /**
@@ -155,7 +194,7 @@ function theme_ai_call_gemini(string $api_key, string $model, string $system, ar
         'generationConfig'   => [
             'temperature'     => 0,
             'maxOutputTokens' => $max_tokens,
-            'thinkingConfig'  => ['thinkingBudget' => 0],
+            'thinkingConfig'  => theme_ai_gemini_thinking_config($model),
         ],
     ];
 
@@ -324,9 +363,10 @@ function theme_ai_call_provider_with_documents(string $provider, string $system,
     $api_key  = theme_ai_get_api_key($provider);
 
     if ($api_key === '') {
+        $key_hint = $provider === 'gemini_billing' ? 'GEMINI_API_KEY_BILLING' : strtoupper($provider) . '_API_KEY';
         return new WP_Error(
             'theme_ai_missing_key',
-            sprintf('Chưa có API key cho %1$s. Thêm %1$s_API_KEY vào wp-config.php.', strtoupper($provider)),
+            sprintf('Chưa có API key cho %s. Thêm %s vào wp-config.php.', strtoupper($provider), $key_hint),
             ['provider' => $provider]
         );
     }
@@ -335,7 +375,7 @@ function theme_ai_call_provider_with_documents(string $provider, string $system,
         $model = theme_ai_get_model($provider);
     }
 
-    if ($provider === 'gemini') {
+    if ($provider === 'gemini' || $provider === 'gemini_billing') {
         return theme_ai_call_gemini_with_documents($api_key, $model, $system, $prompt, $documents, $max_tokens, $timeout);
     }
 
@@ -467,7 +507,7 @@ function theme_ai_call_gemini_with_documents(string $api_key, string $model, str
         'generationConfig'   => [
             'temperature'     => 0,
             'maxOutputTokens' => $max_tokens,
-            'thinkingConfig'  => ['thinkingBudget' => 0],
+            'thinkingConfig'  => theme_ai_gemini_thinking_config($model),
         ],
     ];
 
