@@ -2339,6 +2339,19 @@ function order_creator_invoice_html(WC_Order $order): string
         return '';
     };
     add_filter('woocommerce_email_additional_content_customer_invoice', $suppress_email_additional_content, PHP_INT_MAX);
+    // Hiện mã coupon đã áp dụng ngay trong dòng "Giảm giá" của hóa đơn.
+    $append_coupon_codes_to_discount_row = static function (array $total_rows, $order): array {
+        if (empty($total_rows['discount'])) {
+            return $total_rows;
+        }
+        $codes = method_exists($order, 'get_coupon_codes') ? $order->get_coupon_codes() : [];
+        if (empty($codes)) {
+            return $total_rows;
+        }
+        $total_rows['discount']['value'] .= ' <small class="oc-invoice-coupon-codes">(' . esc_html(implode(', ', $codes)) . ')</small>';
+        return $total_rows;
+    };
+    add_filter('woocommerce_get_order_item_totals', $append_coupon_codes_to_discount_row, 10, 2);
     $bacs_gateway = null;
     if ($order->get_payment_method() === 'bacs' && WC()->payment_gateways()) {
         $bacs_gateway = WC()->payment_gateways()->payment_gateways()['bacs'] ?? null;
@@ -2358,6 +2371,7 @@ function order_creator_invoice_html(WC_Order $order): string
         add_action('woocommerce_email_before_order_table', [$bacs_gateway, 'email_instructions'], 10, 3);
     }
     remove_filter('woocommerce_email_additional_content_customer_invoice', $suppress_email_additional_content, PHP_INT_MAX);
+    remove_filter('woocommerce_get_order_item_totals', $append_coupon_codes_to_discount_row, 10);
     $content = preg_replace('#<style\b[^>]*>.*?</style>#is', '', $content);
     $content = preg_replace('#<!--\[if.*?\]>.*?<!\[endif\]-->#is', '', $content);
     $content = preg_replace('/\sstyle=(["\']).*?\1/is', '', $content);
@@ -2610,6 +2624,7 @@ function order_creator_render_page(): void
                 <?php if (current_user_can('manage_options')) : ?>
                     <button type="button" class="oc-tab" data-tab="settings">Tùy chỉnh</button>
                 <?php endif; ?>
+                <button type="button" class="oc-tab" data-tab="address">Tra địa chỉ</button>
                 <button type="button" class="oc-tab" data-tab="hdsd">HDSD</button>
             </nav>
         </div>
@@ -2872,6 +2887,14 @@ function order_creator_render_page(): void
         </div>
     </div>
     <?php endif; ?>
+
+    <div class="oc-pane oc-address" id="oc-pane-address" hidden>
+        <div class="oc-card oc-address-card">
+            <h2>Tra cứu địa chỉ (Tỉnh/Thành → Phường/Xã mới)</h2>
+            <p class="oc-muted">Công cụ tra cứu địa chỉ theo cấu trúc hành chính mới, nguồn: <a href="https://tinhthanhpho.com/convert" target="_blank" rel="noopener">tinhthanhpho.com/convert</a></p>
+            <iframe id="oc-address-frame" data-src="https://tinhthanhpho.com/convert" title="Tra cứu địa chỉ" loading="lazy"></iframe>
+        </div>
+    </div>
 
     <div class="oc-pane oc-hdsd" id="oc-pane-hdsd" hidden>
         <div class="oc-card">

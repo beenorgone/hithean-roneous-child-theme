@@ -1470,9 +1470,17 @@
         document.querySelectorAll('.oc-tab').forEach(function (b) { b.classList.toggle('is-active', b.dataset.tab === tab); });
         $('#oc-pane-create').hidden = (tab !== 'create');
         var sp = $('#oc-pane-settings'); if (sp) { sp.hidden = (tab !== 'settings'); }
+        var ap = $('#oc-pane-address'); if (ap) { ap.hidden = (tab !== 'address'); }
         var hp = $('#oc-pane-hdsd'); if (hp) { hp.hidden = (tab !== 'hdsd'); }
         var ca = $('#oc-create-actions'); if (ca) { ca.style.visibility = (tab === 'create') ? '' : 'hidden'; }
         if (tab === 'settings') { initSettingsPane(); }
+        if (tab === 'address') { initAddressPane(); }
+    }
+
+    // ---------- address lookup pane (lazy-loaded iframe) ----------
+    function initAddressPane() {
+        var frame = $('#oc-address-frame');
+        if (frame && !frame.src && frame.dataset.src) { frame.src = frame.dataset.src; }
     }
 
     // ---------- settings pane ----------
