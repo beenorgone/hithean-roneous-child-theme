@@ -1,0 +1,163 @@
+/* AN NEW CHAPTER B2B — partner acquisition layer
+   This file only contains B2B-specific layout so the product sections keep
+   reusing an-new-chapter.css and an-new-chapter.js without duplication. */
+
+:root {
+  --anc-b2b-ink: #0f3330;
+  --anc-b2b-muted: #475569;
+  --anc-b2b-border: rgba(15, 51, 48, 0.12);
+  --anc-b2b-surface: #f7f6f2;
+  --anc-b2b-surface-green: #f0faf6;
+  --anc-b2b-accent: #0f766e;
+}
+
+.anc-b2b-section {
+  padding: 86px 20px;
+  background: var(--anc-b2b-surface);
+}
+
+.anc-b2b-section--white {
+  background: #fff;
+}
+
+.anc-b2b-inner {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.anc-b2b-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-top: 34px;
+}
+
+.anc-b2b-card {
+  background: #fff;
+  border: 1px solid var(--anc-b2b-border);
+  border-radius: 8px;
+  padding: 24px 22px;
+  box-shadow: 0 6px 20px rgba(15, 51, 48, 0.06);
+}
+
+.anc-b2b-section--white .anc-b2b-card {
+  background: #f8faf7;
+}
+
+.anc-b2b-card strong {
+  display: block;
+  color: var(--anc-b2b-ink);
+  font-size: 15px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.anc-b2b-card p {
+  margin: 0;
+  color: var(--anc-b2b-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.anc-b2b-flow {
+  counter-reset: anc-b2b-step;
+}
+
+.anc-b2b-flow .anc-b2b-card {
+  position: relative;
+  padding-top: 54px;
+}
+
+.anc-b2b-flow .anc-b2b-card::before {
+  counter-increment: anc-b2b-step;
+  content: counter(anc-b2b-step);
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--anc-b2b-accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.anc-b2b-product-cta {
+  display: inline-flex;
+  margin-top: 10px;
+  text-decoration: none;
+}
+
+.anc-b2b-product-note {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--anc-b2b-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--anc-b2b-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.anc-register-section {
+  padding: 86px 20px;
+  background: var(--anc-b2b-surface-green);
+  text-align: center;
+}
+
+.anc-register-section h2 {
+  font-family: "Oswald", sans-serif;
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: 3px;
+  color: var(--anc-b2b-ink);
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.anc-register-section > p {
+  color: var(--anc-b2b-muted);
+  margin: 0 auto 30px;
+  max-width: 680px;
+  line-height: 1.7;
+}
+
+.anc-register-frame-wrap {
+  width: min(820px, 100%);
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(15, 51, 48, 0.12);
+}
+
+.anc-register-frame-wrap iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+  min-height: 680px;
+}
+
+.anc-register-alt {
+  margin-top: 22px;
+  font-size: 14px;
+  color: var(--anc-b2b-muted);
+}
+
+.anc-register-alt a {
+  color: var(--anc-b2b-accent);
+  font-weight: 700;
+}
+
+@media (max-width: 680px) {
+  .anc-b2b-section,
+  .anc-register-section {
+    padding: 62px 18px;
+  }
+
+  .anc-register-frame-wrap iframe {
+    min-height: 760px;
+  }
+}
