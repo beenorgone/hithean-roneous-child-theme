@@ -3,3 +3,4 @@ error_log
 *.log
 custom-functions/firebase_credentials.json
 pages/an-new-chapter/*.csv
+pages/an-new-chapter/b2b-editable-sections/
