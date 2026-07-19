@@ -445,6 +445,16 @@ function order_creator_coupon_edit_url(int $coupon_id): string
     ], admin_url('post.php'));
 }
 
+function order_creator_coupon_description(WC_Coupon $coupon): string
+{
+    $description = wp_strip_all_tags((string) $coupon->get_description());
+    if ($description !== '') {
+        return $description;
+    }
+
+    return wp_strip_all_tags((string) get_post_meta($coupon->get_id(), 'description', true));
+}
+
 /** Xoá cache rate để các rule ship/free-ship chạy lại theo cart hiện tại. */
 function order_creator_reset_shipping_cache(): void
 {
@@ -759,7 +769,7 @@ function order_creator_coupon_detail(string $code): ?array
 
     return [
         'code'        => $coupon->get_code(),
-        'description' => wp_strip_all_tags($coupon->get_description()),
+        'description' => order_creator_coupon_description($coupon),
         'rows'        => $rows,
         'edit_url'    => $is_admin ? order_creator_coupon_edit_url($id) : '',
     ];
@@ -1496,13 +1506,22 @@ add_action('wp_ajax_order_creator_search_coupons', function () {
 
     $like = '%' . $wpdb->esc_like($term) . '%';
     $ids = $wpdb->get_col($wpdb->prepare(
-        "SELECT ID
-         FROM {$wpdb->posts}
-         WHERE post_type = 'shop_coupon'
-           AND post_status IN ('publish', 'private')
-           AND (post_title LIKE %s OR post_excerpt LIKE %s OR post_content LIKE %s)
-         ORDER BY CASE WHEN post_title LIKE %s THEN 0 ELSE 1 END, post_date DESC
+        "SELECT DISTINCT p.ID
+         FROM {$wpdb->posts} p
+         LEFT JOIN {$wpdb->postmeta} pm_description
+           ON pm_description.post_id = p.ID
+          AND pm_description.meta_key = 'description'
+         WHERE p.post_type = 'shop_coupon'
+           AND p.post_status NOT IN ('trash', 'auto-draft')
+           AND (
+                p.post_title LIKE %s
+                OR p.post_excerpt LIKE %s
+                OR p.post_content LIKE %s
+                OR pm_description.meta_value LIKE %s
+           )
+         ORDER BY CASE WHEN p.post_title LIKE %s THEN 0 ELSE 1 END, p.post_date DESC
          LIMIT 20",
+        $like,
         $like,
         $like,
         $like,
@@ -1526,7 +1545,7 @@ add_action('wp_ajax_order_creator_search_coupons', function () {
         $type = $coupon->get_discount_type();
         $coupons[] = [
             'code'        => $coupon->get_code(),
-            'description' => wp_trim_words(wp_strip_all_tags($coupon->get_description()), 18, '...'),
+            'description' => wp_trim_words(order_creator_coupon_description($coupon), 18, '...'),
             'type'        => isset($type_labels[$type]) ? wp_strip_all_tags($type_labels[$type]) : $type,
             'amount'      => (float) $coupon->get_amount(),
             'expires'     => $expiry ? $expiry->date_i18n('d/m/Y') : '',
