@@ -1483,6 +1483,59 @@ add_action('wp_ajax_order_creator_search_products', function () {
     wp_send_json_success(['products' => $products]);
 });
 
+add_action('wp_ajax_order_creator_search_coupons', function () {
+    order_creator_verify_ajax();
+
+    global $wpdb;
+
+    $term = isset($_POST['term']) ? wc_clean(wp_unslash($_POST['term'])) : '';
+    $term = trim((string) $term);
+    if ($term === '') {
+        wp_send_json_success(['coupons' => []]);
+    }
+
+    $like = '%' . $wpdb->esc_like($term) . '%';
+    $ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT ID
+         FROM {$wpdb->posts}
+         WHERE post_type = 'shop_coupon'
+           AND post_status IN ('publish', 'private')
+           AND (post_title LIKE %s OR post_excerpt LIKE %s OR post_content LIKE %s)
+         ORDER BY CASE WHEN post_title LIKE %s THEN 0 ELSE 1 END, post_date DESC
+         LIMIT 20",
+        $like,
+        $like,
+        $like,
+        $wpdb->esc_like($term) . '%'
+    ));
+
+    $exact_id = function_exists('wc_get_coupon_id_by_code') ? wc_get_coupon_id_by_code(wc_format_coupon_code($term)) : 0;
+    if ($exact_id) {
+        array_unshift($ids, $exact_id);
+    }
+    $ids = array_values(array_unique(array_map('absint', (array) $ids)));
+
+    $type_labels = function_exists('wc_get_coupon_types') ? wc_get_coupon_types() : [];
+    $coupons = [];
+    foreach (array_slice($ids, 0, 20) as $id) {
+        $coupon = new WC_Coupon($id);
+        if (!$coupon->get_id()) {
+            continue;
+        }
+        $expiry = $coupon->get_date_expires();
+        $type = $coupon->get_discount_type();
+        $coupons[] = [
+            'code'        => $coupon->get_code(),
+            'description' => wp_trim_words(wp_strip_all_tags($coupon->get_description()), 18, '...'),
+            'type'        => isset($type_labels[$type]) ? wp_strip_all_tags($type_labels[$type]) : $type,
+            'amount'      => (float) $coupon->get_amount(),
+            'expires'     => $expiry ? $expiry->date_i18n('d/m/Y') : '',
+        ];
+    }
+
+    wp_send_json_success(['coupons' => $coupons]);
+});
+
 add_action('wp_ajax_order_creator_save_settings', function () {
     order_creator_verify_ajax();
     if (!current_user_can('manage_options')) {
@@ -2674,10 +2727,14 @@ function order_creator_render_page(): void
                 <div class="oc-field">
                     <label>Mã ưu đãi (coupon)</label>
                     <div class="oc-inline">
-                        <input type="text" id="oc-coupon-input" placeholder="Nhập mã...">
+                        <div class="oc-coupon-search">
+                            <input type="text" id="oc-coupon-input" placeholder="Tìm theo mã hoặc mô tả...">
+                            <div class="oc-search-results oc-coupon-results" id="oc-coupon-results" hidden></div>
+                        </div>
                         <button type="button" class="oc-btn oc-btn--ghost" id="oc-coupon-add">Áp dụng</button>
                         <a class="oc-btn oc-btn--ghost" id="oc-coupon-create" href="<?php echo esc_url(admin_url('post-new.php?post_type=shop_coupon')); ?>" target="_blank" rel="noopener">Tạo mã ưu đãi</a>
                     </div>
+                    <p class="oc-muted">Gõ ít nhất 2 ký tự để tìm theo mã hoặc mô tả coupon. Chọn mã trong danh sách gợi ý, sau đó bấm <em>Áp dụng</em>; nếu không thấy kết quả vẫn có thể nhập mã thủ công.</p>
                     <ul class="oc-chips" id="oc-coupon-list"></ul>
                 </div>
 
@@ -2895,7 +2952,7 @@ function order_creator_render_page(): void
                 <li><strong>Chọn khách hàng</strong> — tìm theo SĐT / email / tên ở mục <em>Khách hàng</em>. Khách chưa có trong hệ thống → bấm <em>Khách hàng mới</em>.</li>
                 <li><strong>Kiểm tra địa chỉ</strong> — mục <em>Địa chỉ đặt hàng</em> tự điền theo hồ sơ khách. Giao nơi khác → tick <em>Giao đến địa chỉ khác?</em> và điền địa chỉ giao.</li>
                 <li><strong>Thêm sản phẩm</strong> — gõ tên hoặc SKU vào ô <em>Tìm sản phẩm</em>, chỉnh số lượng / giá nếu cần.</li>
-                <li><strong>Ưu đãi &amp; phí</strong> — nhập mã ưu đãi hoặc thêm phí phát sinh (nếu có).</li>
+                <li><strong>Ưu đãi &amp; phí</strong> — gõ mã hoặc từ khóa mô tả để tìm coupon, chọn mã phù hợp rồi bấm <em>Áp dụng</em>; thêm phí phát sinh nếu có.</li>
                 <li><strong>Kiểm tra tổng</strong> — bấm <em>Tính lại</em>, đối chiếu tạm tính, giảm giá, phí vận chuyển, tổng đơn.</li>
                 <li><strong>Tạo đơn</strong> — chọn Trạng thái + Thanh toán ở mục <em>Thông tin đơn</em>, rồi bấm <em>Tạo đơn</em> (hoặc <em>Lưu nháp</em> nếu khách chưa chốt).</li>
             </ol>
@@ -2941,7 +2998,8 @@ function order_creator_render_page(): void
             <h2>🛒 Giỏ hàng, ưu đãi &amp; vận chuyển</h2>
             <ul>
                 <li><strong>Giá sửa:</strong> ghi đè giá bán của dòng sản phẩm (để trống = giá gốc). <strong>Giảm/SP:</strong> giảm tiền trực tiếp trên từng sản phẩm.</li>
-                <li><strong>Mã ưu đãi:</strong> nhập mã rồi thêm — nếu mã không áp được, hệ thống hiện popup giải thích lý do.</li>
+                <li><strong>Mã ưu đãi:</strong> gõ ít nhất 2 ký tự để tìm theo mã hoặc mô tả coupon. Chọn kết quả gợi ý để điền mã nhanh, hoặc nhập mã thủ công rồi bấm <em>Áp dụng</em>.</li>
+                <li><strong>Kiểm tra coupon:</strong> sau khi tính lại, mã hợp lệ có dấu xanh; mã không áp được có dấu cảnh báo và popup giải thích lý do / điều kiện áp dụng.</li>
                 <li><strong>Phí:</strong> thêm các khoản thu ngoài (phụ phí, đóng gói...) với tên + số tiền.</li>
                 <li><strong>Vận chuyển:</strong> phí ship tự tính lại khi đổi địa chỉ; có thể chọn phương thức khác trong ô chọn hoặc sửa phí ship thủ công.</li>
                 <li>Sau mọi thay đổi lớn, bấm <em>Tính lại</em> để cập nhật bảng tổng trước khi tạo đơn.</li>

@@ -131,6 +131,8 @@
 .oc-inline { display: flex; gap: 6px; flex-wrap: wrap; }
 .oc-inline > * { flex: 1; min-width: 90px; }
 .oc-inline > button { flex: 0 0 auto; }
+.oc-coupon-search { position: relative; flex: 1 1 260px; min-width: 220px; }
+.oc-coupon-search input { width: 100%; margin-bottom: 0; }
 
 /* buttons */
 .oc-btn {
@@ -217,6 +219,10 @@
 /* coupon chips: trạng thái áp mã */
 .oc-coupon-chip.is-applied { border-color: #16a34a; background: #f0fdf4; }
 .oc-coupon-chip.is-failed { border-color: #dc2626; background: #fef2f2; }
+.oc-coupon-results { position: absolute; left: 0; right: 0; top: 100%; margin-top: 2px; border-top: 1px solid var(--oc-border); border-radius: 6px; box-shadow: 0 10px 24px rgba(15, 23, 42, .12); z-index: 20; }
+.oc-coupon-result { width: 100%; border: 0; background: #fff; text-align: left; font: inherit; }
+.oc-coupon-result.is-selected { background: var(--thean-erp-primary-lighter, #edfaf5); }
+.oc-coupon-result strong { text-transform: uppercase; }
 .oc-coupon-mark { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; font-size: 11px; font-weight: 700; color: #fff; line-height: 1; }
 .oc-coupon-mark--ok { background: #16a34a; }
 .oc-coupon-mark--fail { background: #dc2626; }

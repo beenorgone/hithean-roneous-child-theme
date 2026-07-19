@@ -18,6 +18,10 @@
         shipping_method: '',
         lastOrder: null
     };
+    var couponSearchTimer = 0;
+    var couponSearchSeq = 0;
+    var couponSuggestions = [];
+    var couponActiveIndex = -1;
 
     // ---------- helpers ----------
     function money(n) {
@@ -510,6 +514,96 @@
             html += '</tbody></table>';
         }
         return html;
+    }
+
+    function hideCouponSuggestions() {
+        var box = $('#oc-coupon-results');
+        if (box) {
+            box.hidden = true;
+            box.innerHTML = '';
+        }
+        couponSuggestions = [];
+        couponActiveIndex = -1;
+    }
+
+    function renderCouponSuggestions(items) {
+        var box = $('#oc-coupon-results');
+        if (!box) { return; }
+        box.innerHTML = '';
+        couponSuggestions = items || [];
+        couponActiveIndex = couponSuggestions.length ? 0 : -1;
+        if (!couponSuggestions.length) {
+            box.innerHTML = '<div class="oc-result-empty">Không tìm thấy mã phù hợp.</div>';
+            box.hidden = false;
+            return;
+        }
+        couponSuggestions.forEach(function (coupon, idx) {
+            var row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'oc-result-row oc-coupon-result' + (idx === couponActiveIndex ? ' is-selected' : '');
+            row.innerHTML = '<span><strong>' + escapeHtml(coupon.code) + '</strong>' +
+                (coupon.description ? '<small>' + escapeHtml(coupon.description) + '</small>' : '') +
+                '</span><small>' + escapeHtml([coupon.type, coupon.expires ? 'HSD ' + coupon.expires : ''].filter(Boolean).join(' · ')) + '</small>';
+            row.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                chooseCouponSuggestion(idx);
+            });
+            box.appendChild(row);
+        });
+        box.hidden = false;
+    }
+
+    function chooseCouponSuggestion(idx) {
+        var coupon = couponSuggestions[idx];
+        if (!coupon || !coupon.code) { return; }
+        $('#oc-coupon-input').value = coupon.code;
+        hideCouponSuggestions();
+    }
+
+    function moveCouponSuggestion(delta) {
+        if (!couponSuggestions.length) { return; }
+        couponActiveIndex = (couponActiveIndex + delta + couponSuggestions.length) % couponSuggestions.length;
+        var rows = $('#oc-coupon-results').querySelectorAll('.oc-coupon-result');
+        Array.prototype.forEach.call(rows, function (row, idx) {
+            row.classList.toggle('is-selected', idx === couponActiveIndex);
+        });
+    }
+
+    function onCouponSearch() {
+        var term = $('#oc-coupon-input').value.trim();
+        clearTimeout(couponSearchTimer);
+        if (term.length < 2) {
+            hideCouponSuggestions();
+            return;
+        }
+        couponSearchTimer = setTimeout(function () {
+            var seq = ++couponSearchSeq;
+            post('order_creator_search_coupons', { term: term }).then(function (res) {
+                if (seq !== couponSearchSeq) { return; }
+                renderCouponSuggestions(res && res.success && res.data ? (res.data.coupons || []) : []);
+            }).catch(hideCouponSuggestions);
+        }, 220);
+    }
+
+    function onCouponKeydown(e) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            moveCouponSuggestion(1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            moveCouponSuggestion(-1);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!$('#oc-coupon-results').hidden && couponActiveIndex >= 0) {
+                chooseCouponSuggestion(couponActiveIndex);
+                return;
+            }
+            addCoupon($('#oc-coupon-input').value);
+            $('#oc-coupon-input').value = '';
+            hideCouponSuggestions();
+        } else if (e.key === 'Escape') {
+            hideCouponSuggestions();
+        }
     }
 
     function escapeHtml(s) {
@@ -1635,7 +1729,10 @@
         $('#oc-lines-body').addEventListener('input', onLineInput);
         $('#oc-lines-body').addEventListener('change', function (e) { if (e.target.dataset.f) recalc(); });
         $('#oc-lines-body').addEventListener('click', onLineInput);
-        $('#oc-coupon-add').addEventListener('click', function () { addCoupon($('#oc-coupon-input').value); $('#oc-coupon-input').value = ''; });
+        $('#oc-coupon-input').addEventListener('input', onCouponSearch);
+        $('#oc-coupon-input').addEventListener('keydown', onCouponKeydown);
+        $('#oc-coupon-input').addEventListener('blur', function () { setTimeout(hideCouponSuggestions, 160); });
+        $('#oc-coupon-add').addEventListener('click', function () { addCoupon($('#oc-coupon-input').value); $('#oc-coupon-input').value = ''; hideCouponSuggestions(); });
         $('#oc-fee-add').addEventListener('click', addFee);
         $('#oc-shipping-method').addEventListener('change', function () { state.shipping_method = this.value; syncShippingTitleField(true); recalc(); });
         $('#oc-shipping-cost').addEventListener('change', function () { syncShippingTitleField(true); recalc(); });
