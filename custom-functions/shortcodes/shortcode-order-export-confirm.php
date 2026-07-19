@@ -94,6 +94,26 @@ function hithean_get_export_upload_checklist(): array
     return array_values(array_filter(array_map('trim', explode("\n", $raw))));
 }
 
+function hithean_render_export_image_gallery(array $urls): string
+{
+    $safe_urls = array_values(array_filter(array_map('esc_url_raw', $urls)));
+    if (empty($safe_urls)) {
+        return '<em>Không có ảnh</em>';
+    }
+
+    $urls_json = esc_attr(wp_json_encode($safe_urls));
+    $html = '<div class="order-images uexe-gallery-thumbs" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">';
+    foreach ($safe_urls as $index => $url) {
+        $u = esc_url($url);
+        $html .= '<a href="' . $u . '" class="uexe-gallery-link" data-gallery="' . $urls_json . '" data-index="' . esc_attr($index) . '" style="display:inline-block;cursor:zoom-in;">';
+        $html .= '<img src="' . $u . '" style="max-width:80px;height:auto;border:1px solid #ddd;border-radius:4px;">';
+        $html .= '</a>';
+    }
+    $html .= '</div>';
+
+    return $html;
+}
+
 // ===== Shortcode Upload Ảnh =====
 function shortcode_upload_export_images_form()
 {
@@ -199,17 +219,7 @@ function shortcode_list_unconfirmed_exports()
         // Hiển thị ảnh
         $images_raw = get_post_meta($order_id, 'warehouse_export_images', true);
         $urls = array_filter(array_map('trim', explode("\n", $images_raw)));
-        if (!empty($urls)) {
-            echo '<div class="order-images" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">';
-            foreach ($urls as $url) {
-                echo '<a href="' . esc_url($url) . '" target="_blank">';
-                echo '<img src="' . esc_url($url) . '" style="max-width:80px;height:auto;border:1px solid #ddd;border-radius:4px;">';
-                echo '</a>';
-            }
-            echo '</div>';
-        } else {
-            echo '<em>Không có ảnh</em>';
-        }
+        echo hithean_render_export_image_gallery($urls);
 
         // Form xác nhận
     ?>
@@ -310,17 +320,7 @@ function shortcode_list_uploaded_not_shipped_exports()
         // Hiển thị ảnh
         $images_raw = get_post_meta($order_id, 'warehouse_export_images', true);
         $urls = array_filter(array_map('trim', explode("\n", $images_raw)));
-        if (!empty($urls)) {
-            echo '<div class="order-images" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">';
-            foreach ($urls as $url) {
-                echo '<a href="' . esc_url($url) . '" target="_blank">';
-                echo '<img src="' . esc_url($url) . '" style="max-width:80px;height:auto;border:1px solid #ddd;border-radius:4px;">';
-                echo '</a>';
-            }
-            echo '</div>';
-        } else {
-            echo '<em>Không có ảnh</em>';
-        }
+        echo hithean_render_export_image_gallery($urls);
 
         // Nút xác nhận
         echo '<div style="margin-top:15px;">';
@@ -441,12 +441,106 @@ add_action('wp_footer', function () {
         </div>
     </div>
     <?php endif; ?>
+    <style>
+        .uexe-gallery-modal { position: fixed; inset: 0; z-index: 1000000; display: none; align-items: center; justify-content: center; background: rgba(17, 24, 39, 0.88); padding: 18px; }
+        .uexe-gallery-modal.is-open { display: flex; }
+        .uexe-gallery-dialog { position: relative; width: min(1100px, 96vw); height: min(760px, 90vh); display: grid; grid-template-rows: auto 1fr auto; gap: 10px; }
+        .uexe-gallery-header { display: flex; align-items: center; justify-content: space-between; color: #fff; font-size: 14px; font-weight: 600; }
+        .uexe-gallery-close, .uexe-gallery-prev, .uexe-gallery-next { border: 0; border-radius: 4px; background: rgba(255,255,255,0.92); color: #111827; cursor: pointer; font-size: 22px; line-height: 1; width: 42px; height: 42px; }
+        .uexe-gallery-close { font-size: 28px; }
+        .uexe-gallery-stage { position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; }
+        .uexe-gallery-stage img { max-width: 100%; max-height: 100%; object-fit: contain; background: #fff; border-radius: 4px; box-shadow: 0 18px 50px rgba(0,0,0,0.35); }
+        .uexe-gallery-prev, .uexe-gallery-next { position: absolute; top: 50%; transform: translateY(-50%); }
+        .uexe-gallery-prev { left: 10px; }
+        .uexe-gallery-next { right: 10px; }
+        .uexe-gallery-footer { text-align: center; }
+        .uexe-gallery-open-new { color: #fff !important; font-size: 13px; text-decoration: underline; }
+    </style>
+    <div id="uexe-gallery-modal" class="uexe-gallery-modal" aria-hidden="true">
+        <div class="uexe-gallery-dialog" role="dialog" aria-modal="true" aria-label="Xem ảnh lấy hàng">
+            <div class="uexe-gallery-header">
+                <span id="uexe-gallery-counter"></span>
+                <button type="button" class="uexe-gallery-close" aria-label="Đóng">&times;</button>
+            </div>
+            <div class="uexe-gallery-stage">
+                <button type="button" class="uexe-gallery-prev" aria-label="Ảnh trước">&#8249;</button>
+                <img id="uexe-gallery-image" src="" alt="Ảnh lấy hàng">
+                <button type="button" class="uexe-gallery-next" aria-label="Ảnh kế tiếp">&#8250;</button>
+            </div>
+            <div class="uexe-gallery-footer">
+                <a id="uexe-gallery-open-new" class="uexe-gallery-open-new" href="#" target="_blank" rel="noopener">Mở ảnh gốc</a>
+            </div>
+        </div>
+    </div>
     <script>
         var ueifNonce = "<?php echo esc_js(wp_create_nonce('ajax_upload_images_nonce')); ?>";
         var uexeNonce = "<?php echo esc_js(wp_create_nonce('ajax_confirm_export_nonce')); ?>";
         var ueifChecklist = <?php echo wp_json_encode($checklist); ?>;
 
         document.addEventListener("DOMContentLoaded", function() {
+            const galleryModal = document.getElementById('uexe-gallery-modal');
+            const galleryImage = document.getElementById('uexe-gallery-image');
+            const galleryCounter = document.getElementById('uexe-gallery-counter');
+            const galleryOpenNew = document.getElementById('uexe-gallery-open-new');
+            let galleryUrls = [];
+            let galleryIndex = 0;
+
+            function showGalleryImage() {
+                if (!galleryUrls.length) return;
+                galleryIndex = (galleryIndex + galleryUrls.length) % galleryUrls.length;
+                galleryImage.src = galleryUrls[galleryIndex];
+                galleryOpenNew.href = galleryUrls[galleryIndex];
+                galleryCounter.textContent = (galleryIndex + 1) + ' / ' + galleryUrls.length;
+            }
+
+            function openGallery(urls, index) {
+                galleryUrls = urls.filter(Boolean);
+                galleryIndex = Number.isFinite(index) ? index : 0;
+                showGalleryImage();
+                galleryModal.classList.add('is-open');
+                galleryModal.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeGallery() {
+                galleryModal.classList.remove('is-open');
+                galleryModal.setAttribute('aria-hidden', 'true');
+                galleryImage.src = '';
+            }
+
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('.uexe-gallery-link');
+                if (!link) return;
+                e.preventDefault();
+                let urls = [];
+                try { urls = JSON.parse(link.getAttribute('data-gallery') || '[]'); } catch(err) {}
+                openGallery(urls.length ? urls : [link.href], parseInt(link.getAttribute('data-index'), 10) || 0);
+            });
+
+            galleryModal.addEventListener('click', function(e) {
+                if (e.target === galleryModal) closeGallery();
+            });
+            galleryModal.querySelector('.uexe-gallery-close').addEventListener('click', closeGallery);
+            galleryModal.querySelector('.uexe-gallery-prev').addEventListener('click', function() {
+                galleryIndex--;
+                showGalleryImage();
+            });
+            galleryModal.querySelector('.uexe-gallery-next').addEventListener('click', function() {
+                galleryIndex++;
+                showGalleryImage();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (!galleryModal.classList.contains('is-open')) return;
+                if (e.key === 'Escape') closeGallery();
+                if (e.key === 'ArrowLeft') {
+                    galleryIndex--;
+                    showGalleryImage();
+                }
+                if (e.key === 'ArrowRight') {
+                    galleryIndex++;
+                    showGalleryImage();
+                }
+            });
+
             // Upload ảnh
             const uploadForm = document.querySelector('#upload-export-form');
             if (uploadForm) {

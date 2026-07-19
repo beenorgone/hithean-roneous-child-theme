@@ -42,15 +42,16 @@ function ost_get_order_images($meta_value) {
 function ost_render_image_thumbs($image_urls) {
     if (empty($image_urls)) return '-';
     $html = '';
-    foreach ($image_urls as $url) {
+    $safe_urls = array_values(array_map('esc_url_raw', $image_urls));
+    $urls_json = esc_attr(wp_json_encode($safe_urls));
+    foreach ($safe_urls as $index => $url) {
         $u = esc_url($url);
         $img_tag = sprintf(
             '<img decoding="async" src="%1$s" style="max-width:80px;height:auto;border:1px solid #ddd;border-radius:4px;" data-eio="p" data-src="%1$s" class="lazyloaded scaled-image" width="1000" height="750" data-eio-rwidth="1000" data-eio-rheight="750" title="">',
             $u
         );
-        $html .= '<a href="' . $u . '" target="_blank" style="margin:2px; display:inline-block;">' . $img_tag . '</a>';
+        $html .= '<a href="' . $u . '" class="ost-gallery-link" data-gallery="' . $urls_json . '" data-index="' . esc_attr($index) . '" style="margin:2px; display:inline-block;">' . $img_tag . '</a>';
     }
-    $urls_json = esc_attr(wp_json_encode(array_values($image_urls)));
     $html .= '<br><button type="button" class="ost-dl-all-btn" data-urls="' . $urls_json . '" style="margin-top:4px;font-size:11px;padding:2px 7px;cursor:pointer;">&#8659; Tải tất cả ảnh</button>';
     return $html;
 }
@@ -385,6 +386,20 @@ add_shortcode('order_shipped_table', function () {
         .rp-list-col a:hover { text-decoration: underline; color: #e74c3c; }
         .btn-link-sheet { display: inline-block; text-decoration: none; background: #27ae60; color: #fff !important; padding: 5px 10px; border-radius: 3px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
         .btn-link-sheet:hover { background: #219150; }
+        .ost-gallery-link { cursor: zoom-in; }
+        .ost-gallery-modal { position: fixed; inset: 0; z-index: 999999; display: none; align-items: center; justify-content: center; background: rgba(17, 24, 39, 0.88); padding: 18px; }
+        .ost-gallery-modal.is-open { display: flex; }
+        .ost-gallery-dialog { position: relative; width: min(1100px, 96vw); height: min(760px, 90vh); display: grid; grid-template-rows: auto 1fr auto; gap: 10px; }
+        .ost-gallery-header { display: flex; align-items: center; justify-content: space-between; color: #fff; font-size: 14px; font-weight: 600; }
+        .ost-gallery-close, .ost-gallery-prev, .ost-gallery-next { border: 0; border-radius: 4px; background: rgba(255,255,255,0.92); color: #111827; cursor: pointer; font-size: 22px; line-height: 1; width: 42px; height: 42px; }
+        .ost-gallery-close { font-size: 28px; }
+        .ost-gallery-stage { position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; }
+        .ost-gallery-stage img { max-width: 100%; max-height: 100%; object-fit: contain; background: #fff; border-radius: 4px; box-shadow: 0 18px 50px rgba(0,0,0,0.35); }
+        .ost-gallery-prev, .ost-gallery-next { position: absolute; top: 50%; transform: translateY(-50%); }
+        .ost-gallery-prev { left: 10px; }
+        .ost-gallery-next { right: 10px; }
+        .ost-gallery-footer { text-align: center; }
+        .ost-gallery-open-new { color: #fff !important; font-size: 13px; text-decoration: underline; }
     </style>
 
     <h2>Đơn Xuất Kho (Hithean)</h2>
@@ -418,12 +433,87 @@ add_shortcode('order_shipped_table', function () {
         </div>
     </div>
 
+    <div id="ost-gallery-modal" class="ost-gallery-modal" aria-hidden="true">
+        <div class="ost-gallery-dialog" role="dialog" aria-modal="true" aria-label="Xem ảnh lấy hàng">
+            <div class="ost-gallery-header">
+                <span id="ost-gallery-counter"></span>
+                <button type="button" class="ost-gallery-close" aria-label="Đóng">&times;</button>
+            </div>
+            <div class="ost-gallery-stage">
+                <button type="button" class="ost-gallery-prev" aria-label="Ảnh trước">&#8249;</button>
+                <img id="ost-gallery-image" src="" alt="Ảnh lấy hàng">
+                <button type="button" class="ost-gallery-next" aria-label="Ảnh kế tiếp">&#8250;</button>
+            </div>
+            <div class="ost-gallery-footer">
+                <a id="ost-gallery-open-new" class="ost-gallery-open-new" href="#" target="_blank" rel="noopener">Mở ảnh gốc</a>
+            </div>
+        </div>
+    </div>
+
     <script>
         jQuery(function($) {
             const form = $('#order-filter-form');
             const resultBox = $('#order-results');
             const reportBox = $('#report-summary-box');
+            const galleryModal = $('#ost-gallery-modal');
+            const galleryImage = $('#ost-gallery-image');
+            const galleryCounter = $('#ost-gallery-counter');
+            const galleryOpenNew = $('#ost-gallery-open-new');
+            let galleryUrls = [];
+            let galleryIndex = 0;
             let xhr;
+
+            function showGalleryImage() {
+                if (!galleryUrls.length) return;
+                galleryIndex = (galleryIndex + galleryUrls.length) % galleryUrls.length;
+                galleryImage.attr('src', galleryUrls[galleryIndex]);
+                galleryOpenNew.attr('href', galleryUrls[galleryIndex]);
+                galleryCounter.text((galleryIndex + 1) + ' / ' + galleryUrls.length);
+            }
+
+            function openGallery(urls, index) {
+                galleryUrls = urls.filter(Boolean);
+                galleryIndex = Number.isFinite(index) ? index : 0;
+                showGalleryImage();
+                galleryModal.addClass('is-open').attr('aria-hidden', 'false');
+            }
+
+            function closeGallery() {
+                galleryModal.removeClass('is-open').attr('aria-hidden', 'true');
+                galleryImage.attr('src', '');
+            }
+
+            $('#order-results-container').on('click', '.ost-gallery-link', function(e) {
+                e.preventDefault();
+                var urls = [];
+                try { urls = JSON.parse($(this).attr('data-gallery') || '[]'); } catch(err) {}
+                openGallery(urls.length ? urls : [$(this).attr('href')], parseInt($(this).attr('data-index'), 10) || 0);
+            });
+
+            galleryModal.on('click', function(e) {
+                if (e.target === this) closeGallery();
+            });
+            galleryModal.on('click', '.ost-gallery-close', closeGallery);
+            galleryModal.on('click', '.ost-gallery-prev', function() {
+                galleryIndex--;
+                showGalleryImage();
+            });
+            galleryModal.on('click', '.ost-gallery-next', function() {
+                galleryIndex++;
+                showGalleryImage();
+            });
+            $(document).on('keydown', function(e) {
+                if (!galleryModal.hasClass('is-open')) return;
+                if (e.key === 'Escape') closeGallery();
+                if (e.key === 'ArrowLeft') {
+                    galleryIndex--;
+                    showGalleryImage();
+                }
+                if (e.key === 'ArrowRight') {
+                    galleryIndex++;
+                    showGalleryImage();
+                }
+            });
 
             $('#order-results-container').on('click', '.ost-dl-all-btn', function() {
                 var urls = [];
