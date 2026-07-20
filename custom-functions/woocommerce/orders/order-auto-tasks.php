@@ -29,11 +29,11 @@ function link_guest_order_to_user($order_id)
 /**
  * Hook riêng cho từng trạng thái thay vì dùng order_status_changed
  */
-add_action('woocommerce_order_status_processing', 'status_change_handle_processing_status', 10, 1);
-add_action('woocommerce_order_status_on-hold', 'status_change_handle_on_hold_status', 10, 1);
-add_action('woocommerce_order_status_packaging', 'status_change_handle_packaging_status', 10, 1);
-add_action('woocommerce_order_status_shipping', 'status_change_handle_shipping_status', 10, 1);
-add_action('woocommerce_order_status_received-payment', 'status_change_handle_received_payment_status', 10, 1);
+add_action('woocommerce_order_status_processing', 'status_change_handle_processing_status', 10, 3);
+add_action('woocommerce_order_status_on-hold', 'status_change_handle_on_hold_status', 10, 3);
+add_action('woocommerce_order_status_packaging', 'status_change_handle_packaging_status', 10, 3);
+add_action('woocommerce_order_status_shipping', 'status_change_handle_shipping_status', 10, 3);
+add_action('woocommerce_order_status_received-payment', 'status_change_handle_received_payment_status', 10, 3);
 
 /**
  * Helpers
@@ -80,13 +80,43 @@ function is_hanoi_quick($order)
     return $has_quick && $is_hanoi;
 }
 
+function order_auto_tasks_is_expired_final_order($order, $status_transition = null)
+{
+    if (!$order instanceof WC_Order) {
+        return false;
+    }
+
+    $cutoff = current_time('timestamp', true) - (365 * DAY_IN_SECONDS);
+    $completed_date = $order->get_date_completed();
+    if ($completed_date && $completed_date->getTimestamp() <= $cutoff) {
+        return true;
+    }
+
+    $final_statuses = ['completed', 'delivered'];
+    $old_status = is_array($status_transition) && !empty($status_transition['from'])
+        ? (string)$status_transition['from']
+        : '';
+
+    if (!in_array($old_status, $final_statuses, true) && !in_array($order->get_status(), $final_statuses, true)) {
+        return false;
+    }
+
+    $final_date = $order->get_date_created();
+    if (!$final_date) {
+        return false;
+    }
+
+    return $final_date->getTimestamp() <= $cutoff;
+}
+
 /**
  * Các handler cho từng trạng thái
  */
-function status_change_handle_processing_status($order_id)
+function status_change_handle_processing_status($order_id, $order = null, $status_transition = null)
 {
-    $order = wc_get_order($order_id);
+    $order = $order instanceof WC_Order ? $order : wc_get_order($order_id);
     if (!$order) return;
+    if (order_auto_tasks_is_expired_final_order($order, $status_transition)) return;
 
     if ($order->get_payment_method() === 'cod') {
         $count = count_customer_orders($order->get_customer_id());
@@ -98,10 +128,11 @@ function status_change_handle_processing_status($order_id)
     }
 }
 
-function status_change_handle_on_hold_status($order_id)
+function status_change_handle_on_hold_status($order_id, $order = null, $status_transition = null)
 {
-    $order = wc_get_order($order_id);
+    $order = $order instanceof WC_Order ? $order : wc_get_order($order_id);
     if (!$order) return;
+    if (order_auto_tasks_is_expired_final_order($order, $status_transition)) return;
 
     if ($order->get_payment_method() === 'bacs') {
         $paid_date = $order->get_meta('order_paid_date', true);
@@ -113,10 +144,11 @@ function status_change_handle_on_hold_status($order_id)
     }
 }
 
-function status_change_handle_packaging_status($order_id)
+function status_change_handle_packaging_status($order_id, $order = null, $status_transition = null)
 {
-    $order = wc_get_order($order_id);
+    $order = $order instanceof WC_Order ? $order : wc_get_order($order_id);
     if (!$order) return;
+    if (order_auto_tasks_is_expired_final_order($order, $status_transition)) return;
 
     if ($order->get_payment_method() === 'cod') {
         update_order_meta_field($order, 'order_handling_status', null, ['Chờ khách phản hồi']);
@@ -134,10 +166,11 @@ function status_change_handle_packaging_status($order_id)
     }
 }
 
-function status_change_handle_shipping_status($order_id)
+function status_change_handle_shipping_status($order_id, $order = null, $status_transition = null)
 {
-    $order = wc_get_order($order_id);
+    $order = $order instanceof WC_Order ? $order : wc_get_order($order_id);
     if (!$order) return;
+    if (order_auto_tasks_is_expired_final_order($order, $status_transition)) return;
 
     if (!$order->get_meta('order_export_date', true)) {
         $date = date_i18n('Y-m-d');
@@ -149,10 +182,11 @@ function status_change_handle_shipping_status($order_id)
     }
 }
 
-function status_change_handle_received_payment_status($order_id)
+function status_change_handle_received_payment_status($order_id, $order = null, $status_transition = null)
 {
-    $order = wc_get_order($order_id);
+    $order = $order instanceof WC_Order ? $order : wc_get_order($order_id);
     if (!$order) return;
+    if (order_auto_tasks_is_expired_final_order($order, $status_transition)) return;
 
     if (is_hanoi_quick($order)) {
         $order->update_status('local-shipping', 'Chuyển sang Giao nhanh (Hà Nội) sau khi xác nhận thanh toán.');
