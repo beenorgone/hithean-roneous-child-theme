@@ -92,7 +92,7 @@ function order_auto_tasks_is_expired_final_order($order, $status_transition = nu
         return true;
     }
 
-    $final_statuses = ['completed', 'delivered'];
+    $final_statuses = ['completed', 'delivered', 'failed', 'cancelled'];
     $old_status = is_array($status_transition) && !empty($status_transition['from'])
         ? (string)$status_transition['from']
         : '';
