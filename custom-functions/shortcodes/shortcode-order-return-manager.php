@@ -425,6 +425,7 @@ add_shortcode('order_return_management', function () {
             max-width: 100%;
             background: #f8fafc;
             overflow: hidden;
+            padding-top: 0 !important;
         }
 
         .orm-column-header {
