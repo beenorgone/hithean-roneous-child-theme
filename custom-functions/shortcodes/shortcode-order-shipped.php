@@ -446,6 +446,57 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids 
     ];
 }
 
+function ost_get_single_order_card_payload($order_id) {
+    $order_id = absint($order_id);
+    $order = wc_get_order($order_id);
+    if (!$order) {
+        return new WP_Error('missing_order', 'Không tìm thấy đơn');
+    }
+
+    if ($order->get_status() === 'cancelled') {
+        return [
+            'order_id' => $order_id,
+            'bucket' => 'removed',
+            'card_html' => '',
+        ];
+    }
+
+    $shipper_raw = get_post_meta($order_id, 'order_shipper', true);
+    $shipper = is_array($shipper_raw) ? implode(', ', $shipper_raw) : $shipper_raw;
+    $ship_code = get_post_meta($order_id, 'order_ship_code', true);
+    $ship_date = get_post_meta($order_id, 'order_ship_date', true) ?: 'N/A';
+    $images = ost_get_order_images(get_post_meta($order_id, 'warehouse_export_images', true));
+    $confirmed_user_id = get_post_meta($order_id, 'export_confirmed_by', true);
+    $issues = ost_get_reconciliation_issues($order, $shipper, $ship_code, $ship_date, $images, $confirmed_user_id);
+    $bucket = ost_get_reconciliation_bucket($issues);
+
+    $row_data = [
+        'id' => $order_id,
+        'order' => $order,
+        'ship_date' => $ship_date,
+        'shipper' => $shipper,
+        'ship_code' => $ship_code,
+        'export_by' => get_post_meta($order_id, 'order_export_by', true),
+        'paid_date' => get_post_meta($order_id, 'order_paid_date', true),
+        'bank_acc' => get_post_meta($order_id, 'order_bank_account_received', true),
+        'handling' => get_post_meta($order_id, 'order_handling_status', true),
+        'images' => $images,
+        'confirmed_user_id' => $confirmed_user_id,
+        'issues' => $issues,
+        'bucket' => $bucket,
+    ];
+
+    ob_start();
+    ost_render_kanban_card($row_data);
+    $card_html = ob_get_clean();
+
+    return [
+        'order_id' => $order_id,
+        'bucket' => $bucket,
+        'card_html' => $card_html,
+    ];
+}
+
 /**
  * VIEW RENDERING
  */
@@ -493,7 +544,7 @@ function ost_render_kanban_card($data) {
     $shipping_phone = method_exists($order, 'get_shipping_phone') ? $order->get_shipping_phone() : '';
     $shipping_phone = $shipping_phone ?: $order->get_billing_phone();
     ?>
-    <article class="ost-kanban-card ost-card-<?php echo esc_attr($data['bucket']); ?>">
+    <article class="ost-kanban-card ost-card-<?php echo esc_attr($data['bucket']); ?>" data-order-id="<?php echo esc_attr($data['id']); ?>" data-bucket="<?php echo esc_attr($data['bucket']); ?>">
         <div class="ost-card-head">
             <button type="button" class="ost-card-order ost-preview-order-btn" data-order-id="<?php echo esc_attr($data['id']); ?>">#<?php echo esc_html($data['id']); ?></button>
             <span class="ost-card-total"><?php echo wp_kses_post($order->get_formatted_order_total()); ?></span>
@@ -555,7 +606,7 @@ function ost_render_reconciliation_workspace($stats, $kanban_cards) {
         <div class="ost-summary-grid">
             <div class="ost-summary-card ost-card-total"><span>Tổng đơn</span><strong><?php echo esc_html($stats['total']); ?></strong></div>
             <?php foreach ($columns as $key => $column): ?>
-                <div class="ost-summary-card ost-card-<?php echo esc_attr($key); ?>">
+                <div class="ost-summary-card ost-card-<?php echo esc_attr($key); ?>" data-status="<?php echo esc_attr($key); ?>">
                     <span><?php echo esc_html($column['label']); ?></span>
                     <strong><?php echo esc_html($stats['by_status'][$key] ?? 0); ?></strong>
                 </div>
@@ -915,6 +966,59 @@ add_shortcode('order_shipped_table', function () {
                 modal.removeClass('is-open').attr('aria-hidden', 'true');
             }
 
+            function setColumnEmptyState(bucket) {
+                const list = $('.ost-column-' + bucket + ' .ost-kanban-list');
+                if (!list.length) return;
+                list.find('.ost-empty').remove();
+                if (!list.find('.ost-kanban-card').length) {
+                    list.html('<div class="ost-empty">Không có đơn</div>');
+                }
+            }
+
+            function adjustBucketCount(bucket, delta) {
+                if (!bucket || bucket === 'removed') return;
+                const columnCount = $('.ost-column-' + bucket + ' header strong').first();
+                const summaryCount = $('.ost-summary-card[data-status="' + bucket + '"] strong').first();
+                [columnCount, summaryCount].forEach(function(target) {
+                    if (!target.length) return;
+                    const next = Math.max(0, (parseInt(target.text(), 10) || 0) + delta);
+                    target.text(next);
+                });
+            }
+
+            function refreshOrderCard(orderId) {
+                const existing = $('.ost-kanban-card[data-order-id="' + orderId + '"]').first();
+                const oldBucket = existing.attr('data-bucket') || '';
+                $.ajax({
+                    url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { action: 'ajax_load_order_shipped', detail_mode: 'refresh_card', nonce: ostNonce, order_id: orderId }
+                }).done(function(res) {
+                    if (!res.success) return;
+                    const payload = res.data || {};
+                    const newBucket = payload.bucket || '';
+                    if (payload.card_html) {
+                        const targetList = $('.ost-column-' + newBucket + ' .ost-kanban-list').first();
+                        targetList.find('.ost-empty').remove();
+                        if (existing.length && oldBucket === newBucket) {
+                            existing.replaceWith(payload.card_html);
+                        } else {
+                            if (existing.length) existing.remove();
+                            targetList.append(payload.card_html);
+                        }
+                    } else if (existing.length) {
+                        existing.remove();
+                    }
+                    if (oldBucket && oldBucket !== newBucket) {
+                        adjustBucketCount(oldBucket, -1);
+                        adjustBucketCount(newBucket, 1);
+                    }
+                    setColumnEmptyState(oldBucket);
+                    setColumnEmptyState(newBucket);
+                });
+            }
+
             $('#order-results-container').on('click', '.ost-gallery-link', function(e) {
                 e.preventDefault();
                 var urls = [];
@@ -942,7 +1046,7 @@ add_shortcode('order_shipped_table', function () {
                 if (!currentGalleryOrderId) return;
                 $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ajax_load_order_shipped', detail_mode: 'confirm_export_image', nonce: ostNonce, order_id: currentGalleryOrderId }, function(res) {
                     alert(res.data || (res.success ? 'Đã xác nhận' : 'Không xác nhận được'));
-                    if (res.success) loadOrderSections('dashboard');
+                    if (res.success) refreshOrderCard(currentGalleryOrderId);
                 }, 'json');
             });
             $('#order-results-container').on('click', '.ost-upload-open-btn', function() {
@@ -972,9 +1076,10 @@ add_shortcode('order_shipped_table', function () {
                     .done(function(res) {
                         alert(res.data || (res.success ? 'Đã upload' : 'Không upload được'));
                         if (res.success) {
+                            const uploadedOrderId = parseInt($('#ost-upload-order-id').val(), 10) || 0;
                             closeModal(uploadModal);
                             uploadForm[0].reset();
-                            loadOrderSections('dashboard');
+                            refreshOrderCard(uploadedOrderId);
                         }
                     })
                     .always(function() { btn.prop('disabled', false).text(oldText); });
@@ -983,7 +1088,7 @@ add_shortcode('order_shipped_table', function () {
                 const orderId = parseInt($(this).attr('data-order-id'), 10) || 0;
                 $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ajax_load_order_shipped', detail_mode: 'confirm_export_image', nonce: ostNonce, order_id: orderId }, function(res) {
                     alert(res.data || (res.success ? 'Đã xác nhận' : 'Không xác nhận được'));
-                    if (res.success) loadOrderSections('dashboard');
+                    if (res.success) refreshOrderCard(orderId);
                 }, 'json');
             });
             $('#order-results-container').on('click', '.ost-set-shipper-btn', function() {
@@ -991,7 +1096,7 @@ add_shortcode('order_shipped_table', function () {
                 const shipper = $(this).closest('.ost-card-shipper').find('select').val();
                 $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ajax_load_order_shipped', detail_mode: 'set_order_shipper', nonce: ostNonce, order_id: orderId, shipper: shipper }, function(res) {
                     alert(res.data || (res.success ? 'Đã lưu shipper' : 'Không lưu được shipper'));
-                    if (res.success) loadOrderSections('dashboard');
+                    if (res.success) refreshOrderCard(orderId);
                 }, 'json').fail(function(xhr) {
                     alert('Không lưu được shipper. AJAX status: ' + xhr.status);
                 });
@@ -1140,6 +1245,11 @@ function ajax_load_order_shipped() {
     }
     if ($detail_mode === 'set_order_shipper') {
         ost_ajax_set_order_shipper();
+    }
+    if ($detail_mode === 'refresh_card') {
+        $payload = ost_get_single_order_card_payload(absint($_POST['order_id'] ?? 0));
+        if (is_wp_error($payload)) wp_send_json_error($payload->get_error_message());
+        wp_send_json_success($payload);
     }
 
     $search_ids = null;
