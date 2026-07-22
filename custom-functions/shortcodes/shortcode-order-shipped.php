@@ -747,7 +747,7 @@ add_shortcode('order_shipped_table', function () {
         .ost-kanban-nav-btn { width: 36px; height: 36px; border: 1px solid #1976d2; border-radius: 50%; background: #e3f2fd; color: #0d47a1; cursor: pointer; font-size: 18px; font-weight: 900; line-height: 1; }
         .ost-kanban-nav-btn:hover { background: #bbdefb; }
         .ost-kanban { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 8px; align-items: start; }
-        .ost-kanban-column { min-width: 0; max-width: 100%; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+        .ost-kanban-column { min-width: 0; max-width: 100%; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; padding-top: 0 !important;}
         .ost-kanban-column header { display: flex; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #e5e7eb; background: #fff; border-radius: 8px 8px 0 0; }
         .ost-kanban-column h4 { margin: 0; font-size: 14px; color: #111827; }
         .ost-kanban-column p { margin: 3px 0 0; font-size: 12px; color: #6b7280; }
