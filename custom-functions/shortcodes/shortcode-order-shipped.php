@@ -581,6 +581,13 @@ function ost_render_reconciliation_workspace($stats, $kanban_cards) {
     return ob_get_clean();
 }
 
+function ost_render_lazy_table_controls() {
+    return '<div class="ost-lazy-controls">
+        <button type="button" class="ost-load-section-btn" data-mode="summary">Xem bảng tổng hợp theo ngày / shipper</button>
+        <button type="button" class="ost-load-section-btn" data-mode="details">Xem bảng chi tiết đơn hàng</button>
+    </div>';
+}
+
 // Render Bảng Báo Cáo
 function ost_render_report_table($summary_data) {
     if (empty($summary_data)) return '';
@@ -690,6 +697,9 @@ add_shortcode('order_shipped_table', function () {
         .ost-detail-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
         .ost-detail-tab { border: 1px solid #d1d5db; background: #fff; color: #374151; border-radius: 999px; padding: 7px 12px; cursor: pointer; font-size: 13px; font-weight: 700; }
         .ost-detail-tab.is-active { background: #1976d2; border-color: #1976d2; color: #fff; }
+        .ost-lazy-controls { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 1px 3px rgba(15,23,42,0.06); }
+        .ost-load-section-btn { border: 1px solid #1976d2; background: #e3f2fd; color: #0d47a1; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: 800; }
+        .ost-load-section-btn:hover { background: #bbdefb; }
         #report-summary-box { margin-bottom: 24px; }
         #order-results { margin-top: 24px; }
         @media (max-width: 900px) {
@@ -956,9 +966,16 @@ add_shortcode('order_shipped_table', function () {
                 const orderId = parseInt($(this).attr('data-order-id'), 10) || 0;
                 previewBody.html('Đang tải...');
                 previewModal.addClass('is-open').attr('aria-hidden', 'false');
-                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ost_preview_order', nonce: ostNonce, order_id: orderId }, function(res) {
+                $.ajax({
+                    url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { action: 'ajax_order_shipped_preview_order', nonce: ostNonce, order_id: orderId }
+                }).done(function(res) {
                     previewBody.html(res.success ? res.data.html : (res.data || 'Không tải được đơn hàng'));
-                }, 'json');
+                }).fail(function(xhr) {
+                    previewBody.html('<p style="color:#b91c1c;">Không tải được preview đơn hàng. AJAX status: ' + xhr.status + '</p>');
+                });
             });
             $(document).on('keydown', function(e) {
                 if (!galleryModal.hasClass('is-open')) return;
@@ -1000,8 +1017,7 @@ add_shortcode('order_shipped_table', function () {
                 });
             });
 
-            form.on('submit', function(e) {
-                e.preventDefault();
+            function loadOrderSections(mode) {
                 const params = {};
                 form.serializeArray().forEach(d => params[d.name] = d.value);
 
@@ -1013,18 +1029,22 @@ add_shortcode('order_shipped_table', function () {
                 }
 
                 if (xhr) xhr.abort();
-                resultBox.html('<p>Đang tải dữ liệu...</p>');
-                reportBox.html('');
+                if (mode === 'details') {
+                    resultBox.html('<p>Đang mở bảng chi tiết...</p>');
+                } else {
+                    resultBox.html(ostLazyControlsHtml());
+                    reportBox.html('<p>Đang tải dữ liệu...</p>');
+                }
 
                 xhr = $.ajax({
                     url: '<?php echo admin_url('admin-ajax.php'); ?>',
                     method: 'POST',
-                    data: { action: 'ajax_load_order_shipped', nonce: ostNonce, ...params },
+                    data: { action: 'ajax_load_order_shipped', nonce: ostNonce, detail_mode: mode, ...params },
                     success: function(res) {
                         try {
                             const response = JSON.parse(res);
-                            reportBox.html(response.report_html);
-                            resultBox.html(response.table_html);
+                            if (response.report_html !== undefined && response.report_html !== '') reportBox.html(response.report_html);
+                            if (response.table_html !== undefined && response.table_html !== '') resultBox.html(response.table_html);
                         } catch (e) {
                             resultBox.html(res);
                         }
@@ -1033,6 +1053,19 @@ add_shortcode('order_shipped_table', function () {
                         resultBox.html('<p style="color:red;">Lỗi khi tải dữ liệu.</p>');
                     }
                 });
+            }
+
+            function ostLazyControlsHtml() {
+                return <?php echo wp_json_encode(ost_render_lazy_table_controls()); ?>;
+            }
+
+            $('#order-results-container').on('click', '.ost-load-section-btn', function() {
+                loadOrderSections($(this).data('mode') || 'dashboard');
+            });
+
+            form.on('submit', function(e) {
+                e.preventDefault();
+                loadOrderSections('dashboard');
             });
 
             form.trigger('submit');
@@ -1052,6 +1085,7 @@ function ajax_load_order_shipped() {
     $to      = sanitize_text_field($_POST['filter_export_date_to'] ?? '');
     $shipper = sanitize_text_field($_POST['filter_shipper'] ?? '');
     $search  = sanitize_text_field($_POST['filter_search'] ?? '');
+    $detail_mode = sanitize_key($_POST['detail_mode'] ?? 'dashboard');
 
     $search_ids = null;
     if ($search !== '') {
@@ -1072,12 +1106,12 @@ function ajax_load_order_shipped() {
         wp_die();
     }
 
-    // Render 2 bảng từ dữ liệu đã xử lý
     $report_html = ost_render_reconciliation_workspace($data['reconciliation_stats'], $data['kanban_cards']);
-    $report_html .= ost_render_report_table($data['summary']);
+    if ($detail_mode === 'summary') {
+        $report_html .= ost_render_report_table($data['summary']);
+    }
     
-    // Bọc bảng chi tiết trong container scroll
-    $table_html = '<div class="ost-detail-tabs">
+    $table_html = ($detail_mode === 'details') ? '<div class="ost-detail-tabs">
         <button type="button" class="ost-detail-tab is-active" data-bucket="all">Tất cả</button>
         <button type="button" class="ost-detail-tab" data-bucket="action">Cần xử lý</button>
         <button type="button" class="ost-detail-tab" data-bucket="missing_images">Thiếu ảnh</button>
@@ -1090,7 +1124,7 @@ function ajax_load_order_shipped() {
         <th>Ngày đặt</th><th>Shipper</th><th>Mã giao vận</th><th>Ngày xuất kho</th>
         <th>Xuất kho bởi</th><th>Ngày thanh toán</th><th>Tài khoản nhận</th><th>Thanh toán</th>
         <th>Vai trò</th><th>Ảnh xuất kho</th><th>Người xác nhận</th>
-    </tr></thead><tbody>' . $data['rows_html'] . '</tbody></table></div>';
+    </tr></thead><tbody>' . $data['rows_html'] . '</tbody></table></div>' : ost_render_lazy_table_controls();
 
     echo json_encode([
         'report_html' => $report_html,
@@ -1169,7 +1203,7 @@ function ost_ajax_set_order_shipper() {
     wp_send_json_success('Đã cập nhật shipper #' . $order_id);
 }
 
-add_action('wp_ajax_ost_preview_order', 'ost_ajax_preview_order');
+add_action('wp_ajax_ajax_order_shipped_preview_order', 'ost_ajax_preview_order');
 function ost_ajax_preview_order() {
     check_ajax_referer('ajax_load_order_shipped_nonce', 'nonce');
     if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
