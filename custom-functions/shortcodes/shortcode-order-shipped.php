@@ -65,6 +65,84 @@ function ost_render_order_links($ids) {
     return implode(', ', $links);
 }
 
+function ost_is_self_shipper($shipper) {
+    $value = strtolower(trim((string) $shipper));
+    return in_array($value, ['self', 'thean'], true);
+}
+
+function ost_get_reconciliation_columns() {
+    return [
+        'missing_images' => ['label' => 'Thiếu ảnh', 'hint' => 'Bổ sung ảnh xuất kho trước'],
+        'missing_confirmation' => ['label' => 'Chưa xác nhận', 'hint' => 'Xác nhận người kiểm soát'],
+        'not_completed' => ['label' => 'Chưa hoàn thành', 'hint' => 'Kiểm tra trạng thái đơn'],
+        'abnormal_data' => ['label' => 'Dữ liệu bất thường', 'hint' => 'Kiểm tra shipper, mã vận đơn, ngày'],
+        'passed' => ['label' => 'Đạt', 'hint' => 'Không còn lỗi đối soát'],
+    ];
+}
+
+function ost_get_reconciliation_issues($order, $shipper, $ship_code, $export_date, $images, $confirmed_user_id) {
+    $issues = [];
+    $shipper_value = trim((string) $shipper);
+    $shipper_check = strtolower($shipper_value);
+    $ship_code = trim((string) $ship_code);
+
+    if (empty($images)) {
+        $issues['missing_images'] = 'Thiếu ảnh xuất kho';
+    }
+
+    if (empty($confirmed_user_id)) {
+        $issues['missing_confirmation'] = 'Chưa xác nhận xuất kho';
+    }
+
+    if (($shipper_check === '' || $shipper_check === 'ahamove' || ost_is_self_shipper($shipper_check)) && $order->get_status() !== 'completed') {
+        $issues['not_completed'] = 'Đơn chưa hoàn thành';
+    }
+
+    if ($shipper_value === '') {
+        $issues['abnormal_data'] = 'Thiếu shipper';
+    } elseif (!ost_is_self_shipper($shipper_value) && $ship_code === '') {
+        $issues['abnormal_data'] = 'Thiếu mã vận đơn';
+    } elseif ($export_date === 'N/A' || !strtotime((string) $export_date)) {
+        $issues['abnormal_data'] = 'Ngày xuất kho không hợp lệ';
+    }
+
+    return $issues;
+}
+
+function ost_get_reconciliation_bucket($issues) {
+    foreach (['missing_images', 'missing_confirmation', 'not_completed', 'abnormal_data'] as $bucket) {
+        if (isset($issues[$bucket])) return $bucket;
+    }
+    return 'passed';
+}
+
+function ost_init_reconciliation_stats() {
+    $stats = [
+        'total' => 0,
+        'completion_rate' => 0,
+        'by_status' => [],
+        'by_shipper' => [],
+    ];
+
+    foreach (ost_get_reconciliation_columns() as $key => $column) {
+        $stats['by_status'][$key] = 0;
+    }
+
+    return $stats;
+}
+
+function ost_render_issue_badges($issues) {
+    if (empty($issues)) {
+        return '<span class="ost-status-chip ost-status-passed">Đạt</span>';
+    }
+
+    $html = '';
+    foreach ($issues as $key => $label) {
+        $html .= '<span class="ost-status-chip ost-status-' . esc_attr($key) . '">' . esc_html($label) . '</span>';
+    }
+    return $html;
+}
+
 // Phân giải từ khóa tìm kiếm thành danh sách order IDs
 function ost_resolve_search_to_order_ids($search) {
     $token = trim($search);
@@ -208,6 +286,8 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids 
 
     // 3. Loop & Process
     $summary_data = [];
+    $reconciliation_stats = ost_init_reconciliation_stats();
+    $kanban_cards = array_fill_keys(array_keys(ost_get_reconciliation_columns()), '');
     $rows_html = '';
     $days_vn = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
@@ -228,6 +308,9 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids 
         $report_key = $ship_date . '||' . $shipper;
         $images = ost_get_order_images($meta[$key_images][0] ?? '');
         $confirmed_user_id = $meta[$key_confirm][0] ?? '';
+        $ship_code = $meta[$key_ship_code][0] ?? '';
+        $issues = ost_get_reconciliation_issues($order, $shipper, $ship_code, $ship_date, $images, $confirmed_user_id);
+        $bucket = ost_get_reconciliation_bucket($issues);
         
         // -- Calculate Report --
         if (!isset($summary_data[$report_key])) {
@@ -238,19 +321,23 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids 
                 'dow' => ($ship_date !== 'N/A' && strtotime($ship_date)) ? $days_vn[date('w', strtotime($ship_date))] : '-',
                 'no_img_list' => [],
                 'no_confirm_list' => [],
-                'not_completed_list' => []
+                'not_completed_list' => [],
+                'abnormal_list' => []
             ];
         }
         $summary_data[$report_key]['total']++;
+        $reconciliation_stats['total']++;
+        $reconciliation_stats['by_status'][$bucket]++;
+        $shipper_label = $shipper ?: 'Không có';
+        if (!isset($reconciliation_stats['by_shipper'][$shipper_label])) {
+            $reconciliation_stats['by_shipper'][$shipper_label] = 0;
+        }
+        $reconciliation_stats['by_shipper'][$shipper_label]++;
 
         if (empty($images)) $summary_data[$report_key]['no_img_list'][] = $id;
         if (empty($confirmed_user_id)) $summary_data[$report_key]['no_confirm_list'][] = $id;
-
-        // Check đơn chưa hoàn thành (áp dụng cho Ahamove/THEAN/Trống)
-        $shipper_check = trim(strtolower($shipper));
-        if (($shipper_check === '' || $shipper_check === 'ahamove' || $shipper_check === 'self') && $order->get_status() !== 'completed') {
-            $summary_data[$report_key]['not_completed_list'][] = $id;
-        }
+        if (isset($issues['not_completed'])) $summary_data[$report_key]['not_completed_list'][] = $id;
+        if (isset($issues['abnormal_data'])) $summary_data[$report_key]['abnormal_list'][] = $id;
 
         // Dữ liệu cho row html
         $row_data = [
@@ -258,24 +345,36 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids 
             'order' => $order,
             'ship_date' => $ship_date,
             'shipper' => $shipper,
-            'ship_code' => $meta[$key_ship_code][0] ?? '',
+            'ship_code' => $ship_code,
             'export_by' => $meta[$key_export_by][0] ?? '',
             'paid_date' => $meta[$key_paid_date][0] ?? '',
             'bank_acc' => $meta[$key_bank_acc][0] ?? '',
             'handling' => $meta[$key_handling][0] ?? '',
             'images' => $images,
-            'confirmed_user_id' => $confirmed_user_id
+            'confirmed_user_id' => $confirmed_user_id,
+            'issues' => $issues,
+            'bucket' => $bucket
         ];
 
         // -- Render Row --
         ob_start();
         ost_render_single_row($row_data);
         $rows_html .= ob_get_clean();
+
+        ob_start();
+        ost_render_kanban_card($row_data);
+        $kanban_cards[$bucket] .= ob_get_clean();
+    }
+
+    if ($reconciliation_stats['total'] > 0) {
+        $reconciliation_stats['completion_rate'] = round(($reconciliation_stats['by_status']['passed'] / $reconciliation_stats['total']) * 100);
     }
 
     return [
         'status' => 'success',
         'summary' => $summary_data,
+        'reconciliation_stats' => $reconciliation_stats,
+        'kanban_cards' => $kanban_cards,
         'rows_html' => $rows_html
     ];
 }
@@ -296,13 +395,14 @@ function ost_render_single_row($data) {
     $handling_display = is_array($data['handling']) ? implode(', ', $data['handling']) : $data['handling'];
 
     ?>
-    <tr>
+    <tr class="ost-detail-row ost-row-<?php echo esc_attr($data['bucket']); ?>" data-bucket="<?php echo esc_attr($data['bucket']); ?>">
         <td><a href="<?php echo esc_url(get_edit_post_link($data['id'])); ?>" target="_blank">#<?php echo $data['id']; ?></a></td>
+        <td class="ost-status-cell"><?php echo ost_render_issue_badges($data['issues']); ?></td>
         <td><?php echo esc_html($order->get_billing_phone()); ?></td>
-        <td><?php echo $order->get_total(); ?></td>
-        <td><?php echo wc_get_order_status_name($order->get_status()); ?></td>
+        <td><?php echo esc_html($order->get_formatted_order_total()); ?></td>
+        <td><?php echo esc_html(wc_get_order_status_name($order->get_status())); ?></td>
         <td><?php echo esc_html($handling_display); ?></td>
-        <td><?php echo $order->get_date_created()->date('Y-m-d'); ?></td>
+        <td><?php echo esc_html($order->get_date_created()->date('Y-m-d')); ?></td>
         <td><?php echo esc_html($data['shipper']); ?></td>
         <td><?php echo esc_html($data['ship_code']); ?></td>
         <td><?php echo esc_html($data['ship_date']); ?></td>
@@ -317,6 +417,98 @@ function ost_render_single_row($data) {
     <?php
 }
 
+function ost_render_kanban_card($data) {
+    $order = $data['order'];
+    $image_count = count($data['images']);
+    $safe_urls = array_values(array_map('esc_url_raw', $data['images']));
+    $urls_json = esc_attr(wp_json_encode($safe_urls));
+    ?>
+    <article class="ost-kanban-card ost-card-<?php echo esc_attr($data['bucket']); ?>">
+        <div class="ost-card-head">
+            <a href="<?php echo esc_url(get_edit_post_link($data['id'])); ?>" target="_blank" class="ost-card-order">#<?php echo esc_html($data['id']); ?></a>
+            <span><?php echo esc_html($order->get_formatted_order_total()); ?></span>
+        </div>
+        <div class="ost-card-meta">
+            <span><?php echo esc_html($data['shipper'] ?: 'Không có shipper'); ?></span>
+            <span><?php echo esc_html($data['ship_code'] ?: 'Chưa có mã vận đơn'); ?></span>
+            <span><?php echo esc_html(wc_get_order_status_name($order->get_status())); ?></span>
+            <span><?php echo esc_html(ost_get_payment_label($order->get_payment_method())); ?></span>
+        </div>
+        <div class="ost-card-issues"><?php echo ost_render_issue_badges($data['issues']); ?></div>
+        <div class="ost-card-actions">
+            <a href="<?php echo esc_url(get_edit_post_link($data['id'])); ?>" target="_blank">Mở đơn</a>
+            <?php if ($image_count > 0): ?>
+                <a href="<?php echo esc_url($safe_urls[0]); ?>" class="ost-gallery-link" data-gallery="<?php echo $urls_json; ?>" data-index="0"><?php echo esc_html($image_count); ?> ảnh</a>
+            <?php else: ?>
+                <span>0 ảnh</span>
+            <?php endif; ?>
+        </div>
+    </article>
+    <?php
+}
+
+function ost_render_reconciliation_workspace($stats, $kanban_cards) {
+    $columns = ost_get_reconciliation_columns();
+    $remaining = max(0, (int) $stats['total'] - (int) $stats['by_status']['passed']);
+    ob_start();
+    ?>
+    <section class="ost-workspace">
+        <div class="ost-hero">
+            <div>
+                <h3>Kiểm soát xuất kho trong ngày</h3>
+                <p><?php echo $remaining > 0 ? 'Xử lý lần lượt các nhóm lỗi từ trái sang phải.' : 'Ngày này đã hoàn tất đối soát xuất kho.'; ?></p>
+            </div>
+            <div class="ost-progress">
+                <strong><?php echo esc_html($stats['completion_rate']); ?>%</strong>
+                <span>Hoàn tất</span>
+            </div>
+        </div>
+
+        <div class="ost-summary-grid">
+            <div class="ost-summary-card ost-card-total"><span>Tổng đơn</span><strong><?php echo esc_html($stats['total']); ?></strong></div>
+            <?php foreach ($columns as $key => $column): ?>
+                <div class="ost-summary-card ost-card-<?php echo esc_attr($key); ?>">
+                    <span><?php echo esc_html($column['label']); ?></span>
+                    <strong><?php echo esc_html($stats['by_status'][$key] ?? 0); ?></strong>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="ost-flow">
+            <div class="ost-flow-step"><b>1</b><span>Kiểm tra thiếu ảnh</span></div>
+            <div class="ost-flow-step"><b>2</b><span>Xác nhận xuất kho</span></div>
+            <div class="ost-flow-step"><b>3</b><span>Hoàn thành đơn cần hoàn thành</span></div>
+            <div class="ost-flow-step"><b>4</b><span>Sửa dữ liệu bất thường</span></div>
+            <div class="ost-flow-step"><b>5</b><span>Kiểm tra nhóm đạt</span></div>
+        </div>
+
+        <div class="ost-shipper-strip">
+            <?php foreach ($stats['by_shipper'] as $shipper => $count): ?>
+                <span><b><?php echo esc_html($shipper); ?></b> <?php echo esc_html($count); ?> đơn</span>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="ost-kanban">
+            <?php foreach ($columns as $key => $column): ?>
+                <section class="ost-kanban-column ost-column-<?php echo esc_attr($key); ?>">
+                    <header>
+                        <div>
+                            <h4><?php echo esc_html($column['label']); ?></h4>
+                            <p><?php echo esc_html($column['hint']); ?></p>
+                        </div>
+                        <strong><?php echo esc_html($stats['by_status'][$key] ?? 0); ?></strong>
+                    </header>
+                    <div class="ost-kanban-list">
+                        <?php echo $kanban_cards[$key] ?: '<div class="ost-empty">Không có đơn</div>'; ?>
+                    </div>
+                </section>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php
+    return ob_get_clean();
+}
+
 // Render Bảng Báo Cáo
 function ost_render_report_table($summary_data) {
     if (empty($summary_data)) return '';
@@ -324,12 +516,7 @@ function ost_render_report_table($summary_data) {
     ob_start();
     ?>
     <div class="report-box">
-        <div style="display:flex; justify-content: space-between; align-items:flex-end;">
-            <h3 style="margin-top:0;">Báo Cáo Xuất Hàng (Hithean)</h3>
-            <a href="https://docs.google.com/spreadsheets/d/1V4d2HFAINLJxf_Rv8mb6MDcJMU3A3_bPFpe2C25ZWpA/edit?gid=1185236553#gid=1185236553" target="_blank" class="btn-link-sheet">
-                <span class="dashicons dashicons-external" style="line-height:1.3; font-size:16px;"></span> Mở trang BM.KHO.1
-            </a>
-        </div>
+        <h3 style="margin-top:0;">Tổng hợp theo ngày / shipper (Hithean)</h3>
         <table class="nitro-table">
             <thead>
                 <tr>
@@ -341,6 +528,7 @@ function ost_render_report_table($summary_data) {
                     <th>DS đơn chưa có ảnh</th>
                     <th>DS đơn chưa xác nhận</th>
                     <th>DS đơn chưa hoàn thành</th>
+                    <th>DS đơn dữ liệu bất thường</th>
                 </tr>
             </thead>
             <tbody>
@@ -354,6 +542,7 @@ function ost_render_report_table($summary_data) {
                     <td class="rp-list-col rp-no-img"><?php echo ost_render_order_links($row['no_img_list']); ?></td>
                     <td class="rp-list-col rp-no-confirm"><?php echo ost_render_order_links($row['no_confirm_list']); ?></td>
                     <td class="rp-list-col rp-not-completed"><?php echo ost_render_order_links($row['not_completed_list']); ?></td>
+                    <td class="rp-list-col rp-abnormal"><?php echo ost_render_order_links($row['abnormal_list'] ?? []); ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -381,11 +570,59 @@ add_shortcode('order_shipped_table', function () {
         .nitro-table tbody tr:hover { background-color: #e6f7ff; }
         .scroll-container { width: 100%; overflow-x: auto; border: 1px solid #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .report-box { border-radius: 5px; margin-bottom: 40px !important;}
+        .ost-workspace { margin: 0 0 24px; color: #1f2937; }
+        .ost-hero { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 18px 20px; background: #fff; border: 1px solid #e5e7eb; border-left: 5px solid #1976d2; border-radius: 8px; box-shadow: 0 1px 4px rgba(15,23,42,0.08); }
+        .ost-hero h3 { margin: 0 0 4px; font-size: 20px; color: #111827; }
+        .ost-hero p { margin: 0; color: #6b7280; }
+        .ost-progress { min-width: 96px; text-align: center; padding: 10px 12px; border-radius: 8px; background: #e3f2fd; color: #0d47a1; }
+        .ost-progress strong { display: block; font-size: 24px; line-height: 1; }
+        .ost-progress span { display: block; margin-top: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+        .ost-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+        .ost-summary-card { min-height: 78px; padding: 12px; border-radius: 8px; background: #fff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(15,23,42,0.06); }
+        .ost-summary-card span { display: block; color: #6b7280; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+        .ost-summary-card strong { display: block; margin-top: 8px; font-size: 28px; color: #111827; }
+        .ost-card-missing_images { border-left: 4px solid #d32f2f; }
+        .ost-card-missing_confirmation { border-left: 4px solid #f57c00; }
+        .ost-card-not_completed { border-left: 4px solid #7b1fa2; }
+        .ost-card-abnormal_data { border-left: 4px solid #455a64; }
+        .ost-card-passed { border-left: 4px solid #2e7d32; }
+        .ost-flow { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 8px; margin: 12px 0; }
+        .ost-flow-step { display: flex; align-items: center; gap: 8px; padding: 10px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-weight: 600; }
+        .ost-flow-step b { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 50%; background: #1976d2; color: #fff; flex: 0 0 24px; }
+        .ost-shipper-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+        .ost-shipper-strip span { padding: 6px 10px; border-radius: 999px; background: #f3f4f6; border: 1px solid #e5e7eb; font-size: 12px; }
+        .ost-kanban { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 8px; }
+        .ost-kanban-column { min-width: 220px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; }
+        .ost-kanban-column header { display: flex; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #e5e7eb; background: #fff; border-radius: 8px 8px 0 0; }
+        .ost-kanban-column h4 { margin: 0; font-size: 14px; color: #111827; }
+        .ost-kanban-column p { margin: 3px 0 0; font-size: 12px; color: #6b7280; }
+        .ost-kanban-column header strong { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; border-radius: 50%; background: #e5e7eb; color: #111827; }
+        .ost-kanban-list { display: grid; gap: 8px; padding: 10px; max-height: 520px; overflow-y: auto; }
+        .ost-kanban-card { padding: 10px; border-radius: 8px; background: #fff; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(15,23,42,0.06); }
+        .ost-card-head, .ost-card-actions { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+        .ost-card-order { font-weight: 800; text-decoration: none; color: #1976d2; }
+        .ost-card-meta { display: grid; gap: 4px; margin: 8px 0; color: #4b5563; font-size: 12px; }
+        .ost-card-issues { display: flex; flex-wrap: wrap; gap: 4px; }
+        .ost-card-actions { margin-top: 8px; font-size: 12px; color: #6b7280; }
+        .ost-empty { padding: 12px; border: 1px dashed #cbd5e1; border-radius: 8px; color: #64748b; text-align: center; background: #fff; }
+        .ost-status-cell { min-width: 160px; }
+        .ost-status-chip { display: inline-block; margin: 2px; padding: 3px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.3; white-space: nowrap; }
+        .ost-status-missing_images { background: #ffebee; color: #b71c1c; }
+        .ost-status-missing_confirmation { background: #fff3e0; color: #e65100; }
+        .ost-status-not_completed { background: #f3e5f5; color: #4a148c; }
+        .ost-status-abnormal_data { background: #eceff1; color: #263238; }
+        .ost-status-passed { background: #e8f5e9; color: #1b5e20; }
+        .ost-detail-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+        .ost-detail-tab { border: 1px solid #d1d5db; background: #fff; color: #374151; border-radius: 999px; padding: 7px 12px; cursor: pointer; font-size: 13px; font-weight: 700; }
+        .ost-detail-tab.is-active { background: #1976d2; border-color: #1976d2; color: #fff; }
+        @media (max-width: 900px) {
+            .ost-hero { align-items: flex-start; flex-direction: column; }
+            .ost-flow { grid-template-columns: 1fr; }
+            .ost-kanban { grid-template-columns: repeat(5, 240px); }
+        }
         .rp-list-col { max-width: 250px; word-break: break-word; font-size: 11px; line-height: 1.5; }
         .rp-list-col a { color: #c0392b; font-weight: 500; text-decoration: none; }
         .rp-list-col a:hover { text-decoration: underline; color: #e74c3c; }
-        .btn-link-sheet { display: inline-block; text-decoration: none; background: #27ae60; color: #fff !important; padding: 5px 10px; border-radius: 3px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
-        .btn-link-sheet:hover { background: #219150; }
         .ost-gallery-link { cursor: zoom-in; }
         .ost-gallery-modal { position: fixed; inset: 0; z-index: 999999; display: none; align-items: center; justify-content: center; background: rgba(17, 24, 39, 0.88); padding: 18px; }
         .ost-gallery-modal.is-open { display: flex; }
@@ -411,8 +648,8 @@ add_shortcode('order_shipped_table', function () {
         </div>
         <div style="width:100%;border-top:1px dashed #ccc;padding-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
             <label><strong>Ngày xuất kho:</strong></label>
-            Từ <input type="date" name="filter_export_date_from" />
-            đến <input type="date" name="filter_export_date_to" />
+            Từ <input type="date" name="filter_export_date_from" value="<?php echo esc_attr(wp_date('Y-m-d')); ?>" />
+            đến <input type="date" name="filter_export_date_to" value="<?php echo esc_attr(wp_date('Y-m-d')); ?>" />
 
             <label><strong>Shipper:</strong></label>
             <select name="filter_shipper" style="width: auto;">
@@ -451,6 +688,7 @@ add_shortcode('order_shipped_table', function () {
     </div>
 
     <script>
+        var ostNonce = "<?php echo esc_js(wp_create_nonce('ajax_load_order_shipped_nonce')); ?>";
         jQuery(function($) {
             const form = $('#order-filter-form');
             const resultBox = $('#order-results');
@@ -531,6 +769,17 @@ add_shortcode('order_shipped_table', function () {
                 });
             });
 
+            $('#order-results-container').on('click', '.ost-detail-tab', function() {
+                const bucket = $(this).data('bucket');
+                $('.ost-detail-tab').removeClass('is-active');
+                $(this).addClass('is-active');
+                $('.ost-detail-row').each(function() {
+                    const rowBucket = $(this).data('bucket');
+                    const shouldShow = bucket === 'all' || rowBucket === bucket || (bucket === 'action' && rowBucket !== 'passed');
+                    $(this).toggle(shouldShow);
+                });
+            });
+
             form.on('submit', function(e) {
                 e.preventDefault();
                 const params = {};
@@ -550,7 +799,7 @@ add_shortcode('order_shipped_table', function () {
                 xhr = $.ajax({
                     url: '<?php echo admin_url('admin-ajax.php'); ?>',
                     method: 'POST',
-                    data: { action: 'ajax_load_order_shipped', ...params },
+                    data: { action: 'ajax_load_order_shipped', nonce: ostNonce, ...params },
                     success: function(res) {
                         try {
                             const response = JSON.parse(res);
@@ -565,6 +814,8 @@ add_shortcode('order_shipped_table', function () {
                     }
                 });
             });
+
+            form.trigger('submit');
         });
     </script>
     <?php
@@ -574,6 +825,7 @@ add_shortcode('order_shipped_table', function () {
 // AJAX Handler
 add_action('wp_ajax_ajax_load_order_shipped', 'ajax_load_order_shipped');
 function ajax_load_order_shipped() {
+    check_ajax_referer('ajax_load_order_shipped_nonce', 'nonce');
     if (!current_user_can('manage_woocommerce') && !current_user_can('administrator')) wp_die();
 
     $from    = sanitize_text_field($_POST['filter_export_date_from'] ?? '');
@@ -601,11 +853,20 @@ function ajax_load_order_shipped() {
     }
 
     // Render 2 bảng từ dữ liệu đã xử lý
-    $report_html = ost_render_report_table($data['summary']);
+    $report_html = ost_render_reconciliation_workspace($data['reconciliation_stats'], $data['kanban_cards']);
+    $report_html .= ost_render_report_table($data['summary']);
     
     // Bọc bảng chi tiết trong container scroll
-    $table_html = '<div class="scroll-container"><table class="nitro-table" border="1"><thead><tr>
-        <th>Đơn hàng</th><th>SĐT</th><th>Tổng</th><th>Tình trạng</th><th>Nội bộ</th>
+    $table_html = '<div class="ost-detail-tabs">
+        <button type="button" class="ost-detail-tab is-active" data-bucket="all">Tất cả</button>
+        <button type="button" class="ost-detail-tab" data-bucket="action">Cần xử lý</button>
+        <button type="button" class="ost-detail-tab" data-bucket="missing_images">Thiếu ảnh</button>
+        <button type="button" class="ost-detail-tab" data-bucket="missing_confirmation">Chưa xác nhận</button>
+        <button type="button" class="ost-detail-tab" data-bucket="not_completed">Chưa hoàn thành</button>
+        <button type="button" class="ost-detail-tab" data-bucket="abnormal_data">Dữ liệu bất thường</button>
+        <button type="button" class="ost-detail-tab" data-bucket="passed">Đạt</button>
+    </div><div class="scroll-container"><table class="nitro-table" border="1"><thead><tr>
+        <th>Đơn hàng</th><th>Đối soát</th><th>SĐT</th><th>Tổng</th><th>Tình trạng</th><th>Nội bộ</th>
         <th>Ngày đặt</th><th>Shipper</th><th>Mã giao vận</th><th>Ngày xuất kho</th>
         <th>Xuất kho bởi</th><th>Ngày thanh toán</th><th>Tài khoản nhận</th><th>Thanh toán</th>
         <th>Vai trò</th><th>Ảnh xuất kho</th><th>Người xác nhận</th>
