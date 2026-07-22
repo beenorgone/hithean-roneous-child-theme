@@ -476,7 +476,7 @@ add_shortcode('order_return_management', function () {
     </style>
 
     <script>
-        var ormBoardNonce = "<?php echo esc_js(wp_create_nonce('load_return_board_nonce')); ?>";
+        var ormBoardNonce = "<?php echo esc_js(wp_create_nonce('load_return_orders_nonce')); ?>";
         var ormUploadNonce = "<?php echo esc_js(wp_create_nonce('upload_return_images_nonce')); ?>";
         var ormLookupNonce = "<?php echo esc_js(wp_create_nonce('return_lookup_order_nonce')); ?>";
         var ormAttachNonce = "<?php echo esc_js(wp_create_nonce('attach_return_order_nonce')); ?>";
@@ -496,7 +496,8 @@ add_shortcode('order_return_management', function () {
             function loadReturnBoard() {
                 $('#orm_board_status').text('Đang tải board...');
                 $.post(ajaxurl, {
-                    action: 'load_return_board',
+                    action: 'load_return_orders',
+                    list_type: 'board',
                     filter: currentFilter,
                     nonce: ormBoardNonce
                 }, function(resp) {
@@ -507,8 +508,9 @@ add_shortcode('order_return_management', function () {
                     } else {
                         $('#orm_board_status').text('Lỗi tải board: ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
                     }
-                }).fail(function() {
-                    $('#orm_board_status').text('Lỗi hệ thống khi tải board.');
+                }).fail(function(xhr) {
+                    const detail = xhr && xhr.responseText ? String(xhr.responseText).replace(/<[^>]*>/g, '').trim().slice(0, 160) : '';
+                    $('#orm_board_status').text('Lỗi tải board HTTP ' + (xhr ? xhr.status : '') + (detail ? ': ' + detail : '.'));
                 });
             }
 
@@ -1447,6 +1449,45 @@ add_action('wp_ajax_load_return_orders', function () {
     }
 
     $type = sanitize_text_field($_POST['list_type'] ?? 'pending');
+    if ($type === 'board') {
+        $filter = sanitize_key($_POST['filter'] ?? 'open');
+        if (!in_array($filter, hithean_return_allowed_filters(), true)) {
+            $filter = 'open';
+        }
+
+        $cache_key = 'return_board_v1_' . $filter;
+        $cached = wp_cache_get($cache_key, 'orders');
+        if ($cached !== false) {
+            wp_send_json_success($cached);
+        }
+
+        $orders = [];
+        foreach (hithean_return_get_board_order_ids($filter) as $oid) {
+            $order = wc_get_order($oid);
+            if (!$order || $order->get_type() !== 'shop_order') {
+                continue;
+            }
+            if (!hithean_return_order_matches_filter($order, $filter)) {
+                continue;
+            }
+            $orders[] = $order;
+        }
+
+        usort($orders, function (WC_Order $a, WC_Order $b) {
+            return hithean_return_order_priority($a) <=> hithean_return_order_priority($b);
+        });
+
+        $rendered = hithean_return_render_board($orders);
+        $data = [
+            'summary_html' => $rendered['summary_html'],
+            'board_html' => $rendered['board_html'],
+            'message' => sprintf('Đang hiển thị %d đơn theo bộ lọc hiện tại.', count($orders)),
+        ];
+
+        wp_cache_set($cache_key, $data, 'orders', 180);
+        wp_send_json_success($data);
+    }
+
     $type = ($type === 'completed') ? 'completed' : 'pending';
     $cache_key = 'return_orders_' . $type . '_v7';
 
