@@ -27,6 +27,15 @@ function ost_get_payment_label($method) {
     return ucfirst(strtolower($method));
 }
 
+function ost_format_ship_code_for_display($ship_code) {
+    $ship_code = trim((string) $ship_code);
+    if ($ship_code === '') return '';
+
+    $parts = explode('.', $ship_code);
+    $last = trim((string) end($parts));
+    return $last !== '' ? $last : $ship_code;
+}
+
 // Xử lý link ảnh từ meta data
 function ost_get_order_images($meta_value) {
     $image_urls = [];
@@ -462,7 +471,7 @@ function ost_render_single_row($data) {
         <td><?php echo esc_html($handling_display); ?></td>
         <td><?php echo esc_html($order->get_date_created()->date('Y-m-d')); ?></td>
         <td><?php echo esc_html($data['shipper']); ?></td>
-        <td><?php echo esc_html($data['ship_code']); ?></td>
+        <td><?php echo esc_html(ost_format_ship_code_for_display($data['ship_code'])); ?></td>
         <td><?php echo esc_html($data['ship_date']); ?></td>
         <td><?php echo esc_html($export_by_display); ?></td>
         <td><?php echo esc_html($data['paid_date']); ?></td>
@@ -488,7 +497,7 @@ function ost_render_kanban_card($data) {
         </div>
         <div class="ost-card-meta">
             <span><?php echo esc_html($data['shipper'] ?: 'Không có shipper'); ?></span>
-            <span><?php echo esc_html($data['ship_code'] ?: 'Chưa có mã vận đơn'); ?></span>
+            <span><?php echo esc_html($data['ship_code'] ? ost_format_ship_code_for_display($data['ship_code']) : 'Chưa có mã vận đơn'); ?></span>
             <span><?php echo esc_html(wc_get_order_status_name($order->get_status())); ?></span>
             <span><?php echo esc_html(ost_get_payment_label($order->get_payment_method())); ?></span>
         </div>
@@ -670,23 +679,24 @@ add_shortcode('order_shipped_table', function () {
         .ost-flow-step b { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 50%; background: #1976d2; color: #fff; flex: 0 0 24px; }
         .ost-shipper-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
         .ost-shipper-strip span { padding: 6px 10px; border-radius: 999px; background: #f3f4f6; border: 1px solid #e5e7eb; font-size: 12px; }
-        .ost-kanban { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 8px; }
-        .ost-kanban-column { min-width: 220px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; }
+        .ost-kanban { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 8px; align-items: start; }
+        .ost-kanban-column { min-width: 0; max-width: 100%; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
         .ost-kanban-column header { display: flex; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #e5e7eb; background: #fff; border-radius: 8px 8px 0 0; }
         .ost-kanban-column h4 { margin: 0; font-size: 14px; color: #111827; }
         .ost-kanban-column p { margin: 3px 0 0; font-size: 12px; color: #6b7280; }
         .ost-kanban-column header strong { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; border-radius: 50%; background: #e5e7eb; color: #111827; }
-        .ost-kanban-list { display: grid; gap: 6px; padding: 8px; max-height: 520px; overflow-y: auto; }
-        .ost-kanban-card { padding: 8px; border-radius: 8px; background: #fff; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(15,23,42,0.06); }
-        .ost-card-head, .ost-card-actions { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
-        .ost-card-order { font-weight: 800; text-decoration: none; color: #1976d2; }
+        .ost-kanban-list { display: grid; gap: 6px; padding: 8px; max-height: 520px; overflow-y: auto; overflow-x: hidden; }
+        .ost-kanban-card { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 8px; border-radius: 8px; background: #fff; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(15,23,42,0.06); overflow: hidden; }
+        .ost-card-head, .ost-card-actions { display: flex; justify-content: space-between; gap: 6px; align-items: center; min-width: 0; }
+        .ost-card-head > span { min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ost-card-order { min-width: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; text-decoration: none; color: #1976d2; }
         .ost-card-meta { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; color: #4b5563; font-size: 11px; }
         .ost-card-meta span { display: inline-flex; max-width: 100%; padding: 2px 6px; border-radius: 999px; background: #f3f4f6; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ost-card-issues { display: flex; flex-wrap: wrap; gap: 3px; }
-        .ost-card-actions { margin-top: 6px; font-size: 12px; color: #6b7280; }
+        .ost-card-actions { flex-wrap: wrap; justify-content: flex-start; margin-top: 6px; font-size: 12px; color: #6b7280; }
         .ost-empty { padding: 12px; border: 1px dashed #cbd5e1; border-radius: 8px; color: #64748b; text-align: center; background: #fff; }
         .ost-status-cell { min-width: 160px; }
-        .ost-status-chip { display: inline-block; margin: 1px; padding: 2px 6px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.25; white-space: nowrap; }
+        .ost-status-chip { display: inline-block; max-width: 100%; margin: 1px; padding: 2px 6px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .ost-status-missing_images { background: #ffebee; color: #b71c1c; }
         .ost-status-missing_confirmation { background: #fff3e0; color: #e65100; }
         .ost-status-not_completed { background: #f3e5f5; color: #4a148c; }
@@ -727,7 +737,7 @@ add_shortcode('order_shipped_table', function () {
         .ost-gallery-open-new { color: #fff !important; font-size: 13px; text-decoration: underline; }
         .ost-card-order, .ost-card-actions button, .ost-set-shipper-btn, .ost-modal button { border: 0; background: none; cursor: pointer; font: inherit; }
         .ost-card-order { padding: 0; font-weight: 800; color: #1976d2; }
-        .ost-card-actions button, .ost-card-actions a, .ost-set-shipper-btn { padding: 3px 7px; border-radius: 999px; background: #eef2ff; color: #1d4ed8; text-decoration: none; font-weight: 700; }
+        .ost-card-actions button, .ost-card-actions a, .ost-set-shipper-btn { max-width: 100%; padding: 3px 7px; border-radius: 999px; background: #eef2ff; color: #1d4ed8; text-decoration: none; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ost-confirm-export-btn { background: #e8f5e9 !important; color: #1b5e20 !important; }
         .ost-upload-open-btn { background: #fff7ed !important; color: #9a3412 !important; }
         .ost-card-shipper { display: flex; gap: 4px; margin-top: 6px; }
@@ -970,7 +980,7 @@ add_shortcode('order_shipped_table', function () {
                     url: '<?php echo admin_url('admin-ajax.php'); ?>',
                     method: 'POST',
                     dataType: 'json',
-                    data: { action: 'ajax_order_shipped_preview_order', nonce: ostNonce, order_id: orderId }
+                    data: { action: 'ajax_load_order_shipped', nonce: ostNonce, detail_mode: 'preview_order', order_id: orderId }
                 }).done(function(res) {
                     previewBody.html(res.success ? res.data.html : (res.data || 'Không tải được đơn hàng'));
                 }).fail(function(xhr) {
@@ -1086,6 +1096,10 @@ function ajax_load_order_shipped() {
     $shipper = sanitize_text_field($_POST['filter_shipper'] ?? '');
     $search  = sanitize_text_field($_POST['filter_search'] ?? '');
     $detail_mode = sanitize_key($_POST['detail_mode'] ?? 'dashboard');
+
+    if ($detail_mode === 'preview_order') {
+        ost_ajax_preview_order();
+    }
 
     $search_ids = null;
     if ($search !== '') {
@@ -1225,7 +1239,7 @@ function ost_ajax_preview_order() {
             <?php endforeach; ?>
         </ul>
         <p><strong>Shipper:</strong> <?php echo esc_html(get_post_meta($order_id, 'order_shipper', true) ?: '-'); ?></p>
-        <p><strong>Mã vận đơn:</strong> <?php echo esc_html(get_post_meta($order_id, 'order_ship_code', true) ?: '-'); ?></p>
+        <p><strong>Mã vận đơn:</strong> <?php echo esc_html(ost_format_ship_code_for_display(get_post_meta($order_id, 'order_ship_code', true)) ?: '-'); ?></p>
         <p><strong>Ngày xuất kho:</strong> <?php echo esc_html(get_post_meta($order_id, 'order_ship_date', true) ?: '-'); ?></p>
     </div>
     <?php
