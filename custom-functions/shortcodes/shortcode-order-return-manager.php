@@ -598,14 +598,21 @@ add_shortcode('order_return_management', function () {
         .orm-card-actions span.orm-form-status,
         .orm-card-code .button {
             max-width: 100%;
-            padding: 3px 7px;
-            border: 0;
-            border-radius: 999px;
-            background: #eef2ff;
-            color: #1d4ed8;
-            text-decoration: none;
+            min-height: 0 !important;
+            height: auto !important;
+            padding: 3px 7px !important;
+            border: 0 !important;
+            border-radius: 999px !important;
+            background: #eef2ff !important;
+            color: #1d4ed8 !important;
+            text-decoration: none !important;
             font-size: 12px;
-            font-weight: 800;
+            font-weight: 700 !important;
+            font-family: inherit !important;
+            line-height: 1.35 !important;
+            text-transform: none !important;
+            letter-spacing: 0 !important;
+            box-shadow: none !important;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -613,18 +620,63 @@ add_shortcode('order_return_management', function () {
         }
 
         .orm-card-actions .confirm-return-btn {
-            background: #fff7ed;
-            color: #9a3412;
+            background: #fff7ed !important;
+            color: #9a3412 !important;
         }
 
         .orm-card-actions .process-return-btn {
-            background: #e8f5e9;
-            color: #1b5e20;
+            background: #e8f5e9 !important;
+            color: #1b5e20 !important;
         }
 
         .orm-card-code .button {
-            background: #e3f2fd;
-            color: #0d47a1;
+            background: #e3f2fd !important;
+            color: #0d47a1 !important;
+        }
+
+        .orm-dashboard .button,
+        .orm-modal .button {
+            font-family: inherit !important;
+            text-transform: none !important;
+            letter-spacing: 0 !important;
+            box-shadow: none !important;
+            cursor: pointer;
+        }
+
+        .orm-dashboard .orm-search-row .button,
+        .orm-dashboard .orm-inline-form .button,
+        .orm-dashboard .attach-return-form .button,
+        .orm-dashboard #orm_refresh_btn,
+        .orm-modal .button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-height: 32px !important;
+            height: auto !important;
+            padding: 8px 12px !important;
+            border: 1px solid var(--orm-blue) !important;
+            border-radius: 6px !important;
+            background: #e3f2fd !important;
+            color: #0d47a1 !important;
+            font-size: 13px !important;
+            font-weight: 800 !important;
+            line-height: 1.25 !important;
+            text-decoration: none !important;
+        }
+
+        .orm-dashboard .orm-search-row .button:hover,
+        .orm-dashboard .orm-inline-form .button:hover,
+        .orm-dashboard .attach-return-form .button:hover,
+        .orm-dashboard #orm_refresh_btn:hover,
+        .orm-modal .button:hover {
+            background: #bbdefb !important;
+            color: #0d47a1 !important;
+        }
+
+        .orm-dashboard .button:disabled,
+        .orm-modal .button:disabled {
+            cursor: not-allowed !important;
+            opacity: 0.58 !important;
         }
 
         .orm-inline-slot {
@@ -1415,7 +1467,7 @@ function hithean_return_clear_cache(): void
     wp_cache_delete('return_orders_pending_v7', 'orders');
     wp_cache_delete('return_orders_completed_v7', 'orders');
     foreach (hithean_return_allowed_filters() as $filter) {
-        wp_cache_delete('return_board_v4_' . $filter, 'orders');
+        wp_cache_delete('return_board_v5_' . $filter, 'orders');
     }
 }
 
@@ -1998,7 +2050,7 @@ add_action('wp_ajax_load_return_board', function () {
         $filter = 'open';
     }
 
-    $cache_key = 'return_board_v4_' . $filter;
+    $cache_key = 'return_board_v5_' . $filter;
     $cached = wp_cache_get($cache_key, 'orders');
     if ($cached !== false) {
         wp_send_json_success($cached);
@@ -2073,7 +2125,7 @@ add_action('wp_ajax_load_return_orders', function () {
             $filter = 'open';
         }
 
-        $cache_key = 'return_board_v4_' . $filter;
+        $cache_key = 'return_board_v5_' . $filter;
         $cached = wp_cache_get($cache_key, 'orders');
         if ($cached !== false) {
             wp_send_json_success($cached);
