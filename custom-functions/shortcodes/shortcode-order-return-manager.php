@@ -103,6 +103,10 @@ add_shortcode('order_return_management', function () {
                 <h2>Quản lý hoàn hàng</h2>
                 <p>Flow đối soát theo Kanban: thấy trạng thái, biết việc kế tiếp, xử lý ngay trên từng đơn.</p>
             </div>
+            <div class="orm-progress">
+                <strong>FLOW</strong>
+                <span>Hoàn hàng</span>
+            </div>
             <button type="button" id="orm_refresh_btn" class="button button-primary">Tải lại board</button>
         </div>
 
@@ -118,6 +122,14 @@ add_shortcode('order_return_management', function () {
             <button type="button" class="orm-filter" data-filter="no_images">Chưa upload ảnh</button>
         </div>
 
+        <div class="orm-flow">
+            <div class="orm-flow-step"><b>1</b><span>Ghi nhận đơn</span></div>
+            <div class="orm-flow-step"><b>2</b><span>Xử lý yêu cầu</span></div>
+            <div class="orm-flow-step"><b>3</b><span>Chờ hàng về</span></div>
+            <div class="orm-flow-step"><b>4</b><span>Upload ảnh nhận</span></div>
+            <div class="orm-flow-step"><b>5</b><span>Xử lý sự cố</span></div>
+        </div>
+
         <div class="orm-attach-panel">
             <div class="orm-panel-title">Gắn đơn phát sinh trả hàng</div>
             <div class="orm-search-row">
@@ -129,6 +141,11 @@ add_shortcode('order_return_management', function () {
         </div>
 
         <div id="orm_board_status" class="orm-board-status">Đang tải board...</div>
+        <div class="orm-kanban-nav" aria-label="Điều hướng board hoàn hàng">
+            <span>Kéo ngang hoặc dùng nút để chuyển cột</span>
+            <button type="button" class="orm-kanban-nav-btn" data-direction="-1" aria-label="Cột trước">&#8592;</button>
+            <button type="button" class="orm-kanban-nav-btn" data-direction="1" aria-label="Cột sau">&#8594;</button>
+        </div>
         <div id="orm_board" class="orm-board" aria-live="polite"></div>
         <div class="orm-history-note">Hoàn tất/lịch sử được giữ trên board khi chọn bộ lọc phù hợp; mặc định ưu tiên các đơn đang mở để nhân sự xử lý trong ngày.</div>
     </div>
@@ -220,7 +237,13 @@ add_shortcode('order_return_management', function () {
 
         .orm-header {
             justify-content: space-between;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
+            padding: 18px 20px;
+            border: 1px solid var(--orm-border);
+            border-left: 5px solid var(--orm-blue);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
         }
 
         .orm-header h2 {
@@ -234,6 +257,29 @@ add_shortcode('order_return_management', function () {
         .return-search-msg {
             margin: 0;
             color: var(--orm-muted);
+        }
+
+        .orm-progress {
+            min-width: 96px;
+            text-align: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        .orm-progress strong {
+            display: block;
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .orm-progress span {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
         }
 
         .orm-summary-grid {
@@ -292,6 +338,37 @@ add_shortcode('order_return_management', function () {
             color: #0d47a1;
         }
 
+        .orm-flow {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(130px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .orm-flow-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid var(--orm-border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .orm-flow-step b {
+            display: inline-flex;
+            width: 24px;
+            height: 24px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--orm-blue);
+            color: #fff;
+            flex: 0 0 24px;
+        }
+
         .orm-attach-panel {
             padding: 14px;
             margin-bottom: 14px;
@@ -322,14 +399,16 @@ add_shortcode('order_return_management', function () {
 
         .orm-board {
             display: grid;
-            grid-template-columns: repeat(5, minmax(240px, 1fr));
+            grid-template-columns: repeat(5, minmax(220px, 1fr));
             gap: 12px;
             overflow-x: auto;
             padding-bottom: 8px;
+            align-items: start;
         }
 
         .orm-column {
-            min-width: 240px;
+            min-width: 0;
+            max-width: 100%;
             background: #f8fafc;
             overflow: hidden;
         }
@@ -337,10 +416,11 @@ add_shortcode('order_return_management', function () {
         .orm-column-header {
             display: flex;
             justify-content: space-between;
-            gap: 8px;
+            gap: 10px;
             align-items: center;
-            border-top: 4px solid var(--orm-gray);
-            padding: 10px 12px;
+            border-top: 0;
+            border-bottom: 1px solid var(--orm-border);
+            padding: 12px;
             background: #fff;
             font-weight: 800;
         }
@@ -375,27 +455,70 @@ add_shortcode('order_return_management', function () {
 
         .orm-column-body {
             display: grid;
-            gap: 10px;
-            padding: 10px;
+            gap: 6px;
+            padding: 8px;
+            max-height: 560px;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .orm-order-card,
         .orm-search-card {
-            padding: 12px;
+            padding: 8px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+            overflow: hidden;
         }
 
-        .orm-card-top {
+        .orm-card-top,
+        .orm-card-head,
+        .orm-card-actions {
             display: flex;
             justify-content: space-between;
-            gap: 8px;
-            align-items: flex-start;
-            margin-bottom: 8px;
+            gap: 6px;
+            align-items: center;
+            min-width: 0;
         }
 
         .orm-order-link {
             color: var(--orm-blue);
             font-weight: 800;
             text-decoration: none;
+            min-width: 0;
+            max-width: 45%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .orm-card-total,
+        .orm-card-total .amount,
+        .orm-card-total bdi {
+            font-size: 11px !important;
+            line-height: 1.25 !important;
+            font-weight: 700 !important;
+            color: #4b5563 !important;
+            text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .orm-card-customer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+            margin: 5px 0 3px;
+            color: var(--orm-text);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .orm-card-customer span {
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .orm-status-chip {
@@ -413,31 +536,95 @@ add_shortcode('order_return_management', function () {
         .orm-card-code,
         .orm-card-date {
             color: var(--orm-muted);
-            font-size: 13px;
+            font-size: 12px;
             line-height: 1.35;
             margin-top: 5px;
         }
 
+        .orm-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin: 6px 0;
+            color: #4b5563;
+            font-size: 11px;
+        }
+
+        .orm-card-meta span {
+            display: inline-flex;
+            max-width: 100%;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #f3f4f6;
+            line-height: 1.35;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .orm-card-code .button {
             margin-left: 6px;
-            min-height: 28px;
-            padding: 2px 8px;
+            min-height: 26px;
+            padding: 3px 7px;
+        }
+
+        .orm-card-code:empty {
+            display: none;
         }
 
         .orm-card-products {
             color: var(--orm-text);
             max-height: 42px;
             overflow: hidden;
+            font-size: 12px;
         }
 
         .orm-card-actions {
-            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--orm-muted);
         }
 
         .orm-card-actions .button,
         .orm-inline-form .button,
         .attach-return-form .button {
             min-height: 32px;
+        }
+
+        .orm-card-actions .button,
+        .orm-card-actions a,
+        .orm-card-actions span.orm-form-status,
+        .orm-card-code .button {
+            max-width: 100%;
+            padding: 3px 7px;
+            border: 0;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #1d4ed8;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 800;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .orm-card-actions .confirm-return-btn {
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
+        .orm-card-actions .process-return-btn {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        .orm-card-code .button {
+            background: #e3f2fd;
+            color: #0d47a1;
         }
 
         .orm-inline-slot {
@@ -491,6 +678,10 @@ add_shortcode('order_return_management', function () {
             color: var(--orm-muted);
             font-size: 13px;
             padding: 10px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            text-align: center;
+            background: #fff;
         }
 
         .orm-history-note {
@@ -589,13 +780,68 @@ add_shortcode('order_return_management', function () {
             font-weight: 800;
         }
 
+        .orm-kanban-nav {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 8px 0;
+            padding: 6px 0;
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        .orm-kanban-nav span {
+            color: var(--orm-muted);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .orm-kanban-nav-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--orm-blue);
+            border-radius: 50%;
+            background: #e3f2fd;
+            color: #0d47a1;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .orm-kanban-nav-btn:hover {
+            background: #bbdefb;
+        }
+
         @media (max-width: 960px) {
+            .orm-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
             .orm-summary-grid {
                 grid-template-columns: repeat(2, minmax(120px, 1fr));
             }
 
+            .orm-flow {
+                grid-template-columns: 1fr;
+            }
+
+            .orm-kanban-nav {
+                justify-content: space-between;
+            }
+
+            .orm-kanban-nav-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 22px;
+            }
+
             .orm-board {
-                grid-template-columns: repeat(5, minmax(220px, 78vw));
+                grid-template-columns: repeat(5, 240px);
             }
 
             .orm-checklist {
@@ -722,6 +968,15 @@ add_shortcode('order_return_management', function () {
             });
 
             $('#orm_refresh_btn').on('click', loadReturnBoard);
+            $(document).on('click', '.orm-kanban-nav-btn', function() {
+                const direction = parseInt($(this).attr('data-direction'), 10) || 1;
+                const board = $('#orm_board');
+                const firstColumn = board.find('.orm-column').first();
+                const step = firstColumn.length ? firstColumn.outerWidth(true) : 260;
+                if (board.length && board[0]) {
+                    board[0].scrollBy({ left: direction * step, behavior: 'smooth' });
+                }
+            });
             $(document).on('click', '.orm-load-history-btn', openHistoryModal);
             $(document).on('click', '[data-close-history-modal]', closeHistoryModal);
             $('#orm_history_load_more').on('click', function() {
@@ -1160,7 +1415,7 @@ function hithean_return_clear_cache(): void
     wp_cache_delete('return_orders_pending_v7', 'orders');
     wp_cache_delete('return_orders_completed_v7', 'orders');
     foreach (hithean_return_allowed_filters() as $filter) {
-        wp_cache_delete('return_board_v3_' . $filter, 'orders');
+        wp_cache_delete('return_board_v4_' . $filter, 'orders');
     }
 }
 
@@ -1358,24 +1613,28 @@ function hithean_return_render_order_card(WC_Order $order): string
     $created_at = (string) $order->get_meta('return_created_at');
     $last_at = (string) $order->get_meta('return_last_action_at');
     $date_label = $last_at !== '' ? $last_at : ($created_at !== '' ? $created_at : wc_format_datetime($order->get_date_created()));
+    $column = hithean_return_column_for_status($status);
     ob_start(); ?>
-    <article class="orm-order-card" data-order-id="<?= esc_attr($oid) ?>">
-        <div class="orm-card-top">
+    <article class="orm-order-card orm-card-<?= esc_attr($column) ?>" data-order-id="<?= esc_attr($oid) ?>">
+        <div class="orm-card-head">
             <a class="orm-order-link" href="<?= esc_url($order->get_edit_order_url()) ?>" target="_blank">#<?= esc_html($oid) ?></a>
-            <span class="orm-status-chip"><?= esc_html($status !== '' ? $status : 'Mới phát sinh') ?></span>
+            <span class="orm-card-total"><?= wp_kses_post($order->get_formatted_order_total()) ?></span>
         </div>
-        <div class="orm-card-meta">
-            <strong><?= esc_html($order->get_formatted_billing_full_name()) ?></strong><br>
-            <?= esc_html($order->get_billing_phone()) ?>
+        <div class="orm-card-customer">
+            <span><?= esc_html($order->get_formatted_billing_full_name() ?: 'Không có tên') ?></span>
+            <span><?= esc_html($order->get_billing_phone() ?: 'Không có SĐT') ?></span>
         </div>
         <div class="orm-card-products"><?= hithean_return_order_items_summary($order) ?></div>
+        <div class="orm-card-meta">
+            <span><?= esc_html($status !== '' ? $status : 'Mới phát sinh') ?></span>
+            <span>Mã hoàn: <?= esc_html($code !== '' ? $code : 'Chưa có') ?></span>
+            <span><?= esc_html($date_label) ?></span>
+        </div>
         <div class="orm-card-code">
-            Mã hoàn: <strong><?= esc_html($code !== '' ? $code : 'Chưa có') ?></strong>
             <?php if ($code === ''): ?>
                 <button type="button" class="button update-return-code-btn">Thêm mã hoàn</button>
             <?php endif; ?>
         </div>
-        <div class="orm-card-date">Cập nhật: <?= esc_html($date_label) ?></div>
         <?php if ($received_images !== ''): ?>
             <div class="orm-images-preview">
                 <?php foreach (array_slice(array_filter(array_map('trim', explode("\n", $received_images))), 0, 4) as $url): ?>
@@ -1739,7 +1998,7 @@ add_action('wp_ajax_load_return_board', function () {
         $filter = 'open';
     }
 
-    $cache_key = 'return_board_v3_' . $filter;
+    $cache_key = 'return_board_v4_' . $filter;
     $cached = wp_cache_get($cache_key, 'orders');
     if ($cached !== false) {
         wp_send_json_success($cached);
@@ -1814,7 +2073,7 @@ add_action('wp_ajax_load_return_orders', function () {
             $filter = 'open';
         }
 
-        $cache_key = 'return_board_v3_' . $filter;
+        $cache_key = 'return_board_v4_' . $filter;
         $cached = wp_cache_get($cache_key, 'orders');
         if ($cached !== false) {
             wp_send_json_success($cached);
