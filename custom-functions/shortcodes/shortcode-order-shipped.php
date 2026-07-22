@@ -489,11 +489,18 @@ function ost_render_kanban_card($data) {
     $image_count = count($data['images']);
     $safe_urls = array_values(array_map('esc_url_raw', $data['images']));
     $urls_json = esc_attr(wp_json_encode($safe_urls));
+    $billing_name = trim($order->get_billing_first_name() . ' ' . $order->get_billing_last_name());
+    $shipping_phone = method_exists($order, 'get_shipping_phone') ? $order->get_shipping_phone() : '';
+    $shipping_phone = $shipping_phone ?: $order->get_billing_phone();
     ?>
     <article class="ost-kanban-card ost-card-<?php echo esc_attr($data['bucket']); ?>">
         <div class="ost-card-head">
             <button type="button" class="ost-card-order ost-preview-order-btn" data-order-id="<?php echo esc_attr($data['id']); ?>">#<?php echo esc_html($data['id']); ?></button>
-            <span><?php echo wp_kses_post($order->get_formatted_order_total()); ?></span>
+            <span class="ost-card-total"><?php echo wp_kses_post($order->get_formatted_order_total()); ?></span>
+        </div>
+        <div class="ost-card-customer">
+            <span><?php echo esc_html($billing_name ?: 'Không có tên'); ?></span>
+            <span><?php echo esc_html($shipping_phone ?: 'Không có SĐT giao hàng'); ?></span>
         </div>
         <div class="ost-card-meta">
             <span><?php echo esc_html($data['shipper'] ?: 'Không có shipper'); ?></span>
@@ -569,7 +576,12 @@ function ost_render_reconciliation_workspace($stats, $kanban_cards) {
             <?php endforeach; ?>
         </div>
 
-        <div class="ost-kanban">
+        <div class="ost-kanban-nav" aria-label="Điều hướng cột đối soát">
+            <button type="button" class="ost-kanban-nav-btn" data-direction="-1" aria-label="Cột trước">&#8592;</button>
+            <span>Di chuyển cột</span>
+            <button type="button" class="ost-kanban-nav-btn" data-direction="1" aria-label="Cột sau">&#8594;</button>
+        </div>
+        <div class="ost-kanban" tabindex="0">
             <?php foreach ($columns as $key => $column): ?>
                 <section class="ost-kanban-column ost-column-<?php echo esc_attr($key); ?>">
                     <header>
@@ -679,6 +691,10 @@ add_shortcode('order_shipped_table', function () {
         .ost-flow-step b { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 50%; background: #1976d2; color: #fff; flex: 0 0 24px; }
         .ost-shipper-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
         .ost-shipper-strip span { padding: 6px 10px; border-radius: 999px; background: #f3f4f6; border: 1px solid #e5e7eb; font-size: 12px; }
+        .ost-kanban-nav { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 8px 0; padding: 6px 0; background: rgba(255,255,255,0.92); }
+        .ost-kanban-nav span { color: #6b7280; font-size: 12px; font-weight: 700; }
+        .ost-kanban-nav-btn { width: 36px; height: 36px; border: 1px solid #1976d2; border-radius: 50%; background: #e3f2fd; color: #0d47a1; cursor: pointer; font-size: 18px; font-weight: 900; line-height: 1; }
+        .ost-kanban-nav-btn:hover { background: #bbdefb; }
         .ost-kanban { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 8px; align-items: start; }
         .ost-kanban-column { min-width: 0; max-width: 100%; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
         .ost-kanban-column header { display: flex; justify-content: space-between; gap: 10px; padding: 12px; border-bottom: 1px solid #e5e7eb; background: #fff; border-radius: 8px 8px 0 0; }
@@ -690,6 +706,9 @@ add_shortcode('order_shipped_table', function () {
         .ost-card-head, .ost-card-actions { display: flex; justify-content: space-between; gap: 6px; align-items: center; min-width: 0; }
         .ost-card-head > span { min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ost-card-order { min-width: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; text-decoration: none; color: #1976d2; }
+        .ost-card-total, .ost-card-total .amount, .ost-card-total bdi { font-size: 11px !important; line-height: 1.25 !important; font-weight: 600 !important; color: #4b5563 !important; }
+        .ost-card-customer { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 5px 0 3px; color: #111827; font-size: 12px; font-weight: 700; }
+        .ost-card-customer span { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ost-card-meta { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; color: #4b5563; font-size: 11px; }
         .ost-card-meta span { display: inline-flex; max-width: 100%; padding: 2px 6px; border-radius: 999px; background: #f3f4f6; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ost-card-issues { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -715,6 +734,8 @@ add_shortcode('order_shipped_table', function () {
         @media (max-width: 900px) {
             .ost-hero { align-items: flex-start; flex-direction: column; }
             .ost-flow { grid-template-columns: 1fr; }
+            .ost-kanban-nav { justify-content: space-between; }
+            .ost-kanban-nav-btn { width: 44px; height: 44px; font-size: 22px; }
             .ost-kanban { grid-template-columns: repeat(5, 240px); }
         }
         .rp-list-col { max-width: 250px; word-break: break-word; font-size: 11px; line-height: 1.5; }
@@ -919,9 +940,9 @@ add_shortcode('order_shipped_table', function () {
             });
             $('#ost-gallery-confirm').on('click', function() {
                 if (!currentGalleryOrderId) return;
-                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ost_confirm_export_image', nonce: ostNonce, order_id: currentGalleryOrderId }, function(res) {
+                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ajax_load_order_shipped', detail_mode: 'confirm_export_image', nonce: ostNonce, order_id: currentGalleryOrderId }, function(res) {
                     alert(res.data || (res.success ? 'Đã xác nhận' : 'Không xác nhận được'));
-                    if (res.success) form.trigger('submit');
+                    if (res.success) loadOrderSections('dashboard');
                 }, 'json');
             });
             $('#order-results-container').on('click', '.ost-upload-open-btn', function() {
@@ -943,7 +964,8 @@ add_shortcode('order_shipped_table', function () {
                 const btn = uploadForm.find('button[type="submit"]');
                 const oldText = btn.text();
                 const formData = new FormData(this);
-                formData.append('action', 'ost_upload_export_images');
+                formData.append('action', 'ajax_load_order_shipped');
+                formData.append('detail_mode', 'upload_export_images');
                 formData.append('nonce', ostNonce);
                 btn.prop('disabled', true).text('Đang upload...');
                 $.ajax({ url: '<?php echo admin_url('admin-ajax.php'); ?>', method: 'POST', data: formData, processData: false, contentType: false, dataType: 'json' })
@@ -952,25 +974,27 @@ add_shortcode('order_shipped_table', function () {
                         if (res.success) {
                             closeModal(uploadModal);
                             uploadForm[0].reset();
-                            form.trigger('submit');
+                            loadOrderSections('dashboard');
                         }
                     })
                     .always(function() { btn.prop('disabled', false).text(oldText); });
             });
             $('#order-results-container').on('click', '.ost-confirm-export-btn', function() {
                 const orderId = parseInt($(this).attr('data-order-id'), 10) || 0;
-                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ost_confirm_export_image', nonce: ostNonce, order_id: orderId }, function(res) {
+                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ajax_load_order_shipped', detail_mode: 'confirm_export_image', nonce: ostNonce, order_id: orderId }, function(res) {
                     alert(res.data || (res.success ? 'Đã xác nhận' : 'Không xác nhận được'));
-                    if (res.success) form.trigger('submit');
+                    if (res.success) loadOrderSections('dashboard');
                 }, 'json');
             });
             $('#order-results-container').on('click', '.ost-set-shipper-btn', function() {
                 const orderId = parseInt($(this).attr('data-order-id'), 10) || 0;
                 const shipper = $(this).closest('.ost-card-shipper').find('select').val();
-                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ost_set_order_shipper', nonce: ostNonce, order_id: orderId, shipper: shipper }, function(res) {
+                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ajax_load_order_shipped', detail_mode: 'set_order_shipper', nonce: ostNonce, order_id: orderId, shipper: shipper }, function(res) {
                     alert(res.data || (res.success ? 'Đã lưu shipper' : 'Không lưu được shipper'));
-                    if (res.success) form.trigger('submit');
-                }, 'json');
+                    if (res.success) loadOrderSections('dashboard');
+                }, 'json').fail(function(xhr) {
+                    alert('Không lưu được shipper. AJAX status: ' + xhr.status);
+                });
             });
             $('#order-results-container').on('click', '.ost-preview-order-btn', function() {
                 const orderId = parseInt($(this).attr('data-order-id'), 10) || 0;
@@ -1025,6 +1049,14 @@ add_shortcode('order_shipped_table', function () {
                     const shouldShow = bucket === 'all' || rowBucket === bucket || (bucket === 'action' && rowBucket !== 'passed');
                     $(this).toggle(shouldShow);
                 });
+            });
+
+            $('#order-results-container').on('click', '.ost-kanban-nav-btn', function() {
+                const direction = parseInt($(this).attr('data-direction'), 10) || 1;
+                const kanban = $(this).closest('.ost-workspace').find('.ost-kanban').first();
+                const firstColumn = kanban.find('.ost-kanban-column').first();
+                const step = firstColumn.length ? firstColumn.outerWidth(true) : 260;
+                kanban[0].scrollBy({ left: direction * step, behavior: 'smooth' });
             });
 
             function loadOrderSections(mode) {
@@ -1099,6 +1131,15 @@ function ajax_load_order_shipped() {
 
     if ($detail_mode === 'preview_order') {
         ost_ajax_preview_order();
+    }
+    if ($detail_mode === 'upload_export_images') {
+        ost_ajax_upload_export_images();
+    }
+    if ($detail_mode === 'confirm_export_image') {
+        ost_ajax_confirm_export_image();
+    }
+    if ($detail_mode === 'set_order_shipper') {
+        ost_ajax_set_order_shipper();
     }
 
     $search_ids = null;
