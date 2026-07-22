@@ -1508,12 +1508,32 @@ function hithean_return_status_next_action(string $status): array
     ];
 }
 
+function hithean_return_format_code_for_display($code): string
+{
+    $code = trim((string) $code);
+    if ($code === '') {
+        return '';
+    }
+
+    $tokens = preg_split('/[\s,]+/', $code, -1, PREG_SPLIT_NO_EMPTY);
+    $display_codes = [];
+    foreach ($tokens as $token) {
+        $parts = explode('.', trim((string) $token));
+        $last = trim((string) end($parts));
+        if ($last !== '') {
+            $display_codes[] = $last;
+        }
+    }
+
+    return implode(' ', array_unique($display_codes));
+}
+
 function hithean_return_clear_cache(): void
 {
     wp_cache_delete('return_orders_pending_v7', 'orders');
     wp_cache_delete('return_orders_completed_v7', 'orders');
     foreach (hithean_return_allowed_filters() as $filter) {
-        wp_cache_delete('return_board_v6_' . $filter, 'orders');
+        wp_cache_delete('return_board_v7_' . $filter, 'orders');
     }
 }
 
@@ -1706,6 +1726,7 @@ function hithean_return_render_order_card(WC_Order $order): string
     $oid = $order->get_id();
     $status = trim((string) $order->get_meta('return_status'));
     $code = trim((string) $order->get_meta('return_code'));
+    $display_code = hithean_return_format_code_for_display($code);
     $action = hithean_return_status_next_action($status);
     $received_images = trim((string) $order->get_meta('issue_result_images'));
     $created_at = (string) $order->get_meta('return_created_at');
@@ -1725,7 +1746,7 @@ function hithean_return_render_order_card(WC_Order $order): string
         <div class="orm-card-products"><?= hithean_return_order_items_summary($order) ?></div>
         <div class="orm-card-meta">
             <span><?= esc_html($status !== '' ? $status : 'Mới phát sinh') ?></span>
-            <span>Mã hoàn: <?= esc_html($code !== '' ? $code : 'Chưa có') ?></span>
+            <span>Mã hoàn: <?= esc_html($display_code !== '' ? $display_code : 'Chưa có') ?></span>
             <span><?= esc_html($date_label) ?></span>
         </div>
         <div class="orm-card-code">
@@ -1834,6 +1855,7 @@ function hithean_return_render_history_rows(array $orders): string
         $oid = $order->get_id();
         $status = trim((string) $order->get_meta('return_status'));
         $code = trim((string) $order->get_meta('return_code'));
+        $display_code = hithean_return_format_code_for_display($code);
         $received_at = (string) $order->get_meta('return_received_at');
         $images = array_filter(array_map('trim', explode("\n", (string) $order->get_meta('issue_result_images'))));
     ?>
@@ -1844,7 +1866,7 @@ function hithean_return_render_history_rows(array $orders): string
                 <?= esc_html($order->get_billing_phone()) ?>
             </td>
             <td><?= hithean_return_order_items_summary($order, 3) ?></td>
-            <td><?= esc_html($code !== '' ? $code : 'Chưa có') ?></td>
+            <td><?= esc_html($display_code !== '' ? $display_code : 'Chưa có') ?></td>
             <td><?= esc_html($status) ?></td>
             <td><?= esc_html($received_at !== '' ? $received_at : wc_format_datetime($order->get_date_modified())) ?></td>
             <td class="orm-images-preview">
@@ -2096,7 +2118,7 @@ add_action('wp_ajax_load_return_board', function () {
         $filter = 'open';
     }
 
-    $cache_key = 'return_board_v6_' . $filter;
+    $cache_key = 'return_board_v7_' . $filter;
     $cached = wp_cache_get($cache_key, 'orders');
     if ($cached !== false) {
         wp_send_json_success($cached);
@@ -2171,7 +2193,7 @@ add_action('wp_ajax_load_return_orders', function () {
             $filter = 'open';
         }
 
-        $cache_key = 'return_board_v6_' . $filter;
+        $cache_key = 'return_board_v7_' . $filter;
         $cached = wp_cache_get($cache_key, 'orders');
         if ($cached !== false) {
             wp_send_json_success($cached);
@@ -2241,6 +2263,7 @@ add_action('wp_ajax_load_return_orders', function () {
                 $edit_link = esc_url($order->get_edit_order_url());
                 $return_status = $order->get_meta('return_status');
                 $return_code   = $order->get_meta('return_code');
+                $return_code_display = hithean_return_format_code_for_display($return_code);
                 $return_images = $order->get_meta('issue_result_images');
                 $next_status   = hithean_return_next_status($return_status);
                 $billing_phone = $order->get_billing_phone();
@@ -2265,7 +2288,7 @@ add_action('wp_ajax_load_return_orders', function () {
                     <td><?= esc_html($billing_phone) ?></td>
                     <td><?= esc_html($billing_name) ?></td>
                     <td><?= $items_html ?></td>
-                    <td><?= esc_html($return_code) ?></td>
+                    <td><?= esc_html($return_code_display !== '' ? $return_code_display : $return_code) ?></td>
                     <td class="return-status-cell"><?= esc_html($return_status) ?></td>
                     <?php if ($type === 'pending'): ?>
                         <td>
