@@ -399,7 +399,7 @@ function ost_render_single_row($data) {
         <td><a href="<?php echo esc_url(get_edit_post_link($data['id'])); ?>" target="_blank">#<?php echo $data['id']; ?></a></td>
         <td class="ost-status-cell"><?php echo ost_render_issue_badges($data['issues']); ?></td>
         <td><?php echo esc_html($order->get_billing_phone()); ?></td>
-        <td><?php echo esc_html($order->get_formatted_order_total()); ?></td>
+        <td><?php echo wp_kses_post($order->get_formatted_order_total()); ?></td>
         <td><?php echo esc_html(wc_get_order_status_name($order->get_status())); ?></td>
         <td><?php echo esc_html($handling_display); ?></td>
         <td><?php echo esc_html($order->get_date_created()->date('Y-m-d')); ?></td>
@@ -426,7 +426,7 @@ function ost_render_kanban_card($data) {
     <article class="ost-kanban-card ost-card-<?php echo esc_attr($data['bucket']); ?>">
         <div class="ost-card-head">
             <a href="<?php echo esc_url(get_edit_post_link($data['id'])); ?>" target="_blank" class="ost-card-order">#<?php echo esc_html($data['id']); ?></a>
-            <span><?php echo esc_html($order->get_formatted_order_total()); ?></span>
+            <span><?php echo wp_kses_post($order->get_formatted_order_total()); ?></span>
         </div>
         <div class="ost-card-meta">
             <span><?php echo esc_html($data['shipper'] ?: 'Không có shipper'); ?></span>
