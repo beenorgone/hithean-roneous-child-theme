@@ -168,6 +168,20 @@ add_shortcode('order_return_management', function () {
         </div>
     </div>
 
+    <div id="orm_action_modal" class="orm-modal" aria-hidden="true">
+        <div class="orm-modal-backdrop" data-close-action-modal></div>
+        <div class="orm-modal-panel orm-action-modal-panel" role="dialog" aria-modal="true" aria-labelledby="orm_action_title">
+            <div class="orm-modal-header">
+                <div>
+                    <h3 id="orm_action_title">Thao tác hoàn hàng</h3>
+                    <p id="orm_action_hint">Cập nhật thông tin hoàn hàng cho đơn đang chọn.</p>
+                </div>
+                <button type="button" class="button" data-close-action-modal>Đóng</button>
+            </div>
+            <div id="orm_action_body" class="orm-modal-body"></div>
+        </div>
+    </div>
+
     <script type="text/template" id="orm_process_template">
         <form class="orm-inline-form return-process-form" data-order-id="{{orderId}}">
             <strong>Chuyển sang: {{nextStatus}}</strong>
@@ -779,6 +793,10 @@ add_shortcode('order_return_management', function () {
             overflow: hidden;
         }
 
+        .orm-action-modal-panel {
+            width: min(560px, calc(100vw - 32px));
+        }
+
         .orm-modal-header,
         .orm-modal-footer {
             display: flex;
@@ -803,6 +821,17 @@ add_shortcode('order_return_management', function () {
         .orm-modal-header p {
             margin: 0;
             color: var(--orm-muted);
+        }
+
+        .orm-modal-body {
+            padding: 16px;
+            overflow: auto;
+        }
+
+        .orm-modal-body .orm-inline-form {
+            border-top: 0;
+            margin-top: 0;
+            padding-top: 0;
         }
 
         .orm-history-table-wrap {
@@ -955,6 +984,18 @@ add_shortcode('order_return_management', function () {
                 $('#orm_history_modal').removeClass('is-open').attr('aria-hidden', 'true');
             }
 
+            function openActionModal(title, hint, html) {
+                $('#orm_action_title').text(title);
+                $('#orm_action_hint').text(hint);
+                $('#orm_action_body').html(html);
+                $('#orm_action_modal').addClass('is-open').attr('aria-hidden', 'false');
+            }
+
+            function closeActionModal() {
+                $('#orm_action_modal').removeClass('is-open').attr('aria-hidden', 'true');
+                $('#orm_action_body').empty();
+            }
+
             function loadReturnHistory(append) {
                 $('#orm_history_status').text('Đang tải lịch sử...');
                 $('#orm_history_load_more').prop('disabled', true);
@@ -1031,11 +1072,17 @@ add_shortcode('order_return_management', function () {
             });
             $(document).on('click', '.orm-load-history-btn', openHistoryModal);
             $(document).on('click', '[data-close-history-modal]', closeHistoryModal);
+            $(document).on('click', '[data-close-action-modal]', closeActionModal);
             $('#orm_history_load_more').on('click', function() {
                 loadReturnHistory(true);
             });
             $(document).on('keydown', function(e) {
-                if (e.key === 'Escape' && $('#orm_history_modal').hasClass('is-open')) {
+                if (e.key !== 'Escape') {
+                    return;
+                }
+                if ($('#orm_action_modal').hasClass('is-open')) {
+                    closeActionModal();
+                } else if ($('#orm_history_modal').hasClass('is-open')) {
                     closeHistoryModal();
                 }
             });
@@ -1113,20 +1160,15 @@ add_shortcode('order_return_management', function () {
             $(document).on('click', '.process-return-btn, .confirm-return-btn, .update-return-code-btn', function() {
                 const btn = $(this);
                 const card = btn.closest('.orm-order-card');
-                const slot = card.find('.orm-inline-slot');
                 const orderId = card.data('order-id');
                 const isProcess = btn.hasClass('process-return-btn');
                 const isCode = btn.hasClass('update-return-code-btn');
                 const templateId = isCode ? '#orm_code_template' : (isProcess ? '#orm_process_template' : '#orm_receive_template');
                 let html = $(templateId).html().replaceAll('{{orderId}}', orderId);
                 html = html.replaceAll('{{nextStatus}}', btn.data('next-status') || '');
-
-                if (slot.data('open') === btn.attr('class')) {
-                    slot.empty().removeData('open');
-                    return;
-                }
-                $('.orm-inline-slot').empty().removeData('open');
-                slot.html(html).data('open', btn.attr('class'));
+                const title = isCode ? 'Thêm mã hoàn #' + orderId : (isProcess ? 'Ghi nhận xử lý hoàn #' + orderId : 'Upload ảnh hoàn hàng #' + orderId);
+                const hint = isCode ? 'Nhập mã vận đơn hoàn hàng để nhân sự tiếp tục đối soát.' : (isProcess ? 'Chuyển đơn sang bước chờ hàng hoàn về.' : 'Upload ảnh hàng hoàn và đánh dấu có/không sự cố.');
+                openActionModal(title, hint, html);
             });
 
             $(document).on('submit', '.return-process-form', function(e) {
@@ -1152,6 +1194,7 @@ add_shortcode('order_return_management', function () {
                         if (resp.success) {
                             form.find('.process-status').text('Đã chuyển sang ' + resp.data.status + '.');
                             loadReturnBoard();
+                            setTimeout(closeActionModal, 450);
                         } else {
                             setBusy(form, false);
                             form.find('.process-status').text('Lỗi: ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
@@ -1195,6 +1238,7 @@ add_shortcode('order_return_management', function () {
                         if (resp.success) {
                             form.find('.upload-status').text('Hoàn tất.');
                             loadReturnBoard();
+                            setTimeout(closeActionModal, 450);
                         } else {
                             setBusy(form, false);
                             form.find('.upload-status').text('Lỗi: ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
@@ -1236,6 +1280,7 @@ add_shortcode('order_return_management', function () {
                         if (resp.success) {
                             form.find('.code-status').text('Đã lưu mã hoàn.');
                             loadReturnBoard();
+                            setTimeout(closeActionModal, 450);
                         } else {
                             setBusy(form, false);
                             form.find('.code-status').text('Lỗi: ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
@@ -1467,7 +1512,7 @@ function hithean_return_clear_cache(): void
     wp_cache_delete('return_orders_pending_v7', 'orders');
     wp_cache_delete('return_orders_completed_v7', 'orders');
     foreach (hithean_return_allowed_filters() as $filter) {
-        wp_cache_delete('return_board_v5_' . $filter, 'orders');
+        wp_cache_delete('return_board_v6_' . $filter, 'orders');
     }
 }
 
@@ -2050,7 +2095,7 @@ add_action('wp_ajax_load_return_board', function () {
         $filter = 'open';
     }
 
-    $cache_key = 'return_board_v5_' . $filter;
+    $cache_key = 'return_board_v6_' . $filter;
     $cached = wp_cache_get($cache_key, 'orders');
     if ($cached !== false) {
         wp_send_json_success($cached);
@@ -2125,7 +2170,7 @@ add_action('wp_ajax_load_return_orders', function () {
             $filter = 'open';
         }
 
-        $cache_key = 'return_board_v5_' . $filter;
+        $cache_key = 'return_board_v6_' . $filter;
         $cached = wp_cache_get($cache_key, 'orders');
         if ($cached !== false) {
             wp_send_json_success($cached);
