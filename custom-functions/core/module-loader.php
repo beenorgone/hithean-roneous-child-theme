@@ -110,6 +110,8 @@ function hithean_social_display_allowed(): bool
     // Các page chỉ định (theo slug).
     $page_slugs = (array) apply_filters('hithean_social_display_page_slugs', [
         'an-new-chapter',
+        'an-new-chapter-b2b',
+        'an-new-chapter-b2b-organic',
         've-chung-toi',
     ]);
     if (!empty($page_slugs) && is_page($page_slugs)) {
@@ -248,9 +250,13 @@ function tpc_loader_path_groups()
             '/protein-calculator',
             '/tien-ich/protein-calculator',
             '/an-new-chapter',
+            '/an-new-chapter-b2b',
+            '/an-new-chapter-b2b-organic',
         ],
         'anc_landing' => [
             '/an-new-chapter',
+            '/an-new-chapter-b2b',
+            '/an-new-chapter-b2b-organic',
         ],
     ]);
 }
