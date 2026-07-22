@@ -39,21 +39,11 @@ function ost_get_order_images($meta_value) {
 }
 
 // Render HTML hình ảnh (Lazyload & EIO attributes)
-function ost_render_image_thumbs($image_urls) {
+function ost_render_image_thumbs($image_urls, $order_id = 0) {
     if (empty($image_urls)) return '-';
-    $html = '';
     $safe_urls = array_values(array_map('esc_url_raw', $image_urls));
     $urls_json = esc_attr(wp_json_encode($safe_urls));
-    foreach ($safe_urls as $index => $url) {
-        $u = esc_url($url);
-        $img_tag = sprintf(
-            '<img decoding="async" src="%1$s" style="max-width:80px;height:auto;border:1px solid #ddd;border-radius:4px;" data-eio="p" data-src="%1$s" class="lazyloaded scaled-image" width="1000" height="750" data-eio-rwidth="1000" data-eio-rheight="750" title="">',
-            $u
-        );
-        $html .= '<a href="' . $u . '" class="ost-gallery-link" data-gallery="' . $urls_json . '" data-index="' . esc_attr($index) . '" style="margin:2px; display:inline-block;">' . $img_tag . '</a>';
-    }
-    $html .= '<br><button type="button" class="ost-dl-all-btn" data-urls="' . $urls_json . '" style="margin-top:4px;font-size:11px;padding:2px 7px;cursor:pointer;">&#8659; Tải tất cả ảnh</button>';
-    return $html;
+    return '<button type="button" class="ost-image-count-btn ost-gallery-link" data-order-id="' . esc_attr($order_id) . '" data-gallery="' . $urls_json . '" data-index="0">' . esc_html(count($safe_urls)) . ' ảnh</button>';
 }
 
 // Render danh sách Link ID đơn hàng
@@ -141,6 +131,73 @@ function ost_render_issue_badges($issues) {
         $html .= '<span class="ost-status-chip ost-status-' . esc_attr($key) . '">' . esc_html($label) . '</span>';
     }
     return $html;
+}
+
+function ost_upload_internal_order_image(array $file, int $parent_post_id, string $target_filename, int $max_dimension = 1000) {
+    if (!empty($file['error']) || empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+        return new WP_Error('invalid_upload', 'File upload không hợp lệ');
+    }
+
+    $ext = strtolower(pathinfo($target_filename, PATHINFO_EXTENSION));
+    if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+        return new WP_Error('invalid_type', 'Chỉ hỗ trợ JPG, JPEG, PNG');
+    }
+
+    $mime = wp_check_filetype($target_filename);
+    if (empty($mime['type']) || !in_array($mime['type'], ['image/jpeg', 'image/png'], true)) {
+        return new WP_Error('invalid_mime', 'Định dạng ảnh không hợp lệ');
+    }
+
+    $editor = wp_get_image_editor($file['tmp_name']);
+    if (!is_wp_error($editor)) {
+        $size = $editor->get_size();
+        if (!empty($size['width']) && !empty($size['height']) && max($size['width'], $size['height']) > $max_dimension) {
+            $editor->resize($max_dimension, $max_dimension, false);
+        }
+        if (method_exists($editor, 'set_quality')) {
+            $editor->set_quality(82);
+        }
+        $editor->save($file['tmp_name'], $mime['type']);
+        clearstatcache(true, $file['tmp_name']);
+        $file['size'] = filesize($file['tmp_name']);
+    }
+
+    $file['name'] = sanitize_file_name($target_filename);
+    $file['type'] = $mime['type'];
+    $upload = wp_handle_sideload($file, [
+        'test_form' => false,
+        'mimes' => [
+            'jpg|jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+        ],
+    ]);
+
+    if (!empty($upload['error'])) {
+        return new WP_Error('upload_failed', $upload['error']);
+    }
+
+    $attachment_id = wp_insert_attachment([
+        'post_mime_type' => $upload['type'],
+        'post_title' => sanitize_text_field(pathinfo($upload['file'], PATHINFO_FILENAME)),
+        'post_content' => '',
+        'post_status' => 'inherit',
+        'post_parent' => $parent_post_id,
+    ], $upload['file'], $parent_post_id, true);
+
+    if (is_wp_error($attachment_id)) return $attachment_id;
+    update_attached_file($attachment_id, $upload['file']);
+
+    $image_size = @getimagesize($upload['file']);
+    if ($image_size) {
+        update_post_meta($attachment_id, '_wp_attachment_metadata', [
+            'width' => (int) $image_size[0],
+            'height' => (int) $image_size[1],
+            'file' => _wp_relative_upload_path($upload['file']),
+            'sizes' => [],
+        ]);
+    }
+
+    return $attachment_id;
 }
 
 // Phân giải từ khóa tìm kiếm thành danh sách order IDs
@@ -294,6 +351,7 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids 
     foreach ($order_ids as $id) {
         $order = wc_get_order($id);
         if (!$order) continue;
+        if ($order->get_status() === 'cancelled') continue;
 
         $meta = $meta_map[$id] ?? [];
         $shipper_raw = $meta[$key_shipper][0] ?? '';
@@ -411,7 +469,7 @@ function ost_render_single_row($data) {
         <td><?php echo esc_html($data['bank_acc']); ?></td>
         <td><?php echo ost_get_payment_label($order->get_payment_method()); ?></td>
         <td><?php echo esc_html($role); ?></td>
-        <td><?php echo ost_render_image_thumbs($data['images']); ?></td>
+        <td><?php echo ost_render_image_thumbs($data['images'], $data['id']); ?></td>
         <td><?php echo $confirmed_user ? esc_html($confirmed_user->display_name) : '-'; ?></td>
     </tr>
     <?php
@@ -425,7 +483,7 @@ function ost_render_kanban_card($data) {
     ?>
     <article class="ost-kanban-card ost-card-<?php echo esc_attr($data['bucket']); ?>">
         <div class="ost-card-head">
-            <a href="<?php echo esc_url(get_edit_post_link($data['id'])); ?>" target="_blank" class="ost-card-order">#<?php echo esc_html($data['id']); ?></a>
+            <button type="button" class="ost-card-order ost-preview-order-btn" data-order-id="<?php echo esc_attr($data['id']); ?>">#<?php echo esc_html($data['id']); ?></button>
             <span><?php echo wp_kses_post($order->get_formatted_order_total()); ?></span>
         </div>
         <div class="ost-card-meta">
@@ -435,10 +493,24 @@ function ost_render_kanban_card($data) {
             <span><?php echo esc_html(ost_get_payment_label($order->get_payment_method())); ?></span>
         </div>
         <div class="ost-card-issues"><?php echo ost_render_issue_badges($data['issues']); ?></div>
+        <?php if (isset($data['issues']['abnormal_data']) && trim((string) $data['shipper']) === ''): ?>
+            <div class="ost-card-shipper">
+                <select class="ost-card-shipper-select" data-order-id="<?php echo esc_attr($data['id']); ?>">
+                    <option value="">Chọn shipper</option>
+                    <?php foreach (ost_get_shippers() as $key => $label): ?>
+                        <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="button" class="ost-set-shipper-btn" data-order-id="<?php echo esc_attr($data['id']); ?>">Lưu</button>
+            </div>
+        <?php endif; ?>
         <div class="ost-card-actions">
-            <a href="<?php echo esc_url(get_edit_post_link($data['id'])); ?>" target="_blank">Mở đơn</a>
+            <button type="button" class="ost-upload-open-btn" data-order-id="<?php echo esc_attr($data['id']); ?>">Upload ảnh</button>
+            <?php if (empty($data['confirmed_user_id'])): ?>
+                <button type="button" class="ost-confirm-export-btn" data-order-id="<?php echo esc_attr($data['id']); ?>">Xác nhận</button>
+            <?php endif; ?>
             <?php if ($image_count > 0): ?>
-                <a href="<?php echo esc_url($safe_urls[0]); ?>" class="ost-gallery-link" data-gallery="<?php echo $urls_json; ?>" data-index="0"><?php echo esc_html($image_count); ?> ảnh</a>
+                <a href="<?php echo esc_url($safe_urls[0]); ?>" class="ost-gallery-link" data-order-id="<?php echo esc_attr($data['id']); ?>" data-gallery="<?php echo $urls_json; ?>" data-index="0"><?php echo esc_html($image_count); ?> ảnh</a>
             <?php else: ?>
                 <span>0 ảnh</span>
             <?php endif; ?>
@@ -597,24 +669,29 @@ add_shortcode('order_shipped_table', function () {
         .ost-kanban-column h4 { margin: 0; font-size: 14px; color: #111827; }
         .ost-kanban-column p { margin: 3px 0 0; font-size: 12px; color: #6b7280; }
         .ost-kanban-column header strong { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; border-radius: 50%; background: #e5e7eb; color: #111827; }
-        .ost-kanban-list { display: grid; gap: 8px; padding: 10px; max-height: 520px; overflow-y: auto; }
-        .ost-kanban-card { padding: 10px; border-radius: 8px; background: #fff; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(15,23,42,0.06); }
-        .ost-card-head, .ost-card-actions { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+        .ost-kanban-list { display: grid; gap: 6px; padding: 8px; max-height: 520px; overflow-y: auto; }
+        .ost-kanban-card { padding: 8px; border-radius: 8px; background: #fff; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(15,23,42,0.06); }
+        .ost-card-head, .ost-card-actions { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
         .ost-card-order { font-weight: 800; text-decoration: none; color: #1976d2; }
-        .ost-card-meta { display: grid; gap: 4px; margin: 8px 0; color: #4b5563; font-size: 12px; }
-        .ost-card-issues { display: flex; flex-wrap: wrap; gap: 4px; }
-        .ost-card-actions { margin-top: 8px; font-size: 12px; color: #6b7280; }
+        .ost-card-meta { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; color: #4b5563; font-size: 11px; }
+        .ost-card-meta span { display: inline-flex; max-width: 100%; padding: 2px 6px; border-radius: 999px; background: #f3f4f6; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ost-card-issues { display: flex; flex-wrap: wrap; gap: 3px; }
+        .ost-card-actions { margin-top: 6px; font-size: 12px; color: #6b7280; }
         .ost-empty { padding: 12px; border: 1px dashed #cbd5e1; border-radius: 8px; color: #64748b; text-align: center; background: #fff; }
         .ost-status-cell { min-width: 160px; }
-        .ost-status-chip { display: inline-block; margin: 2px; padding: 3px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.3; white-space: nowrap; }
+        .ost-status-chip { display: inline-block; margin: 1px; padding: 2px 6px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.25; white-space: nowrap; }
         .ost-status-missing_images { background: #ffebee; color: #b71c1c; }
         .ost-status-missing_confirmation { background: #fff3e0; color: #e65100; }
         .ost-status-not_completed { background: #f3e5f5; color: #4a148c; }
         .ost-status-abnormal_data { background: #eceff1; color: #263238; }
         .ost-status-passed { background: #e8f5e9; color: #1b5e20; }
+        .ost-image-count-btn { border: 1px solid #1976d2; background: #e3f2fd; color: #0d47a1; border-radius: 999px; padding: 5px 10px; cursor: pointer; font-size: 12px; font-weight: 800; white-space: nowrap; }
+        .ost-image-count-btn:hover { background: #bbdefb; }
         .ost-detail-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
         .ost-detail-tab { border: 1px solid #d1d5db; background: #fff; color: #374151; border-radius: 999px; padding: 7px 12px; cursor: pointer; font-size: 13px; font-weight: 700; }
         .ost-detail-tab.is-active { background: #1976d2; border-color: #1976d2; color: #fff; }
+        #report-summary-box { margin-bottom: 24px; }
+        #order-results { margin-top: 24px; }
         @media (max-width: 900px) {
             .ost-hero { align-items: flex-start; flex-direction: column; }
             .ost-flow { grid-template-columns: 1fr; }
@@ -624,9 +701,10 @@ add_shortcode('order_shipped_table', function () {
         .rp-list-col a { color: #c0392b; font-weight: 500; text-decoration: none; }
         .rp-list-col a:hover { text-decoration: underline; color: #e74c3c; }
         .ost-gallery-link { cursor: zoom-in; }
-        .ost-gallery-modal { position: fixed; inset: 0; z-index: 999999; display: none; align-items: center; justify-content: center; background: rgba(17, 24, 39, 0.88); padding: 18px; }
-        .ost-gallery-modal.is-open { display: flex; }
+        .ost-gallery-modal { position: fixed; inset: 0; z-index: 999999; display: none; background: rgba(17, 24, 39, 0.35); padding: 0; }
+        .ost-gallery-modal.is-open { display: block; }
         .ost-gallery-dialog { position: relative; width: min(1100px, 96vw); height: min(760px, 90vh); display: grid; grid-template-rows: auto 1fr auto; gap: 10px; }
+        .ost-gallery-dialog.is-anchored { position: absolute; }
         .ost-gallery-header { display: flex; align-items: center; justify-content: space-between; color: #fff; font-size: 14px; font-weight: 600; }
         .ost-gallery-close, .ost-gallery-prev, .ost-gallery-next { border: 0; border-radius: 4px; background: rgba(255,255,255,0.92); color: #111827; cursor: pointer; font-size: 22px; line-height: 1; width: 42px; height: 42px; }
         .ost-gallery-close { font-size: 28px; }
@@ -637,6 +715,23 @@ add_shortcode('order_shipped_table', function () {
         .ost-gallery-next { right: 10px; }
         .ost-gallery-footer { text-align: center; }
         .ost-gallery-open-new { color: #fff !important; font-size: 13px; text-decoration: underline; }
+        .ost-card-order, .ost-card-actions button, .ost-set-shipper-btn, .ost-modal button { border: 0; background: none; cursor: pointer; font: inherit; }
+        .ost-card-order { padding: 0; font-weight: 800; color: #1976d2; }
+        .ost-card-actions button, .ost-card-actions a, .ost-set-shipper-btn { padding: 3px 7px; border-radius: 999px; background: #eef2ff; color: #1d4ed8; text-decoration: none; font-weight: 700; }
+        .ost-confirm-export-btn { background: #e8f5e9 !important; color: #1b5e20 !important; }
+        .ost-upload-open-btn { background: #fff7ed !important; color: #9a3412 !important; }
+        .ost-card-shipper { display: flex; gap: 4px; margin-top: 6px; }
+        .ost-card-shipper select { min-width: 0; flex: 1; height: 28px; font-size: 12px; }
+        .ost-modal { position: fixed; inset: 0; z-index: 1000000; display: none; align-items: center; justify-content: center; background: rgba(17,24,39,0.55); padding: 18px; }
+        .ost-modal.is-open { display: flex; }
+        .ost-modal-dialog { width: min(560px, 96vw); max-height: 86vh; overflow: auto; background: #fff; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .ost-modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #e5e7eb; }
+        .ost-modal-head h3 { margin: 0; font-size: 18px; }
+        .ost-modal-body { padding: 16px; }
+        .ost-modal-close { width: 34px; height: 34px; border-radius: 50%; background: #f3f4f6 !important; font-size: 22px !important; line-height: 1 !important; }
+        .ost-upload-form { display: grid; gap: 12px; }
+        .ost-upload-form input[type="file"], .ost-upload-form select { width: 100%; }
+        .ost-modal-primary { padding: 8px 12px !important; border-radius: 6px !important; background: #1976d2 !important; color: #fff !important; font-weight: 800 !important; }
     </style>
 
     <h2>Đơn Xuất Kho (Hithean)</h2>
@@ -683,7 +778,36 @@ add_shortcode('order_shipped_table', function () {
             </div>
             <div class="ost-gallery-footer">
                 <a id="ost-gallery-open-new" class="ost-gallery-open-new" href="#" target="_blank" rel="noopener">Mở ảnh gốc</a>
+                <button type="button" id="ost-gallery-confirm" class="ost-modal-primary">Xác nhận ảnh xuất kho</button>
+                <button type="button" id="ost-gallery-upload" class="ost-modal-primary">Upload thêm ảnh</button>
             </div>
+        </div>
+    </div>
+
+    <div id="ost-upload-modal" class="ost-modal" aria-hidden="true">
+        <div class="ost-modal-dialog" role="dialog" aria-modal="true" aria-label="Upload ảnh xuất kho">
+            <div class="ost-modal-head">
+                <h3>Upload ảnh xuất kho <span id="ost-upload-order-label"></span></h3>
+                <button type="button" class="ost-modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="ost-modal-body">
+                <form id="ost-upload-form" class="ost-upload-form" enctype="multipart/form-data">
+                    <input type="hidden" name="order_id" id="ost-upload-order-id">
+                    <input type="file" name="images[]" id="ost-upload-images" multiple accept="image/*" required>
+                    <small>Chọn tối đa 5 ảnh JPG/PNG.</small>
+                    <button type="submit" class="ost-modal-primary">Upload ảnh</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="ost-order-preview-modal" class="ost-modal" aria-hidden="true">
+        <div class="ost-modal-dialog" role="dialog" aria-modal="true" aria-label="Preview đơn hàng">
+            <div class="ost-modal-head">
+                <h3>Preview đơn hàng</h3>
+                <button type="button" class="ost-modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="ost-modal-body" id="ost-order-preview-body">Đang tải...</div>
         </div>
     </div>
 
@@ -697,8 +821,14 @@ add_shortcode('order_shipped_table', function () {
             const galleryImage = $('#ost-gallery-image');
             const galleryCounter = $('#ost-gallery-counter');
             const galleryOpenNew = $('#ost-gallery-open-new');
+            const galleryDialog = $('#ost-gallery-modal .ost-gallery-dialog');
+            const uploadModal = $('#ost-upload-modal');
+            const uploadForm = $('#ost-upload-form');
+            const previewModal = $('#ost-order-preview-modal');
+            const previewBody = $('#ost-order-preview-body');
             let galleryUrls = [];
             let galleryIndex = 0;
+            let currentGalleryOrderId = 0;
             let xhr;
 
             function showGalleryImage() {
@@ -709,23 +839,47 @@ add_shortcode('order_shipped_table', function () {
                 galleryCounter.text((galleryIndex + 1) + ' / ' + galleryUrls.length);
             }
 
-            function openGallery(urls, index) {
+            function positionGallery(trigger) {
+                if (!trigger || !trigger.length) return;
+                const rect = trigger[0].getBoundingClientRect();
+                const width = Math.min(1100, window.innerWidth * 0.96);
+                const height = Math.min(760, window.innerHeight * 0.9);
+                const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+                const top = Math.max(8, Math.min(rect.top, window.innerHeight - height - 8));
+                galleryDialog.addClass('is-anchored').css({ width: width + 'px', height: height + 'px', left: left + 'px', top: top + 'px' });
+            }
+
+            function openGallery(urls, index, trigger) {
                 galleryUrls = urls.filter(Boolean);
                 galleryIndex = Number.isFinite(index) ? index : 0;
+                currentGalleryOrderId = parseInt(trigger && trigger.attr('data-order-id'), 10) || 0;
                 showGalleryImage();
+                positionGallery(trigger);
                 galleryModal.addClass('is-open').attr('aria-hidden', 'false');
             }
 
             function closeGallery() {
                 galleryModal.removeClass('is-open').attr('aria-hidden', 'true');
                 galleryImage.attr('src', '');
+                currentGalleryOrderId = 0;
+            }
+
+            function openUploadModal(orderId) {
+                $('#ost-upload-order-id').val(orderId);
+                $('#ost-upload-order-label').text('#' + orderId);
+                uploadModal.addClass('is-open').attr('aria-hidden', 'false');
+            }
+
+            function closeModal(modal) {
+                modal.removeClass('is-open').attr('aria-hidden', 'true');
             }
 
             $('#order-results-container').on('click', '.ost-gallery-link', function(e) {
                 e.preventDefault();
                 var urls = [];
                 try { urls = JSON.parse($(this).attr('data-gallery') || '[]'); } catch(err) {}
-                openGallery(urls.length ? urls : [$(this).attr('href')], parseInt($(this).attr('data-index'), 10) || 0);
+                var fallbackUrl = $(this).attr('href');
+                openGallery(urls.length ? urls : (fallbackUrl ? [fallbackUrl] : []), parseInt($(this).attr('data-index'), 10) || 0, $(this));
             });
 
             galleryModal.on('click', function(e) {
@@ -739,6 +893,72 @@ add_shortcode('order_shipped_table', function () {
             galleryModal.on('click', '.ost-gallery-next', function() {
                 galleryIndex++;
                 showGalleryImage();
+            });
+            $('#ost-gallery-upload').on('click', function() {
+                if (currentGalleryOrderId) openUploadModal(currentGalleryOrderId);
+            });
+            $('#ost-gallery-confirm').on('click', function() {
+                if (!currentGalleryOrderId) return;
+                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ost_confirm_export_image', nonce: ostNonce, order_id: currentGalleryOrderId }, function(res) {
+                    alert(res.data || (res.success ? 'Đã xác nhận' : 'Không xác nhận được'));
+                    if (res.success) form.trigger('submit');
+                }, 'json');
+            });
+            $('#order-results-container').on('click', '.ost-upload-open-btn', function() {
+                openUploadModal(parseInt($(this).attr('data-order-id'), 10) || 0);
+            });
+            $('[data-close-modal]').on('click', function() {
+                closeModal($(this).closest('.ost-modal'));
+            });
+            $('.ost-modal').on('click', function(e) {
+                if (e.target === this) closeModal($(this));
+            });
+            uploadForm.on('submit', function(e) {
+                e.preventDefault();
+                const files = $('#ost-upload-images')[0].files;
+                if (files.length > 5) {
+                    alert('Chỉ được upload tối đa 5 ảnh mỗi lần.');
+                    return;
+                }
+                const btn = uploadForm.find('button[type="submit"]');
+                const oldText = btn.text();
+                const formData = new FormData(this);
+                formData.append('action', 'ost_upload_export_images');
+                formData.append('nonce', ostNonce);
+                btn.prop('disabled', true).text('Đang upload...');
+                $.ajax({ url: '<?php echo admin_url('admin-ajax.php'); ?>', method: 'POST', data: formData, processData: false, contentType: false, dataType: 'json' })
+                    .done(function(res) {
+                        alert(res.data || (res.success ? 'Đã upload' : 'Không upload được'));
+                        if (res.success) {
+                            closeModal(uploadModal);
+                            uploadForm[0].reset();
+                            form.trigger('submit');
+                        }
+                    })
+                    .always(function() { btn.prop('disabled', false).text(oldText); });
+            });
+            $('#order-results-container').on('click', '.ost-confirm-export-btn', function() {
+                const orderId = parseInt($(this).attr('data-order-id'), 10) || 0;
+                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ost_confirm_export_image', nonce: ostNonce, order_id: orderId }, function(res) {
+                    alert(res.data || (res.success ? 'Đã xác nhận' : 'Không xác nhận được'));
+                    if (res.success) form.trigger('submit');
+                }, 'json');
+            });
+            $('#order-results-container').on('click', '.ost-set-shipper-btn', function() {
+                const orderId = parseInt($(this).attr('data-order-id'), 10) || 0;
+                const shipper = $(this).closest('.ost-card-shipper').find('select').val();
+                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ost_set_order_shipper', nonce: ostNonce, order_id: orderId, shipper: shipper }, function(res) {
+                    alert(res.data || (res.success ? 'Đã lưu shipper' : 'Không lưu được shipper'));
+                    if (res.success) form.trigger('submit');
+                }, 'json');
+            });
+            $('#order-results-container').on('click', '.ost-preview-order-btn', function() {
+                const orderId = parseInt($(this).attr('data-order-id'), 10) || 0;
+                previewBody.html('Đang tải...');
+                previewModal.addClass('is-open').attr('aria-hidden', 'false');
+                $.post('<?php echo admin_url('admin-ajax.php'); ?>', { action: 'ost_preview_order', nonce: ostNonce, order_id: orderId }, function(res) {
+                    previewBody.html(res.success ? res.data.html : (res.data || 'Không tải được đơn hàng'));
+                }, 'json');
             });
             $(document).on('keydown', function(e) {
                 if (!galleryModal.hasClass('is-open')) return;
@@ -877,4 +1097,103 @@ function ajax_load_order_shipped() {
         'table_html' => $table_html
     ]);
     wp_die();
+}
+
+add_action('wp_ajax_ost_upload_export_images', 'ost_ajax_upload_export_images');
+function ost_ajax_upload_export_images() {
+    check_ajax_referer('ajax_load_order_shipped_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
+
+    $order_id = absint($_POST['order_id'] ?? 0);
+    $order = wc_get_order($order_id);
+    if (!$order || empty($_FILES['images'])) wp_send_json_error('Thiếu dữ liệu upload');
+
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/image.php';
+
+    $files = $_FILES['images'];
+    if (count($files['name']) > 5) wp_send_json_error('Chỉ được upload tối đa 5 ảnh mỗi lần.');
+
+    $uploaded_urls = [];
+    for ($i = 0; $i < count($files['name']); $i++) {
+        if ($files['error'][$i] !== UPLOAD_ERR_OK) continue;
+        $ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
+        $filename = sprintf('order-export-image-%d-%s-%d.%s', $order_id, wp_date('Ymd-His'), $i + 1, $ext);
+        $upload_file = [
+            'name' => $filename,
+            'type' => $files['type'][$i],
+            'tmp_name' => $files['tmp_name'][$i],
+            'error' => $files['error'][$i],
+            'size' => $files['size'][$i],
+        ];
+        $attach_id = ost_upload_internal_order_image($upload_file, $order_id, $filename);
+        if (!is_wp_error($attach_id)) $uploaded_urls[] = wp_get_attachment_url($attach_id);
+    }
+
+    if (empty($uploaded_urls)) wp_send_json_error('Không upload được ảnh');
+
+    $existing = get_post_meta($order_id, 'warehouse_export_images', true);
+    $all = array_filter(array_merge(explode("\n", (string) $existing), $uploaded_urls));
+    update_post_meta($order_id, 'warehouse_export_images', implode("\n", $all));
+    $order->add_order_note('Đã upload thêm ' . count($uploaded_urls) . ' ảnh xuất kho từ màn hình kiểm soát xuất kho.');
+    wp_send_json_success('Đã upload ' . count($uploaded_urls) . ' ảnh.');
+}
+
+add_action('wp_ajax_ost_confirm_export_image', 'ost_ajax_confirm_export_image');
+function ost_ajax_confirm_export_image() {
+    check_ajax_referer('ajax_load_order_shipped_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
+
+    $order_id = absint($_POST['order_id'] ?? 0);
+    $order = wc_get_order($order_id);
+    if (!$order) wp_send_json_error('Không tìm thấy đơn');
+
+    $user = wp_get_current_user();
+    update_post_meta($order_id, 'export_confirmed_by', $user->ID);
+    $order->add_order_note('Đã xác nhận ảnh xuất kho bởi ' . $user->display_name);
+    wp_send_json_success('Đã xác nhận ảnh xuất kho #' . $order_id);
+}
+
+add_action('wp_ajax_ost_set_order_shipper', 'ost_ajax_set_order_shipper');
+function ost_ajax_set_order_shipper() {
+    check_ajax_referer('ajax_load_order_shipped_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
+
+    $order_id = absint($_POST['order_id'] ?? 0);
+    $shipper = sanitize_text_field($_POST['shipper'] ?? '');
+    $order = wc_get_order($order_id);
+    if (!$order || $shipper === '') wp_send_json_error('Thiếu đơn hàng hoặc shipper');
+
+    update_post_meta($order_id, 'order_shipper', $shipper);
+    $order->add_order_note('Đã cập nhật shipper xuất kho: ' . $shipper);
+    wp_send_json_success('Đã cập nhật shipper #' . $order_id);
+}
+
+add_action('wp_ajax_ost_preview_order', 'ost_ajax_preview_order');
+function ost_ajax_preview_order() {
+    check_ajax_referer('ajax_load_order_shipped_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
+
+    $order_id = absint($_POST['order_id'] ?? 0);
+    $order = wc_get_order($order_id);
+    if (!$order) wp_send_json_error('Không tìm thấy đơn');
+
+    ob_start();
+    ?>
+    <div class="ost-order-preview">
+        <p><strong>#<?php echo esc_html($order_id); ?></strong> - <?php echo esc_html(wc_get_order_status_name($order->get_status())); ?></p>
+        <p><?php echo esc_html($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()); ?> | <?php echo esc_html($order->get_billing_phone()); ?></p>
+        <p><?php echo wp_kses_post($order->get_formatted_order_total()); ?> | <?php echo esc_html(ost_get_payment_label($order->get_payment_method())); ?></p>
+        <hr>
+        <ul>
+            <?php foreach ($order->get_items() as $item): ?>
+                <li><?php echo esc_html($item->get_name()); ?> x <?php echo esc_html($item->get_quantity()); ?></li>
+            <?php endforeach; ?>
+        </ul>
+        <p><strong>Shipper:</strong> <?php echo esc_html(get_post_meta($order_id, 'order_shipper', true) ?: '-'); ?></p>
+        <p><strong>Mã vận đơn:</strong> <?php echo esc_html(get_post_meta($order_id, 'order_ship_code', true) ?: '-'); ?></p>
+        <p><strong>Ngày xuất kho:</strong> <?php echo esc_html(get_post_meta($order_id, 'order_ship_date', true) ?: '-'); ?></p>
+    </div>
+    <?php
+    wp_send_json_success(['html' => ob_get_clean()]);
 }
