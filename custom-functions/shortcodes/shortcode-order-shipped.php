@@ -823,7 +823,7 @@ add_shortcode('order_shipped_table', function () {
         .ost-modal-close { width: 34px; height: 34px; border-radius: 50%; background: #f3f4f6 !important; font-size: 22px !important; line-height: 1 !important; }
         .ost-upload-form { display: grid; gap: 12px; }
         .ost-upload-form input[type="file"], .ost-upload-form select { width: 100%; }
-        .ost-modal-primary { padding: 8px 12px !important; border-radius: 6px !important; background: #1976d2 !important; color: #fff !important; font-weight: 800 !important; }
+        .ost-modal-primary { display: inline-block; padding: 8px 12px !important; border-radius: 6px !important; background: #1976d2 !important; color: #fff !important; font-weight: 800 !important; text-decoration: none !important; }
     </style>
 
     <h2>Đơn Xuất Kho (Hithean)</h2>
@@ -1376,13 +1376,16 @@ function ost_ajax_preview_order() {
     $order_id = absint($_POST['order_id'] ?? 0);
     $order = wc_get_order($order_id);
     if (!$order) wp_send_json_error('Không tìm thấy đơn');
+    $shipping_address = $order->get_formatted_shipping_address() ?: $order->get_formatted_billing_address();
 
     ob_start();
     ?>
     <div class="ost-order-preview">
         <p><strong>#<?php echo esc_html($order_id); ?></strong> - <?php echo esc_html(wc_get_order_status_name($order->get_status())); ?></p>
+        <p><a href="<?php echo esc_url(get_edit_post_link($order_id)); ?>" target="_blank" rel="noopener" class="ost-modal-primary">Xem đơn</a></p>
         <p><?php echo esc_html($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()); ?> | <?php echo esc_html($order->get_billing_phone()); ?></p>
         <p><?php echo wp_kses_post($order->get_formatted_order_total()); ?> | <?php echo esc_html(ost_get_payment_label($order->get_payment_method())); ?></p>
+        <p><strong>Địa chỉ giao hàng:</strong><br><?php echo $shipping_address ? wp_kses_post($shipping_address) : '-'; ?></p>
         <hr>
         <ul>
             <?php foreach ($order->get_items() as $item): ?>
