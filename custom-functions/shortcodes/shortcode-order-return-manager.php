@@ -133,6 +133,24 @@ add_shortcode('order_return_management', function () {
         <div class="orm-history-note">Hoàn tất/lịch sử được giữ trên board khi chọn bộ lọc phù hợp; mặc định ưu tiên các đơn đang mở để nhân sự xử lý trong ngày.</div>
     </div>
 
+    <div id="orm_history_modal" class="orm-modal" aria-hidden="true">
+        <div class="orm-modal-backdrop" data-close-history-modal></div>
+        <div class="orm-modal-panel" role="dialog" aria-modal="true" aria-labelledby="orm_history_title">
+            <div class="orm-modal-header">
+                <div>
+                    <h3 id="orm_history_title">Lịch sử đơn đã nhận hàng hoàn</h3>
+                    <p>Xem nhiều đơn đã nhận theo dạng bảng để tra cứu nhanh.</p>
+                </div>
+                <button type="button" class="button" data-close-history-modal>Đóng</button>
+            </div>
+            <div id="orm_history_status" class="orm-board-status"></div>
+            <div id="orm_history_table_wrap" class="orm-history-table-wrap"></div>
+            <div class="orm-modal-footer">
+                <button type="button" id="orm_history_load_more" class="button button-primary" style="display:none;">Tải thêm</button>
+            </div>
+        </div>
+    </div>
+
     <script type="text/template" id="orm_process_template">
         <form class="orm-inline-form return-process-form" data-order-id="{{orderId}}">
             <strong>Chuyển sang: {{nextStatus}}</strong>
@@ -159,6 +177,20 @@ add_shortcode('order_return_management', function () {
             </div>
             <button type="submit" class="button button-primary">Upload và xác nhận</button>
             <div class="upload-status orm-form-status"></div>
+        </form>
+    </script>
+
+    <script type="text/template" id="orm_code_template">
+        <form class="orm-inline-form return-code-form" data-order-id="{{orderId}}">
+            <strong>Cập nhật mã vận đơn hoàn hàng</strong>
+            <label>Mã hoàn
+                <input type="text" name="return_code" placeholder="Nhập mã vận đơn hoàn hàng" required>
+            </label>
+            <label>Ghi chú
+                <textarea name="return_note" rows="2" placeholder="Tùy chọn"></textarea>
+            </label>
+            <button type="submit" class="button button-primary">Lưu mã hoàn</button>
+            <div class="code-status orm-form-status"></div>
         </form>
     </script>
 
@@ -386,6 +418,12 @@ add_shortcode('order_return_management', function () {
             margin-top: 5px;
         }
 
+        .orm-card-code .button {
+            margin-left: 6px;
+            min-height: 28px;
+            padding: 2px 8px;
+        }
+
         .orm-card-products {
             color: var(--orm-text);
             max-height: 42px;
@@ -460,6 +498,97 @@ add_shortcode('order_return_management', function () {
             font-size: 13px;
         }
 
+        .orm-history-more {
+            display: grid;
+            gap: 8px;
+            border-top: 1px solid var(--orm-border);
+            margin-top: 2px;
+            padding: 10px;
+        }
+
+        .orm-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+        }
+
+        .orm-modal.is-open {
+            display: block;
+        }
+
+        .orm-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.56);
+        }
+
+        .orm-modal-panel {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            width: min(1120px, calc(100vw - 32px));
+            max-height: calc(100vh - 48px);
+            margin: 24px auto;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.32);
+            overflow: hidden;
+        }
+
+        .orm-modal-header,
+        .orm-modal-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--orm-border);
+        }
+
+        .orm-modal-footer {
+            justify-content: flex-end;
+            border-top: 1px solid var(--orm-border);
+            border-bottom: 0;
+        }
+
+        .orm-modal-header h3 {
+            margin: 0 0 4px;
+            font-size: 18px;
+        }
+
+        .orm-modal-header p {
+            margin: 0;
+            color: var(--orm-muted);
+        }
+
+        .orm-history-table-wrap {
+            overflow: auto;
+            padding: 0 16px 16px;
+        }
+
+        .orm-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 920px;
+        }
+
+        .orm-history-table th,
+        .orm-history-table td {
+            border-bottom: 1px solid var(--orm-border);
+            padding: 9px 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .orm-history-table th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #f8fafc;
+            font-weight: 800;
+        }
+
         @media (max-width: 960px) {
             .orm-summary-grid {
                 grid-template-columns: repeat(2, minmax(120px, 1fr));
@@ -481,6 +610,7 @@ add_shortcode('order_return_management', function () {
         var ormLookupNonce = "<?php echo esc_js(wp_create_nonce('return_lookup_order_nonce')); ?>";
         var ormAttachNonce = "<?php echo esc_js(wp_create_nonce('attach_return_order_nonce')); ?>";
         var ormProcessNonce = "<?php echo esc_js(wp_create_nonce('process_return_order_nonce')); ?>";
+        var ormCodeNonce = "<?php echo esc_js(wp_create_nonce('update_return_code_nonce')); ?>";
 
         jQuery(function($) {
             if (typeof ajaxurl === 'undefined') {
@@ -511,6 +641,50 @@ add_shortcode('order_return_management', function () {
                 }).fail(function(xhr) {
                     const detail = xhr && xhr.responseText ? String(xhr.responseText).replace(/<[^>]*>/g, '').trim().slice(0, 160) : '';
                     $('#orm_board_status').text('Lỗi tải board HTTP ' + (xhr ? xhr.status : '') + (detail ? ': ' + detail : '.'));
+                });
+            }
+
+            let historyPage = 1;
+
+            function openHistoryModal() {
+                historyPage = 1;
+                $('#orm_history_modal').addClass('is-open').attr('aria-hidden', 'false');
+                $('#orm_history_table_wrap').empty();
+                loadReturnHistory(false);
+            }
+
+            function closeHistoryModal() {
+                $('#orm_history_modal').removeClass('is-open').attr('aria-hidden', 'true');
+            }
+
+            function loadReturnHistory(append) {
+                $('#orm_history_status').text('Đang tải lịch sử...');
+                $('#orm_history_load_more').prop('disabled', true);
+                $.post(ajaxurl, {
+                    action: 'load_return_orders',
+                    list_type: 'history',
+                    page: historyPage,
+                    nonce: ormBoardNonce
+                }, function(resp) {
+                    if (resp.success) {
+                        if (append) {
+                            $('#orm_history_table_wrap tbody').append(resp.data.rows_html);
+                        } else {
+                            $('#orm_history_table_wrap').html(resp.data.table_html);
+                        }
+                        $('#orm_history_status').text(resp.data.message || '');
+                        $('#orm_history_load_more').toggle(!!resp.data.has_more).prop('disabled', false);
+                        if (resp.data.has_more) {
+                            historyPage += 1;
+                        }
+                    } else {
+                        $('#orm_history_status').text('Lỗi tải lịch sử: ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
+                        $('#orm_history_load_more').prop('disabled', false);
+                    }
+                }).fail(function(xhr) {
+                    const detail = xhr && xhr.responseText ? String(xhr.responseText).replace(/<[^>]*>/g, '').trim().slice(0, 160) : '';
+                    $('#orm_history_status').text('Lỗi tải lịch sử HTTP ' + (xhr ? xhr.status : '') + (detail ? ': ' + detail : '.'));
+                    $('#orm_history_load_more').prop('disabled', false);
                 });
             }
 
@@ -548,6 +722,16 @@ add_shortcode('order_return_management', function () {
             });
 
             $('#orm_refresh_btn').on('click', loadReturnBoard);
+            $(document).on('click', '.orm-load-history-btn', openHistoryModal);
+            $(document).on('click', '[data-close-history-modal]', closeHistoryModal);
+            $('#orm_history_load_more').on('click', function() {
+                loadReturnHistory(true);
+            });
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && $('#orm_history_modal').hasClass('is-open')) {
+                    closeHistoryModal();
+                }
+            });
             $('#return_search_btn').on('click', runReturnSearch);
             $('#return_search_input').on('keypress', function(e) {
                 if (e.which === 13) {
@@ -619,13 +803,14 @@ add_shortcode('order_return_management', function () {
                 });
             });
 
-            $(document).on('click', '.process-return-btn, .confirm-return-btn', function() {
+            $(document).on('click', '.process-return-btn, .confirm-return-btn, .update-return-code-btn', function() {
                 const btn = $(this);
                 const card = btn.closest('.orm-order-card');
                 const slot = card.find('.orm-inline-slot');
                 const orderId = card.data('order-id');
                 const isProcess = btn.hasClass('process-return-btn');
-                const templateId = isProcess ? '#orm_process_template' : '#orm_receive_template';
+                const isCode = btn.hasClass('update-return-code-btn');
+                const templateId = isCode ? '#orm_code_template' : (isProcess ? '#orm_process_template' : '#orm_receive_template');
                 let html = $(templateId).html().replaceAll('{{orderId}}', orderId);
                 html = html.replaceAll('{{nextStatus}}', btn.data('next-status') || '');
 
@@ -711,6 +896,47 @@ add_shortcode('order_return_management', function () {
                     error: function() {
                         setBusy(form, false);
                         form.find('.upload-status').text('Lỗi hệ thống.');
+                    }
+                });
+            });
+
+            $(document).on('submit', '.return-code-form', function(e) {
+                e.preventDefault();
+                const form = $(this);
+                const orderId = form.data('order-id');
+                const code = form.find('input[name=return_code]').val().trim();
+                if (!code) {
+                    form.find('.code-status').text('Vui lòng nhập mã hoàn.');
+                    return;
+                }
+
+                const fd = new FormData();
+                fd.append('action', 'update_return_code');
+                fd.append('order_id', orderId);
+                fd.append('return_code', code);
+                fd.append('return_note', form.find('textarea[name=return_note]').val());
+                fd.append('nonce', ormCodeNonce);
+
+                setBusy(form, true);
+                form.find('.code-status').text('Đang lưu mã hoàn...');
+                $.ajax({
+                    url: ajaxurl,
+                    method: 'POST',
+                    data: fd,
+                    processData: false,
+                    contentType: false,
+                    success: function(resp) {
+                        if (resp.success) {
+                            form.find('.code-status').text('Đã lưu mã hoàn.');
+                            loadReturnBoard();
+                        } else {
+                            setBusy(form, false);
+                            form.find('.code-status').text('Lỗi: ' + (resp.data && resp.data.message ? resp.data.message : resp.data));
+                        }
+                    },
+                    error: function() {
+                        setBusy(form, false);
+                        form.find('.code-status').text('Lỗi hệ thống.');
                     }
                 });
             });
@@ -934,7 +1160,7 @@ function hithean_return_clear_cache(): void
     wp_cache_delete('return_orders_pending_v7', 'orders');
     wp_cache_delete('return_orders_completed_v7', 'orders');
     foreach (hithean_return_allowed_filters() as $filter) {
-        wp_cache_delete('return_board_v1_' . $filter, 'orders');
+        wp_cache_delete('return_board_v3_' . $filter, 'orders');
     }
 }
 
@@ -1017,7 +1243,7 @@ function hithean_return_order_matches_filter(WC_Order $order, string $filter): b
         return $result_images === '' && in_array($column, ['new', 'needs_action', 'waiting_return'], true);
     }
 
-    return in_array($column, ['new', 'needs_action', 'waiting_return', 'issue'], true);
+    return in_array($column, ['new', 'needs_action', 'waiting_return', 'issue', 'received'], true);
 }
 
 function hithean_return_get_board_order_ids(string $filter): array
@@ -1027,6 +1253,44 @@ function hithean_return_get_board_order_ids(string $filter): array
         hithean_return_get_order_ids('completed')
     );
     return array_values(array_unique(array_map('intval', $ids)));
+}
+
+function hithean_return_get_received_order_ids(int $limit = 51, int $offset = 0): array
+{
+    global $wpdb;
+    $meta_key = 'return_status';
+    $limit = max(1, min(200, $limit));
+    $offset = max(0, $offset);
+
+    if (hithean_return_hpos_enabled()) {
+        $sql = $wpdb->prepare("
+            SELECT DISTINCT o.id
+            FROM {$wpdb->prefix}wc_orders o
+            INNER JOIN {$wpdb->prefix}wc_orders_meta m ON o.id = m.order_id
+            WHERE o.type = 'shop_order'
+              AND o.status <> 'trash'
+              AND m.meta_key = %s
+              AND m.meta_value <> ''
+              AND m.meta_value LIKE %s
+            ORDER BY o.id DESC
+            LIMIT %d OFFSET %d
+        ", $meta_key, '%Đã nhận%', $limit, $offset);
+    } else {
+        $sql = $wpdb->prepare("
+            SELECT DISTINCT p.ID
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+            WHERE p.post_type = 'shop_order'
+              AND p.post_status NOT IN ('trash')
+              AND pm.meta_key = %s
+              AND pm.meta_value <> ''
+              AND pm.meta_value LIKE %s
+            ORDER BY p.ID DESC
+            LIMIT %d OFFSET %d
+        ", $meta_key, '%Đã nhận%', $limit, $offset);
+    }
+
+    return array_map('intval', $wpdb->get_col($sql));
 }
 
 function hithean_return_order_priority(WC_Order $order): array
@@ -1105,7 +1369,12 @@ function hithean_return_render_order_card(WC_Order $order): string
             <?= esc_html($order->get_billing_phone()) ?>
         </div>
         <div class="orm-card-products"><?= hithean_return_order_items_summary($order) ?></div>
-        <div class="orm-card-code">Mã hoàn: <strong><?= esc_html($code !== '' ? $code : 'Chưa có') ?></strong></div>
+        <div class="orm-card-code">
+            Mã hoàn: <strong><?= esc_html($code !== '' ? $code : 'Chưa có') ?></strong>
+            <?php if ($code === ''): ?>
+                <button type="button" class="button update-return-code-btn">Thêm mã hoàn</button>
+            <?php endif; ?>
+        </div>
         <div class="orm-card-date">Cập nhật: <?= esc_html($date_label) ?></div>
         <?php if ($received_images !== ''): ?>
             <div class="orm-images-preview">
@@ -1175,9 +1444,21 @@ function hithean_return_render_board(array $orders): array
                 <?php if (empty($groups[$key])): ?>
                     <div class="orm-empty">Không có đơn.</div>
                 <?php else: ?>
-                    <?php foreach ($groups[$key] as $order): ?>
+                    <?php
+                    $visible_orders = ($key === 'received') ? array_slice($groups[$key], 0, 5) : $groups[$key];
+                    foreach ($visible_orders as $order): ?>
                         <?= hithean_return_render_order_card($order) ?>
                     <?php endforeach; ?>
+                    <?php if ($key === 'received' && count($groups[$key]) > 5): ?>
+                        <div class="orm-history-more">
+                            <div class="orm-card-date">Đang ẩn <?= esc_html((string) (count($groups[$key]) - 5)) ?> đơn lịch sử trên board.</div>
+                            <button type="button" class="button button-primary orm-load-history-btn">Tải thêm</button>
+                        </div>
+                    <?php elseif ($key === 'received'): ?>
+                        <div class="orm-history-more">
+                            <button type="button" class="button orm-load-history-btn">Xem lịch sử dạng bảng</button>
+                        </div>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </section>
@@ -1187,6 +1468,59 @@ function hithean_return_render_board(array $orders): array
         'board_html' => ob_get_clean(),
         'summary_html' => hithean_return_render_summary_cards($counts),
     ];
+}
+
+function hithean_return_render_history_rows(array $orders): string
+{
+    ob_start();
+    foreach ($orders as $order):
+        $oid = $order->get_id();
+        $status = trim((string) $order->get_meta('return_status'));
+        $code = trim((string) $order->get_meta('return_code'));
+        $received_at = (string) $order->get_meta('return_received_at');
+        $images = array_filter(array_map('trim', explode("\n", (string) $order->get_meta('issue_result_images'))));
+    ?>
+        <tr>
+            <td><a href="<?= esc_url($order->get_edit_order_url()) ?>" target="_blank">#<?= esc_html($oid) ?></a></td>
+            <td>
+                <strong><?= esc_html($order->get_formatted_billing_full_name()) ?></strong><br>
+                <?= esc_html($order->get_billing_phone()) ?>
+            </td>
+            <td><?= hithean_return_order_items_summary($order, 3) ?></td>
+            <td><?= esc_html($code !== '' ? $code : 'Chưa có') ?></td>
+            <td><?= esc_html($status) ?></td>
+            <td><?= esc_html($received_at !== '' ? $received_at : wc_format_datetime($order->get_date_modified())) ?></td>
+            <td class="orm-images-preview">
+                <?php foreach (array_slice($images, 0, 4) as $url): ?>
+                    <a href="<?= esc_url($url) ?>" target="_blank"><img src="<?= esc_url($url) ?>" alt=""></a>
+                <?php endforeach; ?>
+            </td>
+        </tr>
+    <?php endforeach;
+    return ob_get_clean();
+}
+
+function hithean_return_render_history_table(array $orders): string
+{
+    ob_start(); ?>
+    <table class="orm-history-table">
+        <thead>
+            <tr>
+                <th>Mã đơn</th>
+                <th>Khách hàng</th>
+                <th>Sản phẩm</th>
+                <th>Mã hoàn</th>
+                <th>Trạng thái hoàn</th>
+                <th>Ngày nhận</th>
+                <th>Ảnh</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?= hithean_return_render_history_rows($orders) ?>
+        </tbody>
+    </table>
+<?php
+    return ob_get_clean();
 }
 
 /* ---- Resolver mã đơn (mô phỏng bank-transfer: bỏ tiền tố P0/P1, thử ID và ID bỏ 2 số cuối) ---- */
@@ -1405,7 +1739,7 @@ add_action('wp_ajax_load_return_board', function () {
         $filter = 'open';
     }
 
-    $cache_key = 'return_board_v1_' . $filter;
+    $cache_key = 'return_board_v3_' . $filter;
     $cached = wp_cache_get($cache_key, 'orders');
     if ($cached !== false) {
         wp_send_json_success($cached);
@@ -1449,13 +1783,38 @@ add_action('wp_ajax_load_return_orders', function () {
     }
 
     $type = sanitize_text_field($_POST['list_type'] ?? 'pending');
+    if ($type === 'history') {
+        $page = max(1, intval($_POST['page'] ?? 1));
+        $per_page = 50;
+        $offset = ($page - 1) * $per_page;
+        $ids = hithean_return_get_received_order_ids($per_page + 1, $offset);
+        $has_more = count($ids) > $per_page;
+        $ids = array_slice($ids, 0, $per_page);
+        $orders = [];
+
+        foreach ($ids as $oid) {
+            $order = wc_get_order($oid);
+            if ($order && $order->get_type() === 'shop_order') {
+                $orders[] = $order;
+            }
+        }
+
+        $rows_html = hithean_return_render_history_rows($orders);
+        wp_send_json_success([
+            'table_html' => $page === 1 ? hithean_return_render_history_table($orders) : '',
+            'rows_html' => $rows_html,
+            'has_more' => $has_more,
+            'message' => sprintf('Đang hiển thị %d đơn lịch sử%s.', $offset + count($orders), $has_more ? ', còn thêm' : ''),
+        ]);
+    }
+
     if ($type === 'board') {
         $filter = sanitize_key($_POST['filter'] ?? 'open');
         if (!in_array($filter, hithean_return_allowed_filters(), true)) {
             $filter = 'open';
         }
 
-        $cache_key = 'return_board_v1_' . $filter;
+        $cache_key = 'return_board_v3_' . $filter;
         $cached = wp_cache_get($cache_key, 'orders');
         if ($cached !== false) {
             wp_send_json_success($cached);
@@ -1715,6 +2074,55 @@ add_action('wp_ajax_process_return_order', function () {
     hithean_return_clear_cache();
 
     wp_send_json_success(['status' => $next_status]);
+});
+
+
+/**
+ * AJAX: Cập nhật mã vận đơn hoàn hàng trực tiếp từ card Kanban.
+ */
+add_action('wp_ajax_update_return_code', function () {
+    check_ajax_referer('update_return_code_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => 'Không có quyền'], 403);
+    }
+
+    $order_id = intval($_POST['order_id'] ?? 0);
+    $code = sanitize_text_field(wp_unslash($_POST['return_code'] ?? ''));
+    $note = sanitize_textarea_field(wp_unslash($_POST['return_note'] ?? ''));
+    if (!$order_id) {
+        wp_send_json_error(['message' => 'Thiếu ID đơn']);
+    }
+    if ($code === '') {
+        wp_send_json_error(['message' => 'Vui lòng nhập mã hoàn']);
+    }
+
+    $order = wc_get_order($order_id);
+    if (!$order || $order->get_type() !== 'shop_order') {
+        wp_send_json_error(['message' => 'Không tìm thấy đơn']);
+    }
+
+    $existing_code = trim((string) $order->get_meta('return_code'));
+    $existing_codes = array_filter(array_map('trim', explode(',', $existing_code)));
+    if ($existing_code === '') {
+        $new_code = $code;
+    } elseif (in_array($code, $existing_codes, true)) {
+        $new_code = $existing_code;
+    } else {
+        $new_code = $existing_code . ', ' . $code;
+    }
+
+    $order->update_meta_data('return_code', $new_code);
+    $order_note = 'HOÀN HÀNG cập nhật mã vận đơn hoàn hàng: ' . $code;
+    if ($note !== '') {
+        $order_note .= "\nGhi chú: " . $note;
+    }
+    $order->add_order_note($order_note, false, true);
+    hithean_return_touch_meta($order, 'code');
+    $order->save();
+
+    hithean_return_clear_cache();
+
+    wp_send_json_success(['code' => $new_code]);
 });
 
 
