@@ -1348,11 +1348,12 @@ add_shortcode('order_return_management', function () {
                 }
 
                 const fd = new FormData();
-                fd.append('action', 'update_return_code');
+                fd.append('action', 'load_return_orders');
+                fd.append('list_type', 'update_code');
                 fd.append('order_id', orderId);
                 fd.append('return_code', code);
                 fd.append('return_note', form.find('textarea[name=return_note]').val());
-                fd.append('nonce', ormCodeNonce);
+                fd.append('nonce', ormBoardNonce);
 
                 setBusy(form, true);
                 form.find('.code-status').text('Đang lưu mã hoàn...');
@@ -1618,7 +1619,7 @@ function hithean_return_clear_cache(): void
     wp_cache_delete('return_orders_pending_v7', 'orders');
     wp_cache_delete('return_orders_completed_v7', 'orders');
     foreach (hithean_return_allowed_filters() as $filter) {
-        wp_cache_delete('return_board_v8_' . $filter, 'orders');
+        wp_cache_delete('return_board_v9_' . $filter, 'orders');
     }
 }
 
@@ -2256,7 +2257,7 @@ add_action('wp_ajax_load_return_board', function () {
         $filter = 'open';
     }
 
-    $cache_key = 'return_board_v8_' . $filter;
+    $cache_key = 'return_board_v9_' . $filter;
     $cached = wp_cache_get($cache_key, 'orders');
     if ($cached !== false) {
         wp_send_json_success($cached);
@@ -2300,6 +2301,46 @@ add_action('wp_ajax_load_return_orders', function () {
     }
 
     $type = sanitize_text_field($_POST['list_type'] ?? 'pending');
+    if ($type === 'update_code') {
+        $order_id = intval($_POST['order_id'] ?? 0);
+        $code = sanitize_text_field(wp_unslash($_POST['return_code'] ?? ''));
+        $note = sanitize_textarea_field(wp_unslash($_POST['return_note'] ?? ''));
+        if (!$order_id) {
+            wp_send_json_error(['message' => 'Thiếu ID đơn']);
+        }
+        if ($code === '') {
+            wp_send_json_error(['message' => 'Vui lòng nhập mã hoàn']);
+        }
+
+        $order = wc_get_order($order_id);
+        if (!$order || $order->get_type() !== 'shop_order') {
+            wp_send_json_error(['message' => 'Không tìm thấy đơn']);
+        }
+
+        $existing_code = trim((string) $order->get_meta('return_code'));
+        $existing_codes = array_filter(array_map('trim', explode(',', $existing_code)));
+        if ($existing_code === '') {
+            $new_code = $code;
+        } elseif (in_array($code, $existing_codes, true)) {
+            $new_code = $existing_code;
+        } else {
+            $new_code = $existing_code . ', ' . $code;
+        }
+
+        $order->update_meta_data('return_code', $new_code);
+        $order_note = 'HOÀN HÀNG cập nhật mã vận đơn hoàn hàng: ' . $code;
+        if ($note !== '') {
+            $order_note .= "\nGhi chú: " . $note;
+        }
+        $order->add_order_note($order_note, false, true);
+        hithean_return_touch_meta($order, 'code');
+        $order->save();
+
+        hithean_return_clear_cache();
+
+        wp_send_json_success(['code' => $new_code]);
+    }
+
     if ($type === 'preview') {
         $order_id = intval($_POST['order_id'] ?? 0);
         if (!$order_id) {
@@ -2345,7 +2386,7 @@ add_action('wp_ajax_load_return_orders', function () {
             $filter = 'open';
         }
 
-        $cache_key = 'return_board_v8_' . $filter;
+        $cache_key = 'return_board_v9_' . $filter;
         $cached = wp_cache_get($cache_key, 'orders');
         if ($cached !== false) {
             wp_send_json_success($cached);
