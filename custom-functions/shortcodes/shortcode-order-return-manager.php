@@ -815,7 +815,10 @@ add_shortcode('order_return_management', function () {
         }
 
         .orm-action-modal-panel {
+            position: absolute;
             width: min(560px, calc(100vw - 32px));
+            max-height: min(640px, calc(100vh - 32px));
+            margin: 0;
         }
 
         .orm-preview-modal-panel {
@@ -1041,15 +1044,55 @@ add_shortcode('order_return_management', function () {
                 $('#orm_history_modal').removeClass('is-open').attr('aria-hidden', 'true');
             }
 
-            function openActionModal(title, hint, html) {
+            function positionActionModal(anchor) {
+                const modal = $('#orm_action_modal');
+                const panel = modal.find('.orm-action-modal-panel');
+                const viewportGap = 16;
+                const anchorNode = anchor && anchor.length ? anchor[0] : null;
+
+                if (!anchorNode) {
+                    panel.css({
+                        top: viewportGap + 'px',
+                        left: '50%',
+                        transform: 'translateX(-50%)'
+                    });
+                    return;
+                }
+
+                panel.css({ top: '', left: '', transform: '' });
+
+                const rect = anchorNode.getBoundingClientRect();
+                const panelWidth = panel.outerWidth();
+                const panelHeight = panel.outerHeight();
+                let top = rect.bottom + 10;
+                let left = rect.left;
+
+                if (top + panelHeight > window.innerHeight - viewportGap) {
+                    top = Math.max(viewportGap, rect.top - panelHeight - 10);
+                }
+
+                if (left + panelWidth > window.innerWidth - viewportGap) {
+                    left = Math.max(viewportGap, window.innerWidth - panelWidth - viewportGap);
+                }
+
+                panel.css({
+                    top: top + 'px',
+                    left: left + 'px',
+                    transform: 'none'
+                });
+            }
+
+            function openActionModal(title, hint, html, anchor) {
                 $('#orm_action_title').text(title);
                 $('#orm_action_hint').text(hint);
                 $('#orm_action_body').html(html);
                 $('#orm_action_modal').addClass('is-open').attr('aria-hidden', 'false');
+                positionActionModal(anchor);
             }
 
             function closeActionModal() {
                 $('#orm_action_modal').removeClass('is-open').attr('aria-hidden', 'true');
+                $('#orm_action_modal .orm-action-modal-panel').removeAttr('style');
                 $('#orm_action_body').empty();
             }
 
@@ -1254,7 +1297,7 @@ add_shortcode('order_return_management', function () {
                 html = html.replaceAll('{{nextStatus}}', btn.data('next-status') || '');
                 const title = isCode ? 'Thêm mã hoàn #' + orderId : (isProcess ? 'Ghi nhận xử lý hoàn #' + orderId : 'Upload ảnh hoàn hàng #' + orderId);
                 const hint = isCode ? 'Nhập mã vận đơn hoàn hàng để nhân sự tiếp tục đối soát.' : (isProcess ? 'Chuyển đơn sang bước chờ hàng hoàn về.' : 'Upload ảnh hàng hoàn và đánh dấu có/không sự cố.');
-                openActionModal(title, hint, html);
+                openActionModal(title, hint, html, btn);
             });
 
             $(document).on('submit', '.return-process-form', function(e) {
