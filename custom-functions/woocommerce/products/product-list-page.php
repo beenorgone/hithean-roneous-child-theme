@@ -170,7 +170,7 @@ if (!function_exists('hithean_product_taxonomy_inline_styles')) {
         }
         ?>
         <style id="hithean-product-taxonomy-cro">
-            .woocommerce .masonry .product .image-box,.woocommerce-page .masonry .product .image-box{height:100%;display:flex;flex-direction:column}
+            .woocommerce .masonry .product .image-box,.woocommerce-page .masonry .product .image-box{height:100%;}
             .woocommerce .masonry .product .woocommerce-LoopProduct-link img,.woocommerce-page .masonry .product .woocommerce-LoopProduct-link img{width:100%;aspect-ratio:1/1;object-fit:cover}
             .woocommerce .masonry .product .woocommerce-loop-product__title,.woocommerce-page .masonry .product .woocommerce-loop-product__title{min-height:2.6em;margin-top:14px}
             .woocommerce .masonry .product .price,.woocommerce-page .masonry .product .price{display:block;margin:8px 0 14px}
