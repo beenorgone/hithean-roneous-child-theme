@@ -382,6 +382,14 @@ body.oc-hide-line-discount .oc-lines td:nth-child(4) { display: none; }
 .oc-modal__dialog--wide { width: min(900px, calc(100vw - 32px)); }
 .oc-modal__close { position: absolute; top: 10px; right: 14px; border: 0; background: transparent; font-size: 28px; cursor: pointer; line-height: 1; }
 .oc-modal__summary textarea { width: 100%; box-sizing: border-box; }
+.oc-status-message { margin: 0 0 12px; font-weight: 700; }
+.oc-status-message--ok { color: #047857; }
+.oc-status-message--error { color: #b91c1c; }
+.oc-status-list { display: grid; gap: 8px; margin: 0 0 12px; }
+.oc-status-list div { display: grid; grid-template-columns: minmax(130px, 38%) 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--oc-border); }
+.oc-status-list div:last-child { border-bottom: 0; }
+.oc-status-list dt { color: var(--oc-muted); font-weight: 600; }
+.oc-status-list dd { margin: 0; font-weight: 700; color: var(--oc-text); }
 .oc-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
 .oc-form-grid label { display: block; font-size: 12px; color: var(--oc-muted); margin-bottom: 4px; font-weight: 600; }
 .oc-form-span { grid-column: 1 / -1; }

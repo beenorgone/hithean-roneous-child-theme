@@ -492,6 +492,43 @@
         openModal('#oc-coupon-modal');
     }
 
+    function statusRows(rows) {
+        var html = '<dl class="oc-status-list">';
+        rows.forEach(function (row) {
+            html += '<div><dt>' + escapeHtml(row.label) + '</dt><dd>' + escapeHtml(row.value || '') + '</dd></div>';
+        });
+        html += '</dl>';
+        return html;
+    }
+
+    function showCustomerConfirmModal(data, isError) {
+        data = data || {};
+        var title = $('#oc-customer-confirm-title');
+        var body = $('#oc-customer-confirm-body');
+        var edit = $('#oc-customer-confirm-edit');
+        title.textContent = isError ? 'Không chuyển được trạng thái đơn' : 'Khách đã xác nhận';
+
+        var rows = [];
+        rows.push({ label: 'Đơn hàng', value: data.order_number ? '#' + data.order_number : (data.order_id ? '#' + data.order_id : '') });
+        if (data.previous_status_label) { rows.push({ label: 'Trạng thái trước', value: data.previous_status_label }); }
+        if (data.target_status_label) { rows.push({ label: 'Trạng thái cần chuyển', value: data.target_status_label }); }
+        if (data.status_label) { rows.push({ label: 'Trạng thái hiện tại', value: data.status_label }); }
+        if (data.confirmed_at) { rows.push({ label: 'Thời gian xác nhận', value: data.confirmed_at }); }
+
+        body.innerHTML = '<p class="' + (isError ? 'oc-status-message oc-status-message--error' : 'oc-status-message oc-status-message--ok') + '">'
+            + escapeHtml(data.message || (isError ? 'Không chuyển được trạng thái đơn.' : 'Đã cập nhật trạng thái đơn.'))
+            + '</p>' + statusRows(rows)
+            + (data.reason ? '<p class="oc-muted">' + escapeHtml(data.reason) + '</p>' : '');
+
+        if (edit && data.edit_url) {
+            edit.href = data.edit_url;
+            edit.hidden = false;
+        } else if (edit) {
+            edit.hidden = true;
+        }
+        openModal('#oc-customer-confirm-modal');
+    }
+
     function setCouponModalEdit(detail) {
         var edit = $('#oc-coupon-modal-edit');
         if (detail && detail.edit_url) {
@@ -1473,17 +1510,28 @@
         btn.disabled = true;
         btn.textContent = 'Đang chuyển...';
         post('order_creator_customer_confirmed', { order_id: o.order_id }).then(function (res) {
+            var data = (res && res.data) || {};
+            data.order_id = data.order_id || o.order_id;
+            data.order_number = data.order_number || o.order_number;
+            data.edit_url = data.edit_url || o.edit_url;
             if (!res.success) {
                 btn.disabled = false;
                 btn.textContent = 'Khách đã xác nhận';
-                alert((res.data && res.data.message) || 'Không chuyển được trạng thái đơn.');
+                showCustomerConfirmModal(data, true);
                 return;
             }
-            state.lastOrder = Object.assign({}, state.lastOrder, res.data);
-            renderResult(state.lastOrder, false, '✅ Khách đã xác nhận, đơn chuyển sang ' + (res.data.status_label || res.data.status) + ' ');
+            state.lastOrder = Object.assign({}, state.lastOrder, data);
+            renderResult(state.lastOrder, false, '✅ Khách đã xác nhận, đơn chuyển sang ' + (data.status_label || data.status) + ' ');
+            showCustomerConfirmModal(Object.assign({ message: 'Đã xác nhận COD và cập nhật trạng thái đơn.' }, data), false);
         }).catch(function () {
             btn.disabled = false;
             btn.textContent = 'Khách đã xác nhận';
+            showCustomerConfirmModal({
+                order_id: o.order_id,
+                order_number: o.order_number,
+                edit_url: o.edit_url,
+                message: 'Không gọi được máy chủ. Vui lòng thử lại hoặc kiểm tra trạng thái đơn trong quản trị.'
+            }, true);
         });
     }
 

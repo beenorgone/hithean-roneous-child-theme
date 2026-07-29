@@ -1325,13 +1325,19 @@ function order_creator_customer_confirmed_cod_order(WC_Order $order): array
     if ($order->get_payment_method() !== 'cod') {
         throw new Exception('Chỉ áp dụng cho đơn COD.');
     }
-    if (!in_array($order->get_status(), ['on-hold', 'processing'], true)) {
+    $previous_status = $order->get_status();
+    if (!in_array($previous_status, ['on-hold', 'processing'], true)) {
         throw new Exception('Chỉ áp dụng khi đơn đang ở trạng thái Tạm giữ hoặc Đang xử lý.');
     }
 
     $is_quick = order_creator_order_has_quick_shipping($order);
     $is_local = order_creator_order_is_local_delivery($order);
     $target_status = $is_quick ? 'local-shipping' : 'packaging';
+    $statuses = wc_get_order_statuses();
+    if (!isset($statuses['wc-' . $target_status])) {
+        throw new Exception('Trạng thái đích không tồn tại: ' . $target_status . '. Kiểm tra module đăng ký trạng thái đơn.');
+    }
+
     $reason = $is_quick
         ? 'Khách đã xác nhận COD, đơn có trạng thái xử lý Giao nhanh nên chuyển sang Giao nhanh.'
         : ($is_local
@@ -1339,21 +1345,28 @@ function order_creator_customer_confirmed_cod_order(WC_Order $order): array
             : 'Khách đã xác nhận COD ngoại tỉnh, chuyển sang Chuẩn bị bàn giao vận chuyển.');
 
     $user = wp_get_current_user();
-    $order->update_meta_data('_order_creator_customer_confirmed_at', current_time('mysql'));
+    $confirmed_at = current_time('mysql');
+    $order->update_meta_data('_order_creator_customer_confirmed_at', $confirmed_at);
     $order->update_meta_data('_order_creator_customer_confirmed_by', $user ? (int) $user->ID : 0);
-    if ($order->get_status() !== $target_status) {
+    if ($previous_status !== $target_status) {
         $order->update_status($target_status, $reason);
     } else {
         $order->add_order_note($reason, false);
     }
     $order->save();
 
-    $statuses = wc_get_order_statuses();
+    $order = wc_get_order($order->get_id()) ?: $order;
     return [
-        'status'       => $order->get_status(),
-        'status_label' => $statuses['wc-' . $order->get_status()] ?? $order->get_status(),
-        'is_quick'     => $is_quick,
-        'is_local'     => $is_local,
+        'previous_status'       => $previous_status,
+        'previous_status_label' => $statuses['wc-' . $previous_status] ?? $previous_status,
+        'target_status'         => $target_status,
+        'target_status_label'   => $statuses['wc-' . $target_status] ?? $target_status,
+        'status'                => $order->get_status(),
+        'status_label'          => $statuses['wc-' . $order->get_status()] ?? $order->get_status(),
+        'reason'                => $reason,
+        'confirmed_at'          => $confirmed_at,
+        'is_quick'              => $is_quick,
+        'is_local'              => $is_local,
     ];
 }
 
@@ -2239,7 +2252,16 @@ add_action('wp_ajax_order_creator_customer_confirmed', function () {
             'payment_method'=> $order->get_payment_method(),
         ]));
     } catch (Throwable $e) {
-        wp_send_json_error(['message' => $e->getMessage()]);
+        $statuses = wc_get_order_statuses();
+        wp_send_json_error([
+            'message'       => $e->getMessage(),
+            'order_id'      => $order->get_id(),
+            'order_number'  => function_exists('change_order_number') ? (string) change_order_number($order->get_id()) : (string) $order->get_order_number(),
+            'edit_url'      => $order->get_edit_order_url(),
+            'status'        => $order->get_status(),
+            'status_label'  => $statuses['wc-' . $order->get_status()] ?? $order->get_status(),
+            'payment_method'=> $order->get_payment_method(),
+        ]);
     }
 });
 
@@ -3201,6 +3223,20 @@ function order_creator_render_page(): void
             <button type="button" class="oc-btn oc-btn--primary" id="oc-pay-confirm">Xác nhận</button>
         </div>
         <div class="oc-modal__result" id="oc-pay-result"></div>
+    </div>
+</div>
+
+<!-- Modal kết quả khách xác nhận COD -->
+<div class="oc-modal" id="oc-customer-confirm-modal" hidden>
+    <div class="oc-modal__backdrop" data-oc-close="1"></div>
+    <div class="oc-modal__dialog" role="dialog" aria-modal="true">
+        <button type="button" class="oc-modal__close" data-oc-close="1" aria-label="Đóng">&times;</button>
+        <h3 id="oc-customer-confirm-title">Khách đã xác nhận</h3>
+        <div id="oc-customer-confirm-body"></div>
+        <div class="oc-modal__actions">
+            <a href="#" class="oc-btn oc-btn--ghost" id="oc-customer-confirm-edit" target="_blank" rel="noopener" hidden>Mở đơn hàng</a>
+            <button type="button" class="oc-btn oc-btn--primary" data-oc-close="1">Đóng</button>
+        </div>
     </div>
 </div>
 
