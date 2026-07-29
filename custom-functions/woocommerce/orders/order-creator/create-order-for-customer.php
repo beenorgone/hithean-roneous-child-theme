@@ -2080,9 +2080,9 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
         . 'Địa chỉ dùng cấu trúc hành chính VN MỚI (sau sáp nhập 07/2025, 2 cấp, không còn quận/huyện): '
         . 'state = tên tỉnh/thành, chỉ chọn trong danh sách: ' . implode('; ', theme_vn_address_provinces()) . '. '
         . 'city = tên phường/xã theo cấu trúc mới kèm tiền tố, VD "Phường Ba Đình", "Xã Tiên Lữ" — nếu địa chỉ gốc ghi theo cấu trúc cũ (có quận/huyện), quy đổi sang phường/xã mới khi biết chắc, không chắc thì giữ nguyên tên phường/xã gốc. '
-        . 'Quy tắc khác: first_name = tên gọi (VD "Hằng" trong "Nguyễn Thị Hằng"); last_name = họ + tên đệm (VD "Nguyễn Thị"); '
+        . 'Quy tắc khác: first_name = đầy đủ họ tên khách hàng theo thứ tự tự nhiên (VD "Nguyễn Thị Hằng"); last_name = chuỗi rỗng, chỉ dùng khi dữ liệu nguồn bắt buộc tách riêng họ. '
         . 'phone = SĐT Việt Nam, giữ số 0 đầu, chỉ gồm chữ số; '
-        . 'address_1 = số nhà + tên đường/thôn/xóm; address_2 = thông tin bổ sung (tòa nhà, ngõ ngách, quận/huyện cũ...). '
+        . 'address_1 = full địa chỉ giao hàng đọc được, gồm số nhà/đường/thôn/xóm + phường/xã + quận/huyện cũ nếu có + tỉnh/thành; address_2 = thông tin bổ sung riêng như tòa nhà, tầng, căn hộ, cổng, ghi chú đường vào nếu có. '
         . 'Trường không tìm thấy → chuỗi rỗng. Không markdown, không giải thích, chỉ trả về JSON.';
 
     $prompt = $text !== '' ? "Dữ liệu khách hàng:\n" . $text : 'Bóc tách thông tin khách hàng từ ảnh đính kèm.';
@@ -2108,6 +2108,30 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     foreach (['first_name', 'last_name', 'email', 'phone', 'address_1', 'address_2', 'city', 'state'] as $key) {
         $value = isset($data[$key]) && is_string($data[$key]) ? trim($data[$key]) : '';
         $fields[$key] = $key === 'email' ? sanitize_email($value) : sanitize_text_field($value);
+    }
+
+    if ($fields['first_name'] !== '' && $fields['last_name'] !== '') {
+        $fields['first_name'] = trim($fields['last_name'] . ' ' . $fields['first_name']);
+        $fields['last_name'] = '';
+    }
+
+    // Address 1 trong popup cần giữ full address AI bóc tách được, không chỉ phần đường.
+    $normalize_address_part = static function (string $value): string {
+        $value = function_exists('remove_accents') ? remove_accents($value) : $value;
+        return preg_replace('/\s+/', ' ', strtolower(trim($value))) ?: '';
+    };
+    $full_address = $fields['address_1'];
+    foreach ([$fields['address_2'], $fields['city'], $fields['state']] as $part) {
+        if ($part === '') {
+            continue;
+        }
+        if ($full_address !== '' && strpos($normalize_address_part($full_address), $normalize_address_part($part)) !== false) {
+            continue;
+        }
+        $full_address = $full_address !== '' ? $full_address . ', ' . $part : $part;
+    }
+    if ($full_address !== '') {
+        $fields['address_1'] = $full_address;
     }
 
     // Chuẩn hóa về danh mục hành chính: state → mã tỉnh, city → tên phường/xã đúng danh mục.
@@ -3097,8 +3121,8 @@ function order_creator_render_page(): void
 
         <h4 class="oc-subhead">Thông tin chung</h4>
         <div class="oc-form-grid">
-            <div class="oc-cust-field" data-cust="first_name"><label>Tên *</label><input type="text" id="oc-cust-first_name"></div>
-            <div class="oc-cust-field" data-cust="last_name"><label>Họ</label><input type="text" id="oc-cust-last_name"></div>
+            <div class="oc-cust-field" data-cust="first_name"><label>Họ tên *</label><input type="text" id="oc-cust-first_name"></div>
+            <div class="oc-cust-field" data-cust="last_name"><label>Họ / tên đệm</label><input type="text" id="oc-cust-last_name"></div>
             <div class="oc-cust-field" data-cust="email"><label>E-mail</label><input type="email" id="oc-cust-email"></div>
             <div class="oc-cust-field" data-cust="username"><label>Tên đăng nhập</label><input type="text" id="oc-cust-username"></div>
             <div class="oc-cust-field" data-cust="role"><label>Vai trò</label><select id="oc-cust-role"></select></div>
@@ -3108,7 +3132,7 @@ function order_creator_render_page(): void
         <?php require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php'; ?>
         <div class="oc-form-grid">
             <div class="oc-cust-field" data-cust="phone"><label>SĐT *</label><input type="text" id="oc-cust-phone"></div>
-            <div class="oc-cust-field" data-cust="address_1"><label>Địa chỉ 1 * (số nhà, đường/thôn xóm)</label><input type="text" id="oc-cust-address_1"></div>
+            <div class="oc-cust-field" data-cust="address_1"><label>Địa chỉ 1 * (full địa chỉ giao hàng)</label><input type="text" id="oc-cust-address_1"></div>
             <div class="oc-cust-field" data-cust="address_2"><label>Địa chỉ 2</label><input type="text" id="oc-cust-address_2"></div>
             <div class="oc-cust-field" data-cust="state"><label>Tỉnh/Thành *</label>
                 <select id="oc-cust-state">
