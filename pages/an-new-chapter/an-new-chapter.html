@@ -311,13 +311,13 @@
       <button type="button" class="anc-pf-chip is-active" role="tab" aria-selected="true" data-card="matcha">Matcha</button>
       <button type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="matcha-latte">Matcha Latte Coconut</button>
       <button type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="inulin">Inulin</button>
-      <!--button-- type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="inulin">Bột củ dền</!--button-->
+      <button type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="beetroot">Bột củ dền</button>
     </div>
 
     <div class="anc-pf-panels">
 
       <!-- ========== MATCHA (id 6228) ========== -->
-      <div class="anc-pf anc-pf-panel is-active" data-card="matcha" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2026/06/web-background-Organic-Matcha-Powder-The-An-Organics.png" hidden style="--card-accent: var(--product-matcha-green);">
+      <div class="anc-pf anc-pf-panel is-active" data-card="matcha" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2026/06/web-background-Organic-Matcha-Powder-The-An-Organics.png" style="--card-accent: var(--product-matcha-green);">
         <div class="anc-pf-visual">
           [wc_product_field id="6228" field="gallery"]
           <div class="anc-pf-controls">
@@ -371,8 +371,8 @@
         </div>
       </div>
 
-      <!-- ========== INULIN (id 6241) — mặc định ========== -->
-      <div class="anc-pf anc-pf-panel" data-card="inulin" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin.png" style="--card-accent: var(--product-inulin-blue);">
+      <!-- ========== INULIN (id 6241) ========== -->
+      <div class="anc-pf anc-pf-panel" data-card="inulin" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin.png" hidden style="--card-accent: var(--product-inulin-blue);">
         <div class="anc-pf-visual">
           [wc_product_field id="6241" field="gallery"]
           <div class="anc-pf-controls">
@@ -400,6 +400,35 @@
         </div>
       </div>
 
+      <!-- ========== BEETROOT POWDER (id 9396) ========== -->
+      <div class="anc-pf anc-pf-panel" data-card="beetroot" role="tabpanel" data-section-bg="https://hithean.com/wp-content/uploads/2026/07/background-cu-den.png" hidden style="--card-accent: #db0011;">
+        <div class="anc-pf-visual">
+          [wc_product_field id="9396" field="gallery"]
+          <div class="anc-pf-controls">
+            <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
+            [product_nutrition_label product_id="9396"]
+            <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
+          </div>
+        </div>
+        <div class="anc-pf-details">
+          <span class="anc-pf-badge">Rooted in natural richness</span>
+          <h3 class="anc-pf-name">[wc_product_field id="9396" field="name"]</h3>
+          <div class="anc-pf-pills">
+            <span class="anc-stat-pill">USDA & EU Organic</span>
+            <span class="anc-stat-pill">100% bột củ dền hữu cơ</span>
+            <span class="anc-stat-pill">Hộp 150g</span>
+          </div>
+          <p class="anc-pf-intro">Bột củ dền hữu cơ được làm từ củ dền đỏ, nổi bật với sắc màu tự nhiên và hương vị thanh ngọt đặc trưng. Củ dền là nguồn cung cấp nhiều vitamin, khoáng chất cùng các hợp chất chống oxy hóa tự nhiên như betalain, sắc tố tạo nên màu đỏ tím đặc trưng.</p>
+          <ul class="anc-product-highlights">
+            <li><strong>Chứng nhận hữu cơ USDA và EU Organic</strong></li>
+            <li>100% bột củ dền hữu cơ, không hương liệu, không màu tổng hợp</li>
+            <li>Dùng pha nước, đồ uống yêu thích, sinh tố, latte, làm bánh hoặc tạo màu tự nhiên cho món ăn</li>
+          </ul>
+          <div class="anc-product-price">[wc_product_field id="9396" field="price_block"]</div>
+          <a href='[wc_product_field id="9396" field="permalink"]' class="button--dark-blue anc-pf-cta">[wc_product_field id="9396" field="cta_text"] →</a>
+        </div>
+      </div>
+
     </div>
 
     <!-- Bộ chip lặp lại dưới card — chỉ hiện trên mobile để chọn sản phẩm khi kéo xuống cuối -->
@@ -407,7 +436,7 @@
       <button type="button" class="anc-pf-chip is-active" role="tab" aria-selected="true" data-card="matcha">Matcha</button>
       <button type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="matcha-latte">Matcha Latte Coconut</button>
       <button type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="inulin">Inulin</button>
-      <!--button-- type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="inulin">Bột củ dền</!--button-->
+      <button type="button" class="anc-pf-chip" role="tab" aria-selected="false" data-card="beetroot">Bột củ dền</button>
     </div>
   </div>
 </section>
@@ -547,7 +576,7 @@
      ============================================================ -->
 <section id="anc-social">
   <div class="anc-social-display anc-fade-in">
-    [social_display desktop="collage" mobile="coverflow" limit="23" columns="5" heading="Cộng đồng The An Organics" bold="Yeast Hero" accent="#16a34a" bg="#fdf6e3"]
+    [social_display desktop="collage" mobile="coverflow" limit="23" columns="5" heading="Ai đang dùng The An Organics" bold="Yeast Hero" accent="#16a34a" bg="#fdf6e3"]
   </div>
 
   <div class="anc-social-inner anc-fade-in">
