@@ -55,29 +55,30 @@ function hithean_anc_resolve_product(array $atts): ?WC_Product
     return null;
 }
 
-function hithean_anc_parse_json_list($json): array
+function hithean_anc_parse_list($value): array
 {
-    $json = trim((string) $json);
-    if ($json === '') {
+    $value = trim((string) $value);
+    if ($value === '') {
         return [];
     }
 
-    $decoded = json_decode($json, true);
-    if (!is_array($decoded)) {
-        return [];
-    }
-
-    $items = [];
-    foreach ($decoded as $item) {
-        if (is_scalar($item)) {
-            $item = trim((string) $item);
-            if ($item !== '') {
-                $items[] = $item;
-            }
+    // Raw JSON arrays contain closing brackets, which are fragile inside WP shortcode attrs.
+    // Keep JSON fallback for programmatic use, but prefer pipe-delimited text in page HTML.
+    if ($value[0] === '[') {
+        $decoded = json_decode($value, true);
+        if (is_array($decoded)) {
+            return array_values(array_filter(array_map(static function ($item): string {
+                return is_scalar($item) ? trim((string) $item) : '';
+            }, $decoded), static fn($item): bool => $item !== ''));
         }
     }
 
-    return $items;
+    $items = preg_split('/\s*\|\s*/', $value);
+    if (!is_array($items)) {
+        return [];
+    }
+
+    return array_values(array_filter(array_map('trim', $items), static fn($item): bool => $item !== ''));
 }
 
 function hithean_anc_sanitize_css_color($value): string
@@ -264,10 +265,17 @@ function hithean_anc_product_card_shortcode($atts): string
         'badge'           => '',
         'intro'           => '',
         'pills_json'      => '',
+        'pills'           => '',
         'highlights_json' => '',
+        'highlights'      => '',
         'cta_text'        => '',
         'cta_url'         => '',
         'cta_suffix'      => ' →',
+        'show_cta'        => '1',
+        'secondary_cta_text'  => '',
+        'secondary_cta_url'   => '',
+        'secondary_cta_class' => 'button--light-blue anc-b2b-product-cta',
+        'note'            => '',
         'stock_status'    => 'auto',
         'show_gallery'    => '1',
         'show_nutrition'  => '1',
@@ -300,8 +308,8 @@ function hithean_anc_product_card_shortcode($atts): string
         $cta_url = (string) get_permalink($product->get_id());
     }
 
-    $pills = hithean_anc_parse_json_list($atts['pills_json']);
-    $highlights = hithean_anc_parse_json_list($atts['highlights_json']);
+    $pills = hithean_anc_parse_list($atts['pills'] !== '' ? $atts['pills'] : $atts['pills_json']);
+    $highlights = hithean_anc_parse_list($atts['highlights'] !== '' ? $atts['highlights'] : $atts['highlights_json']);
     $accent = hithean_anc_sanitize_css_color($atts['accent']);
     $style = $accent !== '' ? '--card-accent: ' . $accent . ';' : '';
 
@@ -345,7 +353,15 @@ function hithean_anc_product_card_shortcode($atts): string
             <?php if (hithean_anc_bool($atts['show_price'], true)) : ?>
                 <div class="anc-product-price"><?php echo hithean_anc_product_price_html($product); ?></div>
             <?php endif; ?>
-            <a href="<?php echo esc_url($cta_url); ?>" class="button--dark-blue anc-pf-cta"><?php echo esc_html($cta_text . (string) $atts['cta_suffix']); ?></a>
+            <?php if (hithean_anc_bool($atts['show_cta'], true)) : ?>
+                <a href="<?php echo esc_url($cta_url); ?>" class="button--dark-blue anc-pf-cta"><?php echo esc_html($cta_text . (string) $atts['cta_suffix']); ?></a>
+            <?php endif; ?>
+            <?php if ($atts['secondary_cta_text'] !== '') : ?>
+                <a href="<?php echo esc_url((string) $atts['secondary_cta_url']); ?>" class="<?php echo esc_attr((string) $atts['secondary_cta_class']); ?>"><?php echo esc_html($atts['secondary_cta_text']); ?></a>
+            <?php endif; ?>
+            <?php if ($atts['note'] !== '') : ?>
+                <div class="anc-b2b-product-note"><?php echo wp_kses_post($atts['note']); ?></div>
+            <?php endif; ?>
             <?php if (hithean_anc_bool($atts['show_calc'], false)) : ?>
                 <div class="anc-pf-calc">
                     <span class="anc-pf-calc-text"><?php echo wp_kses_post($atts['calc_text']); ?></span>
