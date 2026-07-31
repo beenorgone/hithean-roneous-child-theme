@@ -1254,7 +1254,7 @@ function thean_lw_create_coupon(array $reward, array $contact, array $claim_iden
     ));
     $coupon->set_usage_limit(1);
     $coupon->set_usage_limit_per_user(1);
-    $coupon->set_individual_use(true);
+    $coupon->set_individual_use(false);
     $coupon->set_date_expires((new WC_DateTime())->setTimestamp(time() + thean_lw_coupon_ttl()));
     $coupon->update_meta_data('_thean_lw_reward_id', $reward['id']);
     $coupon->update_meta_data('_thean_lw_reward_type', $reward['type']);
