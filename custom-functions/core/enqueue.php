@@ -26,7 +26,7 @@ if (!function_exists('roneous_child_enqueue_styles')) {
             filemtime(get_stylesheet_directory() . '/css/custom.css')
         );
 
-        if (is_page(['an-new-chapter', 'anc-huu-co', 'anc-phan-phoi', 'an-new-chapter-b2b', 'an-new-chapter-b2b-organic'])) {
+        if (is_front_page() || is_page(['an-new-chapter', 'anc-huu-co', 'anc-phan-phoi', 'an-new-chapter-b2b', 'an-new-chapter-b2b-organic'])) {
             wp_enqueue_style(
                 'hithean-an-new-chapter-style',
                 get_stylesheet_directory_uri() . '/pages/an-new-chapter/an-new-chapter.css',
