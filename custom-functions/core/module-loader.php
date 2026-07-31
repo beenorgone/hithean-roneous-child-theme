@@ -337,6 +337,13 @@ function tpc_loader_modules()
             'id' => 'wc_product_field',
             'file' => 'custom-functions/shortcodes/shortcode-wc-product-field.php',
             'path_groups' => ['anc_landing'],
+            'condition' => 'is_front_page',
+        ],
+        [
+            'id' => 'anc_product_cards',
+            'file' => 'custom-functions/shortcodes/shortcode-anc-product-cards.php',
+            'path_groups' => ['anc_landing'],
+            'condition' => 'is_front_page',
         ],
 
         /* ===== Chuyển từ $general_includes sang conditional (Phase 2) =====
