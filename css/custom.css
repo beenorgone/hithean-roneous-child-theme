@@ -886,11 +886,19 @@ input[type="submit"],
 .single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before {
     content: "NEW";
     top: 10px;
-    left: 10px;
+    right: 10px;
 }
 
+.woocommerce span.onsale,
 .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link .onsale,
 .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link .onsale {
+    top: 10px;
+    right: 10px;
+    left: auto;
+}
+
+.woocommerce .product_tag-new.sale > a.woocommerce-LoopProduct-link::before,
+.woocommerce-page .product_tag-new.sale .image-box > a.woocommerce-LoopProduct-link::before {
     top: 54px;
 }
 
@@ -910,11 +918,19 @@ input[type="submit"],
     .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
     .single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before {
         top: 8px;
-        left: 8px;
+        right: 8px;
     }
 
+    .woocommerce span.onsale,
     .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link .onsale,
     .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link .onsale {
+        top: 8px;
+        right: 8px;
+        left: auto;
+    }
+
+    .woocommerce .product_tag-new.sale > a.woocommerce-LoopProduct-link::before,
+    .woocommerce-page .product_tag-new.sale .image-box > a.woocommerce-LoopProduct-link::before {
         top: 46px;
     }
 }
