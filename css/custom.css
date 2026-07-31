@@ -878,6 +878,8 @@ input[type="submit"],
     font-weight: 700;
     line-height: 1;
     letter-spacing: 0;
+    text-align: center;
+    white-space: nowrap;
     pointer-events: none;
 }
 
@@ -887,6 +889,8 @@ input[type="submit"],
     content: "NEW";
     top: 10px;
     right: 10px;
+    left: auto;
+    margin: 0;
 }
 
 .woocommerce span.onsale,
@@ -895,6 +899,8 @@ input[type="submit"],
     top: 10px;
     right: 10px;
     left: auto;
+    margin: 0;
+    transform: none;
 }
 
 .woocommerce .product_tag-new.sale > a.woocommerce-LoopProduct-link::before,
@@ -919,6 +925,8 @@ input[type="submit"],
     .single-product .product_tag-new .woocommerce-product-gallery .flex-viewport::before {
         top: 8px;
         right: 8px;
+        left: auto;
+        margin: 0;
     }
 
     .woocommerce span.onsale,
@@ -927,6 +935,8 @@ input[type="submit"],
         top: 8px;
         right: 8px;
         left: auto;
+        margin: 0;
+        transform: none;
     }
 
     .woocommerce .product_tag-new.sale > a.woocommerce-LoopProduct-link::before,
