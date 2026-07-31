@@ -1073,6 +1073,7 @@ body.anc-modal-locked {
     font-size: 13px;
     color: var(--default-color-charcoal-grey, #555);
     line-height: 1.55;
+    text-align: left;
 }
 
 .anc-pf-update-icon {
