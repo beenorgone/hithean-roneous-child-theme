@@ -108,7 +108,7 @@
     text-transform: uppercase !important;
     color: var(--default-color-white) !important;
     margin: 0 auto 12px !important;
-    line-height: 1.16 !important;
+    line-height: 1.3 !important;
     max-width: 17ch;
     text-wrap: balance;
 }
@@ -1954,8 +1954,8 @@ body.anc-modal-locked {
 
     .anc-hero-title {
         font-size: 1.98rem !important;
-        line-height: 1.18 !important;
-        max-width: 14ch;
+        line-height: 1.3 !important;
+        max-width: 19ch;
     }
 
     .anc-hero-subtitle {

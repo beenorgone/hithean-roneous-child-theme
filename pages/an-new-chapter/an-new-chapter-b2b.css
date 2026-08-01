@@ -168,7 +168,8 @@
 }
 
 .anc-model-picker {
-  margin-top: 34px;
+  width: min(920px, 100%);
+  margin: 28px auto 0;
 }
 
 .anc-model-picker > input {
@@ -182,63 +183,130 @@
 .anc-model-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 18px;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 5px;
+  border: 1px solid var(--anc-b2b-border);
+  border-radius: 8px;
+  background: #eef4ef;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .anc-model-tabs label {
-  min-height: 48px;
+  min-height: 42px;
   display: grid;
   place-items: center;
-  padding: 10px 12px;
-  border: 1px solid var(--anc-b2b-border);
-  border-radius: 8px;
-  background: #f8faf7;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
   color: var(--anc-b2b-ink);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1.25;
   text-align: center;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.anc-model-tabs label:hover {
+  background: rgba(255, 255, 255, 0.68);
+  border-color: rgba(15, 51, 48, 0.08);
 }
 
 #anc-model-gym:checked ~ .anc-model-tabs label[for="anc-model-gym"],
 #anc-model-store:checked ~ .anc-model-tabs label[for="anc-model-store"],
-#anc-model-online:checked ~ .anc-model-tabs label[for="anc-model-online"],
-#anc-model-distributor:checked ~ .anc-model-tabs label[for="anc-model-distributor"] {
-  background: var(--anc-b2b-accent);
-  border-color: var(--anc-b2b-accent);
-  color: #fff;
+#anc-model-ecom:checked ~ .anc-model-tabs label[for="anc-model-ecom"],
+#anc-model-affiliate:checked ~ .anc-model-tabs label[for="anc-model-affiliate"] {
+  background: #fff;
+  border-color: rgba(15, 118, 110, 0.24);
+  box-shadow: 0 6px 16px rgba(15, 51, 48, 0.12);
+  color: var(--anc-b2b-accent);
 }
 
 .anc-model-panels {
-  border: 1px solid var(--anc-b2b-border);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(15, 118, 110, 0.16);
   border-radius: 8px;
-  background: var(--anc-b2b-surface-green);
-  padding: 28px;
+  background: linear-gradient(135deg, #f7fbf5 0%, #eef9f4 58%, #fffaf0 100%);
+  padding: 22px 24px;
+  box-shadow: 0 16px 34px rgba(15, 51, 48, 0.09);
+}
+
+.anc-model-panels::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--anc-b2b-accent);
+}
+
+.anc-model-common-panel {
+  position: relative;
+  margin-bottom: 18px;
+  padding: 18px 18px 18px 20px;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 10px 24px rgba(15, 51, 48, 0.06);
 }
 
 .anc-model-panel {
   display: none;
+  position: relative;
 }
 
-.anc-model-panel h3 {
-  margin: 0 0 16px;
+.anc-model-panel h3,
+.anc-model-common-panel h3 {
+  margin: 0 0 14px;
   color: var(--anc-b2b-ink);
-  font-size: clamp(20px, 3vw, 28px);
+  font-size: clamp(18px, 2.3vw, 24px);
+  line-height: 1.25;
 }
 
-.anc-model-panel ul {
+.anc-model-common-panel h3 {
+  font-size: clamp(17px, 2vw, 21px);
+}
+
+.anc-model-panel ul,
+.anc-model-common-panel ul {
   margin: 0;
-  padding-left: 20px;
+  padding: 0;
   color: var(--anc-b2b-muted);
-  line-height: 1.8;
+  font-size: 14px;
+  line-height: 1.65;
+  list-style: none;
+}
+
+.anc-model-panel li,
+.anc-model-common-panel li {
+  position: relative;
+  padding-left: 25px;
+}
+
+.anc-model-panel li + li,
+.anc-model-common-panel li + li {
+  margin-top: 8px;
+}
+
+.anc-model-panel li::before,
+.anc-model-common-panel li::before {
+  content: "";
+  position: absolute;
+  top: 0.62em;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d8a63f;
+  box-shadow: 0 0 0 5px rgba(216, 166, 63, 0.15);
 }
 
 #anc-model-gym:checked ~ .anc-model-panels .anc-model-panel--gym,
 #anc-model-store:checked ~ .anc-model-panels .anc-model-panel--store,
-#anc-model-online:checked ~ .anc-model-panels .anc-model-panel--online,
-#anc-model-distributor:checked ~ .anc-model-panels .anc-model-panel--distributor {
+#anc-model-ecom:checked ~ .anc-model-panels .anc-model-panel--ecom,
+#anc-model-affiliate:checked ~ .anc-model-panels .anc-model-panel--distributor {
   display: block;
 }
 
@@ -281,12 +349,41 @@
 }
 
 @media (max-width: 760px) {
-  .anc-model-tabs,
   .anc-shopee-layout {
     grid-template-columns: 1fr;
   }
 
+  .anc-model-picker {
+    margin-top: 22px;
+  }
+
+  .anc-model-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .anc-model-tabs label {
+    min-height: 40px;
+    padding: 8px 7px;
+    font-size: 15px;
+  }
+
   .anc-model-panels {
-    padding: 22px;
+    padding: 20px 18px 20px 22px;
+  }
+
+  .anc-model-common-panel {
+    margin-bottom: 14px;
+    padding: 16px 14px 16px 16px;
+  }
+
+  .anc-model-panel h3,
+  .anc-model-common-panel h3 {
+    font-size: 18px;
+  }
+
+  .anc-model-panel ul,
+  .anc-model-common-panel ul {
+    font-size: 13px;
+    line-height: 1.6;
   }
 }
