@@ -329,6 +329,7 @@ function tpc_loader_modules()
             'id' => 'protein_calculator',
             'file' => 'custom-functions/shortcodes/shortcode-protein-calculator.php',
             'path_groups' => ['tools', 'protein'],
+            'condition' => 'is_front_page',
             'ajax_actions' => [
                 'protein_calculator_get_products',
             ],
