@@ -255,7 +255,7 @@
 
 .anc-register-section > p {
   color: var(--anc-b2b-muted);
-  margin: 0 auto 30px;
+  margin: 30px auto;
   max-width: 680px;
   line-height: 1.7;
 }
