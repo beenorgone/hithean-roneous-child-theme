@@ -6,6 +6,120 @@ if (!defined('ABSPATH')) exit;
 \*---------------------------------------*/
 remove_action('woocommerce_after_single_product_summary', 'woocommerce_output_related_products', 20);
 
+/*---------------------------------------*\
+  SALE PRICE DATE NOTICE
+\*---------------------------------------*/
+
+add_action('woocommerce_single_product_summary', 'hithean_render_sale_price_date_notice', 11);
+
+function hithean_render_sale_price_date_notice()
+{
+    if (!is_product() || !function_exists('wc_get_product')) {
+        return;
+    }
+
+    global $product;
+    if (!$product instanceof WC_Product) {
+        $product = wc_get_product(get_the_ID());
+    }
+
+    if (!$product instanceof WC_Product || !$product->is_on_sale()) {
+        return;
+    }
+
+    $date_range = hithean_get_sale_price_date_range($product);
+    if (!$date_range['from'] && !$date_range['to']) {
+        return;
+    }
+
+    echo '<p class="hithean-sale-price-date-notice">' . esc_html(hithean_format_sale_price_date_notice($date_range['from'], $date_range['to'])) . '</p>';
+}
+
+function hithean_get_sale_price_date_range(WC_Product $product): array
+{
+    $from = hithean_wc_datetime_to_timestamp($product->get_date_on_sale_from());
+    $to   = hithean_wc_datetime_to_timestamp($product->get_date_on_sale_to());
+
+    if (($from || $to) || !$product->is_type('variable')) {
+        return [
+            'from' => $from,
+            'to'   => $to,
+        ];
+    }
+
+    $variation_ids = $product->get_children();
+    foreach ($variation_ids as $variation_id) {
+        $variation = wc_get_product($variation_id);
+        if (!$variation instanceof WC_Product || !$variation->is_on_sale()) {
+            continue;
+        }
+
+        $variation_from = hithean_wc_datetime_to_timestamp($variation->get_date_on_sale_from());
+        $variation_to   = hithean_wc_datetime_to_timestamp($variation->get_date_on_sale_to());
+
+        if ($variation_from && (!$from || $variation_from < $from)) {
+            $from = $variation_from;
+        }
+        if ($variation_to && (!$to || $variation_to > $to)) {
+            $to = $variation_to;
+        }
+    }
+
+    return [
+        'from' => $from,
+        'to'   => $to,
+    ];
+}
+
+function hithean_wc_datetime_to_timestamp($datetime): int
+{
+    return $datetime instanceof WC_DateTime ? $datetime->getTimestamp() : 0;
+}
+
+function hithean_format_sale_price_date_notice(int $from, int $to): string
+{
+    $date_format = get_option('date_format') ?: 'd/m/Y';
+
+    if ($from && $to) {
+        return sprintf(
+            'Giá sale áp dụng từ %s đến hết %s.',
+            wp_date($date_format, $from),
+            wp_date($date_format, $to)
+        );
+    }
+
+    if ($from) {
+        return sprintf('Giá sale áp dụng từ %s.', wp_date($date_format, $from));
+    }
+
+    return sprintf('Giá sale áp dụng đến hết %s.', wp_date($date_format, $to));
+}
+
+add_action('wp_head', 'hithean_sale_price_date_notice_css');
+
+function hithean_sale_price_date_notice_css()
+{
+    if (!is_product()) {
+        return;
+    }
+    ?>
+    <style>
+        .single-product .hithean-sale-price-date-notice {
+            display: inline-flex;
+            align-items: center;
+            margin: -6px 0 16px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            background: #fff7ed;
+            color: #9a3412;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+    </style>
+    <?php
+}
+
 
 /* PRODUCT PAGE TABS BUILDING */
 
