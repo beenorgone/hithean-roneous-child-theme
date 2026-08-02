@@ -10,29 +10,29 @@ remove_action('woocommerce_after_single_product_summary', 'woocommerce_output_re
   SALE PRICE DATE NOTICE
 \*---------------------------------------*/
 
-add_action('woocommerce_single_product_summary', 'hithean_render_sale_price_date_notice', 11);
+add_filter('woocommerce_get_price_html', 'hithean_append_sale_price_date_notice_to_price_html', 20, 2);
 
-function hithean_render_sale_price_date_notice()
+function hithean_append_sale_price_date_notice_to_price_html($price_html, $product)
 {
-    if (!is_product() || !function_exists('wc_get_product')) {
-        return;
+    if (!is_product() || !$product instanceof WC_Product || !$product->is_on_sale()) {
+        return $price_html;
     }
 
-    global $product;
-    if (!$product instanceof WC_Product) {
-        $product = wc_get_product(get_the_ID());
+    $queried_product_id = (int) get_queried_object_id();
+    if ($queried_product_id <= 0) {
+        return $price_html;
     }
 
-    if (!$product instanceof WC_Product || !$product->is_on_sale()) {
-        return;
+    $product_id = (int) $product->get_id();
+    $parent_id  = (int) $product->get_parent_id();
+    if ($product_id !== $queried_product_id && $parent_id !== $queried_product_id) {
+        return $price_html;
     }
 
     $date_range = hithean_get_sale_price_date_range($product);
-    if (!$date_range['from'] && !$date_range['to']) {
-        return;
-    }
+    $notice     = hithean_format_sale_price_date_notice($date_range['from'], $date_range['to']);
 
-    echo '<p class="hithean-sale-price-date-notice">' . esc_html(hithean_format_sale_price_date_notice($date_range['from'], $date_range['to'])) . '</p>';
+    return $price_html . '<span class="hithean-sale-price-date-notice">' . esc_html($notice) . '</span>';
 }
 
 function hithean_get_sale_price_date_range(WC_Product $product): array
@@ -81,18 +81,18 @@ function hithean_format_sale_price_date_notice(int $from, int $to): string
     $date_format = get_option('date_format') ?: 'd/m/Y';
 
     if ($from && $to) {
-        return sprintf(
-            'Giá sale áp dụng từ %s đến hết %s.',
-            wp_date($date_format, $from),
-            wp_date($date_format, $to)
-        );
+        return sprintf('Áp dụng đến hết %s', wp_date($date_format, $to));
     }
 
     if ($from) {
-        return sprintf('Giá sale áp dụng từ %s.', wp_date($date_format, $from));
+        return sprintf('Áp dụng từ %s', wp_date($date_format, $from));
     }
 
-    return sprintf('Giá sale áp dụng đến hết %s.', wp_date($date_format, $to));
+    if ($to) {
+        return sprintf('Áp dụng đến hết %s', wp_date($date_format, $to));
+    }
+
+    return 'Đang áp dụng giá sale';
 }
 
 add_action('wp_head', 'hithean_sale_price_date_notice_css');
@@ -104,17 +104,29 @@ function hithean_sale_price_date_notice_css()
     }
     ?>
     <style>
-        .single-product .hithean-sale-price-date-notice {
-            display: inline-flex;
+        .woocommerce div.product p.price .hithean-sale-price-date-notice,
+        .woocommerce div.product span.price .hithean-sale-price-date-notice {
+            display: flex;
             align-items: center;
-            margin: -6px 0 16px;
+            width: fit-content;
+            margin: 8px 0 0;
             padding: 6px 10px;
             border-radius: 4px;
             background: #fff7ed;
-            color: #9a3412;
-            font-size: 14px;
-            font-weight: 500;
+            color: #9a3412 !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
             line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .woocommerce div.product p.price .hithean-sale-price-date-notice,
+            .woocommerce div.product span.price .hithean-sale-price-date-notice {
+                text-align: center;
+                margin-right: auto;
+                margin-left: auto;
+                font-style: italic;
+            }
         }
     </style>
     <?php
