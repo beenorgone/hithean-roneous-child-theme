@@ -238,7 +238,9 @@
 
 .anc-register-section {
   padding: 86px 20px;
-  background: var(--anc-b2b-surface-green);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 237, 0.96), rgba(254, 243, 199, 0.88)),
+    #fff7ed;
   text-align: center;
 }
 
@@ -447,7 +449,9 @@
 }
 
 .anc-shopee-section {
-  background: #eef8f7;
+  background:
+    linear-gradient(135deg, rgba(238, 248, 247, 0.98), rgba(232, 244, 255, 0.92)),
+    #eef8f7;
   border-top: 1px solid var(--anc-b2b-border);
 }
 
