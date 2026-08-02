@@ -102,6 +102,140 @@
   line-height: 1.6;
 }
 
+.anc-distribution-proof {
+  border-top: 1px solid var(--anc-b2b-border);
+}
+
+.anc-distribution-proof-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  gap: 28px;
+  align-items: end;
+}
+
+.anc-distribution-proof-head .anc-section-subtitle {
+  margin-left: 0;
+  margin-right: 0;
+  text-align: left;
+}
+
+.anc-distribution-proof-stats {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 8px;
+  background: #f8faf7;
+  box-shadow: 0 10px 24px rgba(15, 51, 48, 0.07);
+}
+
+.anc-distribution-proof-stats span {
+  display: grid;
+  gap: 4px;
+  color: var(--anc-b2b-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.anc-distribution-proof-stats strong {
+  color: var(--anc-b2b-ink);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.anc-pos-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 34px;
+}
+
+.anc-pos-proof-card {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 16px;
+  min-height: 148px;
+  padding: 20px;
+  border: 1px solid var(--anc-b2b-border);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 51, 48, 0.07);
+}
+
+.anc-pos-proof-logo {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(15, 51, 48, 0.08);
+  border-radius: 8px;
+  background: #f8faf7;
+}
+
+.anc-pos-proof-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.anc-pos-proof-logo span {
+  color: var(--anc-b2b-accent);
+  font-weight: 700;
+  font-size: 26px;
+}
+
+.anc-pos-proof-type {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 7px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--anc-b2b-accent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.anc-pos-proof-card h3 {
+  margin: 0 0 7px;
+  color: var(--anc-b2b-ink);
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.anc-pos-proof-card p {
+  margin: 0;
+  color: var(--anc-b2b-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.anc-pos-proof-card a {
+  display: inline-flex;
+  margin-top: 9px;
+  color: var(--anc-b2b-accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.anc-pos-proof-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 28px;
+}
+
+.anc-pos-proof-actions .anc-cta-band-secondary {
+  color: var(--anc-b2b-accent);
+  font-weight: 700;
+}
+
 .anc-register-section {
   padding: 86px 20px;
   background: var(--anc-b2b-surface-green);
@@ -351,8 +485,28 @@
 }
 
 @media (max-width: 760px) {
+  .anc-distribution-proof-head,
   .anc-shopee-layout {
     grid-template-columns: 1fr;
+  }
+
+  .anc-distribution-proof-head .anc-section-subtitle {
+    text-align: center;
+  }
+
+  .anc-pos-proof-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .anc-pos-proof-card {
+    grid-template-columns: 64px minmax(0, 1fr);
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .anc-pos-proof-logo {
+    width: 64px;
+    height: 64px;
   }
 
   .anc-model-picker {

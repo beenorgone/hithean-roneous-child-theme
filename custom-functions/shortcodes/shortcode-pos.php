@@ -1,6 +1,7 @@
 <?php
 if (!defined('ABSPATH')) exit;
 add_shortcode('pos', 'display_points_of_sale_shortcode');
+add_shortcode('b2b_pos_proof', 'hithean_b2b_pos_proof_shortcode');
 
 function display_points_of_sale_shortcode($atts)
 {
@@ -182,3 +183,104 @@ function display_points_of_sale_shortcode($atts)
     return ob_get_clean();
 }
 
+function hithean_b2b_pos_proof_shortcode($atts)
+{
+    $atts = shortcode_atts([
+        'limit'            => 6,
+        'types'            => 'ecommerce,offline',
+        'distribution_url' => 'https://hithean.com/he-thong-phan-phoi/',
+        'register_url'     => '#anc-register',
+    ], $atts, 'b2b_pos_proof');
+
+    $limit = max(1, min(12, absint($atts['limit'])));
+    $types = array_filter(array_map('sanitize_key', array_map('trim', explode(',', $atts['types']))));
+    $types = array_values(array_intersect($types, ['ecommerce', 'offline']));
+
+    if (empty($types)) {
+        $types = ['ecommerce', 'offline'];
+    }
+
+    $type_query = ['relation' => 'OR'];
+
+    foreach ($types as $type) {
+        $type_query[] = [
+            'key'     => 'pos_type',
+            'value'   => $type,
+            'compare' => 'LIKE',
+        ];
+    }
+
+    $pos_query = new WP_Query([
+        'post_type'              => 'diem-ban',
+        'post_status'            => 'publish',
+        'posts_per_page'         => $limit,
+        'meta_key'               => 'pos_priority',
+        'orderby'                => [
+            'meta_value_num' => 'ASC',
+            'title'          => 'ASC',
+        ],
+        'meta_query'             => $type_query,
+        'no_found_rows'          => true,
+        'update_post_term_cache' => false,
+    ]);
+
+    if (!$pos_query->have_posts()) {
+        return '';
+    }
+
+    ob_start();
+    ?>
+    <div class="anc-pos-proof-grid anc-fade-in-children">
+        <?php
+        while ($pos_query->have_posts()) {
+            $pos_query->the_post();
+
+            $post_id = get_the_ID();
+            $logo_url = get_the_post_thumbnail_url($post_id, 'thumbnail');
+            $pos_type = get_post_meta($post_id, 'pos_type', true);
+            $pos_type_values = is_array($pos_type) ? $pos_type : [$pos_type];
+            $is_ecommerce = in_array('ecommerce', $pos_type_values, true) || strpos((string) maybe_serialize($pos_type), 'ecommerce') !== false;
+            $channel_label = $is_ecommerce ? 'Online' : 'Offline';
+            $ecommerce_link = get_post_meta($post_id, 'pos_ecommerce-link', true);
+            $address = get_post_meta($post_id, 'pos_diachichitiet', true);
+            $city = get_post_meta($post_id, 'pos_tinhthanhpho', true);
+            $district = get_post_meta($post_id, 'pos_quanhuyen', true);
+            $map_url = get_post_meta($post_id, 'pos_linkchiduong', true);
+            $summary = $is_ecommerce ? wp_trim_words(wp_strip_all_tags($ecommerce_link), 18) : trim($address);
+
+            if (!$summary && $city) {
+                $summary = trim($district . ($district ? ', ' : '') . $city);
+            }
+            ?>
+            <article class="anc-pos-proof-card">
+                <div class="anc-pos-proof-logo">
+                    <?php if ($logo_url) : ?>
+                        <img src="<?php echo esc_url($logo_url); ?>" alt="<?php echo esc_attr(get_the_title()); ?>" loading="lazy" />
+                    <?php else : ?>
+                        <span><?php echo esc_html(function_exists('mb_substr') ? mb_substr(get_the_title(), 0, 1) : substr(get_the_title(), 0, 1)); ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="anc-pos-proof-body">
+                    <span class="anc-pos-proof-type"><?php echo esc_html($channel_label); ?></span>
+                    <h3><?php the_title(); ?></h3>
+                    <?php if ($summary) : ?>
+                        <p><?php echo esc_html($summary); ?></p>
+                    <?php endif; ?>
+                    <?php if (!$is_ecommerce && $map_url) : ?>
+                        <a href="<?php echo esc_url($map_url); ?>" target="_blank" rel="noopener">Xem chỉ đường</a>
+                    <?php endif; ?>
+                </div>
+            </article>
+            <?php
+        }
+        wp_reset_postdata();
+        ?>
+    </div>
+    <div class="anc-pos-proof-actions">
+        <a href="<?php echo esc_url($atts['distribution_url']); ?>" class="button--dark-blue" target="_blank" rel="noopener">Xem hệ thống phân phối →</a>
+        <a href="<?php echo esc_url($atts['register_url']); ?>" class="anc-cta-band-secondary">Trở thành điểm bán tiếp theo →</a>
+    </div>
+    <?php
+
+    return ob_get_clean();
+}
