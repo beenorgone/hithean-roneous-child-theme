@@ -2001,6 +2001,16 @@ body.anc-modal-locked {
         min-height: 220px;
     }
 
+    .anc-pf-controls {
+        padding: 0 56px;
+        box-sizing: border-box;
+    }
+
+    .anc-pf-controls .product-nutrition-label {
+        max-width: 100%;
+        white-space: normal;
+    }
+
     /* Buttons full-width on mobile */
     .anc-pf-cta,
     .anc-qc-link,
