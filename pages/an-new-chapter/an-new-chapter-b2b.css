@@ -244,6 +244,16 @@
   text-align: center;
 }
 
+.anc-register-dialog {
+  max-width: min(920px, calc(100vw - 28px));
+  padding: 0;
+  overflow: hidden;
+}
+
+.anc-register-dialog .anc-register-section {
+  padding: 42px 24px 24px;
+}
+
 .anc-register-section h2 {
   font-family: "Oswald", sans-serif;
   font-size: clamp(28px, 4vw, 42px);
@@ -272,9 +282,9 @@
 .anc-register-frame-wrap iframe {
   display: block;
   width: 100%;
-  height: clamp(860px, 88vh, 1120px);
+  height: clamp(620px, 72vh, 860px);
   border: 0;
-  min-height: 860px;
+  min-height: 620px;
 }
 
 .anc-register-alt {
@@ -294,9 +304,13 @@
     padding: 62px 18px;
   }
 
+  .anc-register-dialog .anc-register-section {
+    padding: 42px 14px 18px;
+  }
+
   .anc-register-frame-wrap iframe {
-    height: clamp(980px, 92vh, 1240px);
-    min-height: 980px;
+    height: clamp(660px, 76vh, 920px);
+    min-height: 660px;
   }
 }
 

@@ -38,7 +38,7 @@
       <!--p class="anc-hero-subtitle">Trang B2B đầy đủ cho Yeast Hero Protein, Matcha, Matcha Latte Coconut, Inulin và bột củ dền hữu cơ dành cho phòng tập, cửa hàng healthy và đại lý online.</!p-->
 
       <div class="anc-hero-ctas">
-        <a href="#anc-register" class="button--dark-blue">Nhận bảng giá đại lý →</a>
+        <a href="#anc-register" class="button--dark-blue" data-modal-open="anc-register">Nhận bảng giá đại lý →</a>
         <a href="#anc-b2b-model" class="button--light-blue">Lợi ích hợp tác</a>
       </div>
 
@@ -76,17 +76,6 @@
       </div>
 
       <div class="anc-model-panels">
-        <article class="anc-model-common-panel">
-          <h3>Lợi ích chung cho đối tác phân phối</h3>
-          <ul>
-            <li>Sản phẩm sản xuất tại nhà máy do chúng tôi sở hữu. <strong>Nhà máy đạt chứng nhận</strong>:
-              <br><i>- ISO 22000, HACCP, GMP (mã chứng nhận ISO: TQC.03.6137)</i>
-              <br><i>- USDA Organic, EU Organic (mã chứng nhận hữu cơ: CU 916118)</i></li>
-            <li><strong></strong>Kiểm nghiệm độc lập tại phòng lab tiêu chuẩn Châu Âu - Eurofins Scientific.</li>
-            <li><strong>Hồ sơ pháp lý</strong> thực phẩm, thực phẩm bổ sung đạt chuẩn, công bố đầy đủ tại cơ quan Nhà Nước phụ trách.</li>
-            <li><strong>Xuất hóa đơn VAT</strong> khớp sản phẩm, đơn giá với 100% các đơn hàng</li>
-          </ul>
-        </article>
         <article class="anc-model-panel anc-model-panel--gym">
           <h3>Phòng tập, yoga, pilates, PT studio</h3>
           <ul>
@@ -116,6 +105,17 @@
             <li>Có câu chuyện sản phẩm, hình ảnh, landing page bán lẻ và nội dung chứng nhận để làm listing, livestream, short video.</li>
             <li>Phù hợp bắt đầu bằng gói lẻ/trial pack trước khi nhập lô chính thức.</li>
             <li>Team Marketing The An hỗ trợ trong quá trinh trải nghiệm, cộng tác</li>
+          </ul>
+        </article>
+        <article class="anc-model-common-panel">
+          <h3>Lợi ích chung cho đối tác phân phối</h3>
+          <ul>
+            <li>Sản phẩm sản xuất tại nhà máy do chúng tôi sở hữu. <strong>Nhà máy đạt chứng nhận</strong>:
+              <br><i>- ISO 22000, HACCP, GMP (mã chứng nhận ISO: TQC.03.6137)</i>
+              <br><i>- USDA Organic, EU Organic (mã chứng nhận hữu cơ: CU 916118)</i></li>
+            <li><strong></strong>Kiểm nghiệm độc lập tại phòng lab tiêu chuẩn Châu Âu - Eurofins Scientific.</li>
+            <li><strong>Hồ sơ pháp lý</strong> thực phẩm, thực phẩm bổ sung đạt chuẩn, công bố đầy đủ tại cơ quan Nhà Nước phụ trách.</li>
+            <li><strong>Xuất hóa đơn VAT</strong> khớp sản phẩm, đơn giá với 100% các đơn hàng</li>
           </ul>
         </article>
       </div>
@@ -258,7 +258,7 @@ ORGANIC PRODUCTS
       <strong>Trial Pack Yeast Hero Protein</strong>
       <p>Phù hợp cho PT, studio, reseller và KOC muốn trải nghiệm sản phẩm thực tế trước khi đăng ký bảng giá đại lý.</p>
       <a href="https://shopee.vn/search?keyword=the+an+organics+g%C3%B3i+l%E1%BA%BB" class="button--dark-blue" target="_blank" rel="noopener">Mua gói lẻ trên Shopee →</a>
-      <a href="#anc-register" class="anc-cta-band-secondary">Sau khi trải nghiệm, đăng ký bảng giá đại lý →</a>
+      <a href="#anc-register" class="anc-cta-band-secondary" data-modal-open="anc-register">Sau khi trải nghiệm, đăng ký bảng giá đại lý →</a>
     </div>
   </div>
 </section>
@@ -266,21 +266,27 @@ ORGANIC PRODUCTS
 <!-- ============================================================
      REGISTRATION FORM
      ============================================================ -->
-<section id="anc-register" class="anc-register-section">
-  <h2>ĐĂNG KÝ ĐỐI TÁC PHÂN PHỐI</h2>
-  <p>Điền thông tin bên dưới để nhận bảng giá, MOQ, chính sách theo nhóm đại lý và gợi ý danh mục sản phẩm phù hợp. Team The An Organics sẽ liên hệ trong 24-48 giờ làm việc.</p>
-  <div class="anc-register-frame-wrap">
-    <iframe
-      src="https://ivarvietnam.sg.larksuite.com/share/base/form/shrlgohesaZOwSEwWOPtw4xuN4c"
-      title="Đăng ký đối tác phân phối The An Organics"
-      loading="lazy"
-      allowfullscreen
-    ></iframe>
+<section id="anc-register" class="anc-modal anc-register-modal" aria-hidden="true">
+  <div class="anc-modal-backdrop" data-modal-close></div>
+  <div class="anc-modal-dialog anc-register-dialog" role="dialog" aria-modal="true" aria-labelledby="anc-register-title">
+    <button type="button" class="anc-modal-close" data-modal-close aria-label="Đóng">×</button>
+    <div class="anc-modal-body anc-register-section">
+      <h2 id="anc-register-title">ĐĂNG KÝ ĐỐI TÁC PHÂN PHỐI</h2>
+      <p>Điền thông tin bên dưới để nhận bảng giá, MOQ, chính sách theo nhóm đại lý và gợi ý danh mục sản phẩm phù hợp. Team The An Organics sẽ liên hệ trong 24-48 giờ làm việc.</p>
+      <div class="anc-register-frame-wrap">
+        <iframe
+          src="https://ivarvietnam.sg.larksuite.com/share/base/form/shrlgohesaZOwSEwWOPtw4xuN4c"
+          title="Đăng ký đối tác phân phối The An Organics"
+          loading="lazy"
+          allowfullscreen
+        ></iframe>
+      </div>
+      <p class="anc-register-alt">
+        Hoặc liên hệ trực tiếp:<br />
+        <a href="mailto:info@hithean.com">info@hithean.com</a>
+      </p>
+    </div>
   </div>
-  <p class="anc-register-alt">
-    Hoặc liên hệ trực tiếp:<br />
-    <a href="mailto:info@hithean.com">info@hithean.com</a>
-  </p>
 </section>
 
 
@@ -435,7 +441,7 @@ ORGANIC PRODUCTS
 <section id="anc-cta-band">
   <h2 class="anc-fade-in">CÙNG PHÂN PHỐI THE AN ORGANICS</h2>
   <p class="anc-fade-in">Danh mục protein thuần chay &amp; siêu thực phẩm hữu cơ với hồ sơ chứng nhận rõ ràng, nội dung sản phẩm đầy đủ và hỗ trợ bán hàng theo từng kênh.</p>
-  <a href="#anc-register" class="button--light-blue anc-fade-in">NHẬN BẢNG GIÁ ĐẠI LÝ →</a>
+  <a href="#anc-register" class="button--light-blue anc-fade-in" data-modal-open="anc-register">NHẬN BẢNG GIÁ ĐẠI LÝ →</a>
   <a href="#anc-products" class="anc-cta-band-secondary anc-fade-in">Xem lại protein &amp; siêu thực phẩm →</a>
 </section>
 

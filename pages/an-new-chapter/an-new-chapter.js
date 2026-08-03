@@ -52,9 +52,22 @@
 
     function initModals() {
         document.querySelectorAll('[data-modal-open]').forEach(function (trigger) {
-            trigger.addEventListener('click', function () {
+            trigger.addEventListener('click', function (e) {
                 var modal = document.getElementById(trigger.getAttribute('data-modal-open'));
-                if (modal) openModal(modal);
+                if (modal) {
+                    e.preventDefault();
+                    openModal(modal);
+                }
+            });
+        });
+
+        document.querySelectorAll('a[href="#anc-register"]:not([data-modal-open])').forEach(function (trigger) {
+            trigger.addEventListener('click', function (e) {
+                var modal = document.getElementById('anc-register');
+                if (modal && modal.classList.contains('anc-modal')) {
+                    e.preventDefault();
+                    openModal(modal);
+                }
             });
         });
 
@@ -105,6 +118,8 @@
         var anchorLinks = document.querySelectorAll('#anc-hero a[href^="#"]');
         anchorLinks.forEach(function (link) {
             link.addEventListener('click', function (e) {
+                if (e.defaultPrevented || this.hasAttribute('data-modal-open')) return;
+
                 var targetId = this.getAttribute('href').slice(1);
                 var target   = document.getElementById(targetId);
                 if (target) {
