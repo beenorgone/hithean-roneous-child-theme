@@ -1909,10 +1909,15 @@ body.anc-modal-locked {
     transition: opacity 0.45s ease, transform 0.45s ease;
 }
 
-.anc-fade-in-children.is-visible > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 0s; }
-.anc-fade-in-children.is-visible > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.12s; }
-.anc-fade-in-children.is-visible > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.24s; }
-.anc-fade-in-children.is-visible > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.36s; }
+.anc-fade-in-children.is-visible > * { opacity: 1; transform: none; transition-delay: 0.48s; }
+.anc-fade-in-children.is-visible > *:nth-child(1) { transition-delay: 0s; }
+.anc-fade-in-children.is-visible > *:nth-child(2) { transition-delay: 0.12s; }
+.anc-fade-in-children.is-visible > *:nth-child(3) { transition-delay: 0.24s; }
+.anc-fade-in-children.is-visible > *:nth-child(4) { transition-delay: 0.36s; }
+.anc-fade-in-children.is-visible > *:nth-child(5) { transition-delay: 0.48s; }
+.anc-fade-in-children.is-visible > *:nth-child(6) { transition-delay: 0.60s; }
+.anc-fade-in-children.is-visible > *:nth-child(7) { transition-delay: 0.72s; }
+.anc-fade-in-children.is-visible > *:nth-child(8) { transition-delay: 0.84s; }
 
 /* =============================================
    MOBILE OPTIMIZATIONS
