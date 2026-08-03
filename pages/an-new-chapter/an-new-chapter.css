@@ -2011,6 +2011,27 @@ body.anc-modal-locked {
         white-space: normal;
     }
 
+    .anc-pf-controls .product-nutrition-label__trigger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-height: 44px;
+        padding: 10px 12px;
+        box-sizing: border-box;
+        line-height: 1.25;
+        text-align: center;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+    }
+
+    .anc-pf-controls .product-nutrition-label__trigger i {
+        flex: 0 0 auto;
+        margin-right: 0;
+    }
+
     /* Buttons full-width on mobile */
     .anc-pf-cta,
     .anc-qc-link,
