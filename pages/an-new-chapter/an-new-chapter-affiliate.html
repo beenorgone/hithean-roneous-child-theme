@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Affiliate The An Organics | hithean.com</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;700&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../css/custom.css" />
+  <link rel="stylesheet" href="an-new-chapter.css" />
+  <style>
+    :root {
+      --anc-aff-hero-bg: url('https://hithean.com/wp-content/uploads/2025/11/yeast-hero-proteins-banner.jpg.webp');
+      --anc-aff-ink: var(--default-color-dark-brown, #2b2118);
+      --anc-aff-muted: var(--default-color-charcoal-grey, #555);
+      --anc-aff-blue: var(--default-color-dark-blue, #0047ba);
+      --anc-aff-surface: #fff;
+      --anc-aff-soft: var(--default-color-beige, #f7f6f2);
+      --anc-aff-line: rgba(19, 81, 80, 0.14);
+    }
+
+    #anc-affiliate-main {
+      font-family: 'Be Vietnam Pro', 'Be Vietnam', sans-serif;
+      color: var(--anc-aff-ink);
+      background: #fff;
+    }
+
+    #anc-affiliate-main h1,
+    #anc-affiliate-main h2,
+    #anc-affiliate-main h3,
+    #anc-affiliate-main h4 {
+      font-family: 'Oswald', sans-serif;
+      letter-spacing: 0;
+    }
+
+    .anc-aff-section {
+      padding: 76px 20px;
+    }
+
+    .anc-aff-section--soft {
+      background: var(--anc-aff-soft);
+    }
+
+    .anc-aff-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .anc-aff-narrow {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .anc-aff-section-title {
+      margin: 0 0 14px !important;
+      color: var(--anc-aff-blue) !important;
+      font-size: clamp(2rem, 5vw, 3rem) !important;
+      line-height: 1.15 !important;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .anc-aff-section-lead {
+      max-width: 760px;
+      margin: 0 auto 34px;
+      text-align: center;
+      color: var(--anc-aff-muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .anc-aff-highlight {
+      color: var(--anc-aff-blue);
+      font-weight: 700;
+    }
+
+    #anc-aff-hero {
+      min-height: 92vh;
+      min-height: 92svh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      background-image: var(--anc-aff-hero-bg);
+      background-size: cover;
+      background-position: center;
+      background-color: var(--anc-aff-blue);
+    }
+
+    #anc-aff-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(105deg, rgba(0, 20, 60, 0.88), rgba(0, 71, 186, 0.58) 58%, rgba(13, 40, 35, 0.24));
+    }
+
+    .anc-aff-hero-layout {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 88px 24px 70px;
+    }
+
+    .anc-aff-hero-content {
+      max-width: 660px;
+      color: #fff;
+    }
+
+    .anc-aff-hero-brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .anc-aff-hero-logo {
+      height: 86px;
+      width: auto;
+      object-fit: contain;
+      filter: brightness(0) invert(1);
+    }
+
+    .anc-aff-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 6px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--default-color-light-blue, #b0dded);
+      font-family: 'Oswald', sans-serif;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .anc-aff-hero-title {
+      max-width: 13ch;
+      margin: 14px 0 16px !important;
+      color: #fff !important;
+      font-size: clamp(3rem, 9vw, 6rem) !important;
+      line-height: 0.98 !important;
+      text-transform: uppercase;
+    }
+
+    .anc-aff-hero-subtitle {
+      max-width: 58ch;
+      margin: 0 0 26px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 17px;
+      line-height: 1.7;
+    }
+
+    .anc-aff-hero-points {
+      display: grid;
+      gap: 10px;
+      max-width: 620px;
+      margin: 24px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .anc-aff-hero-points li,
+    .anc-aff-chip {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      color: #fff;
+    }
+
+    .anc-aff-hero-points li {
+      padding: 12px 14px;
+      line-height: 1.5;
+    }
+
+    .anc-aff-hero-ctas,
+    .anc-aff-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .anc-aff-hero-ctas {
+      justify-content: flex-start;
+    }
+
+    .anc-aff-hero-ctas [class*="button--"],
+    .anc-aff-ctas [class*="button--"] {
+      min-height: 48px;
+      min-width: 170px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0;
+    }
+
+    .anc-aff-hero-ctas .button--dark-blue {
+      background: #fff;
+      color: var(--anc-aff-blue) !important;
+      border-color: #fff;
+    }
+
+    .anc-aff-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .anc-aff-grid--4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .anc-aff-grid--2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .anc-aff-card {
+      height: 100%;
+      padding: 22px;
+      border: 1px solid var(--anc-aff-line);
+      border-radius: 8px;
+      background: var(--anc-aff-surface);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .anc-aff-card h3,
+    .anc-aff-card h4 {
+      margin: 0 0 12px;
+      color: var(--anc-aff-blue);
+      font-size: 21px;
+      line-height: 1.25;
+      text-transform: uppercase;
+    }
+
+    .anc-aff-card p,
+    .anc-aff-card li {
+      color: var(--anc-aff-muted);
+      line-height: 1.65;
+    }
+
+    .anc-aff-card ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .anc-aff-card li + li {
+      margin-top: 7px;
+    }
+
+    .anc-aff-icon {
+      width: 46px;
+      height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      background: var(--default-color-light-blue, #b0dded);
+      color: var(--anc-aff-blue);
+      font-family: 'Oswald', sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .anc-aff-rate-band {
+      background: var(--anc-aff-blue);
+      color: #fff;
+    }
+
+    .anc-aff-rate-band .anc-aff-section-title,
+    .anc-aff-rate-band .anc-aff-section-lead {
+      color: #fff !important;
+    }
+
+    .anc-aff-rate-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 24px;
+      align-items: center;
+    }
+
+    .anc-aff-rate-number {
+      font-family: 'Oswald', sans-serif;
+      font-size: clamp(5rem, 16vw, 10rem);
+      line-height: 0.9;
+      color: var(--default-color-yellow, #ffc72c);
+      text-transform: uppercase;
+    }
+
+    .anc-aff-rate-copy {
+      font-size: 17px;
+      line-height: 1.75;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .anc-aff-steps {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      counter-reset: anc-aff-step;
+    }
+
+    .anc-aff-step {
+      position: relative;
+      padding: 28px 24px 24px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--anc-aff-line);
+    }
+
+    .anc-aff-step::before {
+      counter-increment: anc-aff-step;
+      content: counter(anc-aff-step);
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      border-radius: 50%;
+      background: var(--anc-aff-blue);
+      color: #fff;
+      font-family: 'Oswald', sans-serif;
+      font-size: 20px;
+    }
+
+    .anc-aff-step h3 {
+      margin: 0 0 10px;
+      color: var(--anc-aff-blue);
+      text-transform: uppercase;
+    }
+
+    .anc-aff-step p {
+      margin: 0;
+      color: var(--anc-aff-muted);
+      line-height: 1.65;
+    }
+
+    .anc-aff-partners {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .anc-aff-partner {
+      min-height: 164px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--anc-aff-line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .anc-aff-partner img {
+      width: 100%;
+      height: 56px;
+      object-fit: contain;
+    }
+
+    .anc-aff-partner a,
+    .anc-aff-partner span {
+      display: inline-flex;
+      min-height: 36px;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .anc-aff-partner a {
+      background: var(--anc-aff-blue);
+      color: #fff;
+    }
+
+    .anc-aff-partner span {
+      background: var(--anc-aff-soft);
+      color: var(--anc-aff-muted);
+    }
+
+    .anc-aff-register-note {
+      margin-top: 20px;
+      padding: 18px 20px;
+      border-left: 4px solid var(--default-color-yellow, #ffc72c);
+      border-radius: 0 8px 8px 0;
+      background: #fff;
+      color: var(--anc-aff-muted);
+      line-height: 1.65;
+    }
+
+    .anc-aff-form-shell {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px;
+      border: 1px solid var(--anc-aff-line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .anc-aff-faq-list ul {
+      margin: 12px 0 0;
+      padding-left: 20px;
+      color: var(--anc-aff-muted);
+      line-height: 1.65;
+    }
+
+    .anc-aff-faq-list li + li {
+      margin-top: 6px;
+    }
+
+    #anc-aff-final {
+      text-align: center;
+      background: var(--anc-aff-blue);
+      color: #fff;
+    }
+
+    #anc-aff-final h2,
+    #anc-aff-final p {
+      color: #fff !important;
+    }
+
+    @media (max-width: 920px) {
+      .anc-aff-grid--4,
+      .anc-aff-grid--2,
+      .anc-aff-rate-grid,
+      .anc-aff-steps,
+      .anc-aff-partners {
+        grid-template-columns: 1fr;
+      }
+
+      .anc-aff-partners {
+        max-width: 520px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .anc-aff-section {
+        padding: 58px 18px;
+      }
+
+      .anc-aff-hero-layout {
+        padding: 72px 20px 58px;
+      }
+
+      .anc-aff-hero-content {
+        text-align: center;
+      }
+
+      .anc-aff-hero-brand,
+      .anc-aff-hero-ctas {
+        justify-content: center;
+      }
+
+      .anc-aff-hero-title {
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<main id="anc-affiliate-main">
+
+<section id="anc-aff-hero">
+  <div class="anc-aff-hero-layout">
+    <div class="anc-aff-hero-content anc-fade-in">
+      <div class="anc-aff-hero-brand">
+        <img src="https://hithean.com/wp-content/uploads/2024/08/logo-thean-w200-no-paddings.png" alt="The An Organics" class="anc-aff-hero-logo" />
+        <span class="anc-aff-eyebrow">Affiliate Program</span>
+      </div>
+
+      <h1 class="anc-aff-hero-title">Nhận hoa hồng 10-20%</h1>
+      <p class="anc-aff-hero-subtitle">Tham gia chương trình cộng tác viên The An Organics để lan tỏa protein thuần chay, siêu thực phẩm hữu cơ và nhận hoa hồng cho đơn hàng affiliate hoặc "gắn giỏ hàng".</p>
+
+      <div class="anc-aff-hero-ctas">
+        <a href="#anc-aff-register" class="button--dark-blue">Tham gia ngay</a>
+        <a href="#anc-products" class="button--light-blue">Xem sản phẩm</a>
+      </div>
+
+      <ul class="anc-aff-hero-points" aria-label="Điểm nổi bật chương trình affiliate">
+        <li>Phù hợp KOL, KOC, huấn luyện viên, blogger, chủ shop online và người yêu thích lối sống lành mạnh.</li>
+        <li>Có sẵn hình ảnh, nội dung, video quảng bá và hỗ trợ nhận sample cho video/bài review.</li>
+      </ul>
+    </div>
+  </div>
+  <span class="anc-scroll-arrow" aria-hidden="true">↓</span>
+</section>
+
+[certifications id="anc-qc"]
+  <h2 class="certs-title">HỆ THỐNG SẢN XUẤT &amp; CHỨNG NHẬN</h2>
+  <p class="certs-desc">Mọi sản phẩm The An Organics được xây dựng trên nền tảng khoa học và minh bạch — từ nguyên liệu đầu vào đến thành phẩm trên kệ.</p>
+  <p class="certs-subheading">Chứng nhận &amp; kiểm nghiệm độc lập — bấm vào từng mục để xem chi tiết</p>
+[/certifications]
+
+<section id="anc-aff-why" class="anc-aff-section">
+  <div class="anc-aff-inner">
+    <h2 class="anc-aff-section-title anc-fade-in">Tại sao nên làm việc cùng The An Organics?</h2>
+    <p class="anc-aff-section-lead anc-fade-in">Chương trình affiliate được thiết kế để cộng tác viên dễ hiểu sản phẩm, dễ giới thiệu và dễ theo dõi hiệu quả bán hàng trên các nền tảng quen thuộc.</p>
+
+    <div class="anc-aff-grid anc-aff-grid--4 anc-fade-in-children">
+      <article class="anc-aff-card">
+        <span class="anc-aff-icon" aria-hidden="true">%</span>
+        <h3>Lợi ích khi tham gia</h3>
+        <ul>
+          <li>Sản phẩm chất lượng, được tin dùng và review bởi nhiều KOL, influencer.</li>
+          <li>Hoa hồng lên tới <span class="anc-aff-highlight">20%</span>.</li>
+          <li>Có sẵn hình ảnh, nội dung, video quảng bá.</li>
+          <li>Khách hàng quay lại cao.</li>
+          <li>Hỗ trợ tư vấn, hướng dẫn cá nhân.</li>
+        </ul>
+      </article>
+
+      <article class="anc-aff-card">
+        <span class="anc-aff-icon" aria-hidden="true">QC</span>
+        <h3>Cam kết chất lượng</h3>
+        <ul>
+          <li>Nhà máy đạt chứng nhận quốc tế <span class="anc-aff-highlight">ISO 22000, GMP, HACCP</span>.</li>
+          <li>Chứng nhận hữu cơ USDA và EU Organic cho hệ thống sản xuất, mã CU 916118.</li>
+          <li>Kiểm nghiệm độc lập tại Eurofins cho nguyên liệu đầu vào, sản phẩm đầu ra và chỉ tiêu dinh dưỡng trên bao bì.</li>
+        </ul>
+      </article>
+
+      <article class="anc-aff-card">
+        <span class="anc-aff-icon" aria-hidden="true">✓</span>
+        <h3>Hồ sơ đầy đủ</h3>
+        <ul>
+          <li>Sản phẩm có đầy đủ hồ sơ pháp lý an toàn thực phẩm.</li>
+          <li>Tất cả lô hàng hữu cơ đều có chứng nhận giao dịch Organic Transaction USDA, EU Organic khi áp dụng.</li>
+        </ul>
+      </article>
+
+      <article class="anc-aff-card">
+        <span class="anc-aff-icon" aria-hidden="true">₫</span>
+        <h3>Hoa hồng minh bạch</h3>
+        <p>Đơn hàng và hoa hồng được ghi nhận tự động, thanh toán trực tiếp hàng tháng qua Shopee hoặc TikTok theo chính sách từng nền tảng.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="anc-aff-commission" class="anc-aff-section anc-aff-rate-band">
+  <div class="anc-aff-inner anc-aff-rate-grid anc-fade-in">
+    <div>
+      <h2 class="anc-aff-section-title">Nhận hoa hồng từ 10-20%</h2>
+      <p class="anc-aff-section-lead">Dành cho đơn hàng affiliate hoặc đơn được tạo từ thao tác "gắn giỏ hàng" trên các kênh phân phối phù hợp.</p>
+    </div>
+    <div>
+      <div class="anc-aff-rate-number">10-20%</div>
+      <p class="anc-aff-rate-copy">Mức hoa hồng tùy sản phẩm, nền tảng và shop đối tác. KOL/KOC có thể nhận thêm quyền lợi như sample miễn phí, bonus doanh thu hoặc campaign riêng nếu đạt điều kiện.</p>
+    </div>
+  </div>
+</section>
+
+[anc_product_switcher id="anc-products" title="YEAST HERO PROTEIN" subtitle="Khám phá Yeast, anh hùng tí hon trong thế giới tự nhiên. Yeast cung cấp nguồn protein chất lượng cao với điểm PDCAAS = 1, chứa đầy đủ 9 axit amin thiết yếu tương đương đạm Whey, nhưng hoàn toàn thuần chay và không gây dị ứng, không đầy bụng.<br>" aria_label="Chọn vị Yeast Hero Protein"]
+  [anc_product_card id="3977" card="original" label="Original / Nhạt" active="1" badge="KẾT HỢP INULIN, SỮA DỪA HỮU CƠ" bg="https://hithean.com/wp-content/uploads/2026/04/background-yeast-hero-original-2.jpg" accent="var(--product-protein-yeast-dark-brown)" pills="1 20g Protein (thuần chay, hoàn chỉnh) | 4g Chất xơ | 4g BCAAs | Khẩu phần 31g | 20 khẩu phần" highlights="<strong>Một khẩu phần 31g cung cấp 20g protein, 4g chất xơ, 4g BCAAs</strong> | Hương vị trung tính, không ngọt, thơm mùi dừa và ngọt rất nhẹ tự nhiên từ sữa dừa hữu cơ và chất xơ inulin hữu cơ. | <strong>Không đường · Không đậu nành · Không sữa động vật · Không gluten · Không GMO</strong> | <strong>Không thêm hương liệu</strong>, tất cả đều là thực phẩm thực | Các thành phần hữu cơ trong sản phẩm được chứng nhận hữu cơ USDA (không phải tự tuyên bố) | <strong>Yeast Protein: đạm hoàn chỉnh, 18 axit amin, điểm chất lượng protein PDCAAS hoàn hảo = 1</strong> | Thân thiện môi trường — ít CO₂, ít nước & đất hơn protein động vật" show_calc="1"]
+  [anc_product_card id="7696" card="matcha" label="Vị Bơ Matcha" badge="KẾT HỢP BƠ VƯỜN RỪNG, MATCHA HỮU CƠ" bg="https://hithean.com/wp-content/uploads/2026/05/background-yeast-hero.jpg" accent="var(--product-protein-yeast-matcha-green)" pills="22g Protein (thuần chay, hoàn chỉnh) | 5g Chất xơ | 4g BCAAs | 160 kcal | Khẩu phần 38,4g | 20 khẩu phần" intro="Avocado Matcha đánh dấu một bước tiến mới của Yeast Hero Protein. Bên cạnh nguồn đạm chính từ yeast protein, công thức còn được bổ sung protein gạo lứt hữu cơ, matcha hữu cơ cấp ceremonial, bơ vườn rừng và được làm ngọt tự nhiên bằng la hán quả hữu cơ." highlights="<strong>1 khẩu phần 38,4g: 22g protein thuần chay · 5g chất xơ · 4g BCAAs · 160 calo</strong> | Thành phần hữu cơ được chứng nhận USDA Organic — không phải tự tuyên bố | <strong>Không đường · Không đậu nành · Không sữa động vật · Không gluten · Không GMO</strong> | <strong>Không hương liệu</strong> — toàn bộ là thực phẩm thực: bơ vườn rừng, matcha hữu cơ, la hán quả hữu cơ (0 calo, GI = 0) | <strong>Yeast Protein: đạm hoàn chỉnh, 18 axit amin, điểm chất lượng protein PDCAAS hoàn hảo = 1</strong> | Thân thiện môi trường — ít CO₂, ít nước &amp; đất hơn protein động vật" show_calc="1"]
+  [anc_product_card id="4690" card="overnight" label="Overnight" badge="CẢM HỨNG TỪ MÓN YẾN MẠCH QUA ĐÊM" bg="https://hithean.com/wp-content/uploads/2026/06/background-yeast-hero-overnight-original.jpg" accent="var(--product-protein-yeast-overnight-dark-brown)" pills="25g Protein (thuần chay, hoàn chỉnh) | 10g Chất xơ | 4.5g BCAAs | Khẩu phần 50g | 20 khẩu phần" intro="Lấy cảm hứng từ bữa yến mạch qua đêm, phiên bản Overnight tập trung vào khẩu phần giàu đạm và chất xơ hơn cho bữa sáng hoặc sau tập luyện." highlights="<strong>1 khẩu phần 50g cung cấp 25g protein thuần chay hoàn chỉnh, 10g chất xơ, 4.5g BCAAs</strong> | Hương vị trung tính, không ngọt, thơm mùi dừa và ngọt rất nhẹ tự nhiên từ dừa hữu cơ. | <strong>Không đường · Không đậu nành · Không sữa động vật · Không gluten · Không GMO</strong> | <strong>Không thêm hương liệu</strong>, tất cả đều là thực phẩm thực | Các thành phần hữu cơ trong sản phẩm được chứng nhận hữu cơ USDA --- không phải tự tuyên bố | <strong>Yeast Protein là loại đạm hoàn chỉnh với 18 axit amin và đầy đủ các axit thiết yếu với điểm PDCAAs = 1</strong> | Protein thân thiện và bền vững với môi trường, ít phát thải CO2, ít sử dụng nước và đất hơn so với protein động vật hay thực vật." show_calc="1"]
+  [anc_product_card id="8548" card="midnight" label="Midnight Silk" badge="SẮP RA MẮT" bg="https://hithean.com/wp-content/uploads/2026/06/background-yeast-hero.jpg" accent="var(--product-protein-yeast-midinight-silk-purple)" pills="22g Protein (thuần chay, hoàn chỉnh) | 6g Chất xơ | 4g BCAAs | Khẩu phần 39g | 20 khẩu phần" intro="Midnight Silk là lựa chọn protein thuần chay kết hợp cùng hà thủ ô và mè đen hữu cơ." highlights="Một khẩu phần 39g cung cấp 22g protein thuần chay hoàn chỉnh, 6g chất xơ, 4g BCAAs | <strong>Không đường · Không đậu nành · Không sữa động vật · Không gluten · Không GMO</strong> | <strong>Không thêm hương liệu</strong>, tất cả đều là thực phẩm thực | Các thành phần hữu cơ trong sản phẩm được chứng nhận hữu cơ USDA --- không phải tự tuyên bố | <strong>Yeast Protein là loại đạm hoàn chỉnh với 18 axit amin và đầy đủ các axit thiết yếu với điểm PDCAAs = 1</strong> | Protein thân thiện và bền vững với môi trường, ít phát thải CO2, ít sử dụng nước và đất hơn so với protein động vật hay thực vật." show_calc="1"]
+[/anc_product_switcher]
+
+<section id="anc-aff-fit" class="anc-aff-section anc-aff-section--soft">
+  <div class="anc-aff-inner">
+    <h2 class="anc-aff-section-title anc-fade-in">Tôi có phù hợp không?</h2>
+    <p class="anc-aff-section-lead anc-fade-in">Bất kỳ ai tin vào lối sống lành mạnh, yêu thích sản phẩm tự nhiên, hữu cơ và muốn lan tỏa giá trị xanh đều có thể trở thành cộng tác viên cùng The An Organics.</p>
+
+    <div class="anc-aff-grid anc-aff-grid--4 anc-fade-in-children">
+      <article class="anc-aff-card">
+        <h3>Content Creator</h3>
+        <p>Blogger, vlogger, influencer về lối sống lành mạnh, fitness, wellness, dinh dưỡng, ăn chay hoặc thuần chay.</p>
+      </article>
+      <article class="anc-aff-card">
+        <h3>Chuyên gia sức khỏe</h3>
+        <p>Huấn luyện viên thể hình, yoga, pilates, chuyên gia dinh dưỡng hoặc người tư vấn lối sống lành mạnh.</p>
+      </article>
+      <article class="anc-aff-card">
+        <h3>Người dùng yêu thích</h3>
+        <p>Người yêu thích thực phẩm thuần chay, hữu cơ và muốn giới thiệu sản phẩm mình thật sự tin tưởng.</p>
+      </article>
+      <article class="anc-aff-card">
+        <h3>Nhà bán online</h3>
+        <p>Chủ cửa hàng kinh doanh online, cộng đồng bán hàng trên Shopee, TikTok hoặc các kênh social commerce.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="anc-social">
+  <div class="anc-social-display anc-fade-in">
+    [social_display desktop="collage" mobile="coverflow" limit="23" columns="5" heading="Ai đang dùng The An Organics" bold="Yeast Hero" accent="#16a34a" bg="#fdf6e3"]
+  </div>
+
+  <div class="anc-social-inner anc-fade-in">
+    <a href="https://facebook.com/hitheanorganics" class="anc-social-link" target="_blank" rel="noopener">
+      <span aria-hidden="true">📘</span> Theo dõi The An Organics trên Facebook →
+    </a>
+  </div>
+</section>
+
+<section id="anc-aff-join" class="anc-aff-section anc-aff-section--soft">
+  <div class="anc-aff-inner">
+    <h2 class="anc-aff-section-title anc-fade-in">Tôi cần làm gì để trở thành cộng tác viên / Affiliate?</h2>
+    <div class="anc-aff-steps anc-fade-in-children">
+      <article class="anc-aff-step">
+        <h3>Đăng ký chương trình Affiliate</h3>
+        <p>Chỉ mất vài phút để bắt đầu. Nếu bạn đã quen với Shopee Affiliate hoặc TikTok Shop Affiliate, quy trình sẽ rất nhanh. KOL/KOC có nhu cầu nhận sample miễn phí để quay video review vui lòng điền form nhận sản phẩm mẫu.</p>
+      </article>
+      <article class="anc-aff-step">
+        <h3>Chia sẻ link hoặc gắn giỏ hàng</h3>
+        <p>Chia sẻ link affiliate trên website, mạng xã hội hoặc bài viết blog của bạn. Mỗi khi có người mua hàng từ link bạn chia sẻ, bạn nhận được hoa hồng theo chính sách nền tảng.</p>
+      </article>
+    </div>
+    <div class="anc-aff-ctas anc-fade-in" style="margin-top: 30px;">
+      <a class="button--dark-blue" href="#anc-aff-register">Tham gia ngay</a>
+      <a class="button--light-blue" href="#anc-aff-sample">Nhận hàng mẫu</a>
+    </div>
+  </div>
+</section>
+
+[anc_product_switcher id="anc-organic" title="SẢN PHẨM CHỨNG NHẬN HỮU CƠ" subtitle="Trải nghiệm bộ sưu tập ngày càng mở rộng các sản phẩm chứng nhận hữu cơ USDA và EU sản xuất tại nhà máy do chúng tôi sở hữu." story="&quot;An&quot; New Chapter: &quot;Rooted Locally, Inspired Globally&quot;." aria_label="Chọn sản phẩm hữu cơ"]
+  [anc_product_card id="6228" card="matcha" label="Matcha" active="1" bg="https://hithean.com/wp-content/uploads/2026/06/web-background-Organic-Matcha-Powder-The-An-Organics.png" accent="var(--product-matcha-green)" pills="USDA & EU Organic | Caffeine 47mg / 2g | Polyphenol ~13% | EGCG ~5% | Khẩu phần 2g" intro="Những cây trà được canh tác theo tiêu chuẩn hữu cơ và được che phủ trước khi thu hoạch. Quá trình này giúp lá trà trở nên mỏng hơn, xanh hơn, đồng thời làm tăng hàm lượng amino acid tự nhiên và giảm đáng kể vị chát đắng, tạo nên hương vị mượt mà, hài hòa." highlights="<strong>Chứng nhận hữu cơ USDA và EU Organic</strong> | Hồ sơ vị umami cân bằng, hậu vị sạch, không hương liệu"]
+  [anc_product_card id="6238" card="matcha-latte" label="Matcha Latte Coconut" accent="var(--product-matcha-green)" pills="Matcha hữu cơ | Bột sữa dừa hữu cơ" intro="Matcha Latte Coconut kết hợp matcha hữu cơ với vị béo nhẹ từ dừa, phù hợp pha nhanh tại nhà mà vẫn giữ nền nguyên liệu sạch của The An Organics." highlights="<strong>Chứng nhận hữu cơ USDA và EU Organic</strong> | Dễ pha nóng hoặc lạnh, dùng như thức uống matcha latte hằng ngày"]
+  [anc_product_card id="6241" card="inulin" label="Inulin" badge="Mỗi muỗng đều khiến bạn ưng bụng!" bg="https://hithean.com/wp-content/uploads/2025/09/Bot-inulin-huu-co-The-An-Organics-Organic-Inulin.png" accent="var(--product-inulin-blue)" pills="USDA & EU Organic | 4.7g chất xơ | Khẩu phần 5g" intro="Cung cấp 4.7g chất xơ mỗi khẩu phần bột 5g. Inulin là chất xơ hòa tan prebiotic, giúp nuôi dưỡng các lợi khuẩn có lợi trong đường ruột. Không phải chất xơ nào cũng là prebiotic. Khi đi qua hệ tiêu hóa, Inulin không được hấp thu như đường thông thường mà tiếp tục xuống ruột già, nơi nó trở thành thức ăn cho các vi khuẩn có lợi (lợi khuẩn)." highlights="100% từ thực vật. | <strong>Chứng nhận hữu cơ USDA và EU Organic</strong> | Vị trung tính, dễ thêm vào nước, sinh tố, sữa chua hoặc công thức nấu ăn"]
+  [anc_product_card id="9396" card="beetroot" label="Bột củ dền" badge="Rooted in natural richness" bg="https://hithean.com/wp-content/uploads/2026/07/background-cu-den.png" accent="#db0011" pills="USDA & EU Organic | 100% bột củ dền hữu cơ | Hộp 150g" intro="Bột củ dền hữu cơ được làm từ củ dền đỏ, nổi bật với sắc màu tự nhiên và hương vị thanh ngọt đặc trưng. Củ dền là nguồn cung cấp nhiều vitamin, khoáng chất cùng các hợp chất chống oxy hóa tự nhiên như betalain, sắc tố tạo nên màu đỏ tím đặc trưng." highlights="<strong>Chứng nhận hữu cơ USDA và EU Organic</strong> | 100% bột củ dền hữu cơ, không hương liệu, không màu tổng hợp | Dùng pha nước, đồ uống yêu thích, sinh tố, latte, làm bánh hoặc tạo màu tự nhiên cho món ăn"]
+[/anc_product_switcher]
+
+<section id="anc-aff-register" class="anc-aff-section anc-aff-section--soft">
+  <div class="anc-aff-inner">
+    <h2 class="anc-aff-section-title anc-fade-in">Đăng ký làm Affiliate</h2>
+    <p class="anc-aff-section-lead anc-fade-in">Lựa chọn nền tảng bạn muốn bắt đầu hành trình chia sẻ sản phẩm xanh cùng The An Organics.</p>
+
+    <div class="anc-aff-grid anc-aff-grid--2 anc-fade-in-children">
+      <article class="anc-aff-card">
+        <h3>Làm Affiliate trên Shopee / TikTok</h3>
+        <p>Tham gia chương trình affiliate của các shop đối tác để nhận hoa hồng khi người mua đặt hàng từ link của bạn.</p>
+        <div class="anc-aff-partners">
+          <div class="anc-aff-partner">
+            <img src="https://hithean.com/wp-content/uploads/2024/12/diem-ban-heothimart-logo-600x248-1.jpg.webp" alt="Heo Thì Mart" />
+            <a href="https://shopee.vn/heothimart" target="_blank" rel="noopener">Shopee</a>
+          </div>
+          <div class="anc-aff-partner">
+            <img src="https://hithean.com/wp-content/uploads/2025/05/logo-wafit-white-background.png" alt="Wafit" />
+            <a href="https://shopee.vn/product/1510049755/29393290700/" target="_blank" rel="noopener">Shopee</a>
+          </div>
+          <div class="anc-aff-partner">
+            <img src="https://hithean.com/wp-content/uploads/2025/07/diemban-onfit-logo-202507.jpg.webp" alt="Onfit" />
+            <span>Chờ cập nhật</span>
+          </div>
+          <div class="anc-aff-partner">
+            <img src="https://hithean.com/wp-content/uploads/2025/07/diem-ban-citysupp-logo.png" alt="CitySupp" />
+            <span>Chờ cập nhật</span>
+          </div>
+        </div>
+        <p class="anc-aff-register-note"><strong>KOL/KOC:</strong> nếu cần sample miễn phí để quay video review, vui lòng điền form nhận sản phẩm mẫu ở bên dưới.</p>
+      </article>
+
+      <article class="anc-aff-card">
+        <h3>Làm Affiliate trên hithean.com</h3>
+        <p>Chương trình affiliate chính thức của The An Organics giúp quản lý, theo dõi và nhận hoa hồng trực tiếp trên website.</p>
+        <p class="anc-aff-register-note"><strong>Sắp ra mắt:</strong> hệ thống sẽ cập nhật khi cổng affiliate trên hithean.com sẵn sàng.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="anc-aff-sample" class="anc-aff-section">
+  <div class="anc-aff-inner">
+    <h2 class="anc-aff-section-title anc-fade-in">Nhận sample cho video / bài review</h2>
+    <p class="anc-aff-section-lead anc-fade-in">Dành cho KOL/KOC cần sản phẩm để trải nghiệm thực tế trước khi quay video, viết bài hoặc xây nội dung giới thiệu.</p>
+    <div class="anc-aff-form-shell anc-fade-in">
+      [tao_affiliate_form]
+    </div>
+  </div>
+</section>
+
+<section id="anc-faq">
+  <div class="anc-faq-inner">
+    <h2 class="anc-section-title anc-fade-in">CÂU HỎI THƯỜNG GẶP</h2>
+
+    <div class="anc-faq-group anc-fade-in">
+      <h3 class="anc-faq-group-title">Chương trình Affiliate</h3>
+      <div class="anc-faq-list anc-aff-faq-list">
+        <details class="anc-faq-item">
+          <summary>Tôi có mất phí để tham gia chương trình Affiliate không?</summary>
+          <p>Không, bạn hoàn toàn không mất chi phí khi tham gia các chương trình Affiliate của The An Organics và đối tác.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Tôi sẽ nhận hoa hồng như thế nào?</summary>
+          <p>Nếu tham gia chương trình affiliate trên Shopee hoặc TikTok, bạn sẽ nhận thanh toán trực tiếp, tự động từ các nền tảng này theo chính sách hiện hành của họ.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Tôi cần chuẩn bị gì để bắt đầu?</summary>
+          <p>Bạn nên tham khảo thông tin và lý tưởng nhất là trải nghiệm sản phẩm, đồng thời hiểu cách làm Affiliate trên Shopee hoặc TikTok. KOL/KOC có thể đăng ký nhận mẫu trải nghiệm qua form nhận sample.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Tôi có thể tham gia nếu không phải KOL/KOC chuyên nghiệp không?</summary>
+          <p>Hoàn toàn được. Bất kỳ ai yêu thích lối sống lành mạnh, sản phẩm tự nhiên, hữu cơ hoặc kinh doanh online đều có thể trở thành cộng tác viên.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Tôi có được cung cấp nội dung quảng bá không?</summary>
+          <p>Có. The An Organics cung cấp hình ảnh, video và nội dung quảng bá giúp bạn đăng tải dễ dàng trên các nền tảng mạng xã hội.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Tôi có thể theo dõi hiệu quả hoạt động của mình không?</summary>
+          <p>Có. Shopee và TikTok đều có bảng thống kê đơn hàng, lượt click, doanh thu và hoa hồng minh bạch.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Làm thế nào để nhận sản phẩm mẫu?</summary>
+          <p>Nếu bạn là KOL/KOC cần sản phẩm để quay video review, hãy điền thông tin tại form nhận sản phẩm mẫu trên trang này.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Làm sao để tham gia chương trình Affiliate qua Shopee/TikTok?</summary>
+          <ul>
+            <li><strong>Bước 1:</strong> Đăng ký tài khoản Shopee Affiliate hoặc TikTok Shop Affiliate.</li>
+            <li><strong>Bước 2:</strong> Chọn sản phẩm The An Organics bằng các cụm tìm kiếm như "The An Organics" hoặc "Yeast Hero" từ shop đối tác như Heo Thì Mart, Wafit.</li>
+            <li><strong>Bước 3:</strong> Tạo link affiliate và chia sẻ lên kênh của bạn.</li>
+            <li><strong>Bước 4:</strong> Nhận hoa hồng khi có đơn phát sinh từ link của bạn.</li>
+          </ul>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Chính sách hoa hồng như thế nào?</summary>
+          <p>Mức hoa hồng dao động từ 10-20% tùy sản phẩm và nền tảng. Một số KOL/KOC có thể nhận thêm quyền lợi như sample miễn phí, bonus doanh thu hoặc campaign riêng nếu đạt điều kiện.</p>
+        </details>
+      </div>
+    </div>
+
+    <div class="anc-faq-group anc-fade-in">
+      <h3 class="anc-faq-group-title">Sản phẩm &amp; chứng nhận</h3>
+      <div class="anc-faq-list">
+        <details class="anc-faq-item">
+          <summary>Sản phẩm có phù hợp để quảng bá không?</summary>
+          <p>Có. Sản phẩm đạt tiêu chuẩn ISO 22000, HACCP, GMP, có hệ thống chứng nhận hữu cơ USDA/EU Organic cho nhà máy và phù hợp với nhóm khách hàng quan tâm sức khỏe, eat clean, ăn chay hoặc thuần chay.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Sản phẩm được sản xuất tại đâu?</summary>
+          <p>Sản phẩm được sản xuất tại nhà máy thuộc sở hữu của chúng tôi. Địa chỉ: Nhà máy IVAR Việt Nam, Khu sản xuất dịch vụ, thôn Văn Khê, xã Kiều Phú, thành phố Hà Nội, Việt Nam.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Chứng nhận hữu cơ CU 916118 nghĩa là gì?</summary>
+          <p>CU 916118 là mã chứng nhận hữu cơ quốc tế do Control Union cấp cho nhà máy sản xuất, xác nhận toàn bộ chuỗi từ nguyên liệu đầu vào đến thành phẩm đạt chuẩn USDA Organic và EU Organic, kiểm tra định kỳ hàng năm.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Nhà máy còn đạt chứng nhận sản xuất nào khác?</summary>
+          <p>Ngoài chứng nhận hữu cơ, nhà máy đạt 3 chứng nhận quốc tế ISO 22000, HACCP, GMP. Mọi sản phẩm còn được kiểm nghiệm độc lập bởi Eurofins Scientific.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Yeast Hero Protein khác gì với Whey Protein?</summary>
+          <p>Yeast Protein là đạm hoàn chỉnh với 18 axit amin, điểm chất lượng protein PDCAAS hoàn hảo = 1, tương đương whey nhưng không từ sữa động vật, phù hợp người không dùng được sữa hoặc đậu nành.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Yeast Protein có nguồn gốc từ đâu?</summary>
+          <p>Yeast protein có nguồn gốc từ quá trình lên men mật rỉ đường cùng chủng nấm men Saccharomyces cerevisiae, chủng men đã được dùng hàng ngàn năm trong làm bánh mì và ủ bia.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Sản phẩm có phù hợp người ăn chay, dị ứng thực phẩm không?</summary>
+          <p>Toàn bộ dòng Yeast Hero Protein không thêm đường, không đậu nành, không sữa, không gluten, không GMO, phù hợp người ăn chay thuần và người nhạy cảm với các nhóm dị ứng phổ biến nhất.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Trẻ em, phụ nữ mang thai và cho con bú có dùng được không?</summary>
+          <p>Sản phẩm không chứa thành phần hay vitamin/khoáng chất tổng hợp. Tuy nhiên nên kiểm tra kỹ thành phần để đảm bảo phù hợp với các nhóm nhạy cảm dị ứng trước khi sử dụng.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Tôi có thể mua hàng ở đâu?</summary>
+          <p>Bạn có thể đặt mua qua website hoặc tại đại lý của chúng tôi. Xem danh sách đại lý tại <a href="https://hithean.com/he-thong-phan-phoi/" target="_blank" rel="noopener">hệ thống phân phối</a>.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Tôi có mất phí để tham gia chương trình Affiliate không?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Không, bạn hoàn toàn không mất chi phí khi tham gia các chương trình Affiliate của The An Organics và đối tác." }
+    },
+    {
+      "@type": "Question",
+      "name": "Tôi sẽ nhận hoa hồng như thế nào?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Nếu tham gia chương trình affiliate trên Shopee hoặc TikTok, bạn sẽ nhận thanh toán trực tiếp, tự động từ các nền tảng này theo chính sách hiện hành của họ." }
+    },
+    {
+      "@type": "Question",
+      "name": "Chính sách hoa hồng như thế nào?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Mức hoa hồng dao động từ 10-20% tùy sản phẩm và nền tảng. Một số KOL/KOC có thể nhận thêm quyền lợi như sample miễn phí, bonus doanh thu hoặc campaign riêng nếu đạt điều kiện." }
+    },
+    {
+      "@type": "Question",
+      "name": "Sản phẩm có phù hợp để quảng bá không?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Có. Sản phẩm đạt tiêu chuẩn ISO 22000, HACCP, GMP, có hệ thống chứng nhận hữu cơ USDA/EU Organic cho nhà máy và phù hợp với nhóm khách hàng quan tâm sức khỏe, eat clean, ăn chay hoặc thuần chay." }
+    },
+    {
+      "@type": "Question",
+      "name": "Chứng nhận hữu cơ CU 916118 nghĩa là gì?",
+      "acceptedAnswer": { "@type": "Answer", "text": "CU 916118 là mã chứng nhận hữu cơ quốc tế do Control Union cấp cho nhà máy sản xuất, xác nhận toàn bộ chuỗi từ nguyên liệu đầu vào đến thành phẩm đạt chuẩn USDA Organic và EU Organic, kiểm tra định kỳ hàng năm." }
+    },
+    {
+      "@type": "Question",
+      "name": "Yeast Hero Protein khác gì với Whey Protein?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yeast Protein là đạm hoàn chỉnh với 18 axit amin, điểm chất lượng protein PDCAAS hoàn hảo = 1, tương đương whey nhưng không từ sữa động vật, phù hợp người không dùng được sữa hoặc đậu nành." }
+    }
+  ]
+}
+</script>
+
+<section id="anc-aff-final" class="anc-aff-section">
+  <div class="anc-aff-narrow anc-fade-in">
+    <h2 class="anc-aff-section-title">Bắt đầu ngay</h2>
+    <p class="anc-aff-section-lead">Tham gia các chương trình Affiliate của The An Organics và đối tác phân phối để nhận tới 20% hoa hồng cho mỗi đơn hàng bạn giới thiệu.</p>
+    <div class="anc-aff-ctas">
+      <a class="button--light-blue" href="#anc-aff-register">Tham gia ngay</a>
+      <a class="button--dark-blue" href="#anc-aff-sample">Nhận hàng mẫu</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script src="an-new-chapter.js"></script>
+</body>
+</html>
