@@ -112,6 +112,7 @@ function hithean_social_display_allowed(): bool
         'an-new-chapter',
         'an-new-chapter-b2b',
         'an-new-chapter-b2b-organic',
+        'an-new-chapter-affiliate',
         've-chung-toi',
     ]);
     if (!empty($page_slugs) && is_page($page_slugs)) {
@@ -252,11 +253,13 @@ function tpc_loader_path_groups()
             '/an-new-chapter',
             '/an-new-chapter-b2b',
             '/an-new-chapter-b2b-organic',
+            '/an-new-chapter-affiliate',
         ],
         'anc_landing' => [
             '/an-new-chapter',
             '/an-new-chapter-b2b',
             '/an-new-chapter-b2b-organic',
+            '/an-new-chapter-affiliate',
         ],
     ]);
 }
