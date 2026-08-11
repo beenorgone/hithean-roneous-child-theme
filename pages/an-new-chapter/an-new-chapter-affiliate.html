@@ -34,6 +34,16 @@
       letter-spacing: 0;
     }
 
+    /*
+      WordPress paste/preview may not load an-new-chapter.js from this static file.
+      Keep affiliate content visible even when scroll-reveal JS is unavailable.
+    */
+    #anc-affiliate-main .anc-fade-in,
+    #anc-affiliate-main .anc-fade-in-children > * {
+      opacity: 1;
+      transform: none;
+    }
+
     .anc-aff-section {
       padding: 76px 20px;
     }
