@@ -409,6 +409,56 @@
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
+    .anc-aff-trial-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+      gap: 28px;
+      align-items: center;
+    }
+
+    .anc-aff-trial-layout .anc-aff-section-title,
+    .anc-aff-trial-layout .anc-aff-section-lead {
+      text-align: left;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .anc-aff-trial-card {
+      padding: 28px;
+      border: 1px solid var(--anc-aff-line);
+      border-top: 4px solid var(--default-color-yellow, #ffc72c);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .anc-aff-trial-card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 22px;
+      line-height: 1.25;
+      color: var(--anc-aff-blue);
+      text-transform: uppercase;
+    }
+
+    .anc-aff-trial-card p {
+      margin: 0 0 18px;
+      color: var(--anc-aff-muted);
+      line-height: 1.7;
+    }
+
+    .anc-aff-trial-card .button--dark-blue,
+    .anc-aff-trial-card .anc-cta-band-secondary {
+      width: 100%;
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+      text-align: center;
+    }
+
     .anc-aff-faq-list ul {
       margin: 12px 0 0;
       padding-left: 20px;
@@ -436,8 +486,16 @@
       .anc-aff-grid--2,
       .anc-aff-rate-grid,
       .anc-aff-steps,
+      .anc-aff-trial-layout,
       .anc-aff-partners {
         grid-template-columns: 1fr;
+      }
+
+      .anc-aff-trial-layout .anc-aff-section-title,
+      .anc-aff-trial-layout .anc-aff-section-lead {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
       }
 
       .anc-aff-partners {
