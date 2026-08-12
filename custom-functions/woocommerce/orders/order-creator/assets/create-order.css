@@ -143,6 +143,10 @@
 }
 .oc-btn--primary { background: var(--oc-primary); border-color: var(--oc-primary); color: #002b1c; }
 .oc-btn--primary:hover { background: var(--oc-primary-dark); color: #fff; }
+.oc-actionbar [data-act="customer-confirm"] { background: var(--oc-primary-dark); border-color: var(--oc-primary-dark); color: #fff; }
+.oc-actionbar [data-act="customer-confirm"]:hover { background: #005f3f; border-color: #005f3f; color: #fff; }
+.oc-actionbar [data-act="pay"] { background: var(--oc-blue); border-color: var(--oc-blue); color: #fff; }
+.oc-actionbar [data-act="pay"]:hover { background: #004ec2; border-color: #004ec2; color: #fff; }
 .oc-btn--ghost:hover { border-color: var(--oc-primary); color: var(--oc-primary-dark); }
 .oc-btn--block { margin-top: 8px; }
 .oc-btn:disabled { opacity: .6; cursor: default; }
