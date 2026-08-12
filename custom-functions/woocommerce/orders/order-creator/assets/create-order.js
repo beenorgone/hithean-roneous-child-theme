@@ -40,7 +40,21 @@
         fd.append('_ajax_nonce', n);
         Object.keys(params || {}).forEach(function (k) { fd.append(k, params[k]); });
         return fetch(CFG.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd })
-            .then(function (r) { return r.json(); });
+            .then(function (r) {
+                return r.text().then(function (text) {
+                    var data = null;
+                    try {
+                        data = text ? JSON.parse(text) : null;
+                    } catch (e) {
+                        data = null;
+                    }
+                    if (data && typeof data === 'object') {
+                        return data;
+                    }
+                    text = (text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    throw new Error(text || ('HTTP ' + r.status));
+                });
+            });
     }
 
     function buildPayload() {
@@ -1311,9 +1325,9 @@
             selectCustomer(res.data.customer, !!customerModalEditId);
             $('#oc-new-result').textContent = '';
             closeModals();
-        }).catch(function () {
+        }).catch(function (err) {
             btn.disabled = false;
-            $('#oc-new-result').textContent = '❌ Không thể lưu khách hàng.';
+            $('#oc-new-result').textContent = '❌ Không thể lưu khách hàng' + (err && err.message ? ': ' + err.message : '.');
         });
     }
 

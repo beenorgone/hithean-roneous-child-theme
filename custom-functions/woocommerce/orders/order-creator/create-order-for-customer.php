@@ -2690,7 +2690,7 @@ function order_creator_js_config(): array
         'customerInfoFieldDefs' => order_creator_customer_info_field_defs(),
         'orderFieldDefs'    => order_creator_order_field_defs(),
         'settings'         => $settings_for_js,
-        'ajaxUrl'      => admin_url('admin-ajax.php'),
+        'ajaxUrl'      => wp_make_link_relative(admin_url('admin-ajax.php')),
         'nonce'        => wp_create_nonce(ORDER_CREATOR_NONCE),
         'confirmNonce' => wp_create_nonce('confirm_order_payment_nonce'),
         'gateways'     => $gateways,
