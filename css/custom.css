@@ -1233,6 +1233,14 @@ nav .menu li a:focus {
 
 /* Product Gallery */
 
+.single-product div.product .woocommerce-product-gallery .woocommerce-product-gallery__trigger {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: auto;
+    z-index: 2;
+}
+
 @media only screen and (min-width: 1500px) {
     .woocommerce-product-gallery.woocommerce-product-gallery--with-images {
         padding: 0 20px 70px;
