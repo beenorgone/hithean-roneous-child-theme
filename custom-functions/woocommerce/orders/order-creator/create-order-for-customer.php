@@ -2788,7 +2788,7 @@ function order_creator_render_page(): void
                 </table>
             </section>
 
-            <section class="oc-card oc-adjustments" id="oc-section-promo">
+            <section class="oc-card oc-adjustments" id="oc-section-promo" style="display: flex; flex-wrap: wrap; gap: 14px 30px;>
                 <div class="oc-field">
                     <label>Mã ưu đãi (coupon)</label>
                     <div class="oc-inline">
@@ -2803,7 +2803,7 @@ function order_creator_render_page(): void
                     <ul class="oc-chips" id="oc-coupon-list"></ul>
                 </div>
 
-                <div class="oc-field">
+                <div class="oc-field" style="width: 100%;">
                     <label>Phí / giảm giá thủ công</label>
                     <div class="oc-inline">
                         <input type="text" id="oc-fee-name" placeholder="Tên (vd: Phí ship, Giảm giá)">
