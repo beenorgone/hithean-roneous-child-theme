@@ -115,7 +115,6 @@
 }
 .oc-card h2 { font-size: 15px; margin: 0 0 12px; }
 
-.oc-field { margin-bottom: 14px; }
 .oc-field > label { display: block; font-weight: 600; font-size: 12px; color: var(--oc-muted); margin-bottom: 4px; }
 
 .oc-app input[type="text"],
