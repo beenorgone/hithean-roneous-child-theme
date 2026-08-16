@@ -2788,7 +2788,7 @@ function order_creator_render_page(): void
                 </table>
             </section>
 
-            <section class="oc-card oc-adjustments" id="oc-section-promo" style="display: flex; flex-wrap: wrap; gap: 14px 30px;>
+            <section class="oc-card oc-adjustments" id="oc-section-promo" style="display: flex; flex-wrap: wrap; gap: 14px 30px;">
                 <div class="oc-field">
                     <label>Mã ưu đãi (coupon)</label>
                     <div class="oc-inline">
