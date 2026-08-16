@@ -2808,7 +2808,7 @@ function order_creator_render_page(): void
                     <div class="oc-inline">
                         <input type="text" id="oc-fee-name" placeholder="Tên (vd: Phí ship, Giảm giá)">
                         <input type="number" id="oc-fee-amount" step="1000" placeholder="Số tiền (âm = giảm)">
-                        <button type="button" class="oc-btn oc-btn--ghost" id="oc-fee-add">Thêm</button>
+                        <button type="button" class="oc-btn oc-btn--ghost" id="oc-fee-add" style="height:46px;">Thêm</button>
                     </div>
                     <ul class="oc-chips" id="oc-fee-list"></ul>
                 </div>
