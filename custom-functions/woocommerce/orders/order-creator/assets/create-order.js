@@ -939,7 +939,9 @@
                     edit_url: o.edit_url,
                     invoice_url: o.invoice_url,
                     payment_total: o.payment_total,
-                    phone: o.phone
+                    phone: o.phone,
+                    payment_method: o.payment_method,
+                    status: o.status
                 };
                 setEditorDisabled(true);
                 renderResult(state.lastOrder, false, '↩️ Đã hủy chỉnh sửa đơn ');
