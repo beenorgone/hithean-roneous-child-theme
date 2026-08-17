@@ -1151,7 +1151,9 @@ function order_creator_apply_status_and_notes(WC_Order $order, array $payload, b
     order_creator_apply_source($order);
     order_creator_apply_order_meta($order, $payload);
     if (!empty($payload['order_date'])) {
-        $ts = strtotime((string) $payload['order_date']);
+        // Input là giờ local theo múi giờ site (datetime-local, không có offset).
+        // strtotime() trần dùng múi giờ mặc định của PHP (UTC) nên phải quy đổi qua GMT trước.
+        $ts = strtotime(get_gmt_from_date((string) $payload['order_date']));
         if ($ts) {
             $order->set_date_created($ts);
         }
