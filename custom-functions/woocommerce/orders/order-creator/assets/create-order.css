@@ -9,6 +9,11 @@
     --oc-blue: var(--thean-erp-blue, #0068ff);
 }
 
+input,
+button {
+    height: 40px;
+}
+
 .order-creator-body {
     margin: 0;
     background: var(--oc-surface);
