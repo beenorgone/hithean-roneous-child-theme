@@ -911,15 +911,38 @@
         orders.forEach(function (order) {
             var row = document.createElement('div');
             row.className = 'oc-result-row oc-order-result';
+            var showConfirm = order.payment_method === 'cod' && ['on-hold', 'processing'].indexOf(order.status_slug) !== -1;
             row.innerHTML =
                 '<span><b>#' + order.number + '</b> — ' + order.customer +
                 '<small>' + (order.phone || '') + ' · ' + order.date + ' · ' + order.status + '</small></span>' +
-                '<div class="oc-order-result__actions"><button type="button" class="oc-btn oc-btn--ghost">Xem đơn</button><button type="button" class="oc-btn oc-btn--ghost">Xem hóa đơn</button><button type="button" class="oc-btn oc-btn--ghost">Chỉnh sửa</button><button type="button" class="oc-btn oc-btn--ghost">Copy</button></div>';
-            var buttons = row.querySelectorAll('button');
-            buttons[0].addEventListener('click', function () { if (order.edit_url) { window.open(order.edit_url, '_blank', 'noopener'); } });
-            buttons[1].addEventListener('click', function () { if (order.invoice_url) { openInvoice(order.invoice_url); box.hidden = true; } });
-            buttons[2].addEventListener('click', function () { loadOrder(order.id); box.hidden = true; });
-            buttons[3].addEventListener('click', function () { loadOrder(order.id, true); box.hidden = true; });
+                '<div class="oc-order-result__actions">' +
+                '<button type="button" class="oc-btn oc-btn--ghost" data-act="view">Xem đơn</button>' +
+                '<button type="button" class="oc-btn oc-btn--ghost" data-act="invoice">Xem hóa đơn</button>' +
+                '<button type="button" class="oc-btn oc-btn--ghost" data-act="edit">Chỉnh sửa</button>' +
+                '<button type="button" class="oc-btn oc-btn--ghost" data-act="copy">Copy</button>' +
+                (showConfirm ? '<button type="button" class="oc-btn oc-btn--primary" data-act="confirm">Khách đã xác nhận</button>' : '') +
+                '<button type="button" class="oc-btn oc-btn--primary" data-act="pay">Xác nhận thanh toán</button>' +
+                '</div>';
+            row.querySelector('[data-act="view"]').addEventListener('click', function () { if (order.edit_url) { window.open(order.edit_url, '_blank', 'noopener'); } });
+            row.querySelector('[data-act="invoice"]').addEventListener('click', function () { if (order.invoice_url) { openInvoice(order.invoice_url); box.hidden = true; } });
+            row.querySelector('[data-act="edit"]').addEventListener('click', function () { loadOrder(order.id); box.hidden = true; });
+            row.querySelector('[data-act="copy"]').addEventListener('click', function () { loadOrder(order.id, true); box.hidden = true; });
+            if (showConfirm) {
+                row.querySelector('[data-act="confirm"]').addEventListener('click', function (e) {
+                    confirmCustomerForSearchRow(order, e.currentTarget);
+                });
+            }
+            row.querySelector('[data-act="pay"]').addEventListener('click', function () {
+                openPayModal({
+                    order_id: order.id,
+                    order_number: order.number,
+                    phone: order.phone,
+                    total: order.total,
+                    payment_total: order.payment_total,
+                    edit_url: order.edit_url
+                });
+                box.hidden = true;
+            });
             box.appendChild(row);
         });
         box.hidden = false;
@@ -939,9 +962,7 @@
                     edit_url: o.edit_url,
                     invoice_url: o.invoice_url,
                     payment_total: o.payment_total,
-                    phone: o.phone,
-                    payment_method: o.payment_method,
-                    status: o.status
+                    phone: o.phone
                 };
                 setEditorDisabled(true);
                 renderResult(state.lastOrder, false, '↩️ Đã hủy chỉnh sửa đơn ');
@@ -1743,6 +1764,7 @@
 
     // ---------- payment modal (reuse confirm_order_payment) ----------
     function openPayModal(o) {
+        state.payTarget = o;
         $('#oc-pay-info').value = 'Đơn #' + o.order_number + ' | SĐT: ' + (o.phone || '') + ' | Tổng: ' + money(o.total);
         $('#oc-pay-amount').value = o.payment_total;
         $('#oc-pay-date').value = new Date().toISOString().split('T')[0];
@@ -1753,12 +1775,13 @@
     }
 
     function confirmPayment() {
-        if (!state.lastOrder) return;
+        var target = state.payTarget || state.lastOrder;
+        if (!target) return;
         var payer = $('#oc-pay-payer').value;
         var btn = $('#oc-pay-confirm');
         btn.disabled = true; btn.textContent = 'Đang xử lý...';
         post('confirm_order_payment', {
-            order_ids: state.lastOrder.order_id,
+            order_ids: target.order_id,
             bank_account: $('#oc-pay-bank').value,
             paid_date: $('#oc-pay-date').value,
             amount_received: $('#oc-pay-amount').value,
@@ -1768,6 +1791,36 @@
             btn.disabled = false; btn.textContent = 'Xác nhận';
             $('#oc-pay-result').textContent = res.success ? '✅ ' + (res.data.message || 'Đã xác nhận.') : '❌ ' + ((res.data && res.data.message) || 'Lỗi.');
         }).catch(function () { btn.disabled = false; btn.textContent = 'Xác nhận'; });
+    }
+
+    // Xác nhận COD trực tiếp từ 1 dòng kết quả Tìm đơn — không đụng state.lastOrder
+    // (đơn đang mở trong form) để tránh phá dở luồng chỉnh sửa khác đang diễn ra.
+    function confirmCustomerForSearchRow(order, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đang chuyển...';
+        post('order_creator_customer_confirmed', { order_id: order.id }).then(function (res) {
+            var data = (res && res.data) || {};
+            data.order_id = data.order_id || order.id;
+            data.order_number = data.order_number || order.number;
+            data.edit_url = data.edit_url || order.edit_url;
+            if (!res.success) {
+                btn.disabled = false;
+                btn.textContent = 'Khách đã xác nhận';
+                showCustomerConfirmModal(data, true);
+                return;
+            }
+            btn.textContent = 'Đã xác nhận';
+            showCustomerConfirmModal(Object.assign({ message: 'Đã xác nhận COD và cập nhật trạng thái đơn.' }, data), false);
+        }).catch(function () {
+            btn.disabled = false;
+            btn.textContent = 'Khách đã xác nhận';
+            showCustomerConfirmModal({
+                order_id: order.id,
+                order_number: order.number,
+                edit_url: order.edit_url,
+                message: 'Không gọi được máy chủ. Vui lòng thử lại hoặc kiểm tra trạng thái đơn trong quản trị.'
+            }, true);
+        });
     }
 
     function togglePayCodNote() {

@@ -1896,7 +1896,10 @@ add_action('wp_ajax_order_creator_search_orders', function () {
             'customer' => trim($order->get_formatted_billing_full_name()) ?: __('Guest customer', 'woocommerce'),
             'phone'    => $order->get_billing_phone(),
             'total'    => (float) $order->get_total(),
+            'payment_total' => wc_format_decimal($order->get_total(), 0),
             'status'   => wc_get_order_status_name($order->get_status()),
+            'status_slug'    => $order->get_status(),
+            'payment_method' => $order->get_payment_method(),
             'date'     => $order->get_date_created() ? $order->get_date_created()->date_i18n('d/m/Y H:i') : '',
             'edit_url' => $order->get_edit_order_url(),
             'invoice_url' => add_query_arg([
