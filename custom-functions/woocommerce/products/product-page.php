@@ -503,15 +503,34 @@ function hithean_sticky_atc_js()
 
 function hithean_ecom_get_channels(int $product_id): array
 {
-    $channels = rwmb_meta('product_ecom_channels', ['type' => 'group', 'clone' => true], $product_id);
+    $csv = trim((string) get_post_meta($product_id, 'product_ecom_channels_csv', true));
+    if ($csv === '') return [];
 
-    if (!is_array($channels)) {
-        return [];
+    $channels = [];
+    foreach (preg_split('/\R/', $csv) as $line) {
+        $line = trim($line);
+        if ($line === '') continue;
+
+        $row = str_getcsv($line);
+        if (count($row) < 4) continue;
+
+        $store_name = sanitize_text_field(trim((string) $row[0]));
+        $link       = esc_url_raw(trim((string) $row[3]));
+        $scheme     = strtolower((string) wp_parse_url($link, PHP_URL_SCHEME));
+
+        if ($store_name === '' || $link === '' || !in_array($scheme, ['http', 'https'], true)) continue;
+
+        $platform = strtolower(trim((string) $row[2]));
+
+        $channels[] = [
+            'store_name' => $store_name,
+            'short_desc' => sanitize_text_field(trim((string) $row[1])),
+            'platform'   => in_array($platform, ['shopee', 'tiktok'], true) ? $platform : 'shopee',
+            'link'       => $link,
+        ];
     }
 
-    return array_values(array_filter($channels, function ($channel) {
-        return !empty($channel['store_name']) && !empty($channel['link']);
-    }));
+    return $channels;
 }
 
 function hithean_ecom_button_should_show(int $product_id): bool
