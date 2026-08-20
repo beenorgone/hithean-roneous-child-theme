@@ -100,7 +100,7 @@ add_filter('rwmb_meta_boxes', 'hithean_product_additional_info_metabox');
 // Nội dung mặc định hiện dưới tiêu đề "Chọn kênh mua hàng" khi admin để trống field mô tả.
 function hithean_ecom_modal_default_desc(): string
 {
-    return __('Đơn hàng đặt tại các kênh Shopee/TikTok không áp dụng chính sách ưu đãi, tích điểm như trên website', 'hithean-product-metabox');
+    return __('Đơn hàng đặt tại Shopee/TikTok không áp dụng chung chính sách ưu đãi, tích điểm như tại website', 'hithean-product-metabox');
 }
 
 // Kênh bán TMĐT (Shopee / TikTok) — dùng cho nút "Mua tại Shopee" trên trang sản phẩm.
