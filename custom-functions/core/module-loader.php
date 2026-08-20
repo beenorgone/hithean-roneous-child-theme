@@ -39,7 +39,6 @@ $general_includes = [
     'custom-functions/shortcodes/shortcode-google-docs.php',
     'custom-functions/shortcodes/shortcode-embed.php',
     'custom-functions/shortcodes/shortcode-certifications.php',
-    'custom-functions/admin/admin-settings-tools.php',
     'custom-functions/woocommerce/products/product-tab-post-type.php',
     'custom-functions/admin/blogpost-metabox.php',
     'custom-functions/woocommerce/products/product-metabox.php',
