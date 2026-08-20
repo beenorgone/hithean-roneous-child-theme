@@ -1359,6 +1359,19 @@ nav .menu li a:focus {
     width: 235px;
 }
 
+.product .summary #section-product-ctas {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
+@media only screen and (min-width: 769px) {
+    .product .summary #section-product-ctas {
+        align-items: flex-start;
+    }
+}
+
 [class^="ti-"],
 [class*=" ti-"] {
     margin-right: 10px;
