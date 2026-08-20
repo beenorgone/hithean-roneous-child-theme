@@ -97,6 +97,12 @@ function hithean_product_additional_info_metabox($meta_boxes)
 
 add_filter('rwmb_meta_boxes', 'hithean_product_additional_info_metabox');
 
+// Nội dung mặc định hiện dưới tiêu đề "Chọn kênh mua hàng" khi admin để trống field mô tả.
+function hithean_ecom_modal_default_desc(): string
+{
+    return __('Đơn hàng đặt tại các kênh Shopee/TikTok không áp dụng chính sách ưu đãi, tích điểm như trên website', 'hithean-product-metabox');
+}
+
 // Kênh bán TMĐT (Shopee / TikTok) — dùng cho nút "Mua tại Shopee" trên trang sản phẩm.
 // Lưu dạng CSV (giống product_nutrition_label_csv / addon-manager.php): mỗi dòng
 // "Tên store,Mô tả ngắn,platform,Link" — field textarea là core Meta Box, không cần extension.
@@ -110,6 +116,14 @@ function hithean_product_ecom_channels_metabox($meta_boxes)
         'priority'   => 'default',
         'autosave'   => true,
         'fields'     => [
+            [
+                'id'          => 'product_ecom_modal_desc',
+                'name'        => esc_html__('Mô tả dưới tiêu đề "Chọn kênh mua hàng"', 'hithean-product-metabox'),
+                'type'        => 'textarea',
+                'rows'        => 2,
+                'placeholder' => hithean_ecom_modal_default_desc(),
+                'desc'        => esc_html__('Để trống sẽ dùng nội dung mặc định (xem placeholder phía trên).', 'hithean-product-metabox'),
+            ],
             [
                 'id'          => 'product_ecom_channels_csv',
                 'name'        => esc_html__('Danh sách kênh bán (CSV)', 'hithean-product-metabox'),
@@ -188,8 +202,13 @@ function hithean_render_ecom_channel_builder_tool()
         border-radius: 8px;
     }
     .ecom-channel-preview-mock__title {
-        margin: 0 0 12px;
+        margin: 0 0 4px;
         font-weight: 600;
+    }
+    .ecom-channel-preview-mock__desc {
+        margin: 0 0 12px;
+        font-size: 13px;
+        color: #666;
     }
     .ecom-channel-preview-empty {
         margin: 0;
@@ -266,6 +285,7 @@ function hithean_render_ecom_channel_builder_tool()
         <h4><?php esc_html_e('Xem trước popup', 'hithean-product-metabox'); ?></h4>
         <div class="ecom-channel-preview-mock">
             <p class="ecom-channel-preview-mock__title"><?php esc_html_e('Chọn kênh mua hàng', 'hithean-product-metabox'); ?></p>
+            <p class="ecom-channel-preview-mock__desc" data-ecom-preview-desc></p>
             <div class="ecom-channel-preview-list" data-ecom-preview-list></div>
         </div>
     </div>
@@ -309,6 +329,13 @@ function hithean_render_ecom_channel_builder_tool()
         }
 
         function renderEcomPreview(builder) {
+            var descEl = builder.querySelector('[data-ecom-preview-desc]');
+            if (descEl) {
+                var descField = document.getElementById('product_ecom_modal_desc');
+                var descValue = descField ? descField.value.trim() : '';
+                descEl.textContent = descValue || '<?php echo esc_js(hithean_ecom_modal_default_desc()); ?>';
+            }
+
             var textarea = document.getElementById('product_ecom_channels_csv');
             var list = builder.querySelector('[data-ecom-preview-list]');
             if (!textarea || !list) return;
@@ -367,6 +394,13 @@ function hithean_render_ecom_channel_builder_tool()
                     textarea.addEventListener('input', function () { renderEcomPreview(builder); });
                     textarea.addEventListener('change', function () { renderEcomPreview(builder); });
                 }
+
+                var descField = document.getElementById('product_ecom_modal_desc');
+                if (descField) {
+                    descField.addEventListener('input', function () { renderEcomPreview(builder); });
+                    descField.addEventListener('change', function () { renderEcomPreview(builder); });
+                }
+
                 renderEcomPreview(builder);
 
                 var addButton = builder.querySelector('[data-add-ecom-channel]');

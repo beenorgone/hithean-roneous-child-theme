@@ -637,7 +637,12 @@ function hithean_render_ecom_buy_button()
         cursor: pointer;
     }
     .ecom-buy-modal__title {
+        margin: 0 0 4px;
+    }
+    .ecom-buy-modal__desc {
         margin: 0 0 16px;
+        font-size: 13px;
+        color: #666;
     }
     .ecom-buy-card {
         display: flex;
@@ -685,6 +690,13 @@ function hithean_render_ecom_buy_button()
         <div class="ecom-buy-modal__panel">
             <button type="button" class="ecom-buy-modal__close" aria-label="<?php esc_attr_e('Đóng', 'hithean.com'); ?>">&times;</button>
             <h3 class="ecom-buy-modal__title"><?php esc_html_e('Chọn kênh mua hàng', 'hithean.com'); ?></h3>
+            <?php
+            $modal_desc = trim((string) get_post_meta($product_id, 'product_ecom_modal_desc', true));
+            if ($modal_desc === '') {
+                $modal_desc = hithean_ecom_modal_default_desc();
+            }
+            ?>
+            <p class="ecom-buy-modal__desc"><?php echo esc_html($modal_desc); ?></p>
             <?php foreach ($channels as $channel):
                 $platform = in_array($channel['platform'] ?? '', ['shopee', 'tiktok'], true) ? $channel['platform'] : 'shopee';
                 ?>
