@@ -1363,7 +1363,7 @@ nav .menu li a:focus {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 18px;
+    gap: 10px;
 }
 
 @media only screen and (min-width: 769px) {
