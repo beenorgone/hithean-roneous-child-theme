@@ -96,3 +96,55 @@ function hithean_product_additional_info_metabox($meta_boxes)
 }
 
 add_filter('rwmb_meta_boxes', 'hithean_product_additional_info_metabox');
+
+// Kênh bán TMĐT (Shopee / TikTok) — dùng cho nút "Mua tại Shopee" trên trang sản phẩm
+function hithean_product_ecom_channels_metabox($meta_boxes)
+{
+    $meta_boxes[] = [
+        'title'      => 'Kênh bán TMĐT (Shopee / TikTok)',
+        'id'         => 'product_ecom_channels_metabox',
+        'post_types' => ['product'],
+        'context'    => 'side',
+        'priority'   => 'default',
+        'autosave'   => true,
+        'fields'     => [
+            [
+                'id'         => 'product_ecom_channels',
+                'type'       => 'group',
+                'clone'      => true,
+                'sort_clone' => true,
+                'add_button' => esc_html__('Thêm kênh bán', 'hithean-product-metabox'),
+                'fields'     => [
+                    [
+                        'id'   => 'store_name',
+                        'name' => esc_html__('Tên store', 'hithean-product-metabox'),
+                        'type' => 'text',
+                    ],
+                    [
+                        'id'   => 'short_desc',
+                        'name' => esc_html__('Mô tả ngắn', 'hithean-product-metabox'),
+                        'type' => 'text',
+                    ],
+                    [
+                        'id'      => 'platform',
+                        'name'    => esc_html__('Phân loại', 'hithean-product-metabox'),
+                        'type'    => 'select',
+                        'options' => [
+                            'shopee' => 'Shopee',
+                            'tiktok' => 'TikTok',
+                        ],
+                    ],
+                    [
+                        'id'   => 'link',
+                        'name' => esc_html__('Link (store hoặc sản phẩm)', 'hithean-product-metabox'),
+                        'type' => 'url',
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    return $meta_boxes;
+}
+
+add_filter('rwmb_meta_boxes', 'hithean_product_ecom_channels_metabox');

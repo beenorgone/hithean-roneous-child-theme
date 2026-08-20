@@ -497,6 +497,223 @@ function hithean_sticky_atc_js()
     <?php
 }
 
+/*---------------------------------------*\
+  NÚT "MUA TẠI SHOPEE" — ECOM BUY BUTTON + MODAL
+\*---------------------------------------*/
+
+function hithean_ecom_get_channels(int $product_id): array
+{
+    $channels = rwmb_meta('product_ecom_channels', ['type' => 'group', 'clone' => true], $product_id);
+
+    if (!is_array($channels)) {
+        return [];
+    }
+
+    return array_values(array_filter($channels, function ($channel) {
+        return !empty($channel['store_name']) && !empty($channel['link']);
+    }));
+}
+
+function hithean_ecom_button_should_show(int $product_id): bool
+{
+    $rules = get_option('hithean_ecom_button_rules', []);
+
+    if (empty($rules['enabled'])) {
+        return false;
+    }
+
+    $product_ids = array_map('intval', $rules['product_ids'] ?? []);
+    if (in_array($product_id, $product_ids, true)) {
+        return true;
+    }
+
+    $categories = array_map('intval', $rules['categories'] ?? []);
+    if ($categories && has_term($categories, 'product_cat', $product_id)) {
+        return true;
+    }
+
+    $tags = array_map('intval', $rules['tags'] ?? []);
+    if ($tags && has_term($tags, 'product_tag', $product_id)) {
+        return true;
+    }
+
+    $keywords = $rules['keywords'] ?? [];
+    if ($keywords) {
+        $title = mb_strtolower(get_the_title($product_id));
+        foreach ($keywords as $keyword) {
+            $keyword = mb_strtolower(trim((string) $keyword));
+            if ($keyword !== '' && mb_strpos($title, $keyword) !== false) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+add_action('woocommerce_single_product_summary', 'hithean_render_ecom_buy_button', 31);
+
+function hithean_render_ecom_buy_button()
+{
+    global $product;
+
+    if (!$product instanceof WC_Product) {
+        return;
+    }
+
+    $product_id = $product->get_id();
+    $channels   = hithean_ecom_get_channels($product_id);
+
+    if (empty($channels) || !hithean_ecom_button_should_show($product_id)) {
+        return;
+    }
+
+    $modal_id = 'ecom-buy-modal-' . $product_id;
+    ?>
+    <style>
+    .ecom-buy-trigger {
+        margin-top: 8px;
+        background: #ee4d2d;
+        border-color: #ee4d2d;
+        color: #fff;
+    }
+    .ecom-buy-trigger:hover {
+        background: #d8431f;
+        border-color: #d8431f;
+        color: #fff;
+    }
+    .ecom-buy-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .ecom-buy-modal[hidden] { display: none; }
+    .ecom-buy-modal__backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, .55);
+    }
+    .ecom-buy-modal__panel {
+        position: relative;
+        background: #fff;
+        border-radius: 8px;
+        padding: 24px;
+        width: 90%;
+        max-width: 420px;
+        max-height: 80vh;
+        overflow: auto;
+    }
+    .ecom-buy-modal__close {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .ecom-buy-modal__title {
+        margin: 0 0 16px;
+    }
+    .ecom-buy-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border-top: 1px solid #eee;
+    }
+    .ecom-buy-card:first-child { border-top: none; }
+    .ecom-buy-card__store {
+        margin: 0;
+        font-weight: 600;
+    }
+    .ecom-buy-card__desc {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #666;
+    }
+    .ecom-buy-card__cta {
+        flex-shrink: 0;
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 4px;
+        color: #fff !important;
+        text-decoration: none;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .ecom-buy-card__cta--shopee {
+        background: #ee4d2d;
+    }
+    .ecom-buy-card__cta--tiktok {
+        background: #000;
+        box-shadow: inset 3px 0 0 #fe2c55, inset -3px 0 0 #25f4ee;
+    }
+    </style>
+
+    <button type="button" class="button ecom-buy-trigger" data-ecom-modal="#<?php echo esc_attr($modal_id); ?>">
+        <?php esc_html_e('Mua tại Shopee', 'hithean.com'); ?>
+    </button>
+
+    <div id="<?php echo esc_attr($modal_id); ?>" class="ecom-buy-modal" hidden>
+        <div class="ecom-buy-modal__backdrop"></div>
+        <div class="ecom-buy-modal__panel">
+            <button type="button" class="ecom-buy-modal__close" aria-label="<?php esc_attr_e('Đóng', 'hithean.com'); ?>">&times;</button>
+            <h3 class="ecom-buy-modal__title"><?php esc_html_e('Chọn kênh mua hàng', 'hithean.com'); ?></h3>
+            <?php foreach ($channels as $channel):
+                $platform = in_array($channel['platform'] ?? '', ['shopee', 'tiktok'], true) ? $channel['platform'] : 'shopee';
+                ?>
+                <div class="ecom-buy-card">
+                    <div class="ecom-buy-card__info">
+                        <p class="ecom-buy-card__store"><?php echo esc_html($channel['store_name']); ?></p>
+                        <?php if (!empty($channel['short_desc'])): ?>
+                            <p class="ecom-buy-card__desc"><?php echo esc_html($channel['short_desc']); ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <a href="<?php echo esc_url($channel['link']); ?>" target="_blank" rel="noopener" class="ecom-buy-card__cta ecom-buy-card__cta--<?php echo esc_attr($platform); ?>">
+                        <?php esc_html_e('Mua ngay', 'hithean.com'); ?>
+                    </a>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php
+}
+
+add_action('wp_footer', 'hithean_ecom_buy_modal_js');
+
+function hithean_ecom_buy_modal_js()
+{
+    if (!is_singular('product')) {
+        return;
+    }
+    ?>
+    <script>
+    jQuery(function($) {
+        $('.ecom-buy-trigger').on('click', function() {
+            var $modal = $($(this).data('ecom-modal'));
+            if ($modal.length) $modal.removeAttr('hidden');
+        });
+
+        $('.ecom-buy-modal__backdrop, .ecom-buy-modal__close').on('click', function() {
+            $(this).closest('.ecom-buy-modal').attr('hidden', 'hidden');
+        });
+
+        $(document).on('keyup', function(e) {
+            if (e.key === 'Escape') {
+                $('.ecom-buy-modal').attr('hidden', 'hidden');
+            }
+        });
+    });
+    </script>
+    <?php
+}
+
 // Unset tabs
 function unset_tabs($tabs)
 {
