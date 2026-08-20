@@ -95,6 +95,22 @@ function hithean_format_sale_price_date_notice(int $from, int $to): string
     return 'Đang áp dụng giá sale';
 }
 
+add_action('wp_head', 'hithean_onsale_badge_position_css');
+
+function hithean_onsale_badge_position_css()
+{
+    if (!is_product()) {
+        return;
+    }
+    ?>
+    <style>
+        .single-product .woocommerce-product-gallery span.onsale {
+            right: 46px;
+        }
+    </style>
+    <?php
+}
+
 add_action('wp_head', 'hithean_sale_price_date_notice_css');
 
 function hithean_sale_price_date_notice_css()
