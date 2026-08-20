@@ -570,7 +570,7 @@ function hithean_ecom_button_should_show(int $product_id): bool
     return false;
 }
 
-add_action('woocommerce_single_product_summary', 'hithean_render_ecom_buy_button', 31);
+add_action('hithean_after_product_chat_cta', 'hithean_render_ecom_buy_button');
 
 function hithean_render_ecom_buy_button()
 {
@@ -590,16 +590,17 @@ function hithean_render_ecom_buy_button()
     $modal_id = 'ecom-buy-modal-' . $product_id;
     ?>
     <style>
-    .ecom-buy-trigger {
-        margin-top: 8px;
+    .button--shopee-buy {
+        width: 235px;
+        max-width: 100%;
         background: #ee4d2d;
-        border-color: #ee4d2d;
-        color: #fff;
+        border: 2px solid #ee4d2d;
+        color: #fff !important;
     }
-    .ecom-buy-trigger:hover {
+    .button--shopee-buy:hover {
         background: #d8431f;
         border-color: #d8431f;
-        color: #fff;
+        color: #fff !important;
     }
     .ecom-buy-modal {
         position: fixed;
@@ -675,7 +676,7 @@ function hithean_render_ecom_buy_button()
     }
     </style>
 
-    <button type="button" class="button ecom-buy-trigger" data-ecom-modal="#<?php echo esc_attr($modal_id); ?>">
+    <button type="button" class="button--shopee-buy ecom-buy-trigger" data-ecom-modal="#<?php echo esc_attr($modal_id); ?>">
         <?php esc_html_e('Mua tại Shopee', 'hithean.com'); ?>
     </button>
 

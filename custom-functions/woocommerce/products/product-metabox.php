@@ -174,6 +174,63 @@ function hithean_render_ecom_channel_builder_tool()
         color: #50575e;
         font-size: 12px;
     }
+    .ecom-channel-preview {
+        margin-top: 16px;
+    }
+    .ecom-channel-preview h4 {
+        margin: 0 0 10px;
+    }
+    .ecom-channel-preview-mock {
+        max-width: 420px;
+        padding: 20px;
+        background: #fff;
+        border: 1px solid #dcdcde;
+        border-radius: 8px;
+    }
+    .ecom-channel-preview-mock__title {
+        margin: 0 0 12px;
+        font-weight: 600;
+    }
+    .ecom-channel-preview-empty {
+        margin: 0;
+        color: #757575;
+        font-size: 13px;
+    }
+    .ecom-buy-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border-top: 1px solid #eee;
+    }
+    .ecom-buy-card:first-child { border-top: none; }
+    .ecom-buy-card__store {
+        margin: 0;
+        font-weight: 600;
+    }
+    .ecom-buy-card__desc {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #666;
+    }
+    .ecom-buy-card__cta {
+        flex-shrink: 0;
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 4px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .ecom-buy-card__cta--shopee {
+        background: #ee4d2d;
+    }
+    .ecom-buy-card__cta--tiktok {
+        background: #000;
+        box-shadow: inset 3px 0 0 #fe2c55, inset -3px 0 0 #25f4ee;
+    }
     </style>
 
     <div class="ecom-channel-builder">
@@ -205,6 +262,14 @@ function hithean_render_ecom_channel_builder_tool()
         </div>
     </div>
 
+    <div class="ecom-channel-preview">
+        <h4><?php esc_html_e('Xem trước popup', 'hithean-product-metabox'); ?></h4>
+        <div class="ecom-channel-preview-mock">
+            <p class="ecom-channel-preview-mock__title"><?php esc_html_e('Chọn kênh mua hàng', 'hithean-product-metabox'); ?></p>
+            <div class="ecom-channel-preview-list" data-ecom-preview-list></div>
+        </div>
+    </div>
+
     <script>
     (function () {
         if (window.ecomChannelBuilderInit) return;
@@ -214,13 +279,100 @@ function hithean_render_ecom_channel_builder_tool()
             return '"' + String(value || '').replace(/"/g, '""') + '"';
         }
 
+        // Parser CSV đơn giản, hỗ trợ field có dấu phẩy/ngoặc kép (khớp hành vi str_getcsv phía PHP)
+        function parseCsvLine(line) {
+            var result = [];
+            var cur = '';
+            var inQuotes = false;
+
+            for (var i = 0; i < line.length; i++) {
+                var ch = line[i];
+                if (inQuotes) {
+                    if (ch === '"') {
+                        if (line[i + 1] === '"') { cur += '"'; i++; }
+                        else { inQuotes = false; }
+                    } else {
+                        cur += ch;
+                    }
+                } else if (ch === '"') {
+                    inQuotes = true;
+                } else if (ch === ',') {
+                    result.push(cur);
+                    cur = '';
+                } else {
+                    cur += ch;
+                }
+            }
+            result.push(cur);
+
+            return result;
+        }
+
+        function renderEcomPreview(builder) {
+            var textarea = document.getElementById('product_ecom_channels_csv');
+            var list = builder.querySelector('[data-ecom-preview-list]');
+            if (!textarea || !list) return;
+
+            var channels = textarea.value.split(/\r\n|\r|\n/)
+                .map(function (line) { return line.trim(); })
+                .filter(Boolean)
+                .map(parseCsvLine)
+                .filter(function (cols) { return cols.length >= 4 && cols[0].trim() && cols[3].trim(); });
+
+            list.innerHTML = '';
+
+            if (!channels.length) {
+                var empty = document.createElement('p');
+                empty.className = 'ecom-channel-preview-empty';
+                empty.textContent = '<?php echo esc_js(__('Chưa có kênh bán nào — thêm ở form trên hoặc gõ trực tiếp vào ô CSV.', 'hithean-product-metabox')); ?>';
+                list.appendChild(empty);
+                return;
+            }
+
+            channels.forEach(function (cols) {
+                var platform = (cols[2] || '').trim().toLowerCase();
+                platform = (platform === 'shopee' || platform === 'tiktok') ? platform : 'shopee';
+
+                var card = document.createElement('div');
+                card.className = 'ecom-buy-card';
+
+                var info = document.createElement('div');
+                var storeEl = document.createElement('p');
+                storeEl.className = 'ecom-buy-card__store';
+                storeEl.textContent = cols[0].trim();
+                info.appendChild(storeEl);
+
+                var shortDesc = (cols[1] || '').trim();
+                if (shortDesc) {
+                    var descEl = document.createElement('p');
+                    descEl.className = 'ecom-buy-card__desc';
+                    descEl.textContent = shortDesc;
+                    info.appendChild(descEl);
+                }
+
+                var cta = document.createElement('span');
+                cta.className = 'ecom-buy-card__cta ecom-buy-card__cta--' + platform;
+                cta.textContent = '<?php echo esc_js(__('Mua ngay', 'hithean-product-metabox')); ?>';
+
+                card.appendChild(info);
+                card.appendChild(cta);
+                list.appendChild(card);
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.ecom-channel-builder').forEach(function (builder) {
+                var textarea = document.getElementById('product_ecom_channels_csv');
+                if (textarea) {
+                    textarea.addEventListener('input', function () { renderEcomPreview(builder); });
+                    textarea.addEventListener('change', function () { renderEcomPreview(builder); });
+                }
+                renderEcomPreview(builder);
+
                 var addButton = builder.querySelector('[data-add-ecom-channel]');
                 if (!addButton) return;
 
                 addButton.addEventListener('click', function () {
-                    var textarea = document.getElementById('product_ecom_channels_csv');
                     if (!textarea) {
                         alert('<?php echo esc_js(__('Không tìm thấy ô CSV kênh bán.', 'hithean-product-metabox')); ?>');
                         return;
