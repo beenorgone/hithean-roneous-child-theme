@@ -2040,7 +2040,7 @@ div.summary.entry-summary > div.b-greenspark-revenue-percentage-widget > div {
 
     .sticky-atc-bar {
         position: fixed;
-        bottom: 55px;
+        bottom: 0px;
         left: 0;
         right: 0;
         height: 55px;

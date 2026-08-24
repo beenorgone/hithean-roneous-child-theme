@@ -132,11 +132,10 @@
 @media (max-width: 767px) {
     .pcn-mobile {
         --lw-green: #087a5a;
-
         position: fixed;
         left: 0;
         right: 0;
-        bottom: 118px;
+        bottom: 63px;
         z-index: 9198;
         display: flex;
         justify-content: center;
