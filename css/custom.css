@@ -1944,7 +1944,7 @@ div.summary.entry-summary > div.b-greenspark-revenue-percentage-widget > div {
   CERTIFICATES SECTION
 \*----------------------------------*/
 
-#tab-chung-nhan-va-tieu-chuan-chat-luong > div > section > div > div:nth-child(1) > p {
+#tab-chung-nhan-va-tieu-chuan-chat-luong section p {
     color: white !important;
 }
 
