@@ -7,6 +7,21 @@
         return;
     }
 
+    /*
+     * Nếu bất kỳ tổ tiên nào giữa <body> và các root này có transform/filter/
+     * perspective/contain (rất hay gặp ở theme dùng transform để trượt menu
+     * mobile), nó tạo containing block mới cho mọi phần tử position:fixed bên
+     * trong — khiến navigator/drawer bị định vị lệch theo tổ tiên đó thay vì
+     * viewport thật (biểu hiện: bị đẩy lệch xuống dưới, gần như mất hẳn).
+     * Portal cả 3 root ra thẳng con của <body> để luôn thoát khỏi rủi ro này,
+     * bất kể theme cha in wp_footer() ở đâu trong markup.
+     */
+    [root, mobileRoot, document.getElementById('pcn-drawer')].forEach(function (el) {
+        if (el && el.parentNode !== document.body) {
+            document.body.appendChild(el);
+        }
+    });
+
     var reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     function prefersReducedMotion() {

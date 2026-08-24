@@ -227,7 +227,14 @@
 
 .pcn-drawer {
     position: fixed;
-    inset: 0;
+    /* Longhand thay vì "inset: 0" — vài WebView (Zalo/Facebook in-app,
+       Safari iOS cũ) không hỗ trợ shorthand "inset", khiến phần tử
+       position:fixed rơi về vị trí tĩnh trong luồng tài liệu (tức là tận
+       cuối trang, gần bottom) thay vì phủ toàn viewport. */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     /* Phải cao hơn sticky-atc-bar (9999, css/custom.css) và ecom-buy-modal
        (100000, product-page.php) — drawer là modal do khách chủ động mở nên
        phải luôn nổi trên mọi lớp fixed khác của trang sản phẩm. */
@@ -239,7 +246,10 @@
 
 .pcn-drawer__backdrop {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     background: rgba(15, 23, 42, 0.45);
     backdrop-filter: blur(2px);
 }
