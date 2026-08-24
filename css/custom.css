@@ -103,7 +103,7 @@ body {
 .hithean-product-linking {
     display: grid;
     gap: 14px;
-    margin: 18px auto 22px auto;
+    margin: 18px auto 22px auto !important;
 }
 
 @media screen and (min-width: 769px) {
