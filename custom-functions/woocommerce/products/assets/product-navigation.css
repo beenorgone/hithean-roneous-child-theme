@@ -222,14 +222,30 @@
 }
 
 /* ---------- Popover "Chi tiết SP" (mobile) ----------
-   Thiết kế tham khảo theanmarket-wr-nitro-child-theme/css/product-navigation.css:
-   một popover position:absolute neo bên trong .pcn-mobile__cluster (đã
-   position:relative và đã nằm trong .pcn-mobile position:fixed đúng vị trí) —
-   thay vì một overlay position:fixed;inset:0 riêng, phủ toàn viewport. Cách
-   này tránh hẳn rủi ro của overlay độc lập (containing block do transform tổ
-   tiên, shorthand inset không tương thích một số WebView, xung đột z-index
-   với các lớp fixed khác) vì mọi phần tử liên quan luôn nằm trong CÙNG một
-   containing block đã được định vị đúng từ .pcn-mobile. */
+   Cơ chế định vị: popover position:absolute neo bên trong .pcn-mobile__cluster
+   (đã position:relative, nằm trong .pcn-mobile position:fixed đúng vị trí) —
+   thay vì overlay position:fixed;inset:0 độc lập từng gây lỗi hiển thị lệch
+   xuống bottom (containing block do transform tổ tiên, shorthand inset không
+   tương thích một số WebView, xung đột z-index với các lớp fixed khác). Mọi
+   phần tử liên quan dùng chung một containing block đã định vị đúng.
+   Giao diện: giữ nguyên bố cục/màu/size/font/độ blur của bottom-sheet cũ
+   (chỉ đổi cơ chế định vị, không đổi hình thức hiển thị). */
+
+.pcn-popover-backdrop[hidden] {
+    display: none;
+}
+
+.pcn-popover-backdrop {
+    position: fixed;
+    /* Longhand, không dùng "inset" — xem lý do ở khối comment phía trên. */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+}
 
 .pcn-popover[hidden] {
     display: none;
@@ -237,24 +253,55 @@
 
 .pcn-popover {
     position: absolute;
+    z-index: 2;
     bottom: calc(100% + 10px);
     left: 50%;
     transform: translateX(-50%);
-    width: min(320px, calc(100vw - 24px));
-    max-height: min(60vh, 420px);
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    max-height: min(72vh, 560px);
     overflow-y: auto;
     background: rgba(255, 255, 255, 0.97);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    border-radius: 12px;
-    padding: 10px;
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(6px);
+    border-radius: 16px 16px 0 0;
+    padding: 16px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
+}
+
+.pcn-popover__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.pcn-popover__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.pcn-popover__close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: #f1f1f1;
+    color: #111;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
 }
 
 .pcn-popover__list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -268,7 +315,7 @@
     min-height: 44px;
     padding: 10px 12px;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #fff;
     color: #1f2937;
     font-size: 13px;

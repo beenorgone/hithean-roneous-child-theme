@@ -224,12 +224,17 @@ function hithean_pcn_render()
     </nav>
 
     <div class="pcn-mobile" id="pcn-mobile-root">
+        <div class="pcn-popover-backdrop" data-pcn-popover-close hidden></div>
         <div class="pcn-mobile__cluster" data-pcn-lw-slot>
             <button type="button" class="pcn-mobile__detail" data-pcn-popover-toggle aria-haspopup="true" aria-controls="pcn-popover" aria-expanded="false">
                 <span class="pcn-mobile__detail-icon" aria-hidden="true"><?php echo hithean_product_tab_icon_svg('description'); ?></span>
                 <span class="pcn-mobile__detail-label"><?php esc_html_e('Chi tiết SP', 'hithean.com'); ?></span>
             </button>
             <div class="pcn-popover" id="pcn-popover" data-pcn-popover hidden>
+                <div class="pcn-popover__header">
+                    <h2 class="pcn-popover__title"><?php esc_html_e('Chi tiết sản phẩm', 'hithean.com'); ?></h2>
+                    <button type="button" class="pcn-popover__close" data-pcn-popover-close aria-label="<?php esc_attr_e('Đóng', 'hithean.com'); ?>">&times;</button>
+                </div>
                 <ul class="pcn-popover__list" role="list">
                     <?php foreach ($items as $item) : ?>
                         <li>

@@ -150,9 +150,12 @@
     /* ---------- Popover "Chi tiết SP" (mobile) ----------
        Popover neo tuyệt đối bên trong .pcn-mobile__cluster (đã position:relative,
        xem product-navigation.css) thay vì overlay position:fixed;inset:0 riêng —
-       tham khảo theanmarket-wr-nitro-child-theme/js/product-navigation.js. */
+       chỉ đổi cơ chế định vị, giao diện (backdrop, header, close, grid item) giữ
+       như bottom-sheet cũ. */
     var popover = document.getElementById('pcn-popover');
     var popoverToggle = document.querySelector('[data-pcn-popover-toggle]');
+    var popoverBackdrop = document.querySelector('.pcn-popover-backdrop');
+    var lastFocusedBeforePopover = null;
 
     function onPopoverKeydown(e) {
         if (e.key === 'Escape') closePopover();
@@ -166,8 +169,12 @@
 
     function openPopover() {
         if (!popover || !popover.hidden) return;
+        lastFocusedBeforePopover = document.activeElement;
         popover.hidden = false;
+        if (popoverBackdrop) popoverBackdrop.hidden = false;
         if (popoverToggle) popoverToggle.setAttribute('aria-expanded', 'true');
+        var closeBtn = popover.querySelector('[data-pcn-popover-close]');
+        if (closeBtn) closeBtn.focus();
         document.addEventListener('keydown', onPopoverKeydown);
         document.addEventListener('click', onOutsideClick);
     }
@@ -175,9 +182,14 @@
     function closePopover() {
         if (!popover || popover.hidden) return;
         popover.hidden = true;
+        if (popoverBackdrop) popoverBackdrop.hidden = true;
         if (popoverToggle) popoverToggle.setAttribute('aria-expanded', 'false');
         document.removeEventListener('keydown', onPopoverKeydown);
         document.removeEventListener('click', onOutsideClick);
+        if (lastFocusedBeforePopover && typeof lastFocusedBeforePopover.focus === 'function') {
+            lastFocusedBeforePopover.focus();
+        }
+        lastFocusedBeforePopover = null;
     }
 
     if (popoverToggle && popover) {
@@ -186,6 +198,9 @@
             if (popover.hidden) openPopover(); else closePopover();
         });
     }
+    document.querySelectorAll('[data-pcn-popover-close]').forEach(function (el) {
+        el.addEventListener('click', closePopover);
+    });
 
     /* ---------- CTA mua hàng (desktop bar) ---------- */
     document.addEventListener('click', function (e) {
