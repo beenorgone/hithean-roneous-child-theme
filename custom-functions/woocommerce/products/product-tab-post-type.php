@@ -107,6 +107,9 @@ function hithean_product_tab_guide_sections(): array
                 'Chọn "Dùng Tab cho Thương Hiệu" để tab tự hiện trên sản phẩm thuộc thương hiệu đó.',
                 'Dùng taxonomy Product Categories hoặc Product Tags ở cột bên phải nếu muốn tab hiện theo danh mục hoặc tag sản phẩm.',
                 'Đặt "Độ Ưu Tiên" để điều khiển vị trí tab. Số nhỏ hơn sẽ đứng trước số lớn hơn.',
+                'Bật "Hiển thị trong Chi tiết SP" nếu muốn tab này xuất hiện trong thanh điều hướng (Product Content Navigator) ở đáy trang sản phẩm.',
+                'Đặt "Nhãn navigator" ngắn gọn nếu tiêu đề tab quá dài để hiện trên nút điều hướng; để trống sẽ dùng nguyên tiêu đề tab.',
+                'Chọn "Icon navigator" phù hợp nội dung; icon này dùng cho cả nút điều hướng và tiêu đề tab.',
                 'Bấm Publish / Update, sau đó mở trang sản phẩm liên quan để kiểm tra thứ tự, nội dung và hiển thị mobile.',
             ],
         ],
@@ -140,9 +143,11 @@ function hithean_product_tab_guide_sections(): array
             'items' => [
                 'CPT: product-tab.',
                 'Meta: product_tab_global_tab, product_tab_priority, product_tab_products, product_tab_thuong_hieu.',
+                'Meta navigator: product_tab_show_in_navigator, product_tab_navigator_label, product_tab_navigator_icon.',
                 'Taxonomy áp dụng: product_cat, product_tag, thuong-hieu.',
                 'Frontend hook: woocommerce_product_tabs.',
                 'File render frontend: custom-functions/woocommerce/products/product-page.php.',
+                'File Product Content Navigator: custom-functions/woocommerce/products/product-navigation.php.',
             ],
             'warnings' => [
                 'Không dùng tab toàn cục cho nội dung chỉ đúng với một dòng sản phẩm, vì nó sẽ hiện trên toàn bộ catalog.',
@@ -544,6 +549,49 @@ function hithean_product_tab_print_admin_guide_script(): void
 add_action('admin_footer', 'hithean_product_tab_print_admin_guide_script');
 
 
+/*---------------------------------------*\
+  ICON WHITELIST — dùng chung cho field "Icon navigator" (admin)
+  và Product Content Navigator (frontend). Không nhận class/SVG tự do.
+\*---------------------------------------*/
+
+function hithean_product_tab_icon_whitelist(): array
+{
+    return [
+        'default'     => 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 14.5a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm1-4.63V13a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1c1.1 0 2-.72 2-1.6 0-.88-.9-1.6-2-1.6s-2 .72-2 1.6a1 1 0 0 1-2 0c0-1.99 1.79-3.6 4-3.6s4 1.61 4 3.6c0 1.44-1 2.7-2 3.27Z',
+        'description' => 'M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5L14 3.5ZM8 12h8v1.5H8V12Zm0 4h8v1.5H8V16Zm0-8h4v1.5H8V8Z',
+        'ingredients' => 'M9 2h6v2.1c1.98.9 3.4 2.72 3.4 4.9v9a2 2 0 0 1-2 2H7.6a2 2 0 0 1-2-2v-9c0-2.18 1.42-4 3.4-4.9V2Zm-1.5 8v8.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5V10h-9Z',
+        'usage'       => 'M12 2a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v1h6V7a3 3 0 0 0-3-3Zm0 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z',
+        'faq'         => 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm.9 14.6h-1.8v-1.8h1.8v1.8Zm1.86-6.8c-.4.55-.98.94-1.36 1.28-.4.34-.5.5-.5 1.02h-1.8c0-1.06.4-1.6.9-2.06.4-.36.86-.68 1.14-1.06.24-.32.36-.66.36-1.02 0-.83-.72-1.46-1.66-1.46-.9 0-1.6.6-1.7 1.5H8.34c.1-1.98 1.66-3.2 3.54-3.2 1.98 0 3.52 1.28 3.52 3.1 0 .78-.28 1.36-.66 1.9Z',
+        'brand'       => 'M12 2 2 7v2l10 5 10-5V7L12 2Zm0 9L4 7l8-4 8 4-8 4Zm-8 2.4V17l8 4 8-4v-3.6l-8 4-8-4Z',
+        'legal'       => 'M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4Zm-1 13.4-3.4-3.4 1.4-1.4L11 12.6l4-4 1.4 1.4-5.4 5.4Z',
+        'label'       => 'M3 12 12 3h6a2 2 0 0 1 2 2v6l-9 9a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8Zm12.5-3.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z',
+    ];
+}
+
+function hithean_product_tab_icon_options(): array
+{
+    return [
+        'default'     => 'Mặc định',
+        'description' => 'Mô tả',
+        'ingredients' => 'Thành phần',
+        'usage'       => 'Cách dùng',
+        'faq'         => 'Câu hỏi',
+        'brand'       => 'Thương hiệu',
+        'legal'       => 'Hồ sơ / Pháp lý',
+        'label'       => 'Nhãn phụ',
+    ];
+}
+
+function hithean_product_tab_icon_svg(string $key): string
+{
+    $icons = hithean_product_tab_icon_whitelist();
+    if (!isset($icons[$key])) {
+        $key = 'default';
+    }
+
+    return '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" focusable="false"><path d="' . esc_attr($icons[$key]) . '"/></svg>';
+}
+
 // Define custom fields with Metabox for product_tab
 add_filter('rwmb_meta_boxes', 'product_tab_meta_boxes');
 function product_tab_meta_boxes($meta_boxes)
@@ -583,6 +631,26 @@ function product_tab_meta_boxes($meta_boxes)
                 'type' => 'taxonomy_advanced',
                 'taxonomy' => 'thuong-hieu', // Product Brands
                 'multiple' => true, // Allow multiple
+            ],
+            [
+                'id'   => $prefix . 'show_in_navigator',
+                'name' => 'Hiển thị trong Chi tiết SP',
+                'desc' => 'Bật để tab này xuất hiện trong thanh điều hướng nội dung (Product Content Navigator) trên trang sản phẩm.',
+                'type' => 'checkbox',
+            ],
+            [
+                'id'   => $prefix . 'navigator_label',
+                'name' => 'Nhãn navigator',
+                'desc' => 'Nhãn ngắn hiển thị trên nút điều hướng, ví dụ "Cách sử dụng". Để trống sẽ dùng tiêu đề tab.',
+                'type' => 'text',
+            ],
+            [
+                'id'      => $prefix . 'navigator_icon',
+                'name'    => 'Icon navigator',
+                'desc'    => 'Chọn icon hiển thị cho nút điều hướng và tiêu đề tab.',
+                'type'    => 'select',
+                'options' => hithean_product_tab_icon_options(),
+                'std'     => 'default',
             ],
         ],
     ];
