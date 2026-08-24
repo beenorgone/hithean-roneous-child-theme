@@ -369,18 +369,12 @@ function add_custom_product_tabs($tabs)
     return $tabs;
 }
 
-function hithean_pcn_heading_icon_html_safe(string $key): string
-{
-    return function_exists('hithean_pcn_heading_icon_html') ? hithean_pcn_heading_icon_html($key) : '';
-}
-
 function display_custom_product_field_tab_content($key, $tab)
 {
     global $product;
     $meta_key = isset($tab['meta_key']) ? $tab['meta_key'] : $key;
     $field_value = get_post_meta($product->get_id(), $meta_key, true);
     if (!empty($field_value)) {
-        echo '<h2 class="tab-title">' . hithean_pcn_heading_icon_html_safe($key) . esc_html($tab['title']) . '</h2>';  // Output the tab title as an <h2> tag
         echo '<div class="tab-content">' . wpautop(do_shortcode($field_value)) . '</div>';  // Process shortcodes and format text
     }
 }
@@ -388,7 +382,6 @@ function display_custom_product_field_tab_content($key, $tab)
 
 function display_product_tab_content($key, $tab)
 {
-    echo '<h2 class="tab-title">' . hithean_pcn_heading_icon_html_safe($key) . esc_html($tab['title']) . '</h2>';
     echo '<div class="tab-content">' . wpautop(do_shortcode($tab['content'])) . '</div>';
 }
 
@@ -398,7 +391,6 @@ function display_thuong_hieu_tab_content()
     $thuong_hieu_term = wp_get_post_terms($product->get_id(), 'thuong-hieu');
     if (!is_wp_error($thuong_hieu_term) && !empty($thuong_hieu_term)) {
         $thuong_hieu_description = term_description($thuong_hieu_term[0]->term_id, 'thuong-hieu');
-        echo '<h2 class="tab-title">' . hithean_pcn_heading_icon_html_safe('thuong-hieu') . 'Thương hiệu</h2>';  // Output the tab title as an <h2> tag
         echo '<div class="tab-content">' . wpautop(do_shortcode($thuong_hieu_description)) . '</div>';  // Process shortcodes and format text
     }
 }

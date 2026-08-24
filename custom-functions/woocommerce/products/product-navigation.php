@@ -135,21 +135,6 @@ function hithean_pcn_get_items(): array
     return $items;
 }
 
-/**
- * Dùng bởi product-page.php để in icon trước tiêu đề panel (nếu tab đó có mặt
- * trong navigator). Trả về chuỗi rỗng nếu module chưa nạp hoặc tab không có icon.
- */
-function hithean_pcn_heading_icon_html(string $key): string
-{
-    foreach (hithean_pcn_get_items() as $item) {
-        if ($item['key'] === $key) {
-            return '<span class="pcn-heading-icon" aria-hidden="true">' . hithean_product_tab_icon_svg($item['icon']) . '</span>';
-        }
-    }
-
-    return '';
-}
-
 /*---------------------------------------*\
   ENQUEUE ASSETS — chỉ trên trang sản phẩm.
   Lưu ý: wp_enqueue_scripts chạy ở <head>, TRƯỚC khi WooCommerce build và

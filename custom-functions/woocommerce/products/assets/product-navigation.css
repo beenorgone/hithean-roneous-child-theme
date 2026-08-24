@@ -331,32 +331,6 @@
     height: 100%;
 }
 
-/* ---------- Icon trước tiêu đề tab ---------- */
-
-.single-product .woocommerce-tabs .tab-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.pcn-heading-icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-}
-
-.pcn-heading-icon svg {
-    width: 100%;
-    height: 100%;
-}
-
-/* Tắt pseudo-element +/- nếu theme Roneous chèn vào heading tab */
-.single-product .woocommerce-tabs .tab-title::before,
-.single-product .woocommerce-tabs .tab-title::after {
-    content: none !important;
-}
-
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
