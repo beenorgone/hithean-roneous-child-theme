@@ -101,6 +101,146 @@ function theme_erp_settings_sanitize($input): array
     return $out;
 }
 
+function hithean_pcn_render_settings_tab(): void
+{
+    $settings = hithean_pcn_get_settings();
+    $terms    = [];
+    foreach (hithean_pcn_menu_scope_taxonomy_map() as $scope => $taxonomy) {
+        if ($taxonomy === '') {
+            continue;
+        }
+        $found         = get_terms(['taxonomy' => $taxonomy, 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC']);
+        $terms[$scope] = is_wp_error($found) ? [] : array_map(static function ($term): array {
+            return ['id' => (int) $term->term_id, 'name' => (string) $term->name];
+        }, $found);
+    }
+    ?>
+    <form method="post" action="options.php">
+        <?php settings_fields('hithean_pcn_settings_group'); ?>
+        <h2>Điều hướng trang sản phẩm</h2>
+        <p class="description">Chọn giao diện navigator cho desktop. Cấu hình này chỉ tải trên trang sản phẩm và được cache an toàn. Mobile luôn dùng cụm nút nổi (không có tùy chọn khác).</p>
+        <table class="form-table" role="presentation">
+            <tbody>
+                <tr>
+                    <th scope="row"><label for="hithean-pcn-desktop">Desktop</label></th>
+                    <td><select id="hithean-pcn-desktop" name="<?php echo esc_attr(HITHEAN_PCN_SETTINGS_OPTION); ?>[desktop_mode]">
+                        <option value="sticky_bar" <?php selected($settings['desktop_mode'], 'sticky_bar'); ?>>Thanh sticky gọn</option>
+                        <option value="floating_toc" <?php selected($settings['desktop_mode'], 'floating_toc'); ?>>Nút mục lục nổi</option>
+                    </select></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Menu bổ sung</h2>
+        <p class="description">Mỗi mục áp dụng toàn bộ catalogue hoặc cho đúng một danh mục, tag, hay thương hiệu. Anchor chỉ hiển thị nếu phần tử tương ứng có mặt trên trang sản phẩm.</p>
+        <div id="hithean-pcn-menu-editor" class="hithean-pcn-menu-editor">
+            <div data-hithean-pcn-rows></div>
+            <p><button class="button" type="button" data-hithean-pcn-add>Thêm menu</button></p>
+        </div>
+        <?php submit_button('Lưu cài đặt WooCommerce'); ?>
+    </form>
+    <script>
+    (function () {
+        var editor = document.getElementById('hithean-pcn-menu-editor');
+        if (!editor || editor.dataset.ready) return;
+        editor.dataset.ready = '1';
+        var rows = editor.querySelector('[data-hithean-pcn-rows]');
+        var add = editor.querySelector('[data-hithean-pcn-add]');
+        var option = <?php echo wp_json_encode(HITHEAN_PCN_SETTINGS_OPTION); ?>;
+        var initial = <?php echo wp_json_encode(array_values((array) $settings['menus'])); ?>;
+        var terms = <?php echo wp_json_encode($terms); ?>;
+        var scopes = {global: 'Global', category: 'Danh mục sản phẩm', tag: 'Tag sản phẩm', brand: 'Thương hiệu'};
+
+        function element(tag, attributes, text) {
+            var node = document.createElement(tag);
+            Object.keys(attributes || {}).forEach(function (key) {
+                if (key === 'class') node.className = attributes[key];
+                else if (key === 'type') node.type = attributes[key];
+                else node.setAttribute(key, attributes[key]);
+            });
+            if (text) node.textContent = text;
+            return node;
+        }
+        function field(label, control) {
+            var wrap = element('label', {class: 'hithean-pcn-menu-editor__field'});
+            wrap.appendChild(element('span', {}, label));
+            wrap.appendChild(control);
+            return wrap;
+        }
+        function rebuildNames() {
+            Array.prototype.forEach.call(rows.children, function (row, index) {
+                Array.prototype.forEach.call(row.querySelectorAll('[data-field]'), function (input) {
+                    input.name = option + '[menus][' + index + '][' + input.getAttribute('data-field') + ']';
+                });
+            });
+        }
+        function updateTerms(row) {
+            var scope = row.querySelector('[data-field="scope"]').value;
+            var select = row.querySelector('[data-field="term_id"]');
+            var selected = select.getAttribute('data-selected') || '';
+            select.textContent = '';
+            select.disabled = scope === 'global';
+            select.appendChild(element('option', {value: ''}, scope === 'global' ? 'Không áp dụng' : '— Chọn —'));
+            (terms[scope] || []).forEach(function (term) {
+                var choice = element('option', {value: term.id}, term.name);
+                if (String(term.id) === String(selected)) choice.selected = true;
+                select.appendChild(choice);
+            });
+            select.removeAttribute('data-selected');
+        }
+        function addRow(value) {
+            if (rows.children.length >= 30) {
+                add.disabled = true;
+                return;
+            }
+            value = value || {};
+            var row = element('fieldset', {class: 'hithean-pcn-menu-editor__row'});
+            var label = element('input', {type: 'text', 'data-field': 'label', maxlength: '120', required: 'required'});
+            label.value = value.label || '';
+            var type = element('select', {'data-field': 'destination_type'});
+            [['internal', 'Anchor nội bộ (#tab-hdsd)'], ['external', 'URL / đường dẫn']].forEach(function (choice) {
+                var optionNode = element('option', {value: choice[0]}, choice[1]);
+                optionNode.selected = (value.destination_type || 'external') === choice[0];
+                type.appendChild(optionNode);
+            });
+            var destination = element('input', {type: 'text', 'data-field': 'destination', maxlength: '2048', required: 'required', placeholder: '#tab-hdsd hoặc /huong-dan/'});
+            destination.value = value.destination || '';
+            var scope = element('select', {'data-field': 'scope'});
+            Object.keys(scopes).forEach(function (key) {
+                var optionNode = element('option', {value: key}, scopes[key]);
+                optionNode.selected = (value.scope || 'global') === key;
+                scope.appendChild(optionNode);
+            });
+            var term = element('select', {'data-field': 'term_id'});
+            term.setAttribute('data-selected', value.term_id || '');
+            var remove = element('button', {type: 'button', class: 'button-link-delete'}, 'Xóa mục');
+            remove.addEventListener('click', function () { row.remove(); add.disabled = false; rebuildNames(); });
+            scope.addEventListener('change', function () { term.setAttribute('data-selected', ''); updateTerms(row); });
+            row.appendChild(field('Nhãn hiển thị', label));
+            row.appendChild(field('Loại đích', type));
+            row.appendChild(field('Đích', destination));
+            row.appendChild(field('Phạm vi', scope));
+            row.appendChild(field('Điều kiện', term));
+            row.appendChild(remove);
+            rows.appendChild(row);
+            updateTerms(row);
+            rebuildNames();
+            add.disabled = rows.children.length >= 30;
+        }
+        initial.forEach(addRow);
+        add.addEventListener('click', function () { addRow({scope: 'global', destination_type: 'external'}); });
+    }());
+    </script>
+    <style>
+        .hithean-pcn-menu-editor__row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; max-width:1100px; margin:0 0 12px; padding:16px; border:1px solid #dcdcde; }
+        .hithean-pcn-menu-editor__field { display:block; }
+        .hithean-pcn-menu-editor__field > span { display:block; margin-bottom:4px; font-weight:600; }
+        .hithean-pcn-menu-editor__field input, .hithean-pcn-menu-editor__field select { width:100%; }
+        .hithean-pcn-menu-editor__row .button-link-delete { align-self:end; justify-self:start; }
+    </style>
+    <?php
+}
+
 function theme_erp_settings_render_page(): void
 {
     if (!current_user_can('manage_options')) {
@@ -146,9 +286,10 @@ function theme_erp_settings_render_page(): void
     }
 
     $tabs = [
-        'ai'        => 'AI',
-        'xu-ly-don' => 'Xử lý đơn',
-        'nut-ecom'  => 'Nút Shopee/TikTok',
+        'ai'          => 'AI',
+        'xu-ly-don'   => 'Xử lý đơn',
+        'nut-ecom'    => 'Nút Shopee/TikTok',
+        'woocommerce' => 'WooCommerce',
     ];
 
     $settings = theme_erp_settings();
@@ -335,6 +476,10 @@ function theme_erp_settings_render_page(): void
                 </table>
                 <?php submit_button('Lưu cài đặt'); ?>
             </form>
+        <?php endif; ?>
+
+        <?php if ($active_tab === 'woocommerce'): ?>
+            <?php hithean_pcn_render_settings_tab(); ?>
         <?php endif; ?>
     </div>
     <?php

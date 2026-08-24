@@ -40,6 +40,7 @@ $general_includes = [
     'custom-functions/shortcodes/shortcode-embed.php',
     'custom-functions/shortcodes/shortcode-certifications.php',
     'custom-functions/woocommerce/products/product-tab-post-type.php',
+    'custom-functions/woocommerce/products/product-navigation-settings.php',
     'custom-functions/admin/blogpost-metabox.php',
     'custom-functions/woocommerce/products/product-metabox.php',
 
