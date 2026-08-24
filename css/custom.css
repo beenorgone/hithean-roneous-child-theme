@@ -232,6 +232,20 @@ body {
 
 /* Mobile Logo */
 
+/*
+ * .nav-bar img.logo dùng position:absolute để căn giữa, nhưng .nav-bar tự nó
+ * không có position — nó dựa vào tổ tiên .nav-container nav.fixed hoặc
+ * nav.absolute (Roneous set position: fixed/absolute qua class do JS gắn khi
+ * cuộn trang). Nếu ở một viewport nào đó (vd ~850px) nav chưa có class .fixed
+ * hay .absolute, nav rơi về position:static, khiến logo mất điểm neo đúng và
+ * định vị theo tổ tiên positioned xa hơn — trôi tới vị trí bất kỳ trên trang.
+ * Cho .nav-bar position:relative để logo luôn neo đúng vào nó, không phụ
+ * thuộc trạng thái class do JS gắn ở nav cha.
+ */
+.nav-bar {
+    position: relative;
+}
+
 .nav-bar img.logo {
     position: absolute;
     top: 50%;
