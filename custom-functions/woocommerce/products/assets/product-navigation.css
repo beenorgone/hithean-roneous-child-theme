@@ -71,6 +71,7 @@
         font-size: 13px;
         font-weight: 600;
         line-height: 1.2;
+        text-decoration: none;
         white-space: nowrap;
         cursor: pointer;
         transition: background-color 0.15s ease, color 0.15s ease;
@@ -118,6 +119,106 @@
 
     .pcn__cta:hover,
     .pcn__cta:focus-visible {
+        opacity: 0.92;
+        outline: none;
+    }
+
+    /* ---------- Desktop floating_toc: nút nổi góc phải thay cho thanh full-width ---------- */
+
+    .pcn[data-desktop-mode="floating_toc"] {
+        left: auto;
+        right: 20px;
+        width: auto;
+        background: none;
+        box-shadow: none;
+    }
+
+    .pcn[data-desktop-mode="floating_toc"] .pcn__bar {
+        display: none;
+    }
+
+    .pcn[data-desktop-mode="sticky_bar"] .pcn__floating {
+        display: none;
+    }
+
+    .pcn__floating {
+        display: none;
+    }
+
+    .pcn[data-desktop-mode="floating_toc"] .pcn__floating {
+        display: block;
+    }
+
+    .pcn__floating-anchor {
+        position: relative;
+    }
+
+    .pcn__floating-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 10px 18px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--default-color-dark-blue, #14395c);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        cursor: pointer;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    }
+
+    .pcn__floating-toggle:hover,
+    .pcn__floating-toggle:focus-visible {
+        opacity: 0.92;
+        outline: none;
+    }
+
+    .pcn__floating-toggle-icon {
+        display: inline-flex;
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+    }
+
+    .pcn__floating-toggle-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Popover desktop dùng lại .pcn-popover (xem khối comment ở phần popover),
+       chỉ override vị trí neo: bám góc phải nút nổi thay vì căn giữa full-bleed
+       như bản mobile. */
+    #pcn-popover-desktop {
+        left: auto;
+        right: 0;
+        transform: none;
+        width: min(360px, calc(100vw - 24px));
+        max-width: min(360px, calc(100vw - 24px));
+        max-height: min(70vh, 520px);
+    }
+
+    .pcn-popover__cta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 44px;
+        margin-top: 10px;
+        padding: 10px 16px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--default-color-dark-blue, #14395c);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .pcn-popover__cta:hover,
+    .pcn-popover__cta:focus-visible {
         opacity: 0.92;
         outline: none;
     }
@@ -321,6 +422,7 @@
     font-size: 13px;
     font-weight: 600;
     text-align: left;
+    text-decoration: none;
     cursor: pointer;
 }
 

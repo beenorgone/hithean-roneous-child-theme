@@ -56,62 +56,107 @@ function hithean_pcn_default_tab_map(): array
  */
 function hithean_pcn_build_items(): array
 {
-    $tabs = hithean_pcn_tabs_snapshot();
-    if (!is_array($tabs) || empty($tabs)) {
-        return [];
-    }
-
+    $tabs        = hithean_pcn_tabs_snapshot();
     $default_map = hithean_pcn_default_tab_map();
     $icons       = hithean_product_tab_icon_whitelist();
     $items       = [];
-    $seen        = [];
+    $seen_target = [];
 
-    foreach ($tabs as $key => $tab) {
-        $key = (string) $key;
-        if ($key === '' || !is_array($tab)) {
-            continue;
-        }
-
-        $target = 'tab-' . $key;
-        if (isset($seen[$target])) {
-            continue;
-        }
-
-        $label    = '';
-        $icon_key = 'default';
-
-        if (array_key_exists('pcn_nav_show', $tab)) {
-            // Tab xuất phát từ CPT product-tab — chỉ vào navigator khi được bật.
-            if (empty($tab['pcn_nav_show'])) {
+    if (is_array($tabs) && !empty($tabs)) {
+        foreach ($tabs as $key => $tab) {
+            $key = (string) $key;
+            if ($key === '' || !is_array($tab)) {
                 continue;
             }
-            $label    = trim((string) ($tab['pcn_nav_label'] ?? ''));
-            $icon_key = (string) ($tab['pcn_nav_icon'] ?? 'default');
-        } elseif (isset($default_map[$key])) {
-            $icon_key = (string) $default_map[$key]['icon'];
-        } else {
-            continue;
-        }
 
-        if ($label === '') {
-            $label = trim((string) ($tab['title'] ?? ''));
-        }
-        if ($label === '') {
-            continue;
-        }
+            $target = 'tab-' . $key;
+            if (isset($seen_target[$target])) {
+                continue;
+            }
 
-        if (!isset($icons[$icon_key])) {
+            $label    = '';
             $icon_key = 'default';
-        }
 
-        $seen[$target] = true;
-        $items[] = [
-            'key'      => $key,
-            'target'   => $target,
-            'label'    => $label,
-            'icon'     => $icon_key,
-            'priority' => isset($tab['priority']) ? (int) $tab['priority'] : 50,
-        ];
+            if (array_key_exists('pcn_nav_show', $tab)) {
+                // Tab xuất phát từ CPT product-tab — chỉ vào navigator khi được bật.
+                if (empty($tab['pcn_nav_show'])) {
+                    continue;
+                }
+                $label    = trim((string) ($tab['pcn_nav_label'] ?? ''));
+                $icon_key = (string) ($tab['pcn_nav_icon'] ?? 'default');
+            } elseif (isset($default_map[$key])) {
+                $icon_key = (string) $default_map[$key]['icon'];
+            } else {
+                continue;
+            }
+
+            if ($label === '') {
+                $label = trim((string) ($tab['title'] ?? ''));
+            }
+            if ($label === '') {
+                continue;
+            }
+
+            if (!isset($icons[$icon_key])) {
+                $icon_key = 'default';
+            }
+
+            $seen_target[$target] = true;
+            $items[] = [
+                'type'     => 'internal',
+                'key'      => $key,
+                'target'   => $target,
+                'label'    => $label,
+                'icon'     => $icon_key,
+                'priority' => isset($tab['priority']) ? (int) $tab['priority'] : 50,
+            ];
+        }
+    }
+
+    // "Menu bổ sung" — cấu hình ở Cài đặt ERP > WooCommerce, áp dụng theo scope
+    // (toàn cục / category / tag / thương hiệu). Luôn xếp sau tab theo thứ tự
+    // khai báo (priority tăng dần từ 1000) trừ khi trùng target với tab đã có.
+    $product_id = (int) get_the_ID();
+    if ($product_id > 0 && function_exists('hithean_pcn_get_product_menus')) {
+        $menu_priority = 1000;
+        $seen_href     = [];
+
+        foreach (hithean_pcn_get_product_menus($product_id) as $menu) {
+            $label = trim((string) ($menu['label'] ?? ''));
+            if ($label === '') {
+                continue;
+            }
+
+            if (($menu['destination_type'] ?? '') === 'internal') {
+                $target = ltrim((string) ($menu['destination'] ?? ''), '#');
+                if ($target === '' || isset($seen_target[$target])) {
+                    continue;
+                }
+                $seen_target[$target] = true;
+                $items[] = [
+                    'type'     => 'internal',
+                    'key'      => 'menu-' . $target,
+                    'target'   => $target,
+                    'label'    => $label,
+                    'icon'     => 'default',
+                    'priority' => $menu_priority++,
+                ];
+            } else {
+                $href = (string) ($menu['destination'] ?? '');
+                if ($href === '' || isset($seen_href[$href])) {
+                    continue;
+                }
+                $seen_href[$href] = true;
+                $items[] = [
+                    'type'     => 'external',
+                    'key'      => 'menu-ext-' . md5($href),
+                    'href'     => $href,
+                    'label'    => $label,
+                    'icon'     => 'external',
+                    'priority' => $menu_priority++,
+                ];
+            }
+        }
     }
 
     usort($items, function ($a, $b) {
@@ -122,6 +167,20 @@ function hithean_pcn_build_items(): array
     });
 
     return $items;
+}
+
+/**
+ * 'external' không nằm trong whitelist icon của Tab Sản Phẩm (chỉ dùng cho
+ * "Menu bổ sung" loại URL, không phải lựa chọn admin nào có thể set) nên xử
+ * lý riêng ở đây thay vì đưa vào hithean_product_tab_icon_whitelist().
+ */
+function hithean_pcn_item_icon_svg(string $icon_key): string
+{
+    if ($icon_key === 'external') {
+        return hithean_pcn_external_menu_icon_svg();
+    }
+
+    return hithean_product_tab_icon_svg($icon_key);
 }
 
 function hithean_pcn_get_items(): array
@@ -201,25 +260,72 @@ function hithean_pcn_render()
         return;
     }
 
-    $show_cta = $product->is_purchasable();
+    $show_cta     = $product->is_purchasable();
+    $cta_label    = $show_cta ? $product->single_add_to_cart_text() : '';
+    $product_type = $product->get_type();
+    $desktop_mode = hithean_pcn_get_settings()['desktop_mode'];
     ?>
-    <nav class="pcn" id="pcn-root" aria-label="<?php esc_attr_e('Điều hướng nội dung sản phẩm', 'hithean.com'); ?>">
+    <nav class="pcn" id="pcn-root" data-desktop-mode="<?php echo esc_attr($desktop_mode); ?>" aria-label="<?php esc_attr_e('Điều hướng nội dung sản phẩm', 'hithean.com'); ?>">
         <div class="pcn__bar">
             <ul class="pcn__list" role="list">
                 <?php foreach ($items as $item) : ?>
                     <li class="pcn__item">
-                        <button type="button" class="pcn__link" data-target="<?php echo esc_attr($item['target']); ?>" title="<?php echo esc_attr($item['label']); ?>" aria-label="<?php echo esc_attr($item['label']); ?>">
-                            <span class="pcn__icon" aria-hidden="true"><?php echo hithean_product_tab_icon_svg($item['icon']); ?></span>
-                            <span class="pcn__label"><?php echo esc_html($item['label']); ?></span>
-                        </button>
+                        <?php if ($item['type'] === 'external') : ?>
+                            <a class="pcn__link" href="<?php echo esc_url($item['href']); ?>" target="_blank" rel="noopener" title="<?php echo esc_attr($item['label']); ?>">
+                                <span class="pcn__icon" aria-hidden="true"><?php echo hithean_pcn_item_icon_svg($item['icon']); ?></span>
+                                <span class="pcn__label"><?php echo esc_html($item['label']); ?></span>
+                            </a>
+                        <?php else : ?>
+                            <button type="button" class="pcn__link" data-target="<?php echo esc_attr($item['target']); ?>" title="<?php echo esc_attr($item['label']); ?>" aria-label="<?php echo esc_attr($item['label']); ?>">
+                                <span class="pcn__icon" aria-hidden="true"><?php echo hithean_pcn_item_icon_svg($item['icon']); ?></span>
+                                <span class="pcn__label"><?php echo esc_html($item['label']); ?></span>
+                            </button>
+                        <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
             </ul>
             <?php if ($show_cta) : ?>
-                <button type="button" class="pcn__cta" data-pcn-cta data-product-type="<?php echo esc_attr($product->get_type()); ?>">
-                    <?php echo esc_html($product->single_add_to_cart_text()); ?>
+                <button type="button" class="pcn__cta" data-pcn-cta data-product-type="<?php echo esc_attr($product_type); ?>">
+                    <?php echo esc_html($cta_label); ?>
                 </button>
             <?php endif; ?>
+        </div>
+
+        <div class="pcn__floating">
+            <div class="pcn__floating-anchor">
+                <button type="button" class="pcn__floating-toggle" data-pcn-desktop-popover-toggle aria-haspopup="true" aria-controls="pcn-popover-desktop" aria-expanded="false">
+                    <span class="pcn__floating-toggle-icon" aria-hidden="true"><?php echo hithean_product_tab_icon_svg('description'); ?></span>
+                    <span><?php esc_html_e('Chi tiết SP', 'hithean.com'); ?></span>
+                </button>
+                <div class="pcn-popover" id="pcn-popover-desktop" data-pcn-popover hidden>
+                    <div class="pcn-popover__header">
+                        <h2 class="pcn-popover__title"><?php esc_html_e('Chi tiết sản phẩm', 'hithean.com'); ?></h2>
+                        <button type="button" class="pcn-popover__close" data-pcn-popover-close aria-label="<?php esc_attr_e('Đóng', 'hithean.com'); ?>">&times;</button>
+                    </div>
+                    <ul class="pcn-popover__list" role="list">
+                        <?php foreach ($items as $item) : ?>
+                            <li>
+                                <?php if ($item['type'] === 'external') : ?>
+                                    <a class="pcn-popover__item" href="<?php echo esc_url($item['href']); ?>" target="_blank" rel="noopener">
+                                        <span class="pcn-popover__icon" aria-hidden="true"><?php echo hithean_pcn_item_icon_svg($item['icon']); ?></span>
+                                        <span class="pcn-popover__label"><?php echo esc_html($item['label']); ?></span>
+                                    </a>
+                                <?php else : ?>
+                                    <button type="button" class="pcn-popover__item" data-target="<?php echo esc_attr($item['target']); ?>">
+                                        <span class="pcn-popover__icon" aria-hidden="true"><?php echo hithean_pcn_item_icon_svg($item['icon']); ?></span>
+                                        <span class="pcn-popover__label"><?php echo esc_html($item['label']); ?></span>
+                                    </button>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php if ($show_cta) : ?>
+                        <button type="button" class="pcn-popover__cta" data-pcn-cta data-product-type="<?php echo esc_attr($product_type); ?>">
+                            <?php echo esc_html($cta_label); ?>
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -238,10 +344,17 @@ function hithean_pcn_render()
                 <ul class="pcn-popover__list" role="list">
                     <?php foreach ($items as $item) : ?>
                         <li>
-                            <button type="button" class="pcn-popover__item" data-target="<?php echo esc_attr($item['target']); ?>">
-                                <span class="pcn-popover__icon" aria-hidden="true"><?php echo hithean_product_tab_icon_svg($item['icon']); ?></span>
-                                <span class="pcn-popover__label"><?php echo esc_html($item['label']); ?></span>
-                            </button>
+                            <?php if ($item['type'] === 'external') : ?>
+                                <a class="pcn-popover__item" href="<?php echo esc_url($item['href']); ?>" target="_blank" rel="noopener">
+                                    <span class="pcn-popover__icon" aria-hidden="true"><?php echo hithean_pcn_item_icon_svg($item['icon']); ?></span>
+                                    <span class="pcn-popover__label"><?php echo esc_html($item['label']); ?></span>
+                                </a>
+                            <?php else : ?>
+                                <button type="button" class="pcn-popover__item" data-target="<?php echo esc_attr($item['target']); ?>">
+                                    <span class="pcn-popover__icon" aria-hidden="true"><?php echo hithean_pcn_item_icon_svg($item['icon']); ?></span>
+                                    <span class="pcn-popover__label"><?php echo esc_html($item['label']); ?></span>
+                                </button>
+                            <?php endif; ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>

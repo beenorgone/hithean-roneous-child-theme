@@ -28,10 +28,15 @@
         return reduceMotionQuery.matches;
     }
 
-    /* ---------- Loại item không có panel thật trên DOM ---------- */
-    function collectValidButtons(listEl) {
-        if (!listEl) return [];
-        var buttons = Array.prototype.slice.call(listEl.querySelectorAll('[data-target]'));
+    /* ---------- Loại item không có panel thật trên DOM ----------
+       Item nội bộ ("tab" hoặc "Menu bổ sung" loại anchor) đều dùng data-target;
+       item "Menu bổ sung" loại URL là thẻ <a href> thường, không có data-target
+       nên không đi qua hàm này (không cần kiểm tra tồn tại). Gom TẤT CẢ nút
+       data-target trên toàn trang (thanh desktop + popover desktop + popover
+       mobile) vào một danh sách duy nhất để đồng bộ active-state. */
+    function collectValidButtons(scopeEl) {
+        if (!scopeEl) return [];
+        var buttons = Array.prototype.slice.call(scopeEl.querySelectorAll('[data-target]'));
         var valid = [];
         buttons.forEach(function (btn) {
             var panel = document.getElementById(btn.getAttribute('data-target'));
@@ -45,10 +50,18 @@
         return valid;
     }
 
-    var desktopButtons = collectValidButtons(document.querySelector('.pcn__list'));
-    var popoverButtons = collectValidButtons(document.querySelector('.pcn-popover__list'));
+    var stickyBarList = document.querySelector('.pcn__list');
+    var stickyBarButtons = collectValidButtons(stickyBarList);
+    var allTargetButtons = stickyBarButtons.concat(
+        collectValidButtons(document.querySelector('#pcn-popover-desktop .pcn-popover__list')),
+        collectValidButtons(document.querySelector('#pcn-popover .pcn-popover__list'))
+    );
 
-    if (root && !desktopButtons.length) {
+    // .pcn__list và cả 2 popover list luôn render CÙNG một tập item (PHP lặp
+    // lại 3 lần) — item ngoại (URL, không có data-target) không bị lọc bởi
+    // collectValidButtons nên vẫn còn trong DOM. Dùng .pcn__list làm đại diện:
+    // hết <li> ở đây nghĩa là mọi item (nội bộ lẫn ngoại) đều không hợp lệ/rỗng.
+    if (root && stickyBarList && !stickyBarList.children.length) {
         root.remove();
     }
 
@@ -102,10 +115,7 @@
     });
 
     function setActiveTarget(id) {
-        desktopButtons.forEach(function (btn) {
-            btn.classList.toggle('is-active', btn.getAttribute('data-target') === id);
-        });
-        popoverButtons.forEach(function (btn) {
+        allTargetButtons.forEach(function (btn) {
             btn.classList.toggle('is-active', btn.getAttribute('data-target') === id);
         });
     }
@@ -118,18 +128,92 @@
         window.scrollTo({ top: Math.max(top, 0), behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     }
 
+    /* ---------- Popover "Chi tiết SP" — dùng chung cho mobile và desktop
+       floating_toc. Popover neo tuyệt đối bên trong container position:relative
+       đã nằm đúng vị trí (xem product-navigation.css) thay vì overlay
+       position:fixed;inset:0 riêng cho từng cái — chỉ đổi cơ chế định vị,
+       giao diện (backdrop, header, close, grid item) giữ như bottom-sheet cũ.
+       Chỉ instance mobile có backdrop dim (nested trong .pcn-mobile, cùng
+       containing block) — instance desktop không cần, đóng bằng click-outside
+       là đủ cho một popover neo góc nhỏ. */
+    function createPopoverController(toggle, popover, backdrop) {
+        if (!toggle || !popover) return null;
+        var lastFocused = null;
+
+        function onKeydown(e) {
+            if (e.key === 'Escape') close();
+        }
+
+        function onOutsideClick(e) {
+            if (popover.hidden) return;
+            if (popover.contains(e.target) || toggle.contains(e.target)) return;
+            close();
+        }
+
+        function open() {
+            if (!popover.hidden) return;
+            lastFocused = document.activeElement;
+            popover.hidden = false;
+            if (backdrop) backdrop.hidden = false;
+            toggle.setAttribute('aria-expanded', 'true');
+            var closeBtn = popover.querySelector('[data-pcn-popover-close]');
+            if (closeBtn) closeBtn.focus();
+            document.addEventListener('keydown', onKeydown);
+            document.addEventListener('click', onOutsideClick);
+        }
+
+        function close() {
+            if (popover.hidden) return;
+            popover.hidden = true;
+            if (backdrop) backdrop.hidden = true;
+            toggle.setAttribute('aria-expanded', 'false');
+            document.removeEventListener('keydown', onKeydown);
+            document.removeEventListener('click', onOutsideClick);
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+            lastFocused = null;
+        }
+
+        toggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (popover.hidden) open(); else close();
+        });
+        popover.querySelectorAll('[data-pcn-popover-close]').forEach(function (el) {
+            el.addEventListener('click', close);
+        });
+        if (backdrop) backdrop.addEventListener('click', close);
+
+        return { close: close };
+    }
+
+    var popoverControllers = [
+        createPopoverController(
+            document.querySelector('[data-pcn-popover-toggle]'),
+            document.getElementById('pcn-popover'),
+            document.querySelector('.pcn-popover-backdrop')
+        ),
+        createPopoverController(
+            document.querySelector('[data-pcn-desktop-popover-toggle]'),
+            document.getElementById('pcn-popover-desktop'),
+            null
+        ),
+    ].filter(Boolean);
+
+    function closeAllPopovers() {
+        popoverControllers.forEach(function (controller) { controller.close(); });
+    }
+
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-target]');
         if (!btn) return;
         var id = btn.getAttribute('data-target');
         scrollToTarget(id);
         setActiveTarget(id);
-        closePopover();
+        closeAllPopovers();
     });
 
     /* ---------- IntersectionObserver cho active state khi tự cuộn ---------- */
-    if ('IntersectionObserver' in window && desktopButtons.length) {
-        var panels = desktopButtons
+    if ('IntersectionObserver' in window && stickyBarButtons.length) {
+        var panels = stickyBarButtons
             .map(function (btn) { return document.getElementById(btn.getAttribute('data-target')); })
             .filter(Boolean);
 
@@ -146,61 +230,6 @@
 
         panels.forEach(function (panel) { observer.observe(panel); });
     }
-
-    /* ---------- Popover "Chi tiết SP" (mobile) ----------
-       Popover neo tuyệt đối bên trong .pcn-mobile__cluster (đã position:relative,
-       xem product-navigation.css) thay vì overlay position:fixed;inset:0 riêng —
-       chỉ đổi cơ chế định vị, giao diện (backdrop, header, close, grid item) giữ
-       như bottom-sheet cũ. */
-    var popover = document.getElementById('pcn-popover');
-    var popoverToggle = document.querySelector('[data-pcn-popover-toggle]');
-    var popoverBackdrop = document.querySelector('.pcn-popover-backdrop');
-    var lastFocusedBeforePopover = null;
-
-    function onPopoverKeydown(e) {
-        if (e.key === 'Escape') closePopover();
-    }
-
-    function onOutsideClick(e) {
-        if (!popover || popover.hidden) return;
-        if (popover.contains(e.target) || (popoverToggle && popoverToggle.contains(e.target))) return;
-        closePopover();
-    }
-
-    function openPopover() {
-        if (!popover || !popover.hidden) return;
-        lastFocusedBeforePopover = document.activeElement;
-        popover.hidden = false;
-        if (popoverBackdrop) popoverBackdrop.hidden = false;
-        if (popoverToggle) popoverToggle.setAttribute('aria-expanded', 'true');
-        var closeBtn = popover.querySelector('[data-pcn-popover-close]');
-        if (closeBtn) closeBtn.focus();
-        document.addEventListener('keydown', onPopoverKeydown);
-        document.addEventListener('click', onOutsideClick);
-    }
-
-    function closePopover() {
-        if (!popover || popover.hidden) return;
-        popover.hidden = true;
-        if (popoverBackdrop) popoverBackdrop.hidden = true;
-        if (popoverToggle) popoverToggle.setAttribute('aria-expanded', 'false');
-        document.removeEventListener('keydown', onPopoverKeydown);
-        document.removeEventListener('click', onOutsideClick);
-        if (lastFocusedBeforePopover && typeof lastFocusedBeforePopover.focus === 'function') {
-            lastFocusedBeforePopover.focus();
-        }
-        lastFocusedBeforePopover = null;
-    }
-
-    if (popoverToggle && popover) {
-        popoverToggle.addEventListener('click', function (e) {
-            e.stopPropagation();
-            if (popover.hidden) openPopover(); else closePopover();
-        });
-    }
-    document.querySelectorAll('[data-pcn-popover-close]').forEach(function (el) {
-        el.addEventListener('click', closePopover);
-    });
 
     /* ---------- CTA mua hàng (desktop bar) ---------- */
     document.addEventListener('click', function (e) {
