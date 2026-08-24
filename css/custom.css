@@ -104,6 +104,15 @@ body {
     display: grid;
     gap: 14px;
     margin: 18px auto 22px auto !important;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+@media screen and (min-width: 380px) {
+    .hithean-product-linking {
+        padding-left: 0;
+        padding-right: 0;
+    }
 }
 
 @media screen and (min-width: 769px) {
@@ -189,7 +198,7 @@ body {
 
 @media (max-width: 767px) {
     .hithean-product-linking__options {
-        justify-content: center;
+        justify-content: start;
     }
 
     /* Khớp specificity với .hithean-product-linking .hithean-product-linking__option
