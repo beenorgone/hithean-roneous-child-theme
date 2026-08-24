@@ -187,6 +187,19 @@ body {
     top: 50%;
 }
 
+@media (max-width: 767px) {
+    .hithean-product-linking__options {
+        justify-content: center;
+    }
+
+    /* Khớp specificity với .hithean-product-linking .hithean-product-linking__option
+       (inline style trong product-linking.php) để chắc chắn override đúng trên mobile. */
+    .hithean-product-linking .hithean-product-linking__option {
+        justify-content: flex-start;
+        text-align: left;
+    }
+}
+
 /*-------------------------------*\
   GLOBAL - LAYOUT
 \*-------------------------------*/
