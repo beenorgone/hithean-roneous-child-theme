@@ -16,7 +16,7 @@
      * Portal cả 3 root ra thẳng con của <body> để luôn thoát khỏi rủi ro này,
      * bất kể theme cha in wp_footer() ở đâu trong markup.
      */
-    [root, mobileRoot, document.getElementById('pcn-drawer')].forEach(function (el) {
+    [root, mobileRoot].forEach(function (el) {
         if (el && el.parentNode !== document.body) {
             document.body.appendChild(el);
         }
@@ -46,7 +46,7 @@
     }
 
     var desktopButtons = collectValidButtons(document.querySelector('.pcn__list'));
-    var drawerButtons = collectValidButtons(document.querySelector('.pcn-drawer__list'));
+    var popoverButtons = collectValidButtons(document.querySelector('.pcn-popover__list'));
 
     if (root && !desktopButtons.length) {
         root.remove();
@@ -71,11 +71,11 @@
     }
 
     function computeScrollOffset() {
-        var offset = detectFixedHeaderHeight();
-        if (root) {
-            offset += root.getBoundingClientRect().height;
-        }
-        return offset + 12;
+        // Chỉ cộng chiều cao phần tử che PHÍA TRÊN viewport (header fixed/sticky).
+        // #pcn-root (thanh desktop) và cụm mobile đều neo ở bottom, không che top
+        // nên KHÔNG được cộng vào đây — cộng nhầm khiến điểm cuộn bị đẩy lên cao
+        // hơn vị trí thật của tab một khoảng đúng bằng chiều cao thanh đó.
+        return detectFixedHeaderHeight() + 16;
     }
 
     /* ---------- Scroll mượt + khoá active state trong lúc cuộn ---------- */
@@ -105,7 +105,7 @@
         desktopButtons.forEach(function (btn) {
             btn.classList.toggle('is-active', btn.getAttribute('data-target') === id);
         });
-        drawerButtons.forEach(function (btn) {
+        popoverButtons.forEach(function (btn) {
             btn.classList.toggle('is-active', btn.getAttribute('data-target') === id);
         });
     }
@@ -124,7 +124,7 @@
         var id = btn.getAttribute('data-target');
         scrollToTarget(id);
         setActiveTarget(id);
-        closeDrawer();
+        closePopover();
     });
 
     /* ---------- IntersectionObserver cho active state khi tự cuộn ---------- */
@@ -147,40 +147,43 @@
         panels.forEach(function (panel) { observer.observe(panel); });
     }
 
-    /* ---------- Drawer mobile ---------- */
-    var drawer = document.getElementById('pcn-drawer');
-    var drawerOpenBtn = document.querySelector('[data-pcn-drawer-open]');
-    var lastFocusedBeforeDrawer = null;
+    /* ---------- Popover "Chi tiết SP" (mobile) ----------
+       Popover neo tuyệt đối bên trong .pcn-mobile__cluster (đã position:relative,
+       xem product-navigation.css) thay vì overlay position:fixed;inset:0 riêng —
+       tham khảo theanmarket-wr-nitro-child-theme/js/product-navigation.js. */
+    var popover = document.getElementById('pcn-popover');
+    var popoverToggle = document.querySelector('[data-pcn-popover-toggle]');
 
-    function onDrawerKeydown(e) {
-        if (e.key === 'Escape') closeDrawer();
+    function onPopoverKeydown(e) {
+        if (e.key === 'Escape') closePopover();
     }
 
-    function openDrawer() {
-        if (!drawer || !drawer.hidden) return;
-        lastFocusedBeforeDrawer = document.activeElement;
-        drawer.hidden = false;
-        if (drawerOpenBtn) drawerOpenBtn.setAttribute('aria-expanded', 'true');
-        var closeBtn = drawer.querySelector('[data-pcn-drawer-close]');
-        if (closeBtn) closeBtn.focus();
-        document.addEventListener('keydown', onDrawerKeydown);
+    function onOutsideClick(e) {
+        if (!popover || popover.hidden) return;
+        if (popover.contains(e.target) || (popoverToggle && popoverToggle.contains(e.target))) return;
+        closePopover();
     }
 
-    function closeDrawer() {
-        if (!drawer || drawer.hidden) return;
-        drawer.hidden = true;
-        if (drawerOpenBtn) drawerOpenBtn.setAttribute('aria-expanded', 'false');
-        document.removeEventListener('keydown', onDrawerKeydown);
-        if (lastFocusedBeforeDrawer && typeof lastFocusedBeforeDrawer.focus === 'function') {
-            lastFocusedBeforeDrawer.focus();
-        }
-        lastFocusedBeforeDrawer = null;
+    function openPopover() {
+        if (!popover || !popover.hidden) return;
+        popover.hidden = false;
+        if (popoverToggle) popoverToggle.setAttribute('aria-expanded', 'true');
+        document.addEventListener('keydown', onPopoverKeydown);
+        document.addEventListener('click', onOutsideClick);
     }
 
-    if (drawerOpenBtn) drawerOpenBtn.addEventListener('click', openDrawer);
-    if (drawer) {
-        drawer.querySelectorAll('[data-pcn-drawer-close]').forEach(function (el) {
-            el.addEventListener('click', closeDrawer);
+    function closePopover() {
+        if (!popover || popover.hidden) return;
+        popover.hidden = true;
+        if (popoverToggle) popoverToggle.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('keydown', onPopoverKeydown);
+        document.removeEventListener('click', onOutsideClick);
+    }
+
+    if (popoverToggle && popover) {
+        popoverToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (popover.hidden) openPopover(); else closePopover();
         });
     }
 
