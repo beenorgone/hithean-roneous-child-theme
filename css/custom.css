@@ -1944,117 +1944,11 @@ div.summary.entry-summary > div.b-greenspark-revenue-percentage-widget > div {
   CERTIFICATES SECTION
 \*----------------------------------*/
 
-.certificates-section {
-    position: relative;
-    overflow: hidden;
-    padding: 80px 20px;
-    text-align: center;
-    color: #fff;
-    background:
-        linear-gradient(135deg, rgba(0, 123, 85, 0.75), rgba(129, 199, 132, 0.75)),
-        url("https://images.unsplash.com/photo-1543339308-43f2d7cdfa37?q=80&w=1600&auto=format&fit=crop") center/cover no-repeat !important;
+#tab-chung-nhan-va-tieu-chuan-chat-luong > div > section > div > div:nth-child(1) > p {
+    color: white !important;
 }
 
-.certificates-content {
-    max-width: 1100px;
-    margin: 0 auto;
-}
 
-.certificates-section h2 {
-    margin-bottom: 8px;
-    color: var(--light) !important;
-}
-
-.certificates-section p {
-    opacity: 0.95;
-    margin: 0 auto 28px;
-    max-width: 760px;
-}
-
-.certificates-slider {
-    padding: 10px 40px;
-}
-
-.cert-slide {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
-    padding: 14px;
-    transition: all 0.3s ease;
-}
-
-.cert-slide:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-4px);
-}
-
-.cert-slide img {
-    height: 56px;
-    width: auto;
-    object-fit: contain;
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
-}
-
-/* Swiper buttons */
-.certificates-section .swiper-button-prev,
-.certificates-section .swiper-button-next {
-    color: #fff !important;
-    --swiper-navigation-size: 22px;
-    background: rgba(0, 0, 0, 0.18);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-}
-
-.certificates-section .swiper-button-prev:hover,
-.certificates-section .swiper-button-next:hover {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-@media (max-width: 900px) {
-    .cert-slide img {
-        height: 48px;
-    }
-}
-
-@media (max-width: 480px) {
-    .certificates-slider {
-        padding: 10px 10px;
-    }
-}
-
-/* === FULL-WIDTH PREVIEW SLIDER === */
-.certificates-preview {
-    /* width: 100vw; */
-    margin: 50px 0 0 !important;
-}
-
-.cert-preview-slide {
-    width: 100%;
-    height: 200px; /* 🔸 đặt chiều cao cố định để các ảnh bằng nhau */
-    overflow: hidden;
-    position: relative;
-}
-
-.cert-preview-slide img {
-    height: 100%;
-    width: auto;
-    object-fit: cover; /* giữ tỉ lệ ảnh, full khung */
-    filter: brightness(0.95);
-    transition: transform 5s ease;
-}
-
-.cert-preview-slide.swiper-slide-active img {
-    transform: scale(1.05);
-}
-
-@media (min-width: 600px) {
-    .cert-preview-slide {
-        height: 300px;
-    }
-}
 
 /* UPSELS SECTION */
 
