@@ -225,30 +225,22 @@ function hithean_pcn_render()
 
     <div class="pcn-mobile" id="pcn-mobile-root">
         <div class="pcn-mobile__cluster" data-pcn-lw-slot>
-            <button type="button" class="pcn-mobile__detail" data-pcn-drawer-open aria-haspopup="dialog" aria-controls="pcn-drawer" aria-expanded="false">
+            <button type="button" class="pcn-mobile__detail" data-pcn-popover-toggle aria-haspopup="true" aria-controls="pcn-popover" aria-expanded="false">
                 <span class="pcn-mobile__detail-icon" aria-hidden="true"><?php echo hithean_product_tab_icon_svg('description'); ?></span>
                 <span class="pcn-mobile__detail-label"><?php esc_html_e('Chi tiết SP', 'hithean.com'); ?></span>
             </button>
-        </div>
-    </div>
-
-    <div class="pcn-drawer" id="pcn-drawer" role="dialog" aria-modal="true" aria-labelledby="pcn-drawer-title" hidden>
-        <div class="pcn-drawer__backdrop" data-pcn-drawer-close></div>
-        <div class="pcn-drawer__panel">
-            <div class="pcn-drawer__header">
-                <h2 id="pcn-drawer-title" class="pcn-drawer__title"><?php esc_html_e('Chi tiết sản phẩm', 'hithean.com'); ?></h2>
-                <button type="button" class="pcn-drawer__close" data-pcn-drawer-close aria-label="<?php esc_attr_e('Đóng', 'hithean.com'); ?>">&times;</button>
+            <div class="pcn-popover" id="pcn-popover" data-pcn-popover hidden>
+                <ul class="pcn-popover__list" role="list">
+                    <?php foreach ($items as $item) : ?>
+                        <li>
+                            <button type="button" class="pcn-popover__item" data-target="<?php echo esc_attr($item['target']); ?>">
+                                <span class="pcn-popover__icon" aria-hidden="true"><?php echo hithean_product_tab_icon_svg($item['icon']); ?></span>
+                                <span class="pcn-popover__label"><?php echo esc_html($item['label']); ?></span>
+                            </button>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
-            <ul class="pcn-drawer__list" role="list">
-                <?php foreach ($items as $item) : ?>
-                    <li>
-                        <button type="button" class="pcn-drawer__item" data-target="<?php echo esc_attr($item['target']); ?>">
-                            <span class="pcn-drawer__icon" aria-hidden="true"><?php echo hithean_product_tab_icon_svg($item['icon']); ?></span>
-                            <span class="pcn-drawer__label"><?php echo esc_html($item['label']); ?></span>
-                        </button>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
         </div>
     </div>
     <?php
