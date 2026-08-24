@@ -228,7 +228,10 @@
 .pcn-drawer {
     position: fixed;
     inset: 0;
-    z-index: 9500;
+    /* Phải cao hơn sticky-atc-bar (9999, css/custom.css) và ecom-buy-modal
+       (100000, product-page.php) — drawer là modal do khách chủ động mở nên
+       phải luôn nổi trên mọi lớp fixed khác của trang sản phẩm. */
+    z-index: 100010;
     display: flex;
     align-items: flex-end;
     justify-content: center;
