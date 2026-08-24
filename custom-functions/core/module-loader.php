@@ -361,6 +361,11 @@ function tpc_loader_modules()
             'condition' => 'tpc_cond_is_product',
         ],
         [
+            'id' => 'product_navigation',
+            'file' => 'custom-functions/woocommerce/products/product-navigation.php',
+            'condition' => 'tpc_cond_is_product',
+        ],
+        [
             'id' => 'checkout_page',
             'file' => 'custom-functions/woocommerce/checkout/checkout-page.php',
             'condition' => 'tpc_cond_is_checkout',

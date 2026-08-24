@@ -157,6 +157,16 @@ function generate_slug($string)
     return sanitize_title($string);
 }
 
+// Navigator meta (Product Content Navigator) đọc kèm khi build tab từ CPT product-tab.
+function hithean_pcn_tab_nav_meta_fields(int $post_id): array
+{
+    return [
+        'pcn_nav_show'  => (bool) get_post_meta($post_id, 'product_tab_show_in_navigator', true),
+        'pcn_nav_label' => sanitize_text_field((string) get_post_meta($post_id, 'product_tab_navigator_label', true)),
+        'pcn_nav_icon'  => (string) get_post_meta($post_id, 'product_tab_navigator_icon', true) ?: 'default',
+    ];
+}
+
 add_filter('woocommerce_product_tabs', 'add_custom_product_tabs');
 
 function add_custom_product_tabs($tabs)
@@ -173,13 +183,13 @@ function add_custom_product_tabs($tabs)
 
     foreach ($global_tabs as $global_tab) {
         $slug = generate_slug($global_tab->post_title);
-        $tabs[$slug] = [
+        $tabs[$slug] = array_merge([
             'id'       => 'tab-' . $slug,
             'title'    => $global_tab->post_title,
             'callback' => 'display_product_tab_content',
             'priority' => (int) get_post_meta($global_tab->ID, 'product_tab_priority', true),
             'content'  => $global_tab->post_content,
-        ];
+        ], hithean_pcn_tab_nav_meta_fields($global_tab->ID));
     }
 
     // Add tabs based on taxonomies
@@ -206,13 +216,13 @@ function add_custom_product_tabs($tabs)
                 while ($assigned_tabs->have_posts()) {
                     $assigned_tabs->the_post();
                     $slug = generate_slug(get_the_title());
-                    $tabs[$slug] = [
+                    $tabs[$slug] = array_merge([
                         'id'       => 'tab-' . $slug,
                         'title'    => get_the_title(),
                         'callback' => 'display_product_tab_content',
                         'priority' => (int) get_post_meta(get_the_ID(), 'product_tab_priority', true),
                         'content'  => get_the_content(),
-                    ];
+                    ], hithean_pcn_tab_nav_meta_fields(get_the_ID()));
                 }
                 wp_reset_postdata();
             }
@@ -244,13 +254,13 @@ function add_custom_product_tabs($tabs)
         while ($product_assigned_tabs->have_posts()) {
             $product_assigned_tabs->the_post();
             $slug = generate_slug(get_the_title());
-            $tabs[$slug] = [
+            $tabs[$slug] = array_merge([
                 'id'       => 'tab-' . $slug,
                 'title'    => get_the_title(),
                 'callback' => 'display_product_tab_content',
                 'priority' => (int) get_post_meta(get_the_ID(), 'product_tab_priority', true),
                 'content'  => get_the_content(),
-            ];
+            ], hithean_pcn_tab_nav_meta_fields(get_the_ID()));
         }
         wp_reset_postdata();
     }
@@ -308,13 +318,13 @@ function add_custom_product_tabs($tabs)
         while ($assigned_tabs_custom->have_posts()) {
             $assigned_tabs_custom->the_post();
             $slug = generate_slug(get_the_title());
-            $tabs[$slug] = [
+            $tabs[$slug] = array_merge([
                 'id'       => 'tab-' . $slug,
                 'title'    => get_the_title(),
                 'callback' => 'display_product_tab_content',
                 'priority' => (int) get_post_meta(get_the_ID(), 'product_tab_priority', true),
                 'content'  => get_the_content(),
-            ];
+            ], hithean_pcn_tab_nav_meta_fields(get_the_ID()));
         }
         wp_reset_postdata();
     }
@@ -359,14 +369,18 @@ function add_custom_product_tabs($tabs)
     return $tabs;
 }
 
+function hithean_pcn_heading_icon_html_safe(string $key): string
+{
+    return function_exists('hithean_pcn_heading_icon_html') ? hithean_pcn_heading_icon_html($key) : '';
+}
+
 function display_custom_product_field_tab_content($key, $tab)
 {
     global $product;
     $meta_key = isset($tab['meta_key']) ? $tab['meta_key'] : $key;
     $field_value = get_post_meta($product->get_id(), $meta_key, true);
     if (!empty($field_value)) {
-        // echo '<h2>' . esc_html($tab['title']) . '</h2>';  // Output the tab title as an <h2> tag
-        echo '<h2 class="tab-title">' . esc_html($tab['title']) . '</h2>';  // Output the tab title as an <h2> tag
+        echo '<h2 class="tab-title">' . hithean_pcn_heading_icon_html_safe($key) . esc_html($tab['title']) . '</h2>';  // Output the tab title as an <h2> tag
         echo '<div class="tab-content">' . wpautop(do_shortcode($field_value)) . '</div>';  // Process shortcodes and format text
     }
 }
@@ -374,8 +388,7 @@ function display_custom_product_field_tab_content($key, $tab)
 
 function display_product_tab_content($key, $tab)
 {
-    //    echo '<h2>' . esc_html($tab['title']) . '</h2>';
-    echo '<h2 class="tab-title">' . esc_html($tab['title']) . '</h2>';
+    echo '<h2 class="tab-title">' . hithean_pcn_heading_icon_html_safe($key) . esc_html($tab['title']) . '</h2>';
     echo '<div class="tab-content">' . wpautop(do_shortcode($tab['content'])) . '</div>';
 }
 
@@ -385,8 +398,7 @@ function display_thuong_hieu_tab_content()
     $thuong_hieu_term = wp_get_post_terms($product->get_id(), 'thuong-hieu');
     if (!is_wp_error($thuong_hieu_term) && !empty($thuong_hieu_term)) {
         $thuong_hieu_description = term_description($thuong_hieu_term[0]->term_id, 'thuong-hieu');
-        //        echo '<h2>Thương hiệu</h2>';  // Output the tab title as an <h2> tag
-        echo '<h2 class="tab-title">Thương hiệu</h2>';  // Output the tab title as an <h2> tag
+        echo '<h2 class="tab-title">' . hithean_pcn_heading_icon_html_safe('thuong-hieu') . 'Thương hiệu</h2>';  // Output the tab title as an <h2> tag
         echo '<div class="tab-content">' . wpautop(do_shortcode($thuong_hieu_description)) . '</div>';  // Process shortcodes and format text
     }
 }
