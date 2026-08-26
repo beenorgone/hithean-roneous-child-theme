@@ -35,7 +35,7 @@ if (!function_exists('ivar_shortcodes_guide_data')) {
                 'name'    => '[company_info]',
                 'summary' => 'In ra 1 trường thông tin doanh nghiệp đã khai báo ở <strong>Cài đặt ERP &gt; Thông tin doanh nghiệp</strong> (hotline, email, địa chỉ, mã số thuế, Zalo, fanpage…). Trường trống thì shortcode không in gì.',
                 'args'    => [
-                    ['field', 'Key của trường cần in: <code>company_name</code>, <code>hotline</code>, <code>hotline_2</code>, <code>email_sales</code>, <code>email_accounting</code>, <code>email_support</code>, <code>address</code>, <code>working_hours</code>, <code>tax_code</code>, <code>zalo</code>, <code>fanpage</code>.', 'rỗng (bắt buộc)'],
+                    ['field', 'Key của trường cần in: <code>company_name</code>, <code>hotline</code>, <code>hotline_2</code>, <code>email_sales</code>, <code>email_accounting</code>, <code>email_support</code>, <code>address</code>, <code>working_hours</code>, <code>tax_code</code>, <code>zalo</code>, <code>fanpage</code>, hoặc key tuỳ chỉnh khai báo ở mục "Thông tin tuỳ chỉnh" trong tab.', 'rỗng (bắt buộc)'],
                     ['link', '<code>yes</code> để bọc giá trị trong link (<code>tel:</code> cho hotline, <code>mailto:</code> cho email, link thường cho zalo/fanpage).', 'no'],
                     ['text', 'Chữ hiển thị khi <code>link="yes"</code> (mặc định hiện luôn giá trị, vd số điện thoại).', 'giá trị trường'],
                     ['class', 'Thêm class vào thẻ bọc ngoài (<code>&lt;span&gt;</code> hoặc <code>&lt;a&gt;</code>).', '—'],

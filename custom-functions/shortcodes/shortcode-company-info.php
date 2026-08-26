@@ -6,9 +6,10 @@ if (!defined('ABSPATH')) exit;
  * (khai báo ở Cài đặt ERP > Thông tin doanh nghiệp), dùng trong nội dung bài viết.
  *
  * Attributes:
- *   field (bắt buộc) — key trong hithean_company_info_fields(): company_name,
+ *   field (bắt buộc) — key trong hithean_company_info_fields() (company_name,
  *                       hotline, hotline_2, email_sales, email_accounting,
- *                       email_support, address, working_hours, tax_code, zalo, fanpage.
+ *                       email_support, address, working_hours, tax_code, zalo, fanpage)
+ *                       hoặc key tuỳ chỉnh khai báo ở mục "Thông tin tuỳ chỉnh" của tab.
  *   link  ('yes'|'no', mặc định 'no') — bọc giá trị trong thẻ <a> (tel: cho hotline,
  *                       mailto: cho email, href thường cho zalo/fanpage).
  *   text  (tuỳ chọn) — chữ hiển thị khi link="yes" (mặc định hiện luôn giá trị).
@@ -24,7 +25,7 @@ function hithean_company_info_shortcode($atts): string
     ], $atts, 'company_info');
 
     $field = sanitize_key($atts['field']);
-    if ($field === '' || !array_key_exists($field, hithean_company_info_fields())) {
+    if ($field === '') {
         return '';
     }
 
