@@ -204,6 +204,7 @@ function hithean_company_info_render_settings_tab(): void
         <table class="form-table" role="presentation">
             <tbody>
                 <?php foreach (hithean_company_info_fields() as $key => $label): ?>
+                    <?php $shortcode = '[company_info field="' . $key . '"]'; ?>
                     <tr>
                         <th scope="row"><label for="hithean-company-info-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label></th>
                         <td>
@@ -211,6 +212,11 @@ function hithean_company_info_render_settings_tab(): void
                                    id="hithean-company-info-<?php echo esc_attr($key); ?>"
                                    name="<?php echo esc_attr(HITHEAN_COMPANY_INFO_OPTION); ?>[<?php echo esc_attr($key); ?>]"
                                    value="<?php echo esc_attr($settings[$key]); ?>">
+                            <p class="description hithean-company-info__shortcode">
+                                Key: <code><?php echo esc_html($key); ?></code> —
+                                Shortcode: <code><?php echo esc_html($shortcode); ?></code>
+                                <button type="button" class="button button-small" data-hithean-copy="<?php echo esc_attr($shortcode); ?>">📋 Copy</button>
+                            </p>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -228,6 +234,30 @@ function hithean_company_info_render_settings_tab(): void
     </form>
     <script>
     (function () {
+        if (!window.__hitheanCompanyInfoCopyBound) {
+            window.__hitheanCompanyInfoCopyBound = true;
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest('[data-hithean-copy]');
+                if (!btn) return;
+                var text = btn.getAttribute('data-hithean-copy');
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text);
+                } else {
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch (err) {}
+                    document.body.removeChild(ta);
+                }
+                var original = btn.textContent;
+                btn.textContent = '✅ Đã copy';
+                setTimeout(function () { btn.textContent = original; }, 1200);
+            });
+        }
+
         var editor = document.getElementById('hithean-company-info-custom-editor');
         if (!editor || editor.dataset.ready) return;
         editor.dataset.ready = '1';
@@ -274,6 +304,26 @@ function hithean_company_info_render_settings_tab(): void
             remove.addEventListener('click', function () { row.remove(); add.disabled = false; rebuildNames(); });
             row.appendChild(field('Key', key));
             row.appendChild(field('Giá trị', val));
+
+            var preview = element('p', {class: 'description hithean-company-info__shortcode'});
+            var previewCode = element('code');
+            var copyBtn = element('button', {type: 'button', class: 'button button-small'}, '📋 Copy');
+            preview.appendChild(document.createTextNode('Shortcode: '));
+            preview.appendChild(previewCode);
+            preview.appendChild(document.createTextNode(' '));
+            preview.appendChild(copyBtn);
+            row.appendChild(preview);
+
+            function refreshPreview() {
+                var k = (key.value || '').trim();
+                var text = k === '' ? '' : '[company_info field="' + k + '"]';
+                previewCode.textContent = text || '— nhập key trước —';
+                copyBtn.disabled = text === '';
+                copyBtn.setAttribute('data-hithean-copy', text);
+            }
+            key.addEventListener('input', refreshPreview);
+            refreshPreview();
+
             row.appendChild(remove);
             rows.appendChild(row);
             rebuildNames();
@@ -289,6 +339,8 @@ function hithean_company_info_render_settings_tab(): void
         .hithean-company-info-custom-editor__field > span { display:block; margin-bottom:4px; font-weight:600; }
         .hithean-company-info-custom-editor__field input { width:100%; }
         .hithean-company-info-custom-editor__row .button-link-delete { align-self:end; justify-self:start; }
+        .hithean-company-info-custom-editor__row p.hithean-company-info__shortcode { grid-column:1/-1; margin:0; }
+        .hithean-company-info__shortcode code { margin:0 4px; }
     </style>
 
     <hr>
