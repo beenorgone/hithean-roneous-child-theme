@@ -38,7 +38,9 @@ function hithean_company_info_shortcode($atts): string
     $class_attr = $atts['class'] !== '' ? ' class="' . esc_attr($atts['class']) . '"' : '';
 
     if (!$wants_link) {
-        return '<span' . $class_attr . '>' . esc_html($value) . '</span>';
+        return $class_attr !== ''
+            ? '<span' . $class_attr . '>' . esc_html($value) . '</span>'
+            : esc_html($value);
     }
 
     $label = $atts['text'] !== '' ? $atts['text'] : $value;
@@ -53,7 +55,9 @@ function hithean_company_info_shortcode($atts): string
     }
 
     if ($href === '') {
-        return '<span' . $class_attr . '>' . esc_html($value) . '</span>';
+        return $class_attr !== ''
+            ? '<span' . $class_attr . '>' . esc_html($value) . '</span>'
+            : esc_html($value);
     }
 
     $target = in_array($field, ['zalo', 'fanpage'], true) ? ' target="_blank" rel="noopener"' : '';
