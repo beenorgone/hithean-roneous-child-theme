@@ -41,6 +41,7 @@ $general_includes = [
     'custom-functions/shortcodes/shortcode-certifications.php',
     'custom-functions/woocommerce/products/product-tab-post-type.php',
     'custom-functions/woocommerce/products/product-navigation-settings.php',
+    'custom-functions/core/company-info-settings.php',
     'custom-functions/admin/blogpost-metabox.php',
     'custom-functions/woocommerce/products/product-metabox.php',
 
@@ -412,6 +413,11 @@ function tpc_loader_modules()
             'file' => 'custom-functions/shortcodes/shortcode-order-return-manager.php',
             'shortcodes' => ['order_return_management'],
             'ajax_actions' => ['load_return_orders', 'upload_return_images', 'return_lookup_order', 'attach_return_order', 'process_return_order'],
+        ],
+        [
+            'id' => 'company_info',
+            'file' => 'custom-functions/shortcodes/shortcode-company-info.php',
+            'shortcodes' => ['company_info'],
         ],
     ];
 

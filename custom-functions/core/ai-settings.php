@@ -286,10 +286,11 @@ function theme_erp_settings_render_page(): void
     }
 
     $tabs = [
-        'ai'          => 'AI',
-        'xu-ly-don'   => 'Xử lý đơn',
-        'nut-ecom'    => 'Nút Shopee/TikTok',
-        'woocommerce' => 'WooCommerce',
+        'ai'           => 'AI',
+        'xu-ly-don'    => 'Xử lý đơn',
+        'nut-ecom'     => 'Nút Shopee/TikTok',
+        'woocommerce'  => 'WooCommerce',
+        'company-info' => 'Thông tin doanh nghiệp',
     ];
 
     $settings = theme_erp_settings();
@@ -480,6 +481,10 @@ function theme_erp_settings_render_page(): void
 
         <?php if ($active_tab === 'woocommerce'): ?>
             <?php hithean_pcn_render_settings_tab(); ?>
+        <?php endif; ?>
+
+        <?php if ($active_tab === 'company-info'): ?>
+            <?php hithean_company_info_render_settings_tab(); ?>
         <?php endif; ?>
     </div>
     <?php

@@ -31,6 +31,24 @@ if (!function_exists('ivar_shortcodes_guide_data')) {
     function ivar_shortcodes_guide_data(): array
     {
         $guides = [
+            'company_info' => [
+                'name'    => '[company_info]',
+                'summary' => 'In ra 1 trường thông tin doanh nghiệp đã khai báo ở <strong>Cài đặt ERP &gt; Thông tin doanh nghiệp</strong> (hotline, email, địa chỉ, mã số thuế, Zalo, fanpage…). Trường trống thì shortcode không in gì.',
+                'args'    => [
+                    ['field', 'Key của trường cần in: <code>company_name</code>, <code>hotline</code>, <code>hotline_2</code>, <code>email_sales</code>, <code>email_accounting</code>, <code>email_support</code>, <code>address</code>, <code>working_hours</code>, <code>tax_code</code>, <code>zalo</code>, <code>fanpage</code>.', 'rỗng (bắt buộc)'],
+                    ['link', '<code>yes</code> để bọc giá trị trong link (<code>tel:</code> cho hotline, <code>mailto:</code> cho email, link thường cho zalo/fanpage).', 'no'],
+                    ['text', 'Chữ hiển thị khi <code>link="yes"</code> (mặc định hiện luôn giá trị, vd số điện thoại).', 'giá trị trường'],
+                    ['class', 'Thêm class vào thẻ bọc ngoài (<code>&lt;span&gt;</code> hoặc <code>&lt;a&gt;</code>).', '—'],
+                ],
+                'examples' => [
+                    ['In trực tiếp giá trị', '[company_info field="hotline"]'],
+                    ['Bọc thành link gọi điện', '[company_info field="hotline" link="yes"]'],
+                    ['Link với chữ tuỳ ý', '[company_info field="email_support" link="yes" text="Liên hệ hỗ trợ"]'],
+                ],
+                'notes' => [
+                    'Quản lý nội dung các trường tại <strong>Cài đặt ERP &gt; Thông tin doanh nghiệp</strong> — có nút Export/Import JSON để migrate sang site khác.',
+                ],
+            ],
             'certifications' => [
                 'name'    => '[certifications]',
                 'summary' => 'Khối "Hệ thống sản xuất &amp; chứng nhận": 3 card (Hữu cơ / Eurofins / ISO·HACCP·GMP) mở modal chi tiết + modal gộp. Nội dung card cấu hình qua filter <code>ivar_certifications_config</code>; giao diện chỉnh qua các argument dưới đây (map sang CSS variables, áp cho cả section lẫn modal).',
