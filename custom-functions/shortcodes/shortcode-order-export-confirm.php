@@ -415,6 +415,11 @@ add_action('wp_ajax_ajax_confirm_export', function () {
     $order = wc_get_order($order_id);
     if (!$order) wp_send_json_error("Không tìm thấy đơn");
 
+    $image_urls = array_filter(array_map('trim', explode("\n", (string) get_post_meta($order_id, 'warehouse_export_images', true))));
+    if (empty($image_urls)) {
+        wp_send_json_error('Hãy upload ít nhất một ảnh xuất kho trước khi xác nhận.');
+    }
+
     $user = wp_get_current_user();
     update_post_meta($order_id, 'export_confirmed_by', $user->ID);
     $order->add_order_note("✅ Đã xác nhận xuất kho bởi " . $user->display_name);

@@ -841,6 +841,7 @@ function handle_confirm_order_payment()
 
     $confirmed = 0;
     $last_order = null;
+    $updated_orders = [];
     foreach ($order_ids as $order_id) {
         $order = wc_get_order($order_id);
         if (!$order) {
@@ -848,7 +849,12 @@ function handle_confirm_order_payment()
         }
 
         process_order_payment($order, $bank_account, $paid_date, $amount_received, $payer, $cod_note);
-        $last_order = $order;
+        $last_order = wc_get_order($order_id) ?: $order;
+        $updated_orders[] = [
+            'order_id'     => $last_order->get_id(),
+            'status'       => $last_order->get_status(),
+            'status_label' => wc_get_order_status_name($last_order->get_status()),
+        ];
         $confirmed++;
     }
 
@@ -858,6 +864,7 @@ function handle_confirm_order_payment()
 
     wp_send_json_success([
         'message' => sprintf('Đã cập nhật %d đơn hàng. Bank: %s | Date: %s', $confirmed, esc_html($last_order->get_meta('order_bank_account_received')), esc_html($last_order->get_meta('order_paid_date'))),
+        'orders'  => $updated_orders,
     ]);
 }
 
