@@ -84,11 +84,69 @@ function thean_lw_sanitize_settings($input): array
         'offer_slugs' => sanitize_textarea_field((string) ($input['offer_slugs'] ?? '')),
         'trigger_rules' => wp_json_encode($trigger_rules, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
         'coupon_hold_hours' => $hold_hours,
+        'cleanup_skip_used' => empty($input['cleanup_skip_used']) ? 0 : 1,
         'sheets_webhook_url' => esc_url_raw((string) ($input['sheets_webhook_url'] ?? '')),
         'sheets_webhook_secret' => sanitize_text_field((string) ($input['sheets_webhook_secret'] ?? '')),
         'rewards_json' => wp_json_encode($rewards, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
     ];
 }
+
+function thean_lw_handle_manual_cleanup(): void
+{
+    if (!thean_lw_can_manage()) {
+        wp_die(esc_html__('Bạn không có quyền thực hiện thao tác này.', 'theanmarket'));
+    }
+
+    check_admin_referer('thean_lw_manual_cleanup');
+
+    $deleted = thean_lw_run_expired_coupon_cleanup();
+
+    wp_safe_redirect(add_query_arg([
+        'page' => 'thean-lucky-wheel',
+        'thean_lw_cleanup_result' => $deleted,
+    ], admin_url('admin.php')));
+    exit;
+}
+add_action('admin_post_thean_lw_manual_cleanup', 'thean_lw_handle_manual_cleanup');
+
+function thean_lw_handle_manual_truncate_log(): void
+{
+    if (!thean_lw_can_manage()) {
+        wp_die(esc_html__('Bạn không có quyền thực hiện thao tác này.', 'theanmarket'));
+    }
+
+    check_admin_referer('thean_lw_manual_truncate_log');
+
+    $removed = thean_lw_prune_cleanup_log();
+
+    wp_safe_redirect(add_query_arg([
+        'page' => 'thean-lucky-wheel',
+        'thean_lw_truncate_result' => $removed,
+    ], admin_url('admin.php')));
+    exit;
+}
+add_action('admin_post_thean_lw_manual_truncate_log', 'thean_lw_handle_manual_truncate_log');
+
+function thean_lw_handle_view_log(): void
+{
+    if (!thean_lw_can_manage()) {
+        wp_die(esc_html__('Bạn không có quyền thực hiện thao tác này.', 'theanmarket'));
+    }
+
+    check_admin_referer('thean_lw_view_log');
+
+    $path = thean_lw_cleanup_log_file_path();
+    if ($path === '' || !is_file($path) || !is_readable($path)) {
+        wp_die(esc_html__('Chưa có file log.', 'theanmarket'));
+    }
+
+    nocache_headers();
+    header('Content-Type: text/plain; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+    readfile($path);
+    exit;
+}
+add_action('admin_post_thean_lw_view_log', 'thean_lw_handle_view_log');
 
 function thean_lw_render_admin_page(): void
 {
@@ -102,7 +160,69 @@ function thean_lw_render_admin_page(): void
         <h1>Lucky Wheel</h1>
         <p>Cấu hình vòng quay ưu đãi cho website.</p>
 
-        <form method="post" action="options.php">
+        <?php if (isset($_GET['thean_lw_cleanup_result'])) : ?>
+            <div class="notice notice-success is-dismissible">
+                <p>Đã dọn <strong><?php echo esc_html((string) absint($_GET['thean_lw_cleanup_result'])); ?></strong> mã Lucky Wheel hết hạn quá <?php echo esc_html((string) THEAN_LW_CLEANUP_GRACE_DAYS); ?> ngày.</p>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['thean_lw_truncate_result'])) : ?>
+            <div class="notice notice-success is-dismissible">
+                <p>Đã truncate log — xóa <strong><?php echo esc_html((string) absint($_GET['thean_lw_truncate_result'])); ?></strong> dòng log cũ hơn <?php echo esc_html((string) THEAN_LW_LOG_TRUNCATE_DAYS); ?> ngày.</p>
+            </div>
+        <?php endif; ?>
+
+        <div class="postbox" style="padding: 12px 16px; margin-bottom: 20px;">
+            <h2>Bảo trì coupon hết hạn</h2>
+            <p class="description">
+                Tự động chạy hàng ngày (WP-Cron): xóa các mã Lucky Wheel đã hết hạn quá <strong><?php echo esc_html((string) THEAN_LW_CLEANUP_GRACE_DAYS); ?> ngày</strong> (log lại thông tin trước khi xóa),
+                và truncate file log đó — chỉ giữ lại <strong><?php echo esc_html((string) THEAN_LW_LOG_TRUNCATE_DAYS); ?> ngày</strong> dữ liệu gần nhất, các dòng cũ hơn sẽ bị xóa khỏi log.
+            </p>
+            <p>
+                <label>
+                    <input type="checkbox" name="<?php echo esc_attr(THEAN_LW_OPTION_KEY); ?>[cleanup_skip_used]" value="1" form="thean_lw_settings_form" <?php checked(thean_lw_cleanup_skip_used_coupons()); ?>>
+                    Bỏ qua (không xóa) các coupon đã được áp dụng vào đơn hàng, dù đã hết hạn quá <?php echo esc_html((string) THEAN_LW_CLEANUP_GRACE_DAYS); ?> ngày
+                </label>
+                <br><span class="description">Kiểm tra dựa trên số lần sử dụng thực tế của coupon (<code>usage_count</code>). Tắt để xóa luôn cả coupon đã dùng. Cần bấm "Lưu cấu hình" ở form bên dưới để áp dụng.</span>
+            </p>
+            <p class="description">
+                Lần truncate log gần nhất:
+                <strong>
+                    <?php
+                    $last_truncate = (int) get_option(THEAN_LW_LOG_LAST_TRUNCATE_OPTION, 0);
+                    echo esc_html($last_truncate > 0 ? wp_date('d/m/Y H:i', $last_truncate) : 'Chưa từng chạy');
+                    ?>
+                </strong>
+                <?php $log_path = thean_lw_cleanup_log_file_path(); ?>
+                <?php if ($log_path !== '' && file_exists($log_path)) : ?>
+                    — Log file: <code><?php echo esc_html(basename($log_path)); ?></code> (<?php echo esc_html(size_format((int) filesize($log_path))); ?>)
+                <?php endif; ?>
+            </p>
+            <p>
+                <a
+                    class="button"
+                    href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=thean_lw_manual_cleanup'), 'thean_lw_manual_cleanup')); ?>"
+                    onclick="return confirm('Xóa ngay các mã Lucky Wheel đã hết hạn quá <?php echo esc_js((string) THEAN_LW_CLEANUP_GRACE_DAYS); ?> ngày?');"
+                >Xóa coupon hết hạn ngay</a>
+                <a
+                    class="button"
+                    href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=thean_lw_manual_truncate_log'), 'thean_lw_manual_truncate_log')); ?>"
+                    onclick="return confirm('Truncate log ngay — chỉ giữ lại <?php echo esc_js((string) THEAN_LW_LOG_TRUNCATE_DAYS); ?> ngày dữ liệu gần nhất?');"
+                >Truncate log ngay</a>
+                <?php if ($log_path !== '' && file_exists($log_path)) : ?>
+                    <a
+                        class="button"
+                        target="_blank"
+                        rel="noopener"
+                        href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=thean_lw_view_log'), 'thean_lw_view_log')); ?>"
+                    >Xem log</a>
+                <?php else : ?>
+                    <button type="button" class="button" disabled>Xem log</button>
+                <?php endif; ?>
+            </p>
+        </div>
+
+        <form id="thean_lw_settings_form" method="post" action="options.php">
             <?php settings_fields('thean_lw_settings_group'); ?>
             <?php settings_errors(THEAN_LW_OPTION_KEY); ?>
 

@@ -18,6 +18,7 @@ function thean_lw_default_settings(): array
         'offer_slugs' => "uu-dai\nkhuyen-mai\nsale",
         'trigger_rules' => wp_json_encode(thean_lw_default_trigger_rules(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
         'coupon_hold_hours' => '',
+        'cleanup_skip_used' => 1,
         'sheets_webhook_url' => '',
         'sheets_webhook_secret' => '',
         'rewards_json' => wp_json_encode(thean_lw_default_rewards(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
@@ -233,6 +234,11 @@ function thean_lw_coupon_hold_hours(): int
 function thean_lw_coupon_ttl(): int
 {
     return thean_lw_coupon_hold_hours() * HOUR_IN_SECONDS;
+}
+
+function thean_lw_cleanup_skip_used_coupons(): bool
+{
+    return !empty(thean_lw_get_settings()['cleanup_skip_used']);
 }
 
 function thean_lw_sheets_webhook_url(): string
@@ -465,6 +471,8 @@ function thean_lw_is_feature_ajax_request(): bool
 
     return in_array($action, ['thean_lw_status', 'thean_lw_spin', 'thean_lw_claim', 'thean_lw_apply_coupon'], true);
 }
+
+require_once thean_lw_feature_dir() . '/cleanup.php';
 
 if (is_admin()) {
     require_once thean_lw_feature_dir() . '/admin.php';
