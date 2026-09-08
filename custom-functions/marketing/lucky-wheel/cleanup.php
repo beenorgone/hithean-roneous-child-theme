@@ -17,6 +17,12 @@ define('THEAN_LW_LOG_LAST_TRUNCATE_OPTION', 'thean_lw_log_last_truncate');
  */
 define('THEAN_LW_LOG_LINE_TIMESTAMP_REGEX', '/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})/');
 
+/**
+ * Matches the expired_at=... field thean_lw_log_expired_coupon() writes
+ * into each message, e.g. "expired_at=2026-05-01 10:00:00 UTC".
+ */
+define('THEAN_LW_LOG_LINE_EXPIRED_AT_REGEX', '/expired_at=(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC/');
+
 function thean_lw_schedule_cleanup_cron(): void
 {
     if (!wp_next_scheduled(THEAN_LW_CLEANUP_CRON_HOOK)) {
@@ -141,9 +147,22 @@ function thean_lw_parse_log_line_timestamp(string $line): ?int
     return $timestamp !== false ? $timestamp : null;
 }
 
+function thean_lw_parse_log_line_expired_at(string $line): ?int
+{
+    if (!preg_match(THEAN_LW_LOG_LINE_EXPIRED_AT_REGEX, $line, $matches)) {
+        return null;
+    }
+
+    $date = DateTime::createFromFormat('Y-m-d H:i:s', $matches[1], new DateTimeZone('UTC'));
+
+    return $date instanceof DateTime ? $date->getTimestamp() : null;
+}
+
 /**
- * "Truncate" here means keeping a rolling THEAN_LW_LOG_TRUNCATE_DAYS window:
- * drop only the log lines older than that, keep everything newer.
+ * "Truncate" here means keeping a rolling THEAN_LW_LOG_TRUNCATE_DAYS window
+ * based on each logged coupon's own expired_at date — not when the log line
+ * was written (which trails expired_at by THEAN_LW_CLEANUP_GRACE_DAYS days).
+ * Drop only lines whose coupon expired more than 30 days ago.
  */
 function thean_lw_prune_cleanup_log(): int
 {
@@ -163,14 +182,14 @@ function thean_lw_prune_cleanup_log(): int
     $last_timestamp = null;
 
     while (($line = fgets($handle)) !== false) {
-        $timestamp = thean_lw_parse_log_line_timestamp($line);
+        $timestamp = thean_lw_parse_log_line_expired_at($line) ?? thean_lw_parse_log_line_timestamp($line);
 
         if ($timestamp !== null) {
             $last_timestamp = $timestamp;
         }
 
-        // A wrapped continuation line (no leading timestamp) inherits the
-        // previous entry's timestamp so multi-line log entries stay intact.
+        // A wrapped continuation line (no parseable date of its own)
+        // inherits the previous entry's date so multi-line entries stay intact.
         $effective_timestamp = $timestamp ?? $last_timestamp;
 
         if ($effective_timestamp !== null && $effective_timestamp < $cutoff) {

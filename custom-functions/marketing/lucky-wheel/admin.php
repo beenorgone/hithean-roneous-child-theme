@@ -176,7 +176,7 @@ function thean_lw_render_admin_page(): void
             <h2>Bảo trì coupon hết hạn</h2>
             <p class="description">
                 Tự động chạy hàng ngày (WP-Cron): xóa các mã Lucky Wheel đã hết hạn quá <strong><?php echo esc_html((string) THEAN_LW_CLEANUP_GRACE_DAYS); ?> ngày</strong> (log lại thông tin trước khi xóa),
-                và truncate file log đó — chỉ giữ lại <strong><?php echo esc_html((string) THEAN_LW_LOG_TRUNCATE_DAYS); ?> ngày</strong> dữ liệu gần nhất, các dòng cũ hơn sẽ bị xóa khỏi log.
+                và truncate file log đó — chỉ giữ lại các dòng log của coupon <strong>hết hạn trong vòng <?php echo esc_html((string) THEAN_LW_LOG_TRUNCATE_DAYS); ?> ngày gần nhất</strong> (tính theo ngày coupon hết hạn, không phải ngày ghi log); dòng log của coupon hết hạn lâu hơn sẽ bị xóa khỏi log.
             </p>
             <p>
                 <label>
