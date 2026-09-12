@@ -460,7 +460,13 @@ add_action('wp_footer', function () {
         .uexe-gallery-next { right: 10px; }
         .uexe-gallery-footer { text-align: center; }
         .uexe-gallery-open-new { color: #fff !important; font-size: 13px; text-decoration: underline; }
+        .uexe-toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000001; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+        .uexe-toast { min-width: 240px; max-width: 360px; padding: 12px 16px; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); font-size: 14px; font-weight: 600; color: #fff; opacity: 0; transform: translateX(24px); transition: opacity 0.25s ease, transform 0.25s ease; }
+        .uexe-toast.is-visible { opacity: 1; transform: translateX(0); }
+        .uexe-toast.is-success { background: #1e8e3e; }
+        .uexe-toast.is-error { background: #d93025; }
     </style>
+    <div id="uexe-toast-container" class="uexe-toast-container"></div>
     <div id="uexe-gallery-modal" class="uexe-gallery-modal" aria-hidden="true">
         <div class="uexe-gallery-dialog" role="dialog" aria-modal="true" aria-label="Xem ảnh lấy hàng">
             <div class="uexe-gallery-header">
@@ -481,6 +487,24 @@ add_action('wp_footer', function () {
         var ueifNonce = "<?php echo esc_js(wp_create_nonce('ajax_upload_images_nonce')); ?>";
         var uexeNonce = "<?php echo esc_js(wp_create_nonce('ajax_confirm_export_nonce')); ?>";
         var ueifChecklist = <?php echo wp_json_encode($checklist); ?>;
+
+        function uexeShowToast(message, isSuccess) {
+            const container = document.getElementById('uexe-toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'uexe-toast ' + (isSuccess ? 'is-success' : 'is-error');
+            toast.textContent = message;
+            container.appendChild(toast);
+            requestAnimationFrame(function() {
+                toast.classList.add('is-visible');
+            });
+            setTimeout(function() {
+                toast.classList.remove('is-visible');
+                setTimeout(function() {
+                    toast.remove();
+                }, 250);
+            }, 3500);
+        }
 
         document.addEventListener("DOMContentLoaded", function() {
             const galleryModal = document.getElementById('uexe-gallery-modal');
@@ -584,13 +608,13 @@ add_action('wp_footer', function () {
                     })
                     .then(r => r.json())
                     .then(res => {
-                        alert(res.data);
+                        uexeShowToast(res.data, res.success);
                         if (res.success) {
                             uploadForm.reset();
                         }
                     })
                     .catch(() => {
-                        alert("Lỗi kết nối. Vui lòng thử lại.");
+                        uexeShowToast("Lỗi kết nối. Vui lòng thử lại.", false);
                     })
                     .finally(() => {
                         btn.disabled = false;
@@ -696,6 +720,11 @@ add_action('wp_footer', function () {
             document.querySelectorAll("form.export-confirm-form").forEach(form => {
                 form.addEventListener("submit", function(e) {
                     e.preventDefault();
+                    const btn = form.querySelector('button[type="submit"]');
+                    const originalText = btn.textContent;
+                    btn.disabled = true;
+                    btn.textContent = "⏳ Đang xử lý...";
+
                     const formData = new FormData(form);
                     formData.append("action", "ajax_confirm_export");
                     formData.append("nonce", uexeNonce);
@@ -705,10 +734,18 @@ add_action('wp_footer', function () {
                     })
                     .then(r => r.json())
                     .then(res => {
-                        alert(res.data);
+                        uexeShowToast(res.data, res.success);
                         if (res.success) {
                             form.outerHTML = '<p><strong style="color:green;">✅ Đã xác nhận</strong></p>';
+                        } else {
+                            btn.disabled = false;
+                            btn.textContent = originalText;
                         }
+                    })
+                    .catch(function() {
+                        uexeShowToast("Lỗi kết nối. Vui lòng thử lại.", false);
+                        btn.disabled = false;
+                        btn.textContent = originalText;
                     });
                 });
             });
