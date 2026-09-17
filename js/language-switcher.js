@@ -23,8 +23,40 @@
 		return !!value && value.indexOf('/en') !== -1;
 	}
 
-	function loadGoogleTranslateScript() {
+	/**
+	 * .goog-te-combo chỉ xuất hiện sau khi TranslateElement dựng xong UI ẩn
+	 * của nó, việc này chạy bất đồng bộ ngay cả sau khi script đã "load" —
+	 * nên phải chờ thay vì thao tác ngay khi element.js chạy xong.
+	 */
+	function waitForCombo(callback, attemptsLeft) {
+		attemptsLeft = attemptsLeft === undefined ? 40 : attemptsLeft;
+		var combo = document.querySelector('.goog-te-combo');
+		if (combo) {
+			callback(combo);
+			return;
+		}
+		if (attemptsLeft <= 0) {
+			return;
+		}
+		window.setTimeout(function () {
+			waitForCombo(callback, attemptsLeft - 1);
+		}, 150);
+	}
+
+	/**
+	 * Đổi ngôn ngữ ngay trên DOM hiện tại, không điều hướng trang.
+	 * langCode rỗng ('') = quay về ngôn ngữ gốc (trick chuẩn của widget).
+	 */
+	function triggerCombo(langCode) {
+		waitForCombo(function (combo) {
+			combo.value = langCode;
+			combo.dispatchEvent(new Event('change'));
+		});
+	}
+
+	function loadGoogleTranslateScript(onReady) {
 		if (document.getElementById('hithean-google-translate-script')) {
+			onReady && waitForCombo(onReady);
 			return;
 		}
 
@@ -35,6 +67,7 @@
 				autoDisplay: false,
 				layout: google.translate.TranslateElement.InlineLayout.SIMPLE
 			}, 'google_translate_element');
+			onReady && waitForCombo(onReady);
 		};
 
 		var script = document.createElement('script');
@@ -51,21 +84,35 @@
 		button.setAttribute('aria-pressed', active ? 'true' : 'false');
 	}
 
+	function switchLanguage(button) {
+		var toEnglish = !isEnglishActive();
+
+		if (toEnglish) {
+			setCookie(COOKIE_NAME, '/vi/en', 1);
+		} else {
+			clearCookie(COOKIE_NAME);
+		}
+		updateButton(button);
+
+		loadGoogleTranslateScript(function (combo) {
+			combo.value = toEnglish ? 'en' : '';
+			combo.dispatchEvent(new Event('change'));
+		});
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
 		if (isEnglishActive()) {
-			loadGoogleTranslateScript();
+			loadGoogleTranslateScript(function (combo) {
+				combo.value = 'en';
+				combo.dispatchEvent(new Event('change'));
+			});
 		}
 
 		var buttons = document.querySelectorAll('.hithean-lang-switch');
 		buttons.forEach(function (button) {
 			updateButton(button);
 			button.addEventListener('click', function () {
-				if (isEnglishActive()) {
-					clearCookie(COOKIE_NAME);
-				} else {
-					setCookie(COOKIE_NAME, '/vi/en', 1);
-				}
-				window.location.reload();
+				switchLanguage(button);
 			});
 		});
 	});

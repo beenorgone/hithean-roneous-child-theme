@@ -55,7 +55,8 @@ hạ tầng UI toàn site, không phải chiến dịch marketing.
 2. Enqueue script Google **chỉ khi cần** — lười tải (lazy): chỉ inject
    `translate.google.com/translate_a/element.js` khi:
    - cookie `googtrans` đã tồn tại (khách quay lại, đang ở chế độ English), hoặc
-   - khách vừa bấm nút lần đầu (JS tự chèn `<script>` rồi mới set cookie + reload).
+   - khách vừa bấm nút lần đầu (JS tự chèn `<script>`, set cookie, rồi dịch
+     ngay tại chỗ qua `.goog-te-combo` — không reload trang).
    → tránh việc mọi khách Việt đều tải thêm 1 script ngoài không cần thiết, giữ
    Core Web Vitals sạch cho pageview mặc định.
 3. `googleTranslateElementInit()`:
@@ -67,14 +68,21 @@ hạ tầng UI toàn site, không phải chiến dịch marketing.
      layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
    }, 'google_translate_element');
    ```
-4. Nút bấm:
-   - "Switch to English" → set cookie `googtrans=/vi/en; path=/`
-     (+ domain gốc nếu site có subdomain dùng chung) → `location.reload()`.
-   - "Về Tiếng Việt" → xoá cookie `googtrans` (set `expires` quá khứ) →
-     `location.reload()`.
-   - Trên trang đã có cookie `/vi/en`, JS phải tự đổi label nút thành
-     "Về Tiếng Việt" khi render (đọc cookie lúc `DOMContentLoaded`, không đợi
-     Google script load xong, để tránh nút "giật" label).
+4. Nút bấm — đổi ngay trên DOM hiện tại, **không reload trang**:
+   - "Switch to English" → set cookie `googtrans=/vi/en; path=/` (để trang sau
+     giữ trạng thái) → nạp script nếu chưa có → khi `.goog-te-combo` (select ẩn
+     do widget tự dựng) xuất hiện, set `combo.value = 'en'` rồi
+     `dispatchEvent(new Event('change'))` → widget dịch DOM tại chỗ.
+   - "Về Tiếng Việt" → xoá cookie `googtrans` → set `combo.value = ''`
+     (chuỗi rỗng là trick chuẩn để widget phục hồi bản gốc) → dispatch `change`.
+   - `.goog-te-combo` chỉ xuất hiện sau khi `TranslateElement` dựng UI ẩn xong,
+     việc này chạy bất đồng bộ ngay cả sau khi `element.js` đã load xong — cần
+     poll (`waitForCombo`, ~150ms/lần, tối đa vài giây) trước khi set value.
+   - Trên trang đã có cookie `/vi/en` (điều hướng sang trang mới), JS tự nạp
+     script + set combo về 'en' ngay khi `DOMContentLoaded`, để giữ trạng thái
+     English xuyên suốt phiên duyệt mà không cần bấm lại.
+   - Label nút đọc cookie ngay lúc `DOMContentLoaded`, không đợi Google script,
+     để tránh label "giật" trước khi widget kịp dịch xong.
 5. CSS bắt buộc để không vỡ layout:
    ```css
    .goog-te-banner-frame.skiptranslate { display: none !important; }
