@@ -24,7 +24,9 @@ Nếu các giới hạn trên chấp nhận được, làm theo các bước dư
 - **Trạng thái ngôn ngữ**: cookie `googtrans` (chuẩn của widget) —
   `/vi/en` để dịch sang Anh, xoá cookie (hoặc `/vi/vi`) để về tiếng Việt gốc.
   Cookie khiến lựa chọn giữ nguyên khi chuyển trang mà không cần bấm lại.
-- **Nút bấm**: 1 nút "Eng" / "Vi" tự đổi label theo cookie hiện tại, render qua
+- **Nút bấm**: segmented toggle 2 nhánh "VI | EN" (không phải 1 nút đổi label),
+  nhánh đang active tô nền xanh đậm theo `--default-color-green-dark` của
+  theme, khớp phong cách Oswald/letter-spacing của nav. Render qua
   action `hithean_top_bar_after`. Action này được gọi từ trong module-group
   cart/search hiện có ở **cả hai** file layout header thật sự đang chạy —
   `templates/header/layout-center-standard.php` và

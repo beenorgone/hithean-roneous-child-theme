@@ -18,20 +18,44 @@ body {
 	top: -9999px;
 }
 
+/* Segmented toggle "VI | EN" — cùng ngôn ngữ hình khối/màu với nav (Oswald,
+   letter-spacing, xanh đậm mặc định của theme) thay vì 1 nút đổi label. */
 .hithean-lang-switch {
 	display: inline-flex;
 	align-items: center;
-	justify-content: center;
 	margin-left: 12px;
-	padding: 2px 10px;
-	border: 1px solid currentColor;
+	padding: 2px;
+	border: 1px solid var(--default-color-green-dark, #00843d);
 	border-radius: 999px;
-	background: transparent;
-	font-size: 12px;
-	line-height: 1.6;
-	cursor: pointer;
+	background: var(--default-color-white, #fff);
+	line-height: 1;
 }
 
-.hithean-lang-switch:hover {
-	opacity: 0.8;
+.hithean-lang-switch__option {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 34px;
+	padding: 4px 10px;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: var(--default-color-green-dark, #00843d);
+	font-family: "Oswald", sans-serif;
+	font-size: 11px;
+	font-weight: var(--default-button-font-weight, 500);
+	letter-spacing: 1px;
+	line-height: 1.4;
+	cursor: pointer;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.hithean-lang-switch__option[aria-pressed="true"] {
+	background: var(--default-color-green-dark, #00843d);
+	color: var(--default-color-white, #fff);
+	cursor: default;
+}
+
+.hithean-lang-switch__option[aria-pressed="false"]:hover {
+	background: var(--default-color-green-light, #d3e6e0);
 }

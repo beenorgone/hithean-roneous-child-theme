@@ -44,16 +44,21 @@ add_action('wp_enqueue_scripts', 'hithean_language_switcher_enqueue');
 /**
  * Render qua hook thay vì sửa cứng template, để tắt/đổi vị trí được bằng
  * remove_action() từ nơi khác nếu cần.
+ *
+ * Toggle 2 nhánh "VI | EN" thay vì 1 nút đổi label, khớp kiểu segmented
+ * control của theme (xem css/language-switcher.css).
  */
 function hithean_language_switcher_render_button(): void
 {
     $is_english = hithean_language_switcher_is_english();
-    $label      = $is_english ? 'Vi' : 'Eng';
 
     printf(
-        '<button type="button" class="hithean-lang-switch" aria-pressed="%s" data-label-en="Eng" data-label-vi="Vi">%s</button>',
-        $is_english ? 'true' : 'false',
-        esc_html($label)
+        '<div class="hithean-lang-switch" role="group" aria-label="Language">' .
+            '<button type="button" class="hithean-lang-switch__option" data-lang="vi" aria-pressed="%s">VI</button>' .
+            '<button type="button" class="hithean-lang-switch__option" data-lang="en" aria-pressed="%s">EN</button>' .
+        '</div>',
+        $is_english ? 'false' : 'true',
+        $is_english ? 'true' : 'false'
     );
 }
 add_action('hithean_top_bar_after', 'hithean_language_switcher_render_button');

@@ -43,17 +43,6 @@
 		}, 150);
 	}
 
-	/**
-	 * Đổi ngôn ngữ ngay trên DOM hiện tại, không điều hướng trang.
-	 * langCode rỗng ('') = quay về ngôn ngữ gốc (trick chuẩn của widget).
-	 */
-	function triggerCombo(langCode) {
-		waitForCombo(function (combo) {
-			combo.value = langCode;
-			combo.dispatchEvent(new Event('change'));
-		});
-	}
-
 	function loadGoogleTranslateScript(onReady) {
 		if (document.getElementById('hithean-google-translate-script')) {
 			onReady && waitForCombo(onReady);
@@ -76,23 +65,26 @@
 		document.body.appendChild(script);
 	}
 
-	function updateButton(button) {
-		var active = isEnglishActive();
-		button.textContent = active
-			? (button.getAttribute('data-label-vi') || 'Vi')
-			: (button.getAttribute('data-label-en') || 'Eng');
-		button.setAttribute('aria-pressed', active ? 'true' : 'false');
+	function updateGroup(group) {
+		var active = isEnglishActive() ? 'en' : 'vi';
+		group.querySelectorAll('.hithean-lang-switch__option').forEach(function (option) {
+			option.setAttribute('aria-pressed', option.getAttribute('data-lang') === active ? 'true' : 'false');
+		});
 	}
 
-	function switchLanguage(button) {
-		var toEnglish = !isEnglishActive();
+	function switchTo(group, targetLang) {
+		var toEnglish = targetLang === 'en';
+
+		if (toEnglish === isEnglishActive()) {
+			return;
+		}
 
 		if (toEnglish) {
 			setCookie(COOKIE_NAME, '/vi/en', 1);
 		} else {
 			clearCookie(COOKIE_NAME);
 		}
-		updateButton(button);
+		updateGroup(group);
 
 		loadGoogleTranslateScript(function (combo) {
 			combo.value = toEnglish ? 'en' : '';
@@ -108,11 +100,12 @@
 			});
 		}
 
-		var buttons = document.querySelectorAll('.hithean-lang-switch');
-		buttons.forEach(function (button) {
-			updateButton(button);
-			button.addEventListener('click', function () {
-				switchLanguage(button);
+		document.querySelectorAll('.hithean-lang-switch').forEach(function (group) {
+			updateGroup(group);
+			group.querySelectorAll('.hithean-lang-switch__option').forEach(function (option) {
+				option.addEventListener('click', function () {
+					switchTo(group, option.getAttribute('data-lang'));
+				});
 			});
 		});
 	});
