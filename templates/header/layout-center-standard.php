@@ -67,6 +67,7 @@ if ( has_nav_menu( 'secondary-menu' ) ) {
                         'yes' == get_option( 'roneous_header_search', 'yes' ) ) {
                         get_template_part( 'templates/header/inc', 'search' );
                     }
+                    do_action( 'hithean_top_bar_after' );
                     ?>
                 </div>
             </div>

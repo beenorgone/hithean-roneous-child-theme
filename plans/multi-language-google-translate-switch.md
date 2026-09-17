@@ -24,9 +24,16 @@ Nếu các giới hạn trên chấp nhận được, làm theo các bước dư
 - **Trạng thái ngôn ngữ**: cookie `googtrans` (chuẩn của widget) —
   `/vi/en` để dịch sang Anh, xoá cookie (hoặc `/vi/vi`) để về tiếng Việt gốc.
   Cookie khiến lựa chọn giữ nguyên khi chuyển trang mà không cần bấm lại.
-- **Nút bấm**: 1 nút "Eng" / "Vi" tự đổi label theo
-  cookie hiện tại, đặt ở khu vực `b-menu-top-bar` (top bar hiện có, cạnh
-  `secondary-menu`) — `templates/header/menu-top-bar.php:1`.
+- **Nút bấm**: 1 nút "Eng" / "Vi" tự đổi label theo cookie hiện tại, render qua
+  action `hithean_top_bar_after`. Action này được gọi từ trong module-group
+  cart/search hiện có ở **cả hai** file layout header thật sự đang chạy —
+  `templates/header/layout-center-standard.php` và
+  `templates/header/layout-custom.php` (theo `roneous_get_header_layout()` ở
+  parent theme, chọn 1 trong 2 tuỳ cấu hình Customizer). File
+  `templates/header/menu-top-bar.php` là template part **không được gọi ở đâu
+  cả** (kiểm tra bằng grep `get_template_part.*menu-top-bar` không ra kết quả)
+  — lần đầu viết plan đã đặt hook nhầm vào file chết này nên nút không hiện;
+  đã sửa lại đúng vị trí.
 
 ## 2. File cần tạo/sửa
 
@@ -36,7 +43,7 @@ Nếu các giới hạn trên chấp nhận được, làm theo các bước dư
 | `js/language-switcher.js` (mới) | Đọc/ghi cookie `googtrans`, đồng bộ label nút, load Google script khi cần |
 | `css/language-switcher.css` (mới, hoặc gộp vào `css/custom.css`) | Style nút + ẩn UI mặc định của Google (banner iframe, `body{top:40px}`) |
 | `custom-functions/core/module-loader.php` | Thêm 1 dòng vào `$general_includes` (nạp mọi request vì nút hiển thị toàn site) |
-| `templates/header/menu-top-bar.php` | Thêm `do_action('hithean_top_bar_after')` thay vì hard-code nút trực tiếp, để dễ bật/tắt qua filter sau này |
+| `templates/header/layout-center-standard.php`, `templates/header/layout-custom.php` | Thêm `do_action('hithean_top_bar_after')` trong module-group cart/search, thay vì hard-code nút trực tiếp, để dễ bật/tắt qua filter sau này |
 
 Đặt file mới trong `custom-functions/core/` (không phải `marketing/`) vì đây là
 hạ tầng UI toàn site, không phải chiến dịch marketing.

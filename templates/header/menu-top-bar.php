@@ -8,5 +8,4 @@ if ( has_nav_menu( 'secondary-menu' ) ) {
         'menu_class'     => 'secondary-menu',
     ) );
 }
-do_action( 'hithean_top_bar_after' );
 ?></div>
