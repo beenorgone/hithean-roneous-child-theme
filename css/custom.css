@@ -1886,7 +1886,7 @@ div.summary.entry-summary > div.b-greenspark-revenue-percentage-widget > div {
 }
 
 .grecaptcha-badge {
-    bottom: 70px;
+    display: none;
 }
 
 /*------------------*\
