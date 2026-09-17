@@ -45,8 +45,16 @@ $general_includes = [
     'custom-functions/admin/blogpost-metabox.php',
     'custom-functions/woocommerce/products/product-metabox.php',
 
+    /* I18N */
+    // Nút "Eng"/"Vi" toàn site, dịch bằng Google Website Translator (client-side).
+    // Xem plans/multi-language-google-translate-switch.md.
+    'custom-functions/core/language-switcher.php',
+
     /* WOO UI */
     'custom-functions/marketing/lucky-wheel.php',
+    // Weekly GA4/WooCommerce landing-page CRO analysis. Registers only hooks;
+    // expensive collection runs from its scheduled action, never on front-end requests.
+    'custom-functions/marketing/cro-landing-agent.php',
 
     /* ORDER */
     'custom-functions/woocommerce/orders/order-admin-error-solver.php',
