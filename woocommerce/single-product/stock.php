@@ -20,8 +20,12 @@ if ( ! $product instanceof WC_Product ) {
 // Lay so luong ton kho / Get stock quantity
 $stock_quantity = $product->get_stock_quantity();
 
+// _stock_status co the bi lech so voi so luong thuc te (vd: am do dat hang dong thoi)
+// _stock_status can drift from the real quantity (e.g. negative from concurrent orders)
+$is_out_of_stock = ! $product->is_in_stock() || ( $product->managing_stock() && null !== $stock_quantity && $stock_quantity <= 0 );
+
 // Xac dinh trang thai hang hoa / Determine stock status
-if ( $product->is_in_stock() ) {
+if ( ! $is_out_of_stock ) {
 	$availability_text = 'Còn hàng'; // In stock
 	/* if ( $stock_quantity !== null ) {
 		$availability_text .= ' (' . $stock_quantity . ' sản phẩm)'; // Append quantity if available
