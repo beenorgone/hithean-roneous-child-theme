@@ -27,6 +27,10 @@ if ( $product->is_in_stock() ) {
 		$availability_text .= ' (' . $stock_quantity . ' sản phẩm)'; // Append quantity if available
 	} */
 	$class = 'in-stock';
+} elseif ( 'notify' === $product->get_backorders() ) {
+	// Het hang nhung cho phep dat truoc va thong bao khach hang / Out of stock but backorders allowed with customer notification
+	$availability_text = 'Tạm hết. Sắp có thêm';
+	$class = 'available-on-backorder';
 } else {
 	$availability_text = 'Hết hàng'; // Out of stock
 	$class = 'out-of-stock';
