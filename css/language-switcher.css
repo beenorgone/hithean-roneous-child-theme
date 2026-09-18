@@ -89,3 +89,20 @@ body {
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 	}
 }
+
+/*
+ * Fallback khi trang không có bản --inline nào trong nav (JS tự thêm class
+ * này — xem ensureToggleVisible() trong js/language-switcher.js). Trang chủ
+ * có thể dùng 1 header layout khác (của theme cha, ngoài tầm sửa của child
+ * theme) không gọi hook `hithean_top_bar_after`; trường hợp đó hiện luôn bản
+ * fixed góc trên-phải này kể cả ở desktop, thay vì không có toggle nào.
+ */
+.hithean-lang-switch--force-visible {
+	display: inline-flex !important;
+	position: fixed;
+	top: 12px;
+	right: 12px;
+	z-index: 9999;
+	margin-left: 0;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}

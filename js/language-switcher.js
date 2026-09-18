@@ -23,6 +23,12 @@
 		return !!value && value.indexOf('/en') !== -1;
 	}
 
+	/** Google gắn class này vào <html> khi trang đang ở trạng thái đã dịch. */
+	function isPageTranslated() {
+		var classes = document.documentElement.classList;
+		return classes.contains('translated-ltr') || classes.contains('translated-rtl');
+	}
+
 	/**
 	 * .goog-te-combo chỉ xuất hiện sau khi TranslateElement dựng xong UI ẩn
 	 * của nó, việc này chạy bất đồng bộ ngay cả sau khi script đã "load" —
@@ -97,18 +103,48 @@
 
 		loadGoogleTranslateScript(function (combo) {
 			combo.value = toEnglish ? 'en' : '';
-			combo.dispatchEvent(new Event('change'));
+			combo.dispatchEvent(new Event('change', { bubbles: true }));
+
+			if (!toEnglish) {
+				// Widget không có API chính thức để phục hồi bản gốc; sự kiện
+				// change giả lập không phải lúc nào cũng được nó xử lý. Script
+				// đã load sẵn (không cần chờ mạng) nên 2s là đủ — nếu <html>
+				// vẫn còn đánh dấu đã dịch, reload là cách duy nhất chắc chắn
+				// đúng để quay lại bản gốc.
+				window.setTimeout(function () {
+					if (isPageTranslated()) {
+						window.location.reload();
+					}
+				}, 2000);
+			}
 		});
+	}
+
+	/**
+	 * Nếu trang không có bản toggle nào render trong nav (header layout nào
+	 * đó của theme cha không gọi hook `hithean_top_bar_after` — vd trang chủ
+	 * có thể dùng 1 layout header khác 2 layout đã biết), hiện bản fixed góc
+	 * trên-phải luôn — kể cả trên desktop — thay vì để trang không có toggle.
+	 */
+	function ensureToggleVisible() {
+		if (document.querySelector('.hithean-lang-switch--inline')) {
+			return;
+		}
+		var fixedGroup = document.querySelector('.hithean-lang-switch--mobile-fixed');
+		if (fixedGroup) {
+			fixedGroup.classList.add('hithean-lang-switch--force-visible');
+		}
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {
 		if (isEnglishActive()) {
 			loadGoogleTranslateScript(function (combo) {
 				combo.value = 'en';
-				combo.dispatchEvent(new Event('change'));
+				combo.dispatchEvent(new Event('change', { bubbles: true }));
 			});
 		}
 
+		ensureToggleVisible();
 		updateAllGroups();
 		document.querySelectorAll('.hithean-lang-switch__option').forEach(function (option) {
 			option.addEventListener('click', function () {

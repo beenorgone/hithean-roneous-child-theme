@@ -137,7 +137,30 @@ hạ tầng UI toàn site, không phải chiến dịch marketing.
    nhầm bản `?_x_tr_sl=vi&_x_tr_tl=en` — nếu Search Console báo phát hiện URL
    dạng này, thêm rule chặn qua `robots.txt`/`noindex` cho query param đó).
 
-## 6. Không làm trong lần này
+## 6. Sự cố đã gặp sau khi lên production & cách xử lý
+
+- **Bấm "VI" sau khi đã ở "EN" không có phản ứng gì**: widget Google Translate
+  cổ điển không có API chính thức để phục hồi bản gốc — sự kiện `change` giả
+  lập dispatch lên `.goog-te-combo` không phải lúc nào cũng được nó xử lý
+  (khác với chiều dịch sang tiếng Anh, thường hoạt động ổn định hơn). Xử lý:
+  vẫn thử phục hồi tại chỗ trước (đúng yêu cầu "không reload"), nhưng đặt timer
+  2s kiểm tra class `translated-ltr`/`translated-rtl` mà Google gắn lên
+  `<html>` — nếu sau 2s trang vẫn còn đánh dấu đã dịch (tức thử tại chỗ thất
+  bại), fallback `location.reload()` vì đây là cách duy nhất chắc chắn đúng.
+  Chiều dịch sang tiếng Anh không đổi (vẫn tại chỗ, không có fallback reload).
+- **Trang chủ không hiện toggle**: theme cha (Roneous) không có trong repo hay
+  filesystem máy này nên không kiểm tra được, nhưng nhiều khả năng trang chủ
+  dùng 1 header layout khác (kiểu hero/transparent) không phải
+  `layout-center-standard.php`/`layout-custom.php` mà child theme đã override
+  — layout đó (nếu tồn tại) nằm ở theme cha, không gọi hook
+  `hithean_top_bar_after`. Vì không sửa được file theme cha từ đây, xử lý bằng
+  JS: nếu trang không có bản `--inline` nào trong DOM,
+  tự thêm class `--force-visible` cho bản `--mobile-fixed` (vốn chỉ hiện ở
+  mobile) để nó hiện luôn cả trên desktop — đảm bảo mọi trang có gọi
+  `wp_footer()` (hầu như toàn bộ theme, kể cả `template-landing-page.php`) đều
+  có ít nhất 1 toggle hiển thị.
+
+## 7. Không làm trong lần này
 
 - Không dịch tay bất kỳ chuỗi nào trong theme (100% máy dịch).
 - Không tạo URL `/en/` riêng biệt, không `hreflang`.
