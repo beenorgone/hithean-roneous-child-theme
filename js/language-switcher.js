@@ -72,7 +72,16 @@
 		});
 	}
 
-	function switchTo(group, targetLang) {
+	/**
+	 * Có 2 bản toggle trên trang (nav cho desktop, fixed cho mobile — xem
+	 * language-switcher.php và language-switcher.css); đồng bộ cả 2 mỗi lần
+	 * đổi ngôn ngữ dù chỉ 1 bản đang hiện.
+	 */
+	function updateAllGroups() {
+		document.querySelectorAll('.hithean-lang-switch').forEach(updateGroup);
+	}
+
+	function switchTo(targetLang) {
 		var toEnglish = targetLang === 'en';
 
 		if (toEnglish === isEnglishActive()) {
@@ -84,7 +93,7 @@
 		} else {
 			clearCookie(COOKIE_NAME);
 		}
-		updateGroup(group);
+		updateAllGroups();
 
 		loadGoogleTranslateScript(function (combo) {
 			combo.value = toEnglish ? 'en' : '';
@@ -100,12 +109,10 @@
 			});
 		}
 
-		document.querySelectorAll('.hithean-lang-switch').forEach(function (group) {
-			updateGroup(group);
-			group.querySelectorAll('.hithean-lang-switch__option').forEach(function (option) {
-				option.addEventListener('click', function () {
-					switchTo(group, option.getAttribute('data-lang'));
-				});
+		updateAllGroups();
+		document.querySelectorAll('.hithean-lang-switch__option').forEach(function (option) {
+			option.addEventListener('click', function () {
+				switchTo(option.getAttribute('data-lang'));
 			});
 		});
 	});

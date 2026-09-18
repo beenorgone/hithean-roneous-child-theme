@@ -36,6 +36,15 @@ Nếu các giới hạn trên chấp nhận được, làm theo các bước dư
   cả** (kiểm tra bằng grep `get_template_part.*menu-top-bar` không ra kết quả)
   — lần đầu viết plan đã đặt hook nhầm vào file chết này nên nút không hiện;
   đã sửa lại đúng vị trí.
+- **Mobile**: `.row` chứa module-group đó (cả 2 layout) bị 2 layout gộp vào
+  hamburger menu trên mobile — tức bản toggle render qua
+  `hithean_top_bar_after` (class `--inline`) bị ẩn cho tới khi khách mở menu.
+  Vì vậy có **thêm 1 bản độc lập** render thẳng vào `wp_footer` (class
+  `--mobile-fixed`, nằm ngoài cấu trúc nav/hamburger), CSS chỉ hiện bản này ở
+  `max-width: 768px` với `position: fixed; top; right`, ẩn bản `--inline` ở
+  cùng breakpoint. Cả 2 bản dùng chung state (cookie + JS đồng bộ
+  `aria-pressed` của mọi `.hithean-lang-switch` trên trang mỗi lần đổi ngôn
+  ngữ), chỉ khác nhau ở việc bản nào được CSS cho hiển thị theo viewport.
 
 ## 2. File cần tạo/sửa
 

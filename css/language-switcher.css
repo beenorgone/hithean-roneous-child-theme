@@ -59,3 +59,33 @@ body {
 .hithean-lang-switch__option[aria-pressed="false"]:hover {
 	background: var(--default-color-green-light, #d3e6e0);
 }
+
+/*
+ * Bản trong nav (--inline) bị 2 layout header gộp vào `.row`, phần này thu
+ * vào hamburger menu trên mobile nên không hiện được cho tới khi mở menu.
+ * Bản --mobile-fixed render riêng vào wp_footer (ngoài toàn bộ nav/hamburger)
+ * nên luôn hiện được; ẩn nó ở desktop vì bản --inline đã đủ ở đó.
+ *
+ * Lưu ý: layout-custom.php đặt icon hamburger bên phải (class "right"),
+ * layout-center-standard.php đặt bên trái — nếu site đang dùng layout-custom,
+ * chỉnh lại `right` bên dưới cho khỏi đè lên icon hamburger.
+ */
+.hithean-lang-switch--mobile-fixed {
+	display: none;
+}
+
+@media (max-width: 768px) {
+	.hithean-lang-switch--inline {
+		display: none;
+	}
+
+	.hithean-lang-switch--mobile-fixed {
+		display: inline-flex;
+		position: fixed;
+		top: 12px;
+		right: 12px;
+		z-index: 9999;
+		margin-left: 0;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+	}
+}
