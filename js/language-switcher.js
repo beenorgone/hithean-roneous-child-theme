@@ -23,12 +23,6 @@
 		return !!value && value.indexOf('/en') !== -1;
 	}
 
-	/** Google gắn class này vào <html> khi trang đang ở trạng thái đã dịch. */
-	function isPageTranslated() {
-		var classes = document.documentElement.classList;
-		return classes.contains('translated-ltr') || classes.contains('translated-rtl');
-	}
-
 	/**
 	 * .goog-te-combo chỉ xuất hiện sau khi TranslateElement dựng xong UI ẩn
 	 * của nó, việc này chạy bất đồng bộ ngay cả sau khi script đã "load" —
@@ -96,28 +90,19 @@
 
 		if (toEnglish) {
 			setCookie(COOKIE_NAME, '/vi/en', 1);
-		} else {
-			clearCookie(COOKIE_NAME);
+			updateAllGroups();
+			loadGoogleTranslateScript(function (combo) {
+				combo.value = 'en';
+				combo.dispatchEvent(new Event('change', { bubbles: true }));
+			});
+			return;
 		}
-		updateAllGroups();
 
-		loadGoogleTranslateScript(function (combo) {
-			combo.value = toEnglish ? 'en' : '';
-			combo.dispatchEvent(new Event('change', { bubbles: true }));
-
-			if (!toEnglish) {
-				// Widget không có API chính thức để phục hồi bản gốc; sự kiện
-				// change giả lập không phải lúc nào cũng được nó xử lý. Script
-				// đã load sẵn (không cần chờ mạng) nên 2s là đủ — nếu <html>
-				// vẫn còn đánh dấu đã dịch, reload là cách duy nhất chắc chắn
-				// đúng để quay lại bản gốc.
-				window.setTimeout(function () {
-					if (isPageTranslated()) {
-						window.location.reload();
-					}
-				}, 2000);
-			}
-		});
+		// Widget không có API chính thức để phục hồi bản gốc đáng tin cậy;
+		// reload sau khi xoá cookie là cách chắc chắn duy nhất để tắt hẳn
+		// Google Translate và quay lại bản gốc.
+		clearCookie(COOKIE_NAME);
+		window.location.reload();
 	}
 
 	/**
