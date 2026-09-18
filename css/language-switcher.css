@@ -106,3 +106,49 @@ body {
 	margin-left: 0;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
+
+/*
+ * Header trên trang chủ đặt language switcher trong cột icon rất hẹp. Một
+ * z-index lớn không giúp khi phần tử đã bị header cắt/che, vì vậy dùng đúng
+ * bản render ở footer (ngoài header) và chỉ hiển thị bản này trên trang chủ.
+ */
+.hithean-lang-switch--homepage-inline {
+	display: none !important;
+}
+
+.hithean-lang-switch--homepage-fixed {
+	display: inline-flex !important;
+	position: fixed !important;
+	top: max(12px, env(safe-area-inset-top)) !important;
+	right: 12px !important;
+	z-index: 2147483647 !important;
+	margin-left: 0;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+/* Non-blocking Material-style acknowledgement while Google Translate loads. */
+.hithean-translation-status {
+	position: fixed;
+	top: 64px;
+	right: 12px;
+	z-index: 2147483647;
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 16px;
+	border-radius: 4px;
+	background: #263238;
+	box-shadow: 0 3px 8px rgba(0, 0, 0, 0.24);
+	color: #fff;
+	font-size: 14px;
+	font-weight: 500;
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-8px);
+	transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.hithean-translation-status.is-visible {
+	opacity: 1;
+	transform: translateY(0);
+}

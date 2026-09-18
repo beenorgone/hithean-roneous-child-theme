@@ -28,7 +28,7 @@ function hithean_language_switcher_enqueue(): void
         'hithean-language-switcher',
         get_stylesheet_directory_uri() . '/css/language-switcher.css',
         array(),
-        '1.0.0'
+        '1.0.1'
     );
 
     wp_enqueue_script(
@@ -70,7 +70,15 @@ function hithean_language_switcher_markup(string $extra_class = ''): string
  * (xem `.hithean-lang-switch--inline` trong css/language-switcher.css).
  */
 add_action('hithean_top_bar_after', function (): void {
-    echo hithean_language_switcher_markup('hithean-lang-switch--inline');
+    $classes = 'hithean-lang-switch--inline';
+
+    // Trang chủ dùng hero/header riêng và ô nav bên phải rất hẹp, nên bản
+    // inline có thể bị các phần tử nav che. Chỉ hiện bản fixed độc lập ở đây.
+    if (is_front_page() || is_home()) {
+        $classes .= ' hithean-lang-switch--homepage-inline';
+    }
+
+    echo hithean_language_switcher_markup($classes);
 });
 
 /**
@@ -84,6 +92,13 @@ add_action('wp_footer', function (): void {
         return;
     }
 
+    $classes = 'hithean-lang-switch--mobile-fixed';
+
+    // Không phụ thuộc vào stacking context/overflow của header trang chủ.
+    if (is_front_page() || is_home()) {
+        $classes .= ' hithean-lang-switch--homepage-fixed';
+    }
+
     echo '<div id="google_translate_element" class="hithean-google-translate-element" aria-hidden="true"></div>';
-    echo hithean_language_switcher_markup('hithean-lang-switch--mobile-fixed');
+    echo hithean_language_switcher_markup($classes);
 });

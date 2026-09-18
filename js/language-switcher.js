@@ -2,6 +2,39 @@
 	'use strict';
 
 	var COOKIE_NAME = 'googtrans';
+	var translationStatusTimer = null;
+
+	function hideTranslationStatus() {
+		var status = document.getElementById('hithean-translation-status');
+		if (translationStatusTimer) {
+			window.clearTimeout(translationStatusTimer);
+			translationStatusTimer = null;
+		}
+		if (status) {
+			status.classList.remove('is-visible');
+		}
+	}
+
+	function showTranslationStatus() {
+		var status = document.getElementById('hithean-translation-status');
+		if (!status) {
+			status = document.createElement('div');
+			status.id = 'hithean-translation-status';
+			status.className = 'hithean-translation-status';
+			status.setAttribute('role', 'status');
+			status.setAttribute('aria-live', 'polite');
+			status.textContent = 'Translating…';
+			document.body.appendChild(status);
+		}
+
+		status.classList.add('is-visible');
+		if (translationStatusTimer) {
+			window.clearTimeout(translationStatusTimer);
+		}
+		// Google Translate does not expose a reliable completion callback. Never
+		// leave a loading message stuck if its remote widget fails to load.
+		translationStatusTimer = window.setTimeout(hideTranslationStatus, 12000);
+	}
 
 	function getCookie(name) {
 		var match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
@@ -89,11 +122,15 @@
 		}
 
 		if (toEnglish) {
+			showTranslationStatus();
 			setCookie(COOKIE_NAME, '/vi/en', 1);
 			updateAllGroups();
 			loadGoogleTranslateScript(function (combo) {
 				combo.value = 'en';
 				combo.dispatchEvent(new Event('change', { bubbles: true }));
+				// Keep the acknowledgement visible long enough for the rendered text
+				// to begin updating, while the 12-second fallback above covers errors.
+				window.setTimeout(hideTranslationStatus, 1200);
 			});
 			return;
 		}
