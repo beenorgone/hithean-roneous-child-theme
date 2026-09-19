@@ -458,9 +458,12 @@ function shortcode_list_uploaded_not_shipped_exports()
 
     ob_start();
 
+    // Keep terminal orders out of the query so they do not consume one of the 40 visible slots.
+    $excluded_statuses = ['wc-cancelled', 'wc-failed'];
+
     $args = [
         'post_type'      => 'shop_order',
-        'post_status'    => 'any',
+        'post_status'    => array_values(array_diff(array_keys(wc_get_order_statuses()), $excluded_statuses)),
         'posts_per_page' => 40,
         'meta_query'     => [
             'relation' => 'AND',
@@ -490,14 +493,14 @@ function shortcode_list_uploaded_not_shipped_exports()
 
     $orders = get_posts($args);
 
-    // Lọc theo trạng thái đơn (loại bỏ shipping, delivered, completed)
+    // Lọc phòng vệ theo trạng thái đơn (loại bỏ đơn đã giao và đơn kết thúc).
     $filtered_orders = [];
     foreach ($orders as $order_post) {
         $order = wc_get_order($order_post->ID);
         if (!$order) continue;
         $status = $order->get_status();
 
-        if (!in_array($status, ['shipping', 'delivered', 'completed'])) {
+        if (!in_array($status, ['shipping', 'delivered', 'completed', 'cancelled', 'failed'], true)) {
             $filtered_orders[] = $order;
         }
     }
