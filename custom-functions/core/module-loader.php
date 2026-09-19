@@ -409,7 +409,7 @@ function tpc_loader_modules()
             'id' => 'order_export_confirm',
             'file' => 'custom-functions/shortcodes/shortcode-order-export-confirm.php',
             'shortcodes' => ['upload_export_images_form', 'list_unconfirmed_exports', 'list_uploaded_not_shipped_exports'],
-            'ajax_actions' => ['ajax_confirm_export', 'ajax_upload_images'],
+            'ajax_actions' => ['ajax_confirm_export', 'ajax_upload_images', 'hithean_export_ai_check'],
         ],
         [
             'id' => 'bulk_order_status_change',

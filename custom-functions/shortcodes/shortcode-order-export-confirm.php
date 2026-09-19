@@ -114,6 +114,208 @@ function hithean_render_export_image_gallery(array $urls): string
     return $html;
 }
 
+/** AI review is advisory only; warehouse confirmation stays manual. */
+function hithean_export_ai_config(): array
+{
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
+    $provider = theme_ai_default_provider();
+    if ($provider === 'auto') {
+        $provider = 'gemini';
+    }
+    if (defined('HITHEAN_EXPORT_AI_PROVIDER') && HITHEAN_EXPORT_AI_PROVIDER) {
+        $provider = (string) HITHEAN_EXPORT_AI_PROVIDER;
+    }
+    return apply_filters('hithean_export_ai_config', [
+        'provider' => $provider,
+        'model'    => defined('HITHEAN_EXPORT_AI_MODEL') ? (string) HITHEAN_EXPORT_AI_MODEL : theme_ai_default_model(),
+    ]);
+}
+
+function hithean_export_ai_clean_text($value, int $limit = 500): string
+{
+    $value = is_scalar($value) ? sanitize_text_field((string) $value) : '';
+    return function_exists('mb_substr') ? mb_substr(trim($value), 0, $limit) : substr(trim($value), 0, $limit);
+}
+
+function hithean_export_ai_clean_list($value, int $max_items = 8): array
+{
+    if (!is_array($value)) return [];
+    $items = [];
+    foreach ($value as $item) {
+        $text = hithean_export_ai_clean_text($item, 250);
+        if ($text !== '') $items[] = $text;
+        if (count($items) >= $max_items) break;
+    }
+    return array_values(array_unique($items));
+}
+
+function hithean_export_ai_masked_order_reference(WC_Order $order): string
+{
+    return '#' . $order->get_id() . '**';
+}
+
+function hithean_export_ai_is_expected_masked_reference(string $reference, WC_Order $order): bool
+{
+    $reference = preg_replace('/\s+/', '', $reference);
+    return is_string($reference) && preg_match('/^#?' . preg_quote((string) $order->get_id(), '/') . '\*\*$/', $reference) === 1;
+}
+
+function hithean_export_ai_result_pill(string $label, string $value, string $tone): string
+{
+    $tones = [
+        'success' => ['#dcfce7', '#166534', '#86efac'],
+        'warning' => ['#fef3c7', '#92400e', '#fcd34d'],
+        'danger'  => ['#fee2e2', '#991b1b', '#fca5a5'],
+        'neutral' => ['#e2e8f0', '#334155', '#cbd5e1'],
+    ];
+    [$background, $color, $border] = $tones[$tone] ?? $tones['neutral'];
+    return '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border:1px solid ' . $border . ';border-radius:999px;background:' . $background . ';color:' . $color . ';font-size:12px;font-weight:600;line-height:1.2;">'
+        . esc_html($label) . ': <strong>' . esc_html($value) . '</strong></span>';
+}
+
+function hithean_export_ai_order_note(array $result): string
+{
+    $labels = ['match' => 'Khớp', 'mismatch' => 'Không khớp', 'unclear' => 'Chưa đủ bằng chứng'];
+    $lines = [
+        '🤖 AI review ảnh xuất kho',
+        'Kết quả: ' . (($result['overall'] ?? '') === 'pass' ? 'Khớp — vẫn cần nhân viên xác nhận.' : 'Cần kiểm tra thủ công.'),
+        'Mã đơn/phiếu: ' . ($labels[$result['order_match'] ?? 'unclear'] ?? 'Chưa đủ bằng chứng') . (!empty($result['masked_order_match']) ? ' (khớp theo mã che chuẩn)' : ''),
+        'Sản phẩm và số lượng: ' . ($labels[$result['items_match'] ?? 'unclear'] ?? 'Chưa đủ bằng chứng'),
+        'Độ tin cậy: ' . ($result['confidence'] ?? 'low'),
+    ];
+    if (!empty($result['visible_order_reference'])) $lines[] = 'AI đọc được: ' . $result['visible_order_reference'];
+    if (!empty($result['reason'])) $lines[] = 'Nhận định: ' . $result['reason'];
+    $issues = array_merge((array) ($result['missing_or_suspected_missing'] ?? []), (array) ($result['unexpected_or_suspected_extra'] ?? []));
+    if ($issues) $lines[] = 'Cần xem lại: ' . implode('; ', $issues);
+    return implode("\n", $lines);
+}
+
+function hithean_export_ai_documents(int $order_id, array $urls)
+{
+    $documents = [];
+    $attachment_ids = [];
+    foreach ($urls as $url) {
+        $attachment_id = attachment_url_to_postid($url);
+        if ($attachment_id && (int) get_post_field('post_parent', $attachment_id) === $order_id) $attachment_ids[] = (int) $attachment_id;
+    }
+    if (!$attachment_ids) {
+        $attachment_ids = get_posts([
+            'post_type' => 'attachment', 'post_status' => 'inherit', 'post_parent' => $order_id,
+            'post_mime_type' => 'image', 'fields' => 'ids', 'posts_per_page' => 10, 'orderby' => 'date', 'order' => 'DESC',
+        ]);
+    }
+    foreach (array_slice(array_unique(array_map('intval', $attachment_ids)), 0, 10) as $attachment_id) {
+        $path = get_attached_file($attachment_id);
+        $mime = get_post_mime_type($attachment_id);
+        if (!$path || !is_readable($path) || strpos((string) $mime, 'image/') !== 0 || filesize($path) > 6 * MB_IN_BYTES) continue;
+        $documents[] = ['path' => $path, 'mime_type' => $mime, 'title' => basename($path)];
+    }
+    return $documents ?: new WP_Error('hithean_export_ai_no_images', 'Không tìm được ảnh xuất kho hợp lệ để AI kiểm tra.');
+}
+
+function hithean_export_ai_check_order(WC_Order $order)
+{
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
+    if (!theme_ai_feature_enabled('export_image_ai_check')) return new WP_Error('hithean_export_ai_disabled', 'Tính năng AI kiểm tra ảnh xuất kho đang tắt trong Cài đặt ERP.');
+
+    $order_id = $order->get_id();
+    $lock_key = '_hithean_export_ai_check_lock';
+    $locked_at = (int) get_post_meta($order_id, $lock_key, true);
+    if ($locked_at && time() - $locked_at < 180) return new WP_Error('hithean_export_ai_busy', 'AI đang kiểm tra ảnh của đơn này. Vui lòng đợi kết quả.');
+    if ($locked_at) delete_post_meta($order_id, $lock_key);
+    if (!add_post_meta($order_id, $lock_key, time(), true)) return new WP_Error('hithean_export_ai_busy', 'AI đang kiểm tra ảnh của đơn này. Vui lòng đợi kết quả.');
+
+    try {
+        $urls = array_values(array_filter(array_map('trim', explode("\n", (string) get_post_meta($order_id, 'warehouse_export_images', true)))));
+        $documents = hithean_export_ai_documents($order_id, $urls);
+        if (is_wp_error($documents)) return $documents;
+        $expected_items = [];
+        foreach ($order->get_items() as $item) {
+            $expected_items[] = ['name' => ct_get_order_item_display_name($item), 'quantity' => (int) $item->get_quantity()];
+        }
+
+        require_once get_stylesheet_directory() . '/custom-functions/core/ai-providers.php';
+        $system = 'Bạn là trợ lý kiểm tra ảnh lấy hàng cho kho của HiThean. Chỉ đánh giá bằng những gì nhìn thấy rõ trong ảnh; không suy đoán khi nhãn, số lượng, mã đơn hoặc sản phẩm bị che/mờ. Đây là kết quả hỗ trợ nhân viên, không phải quyết định xuất kho. '
+            . 'Trả về DUY NHẤT một JSON object hợp lệ, không markdown, đúng các khóa: overall (pass|review), order_match (match|mismatch|unclear), items_match (match|mismatch|unclear), confidence (high|medium|low), visible_order_reference (string), reason (string), missing_or_suspected_missing (array string), unexpected_or_suspected_extra (array string). '
+            . 'QUY TẮC MÃ PHIẾU HITHEAN: phiếu xuất kho cố ý che đúng hai chữ số suffix ở cuối bằng **. Nếu ảnh đọc được đúng mẫu mã che chuẩn được cung cấp, hãy trả order_match=match; đây là bằng chứng đủ về mã đơn. '
+            . 'overall=pass CHỈ khi mã/phiếu của đơn và toàn bộ sản phẩm cùng số lượng đều nhìn thấy đủ, rõ và khớp. Mọi trường hợp còn lại là review.';
+        $prompt = "Đối chiếu ảnh đính kèm với dữ liệu đơn hàng sau.\n" . wp_json_encode([
+            'order_id_goc' => (string) $order->get_id(),
+            'ma_don_hien_thi_day_du' => (string) $order->get_order_number(),
+            'ma_phieu_da_che_chuan' => hithean_export_ai_masked_order_reference($order),
+            'expected_items' => $expected_items,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\nChỉ mẫu ma_phieu_da_che_chuan (ID gốc + đúng hai dấu *) được xem là mã che hợp lệ. Mã khác hoặc che kiểu khác phải dùng mismatch/unclear.";
+        $cfg = hithean_export_ai_config();
+        $raw = theme_ai_call_provider_with_documents($cfg['provider'], $system, $prompt, $documents, 1100, 120, $cfg['model']);
+        if (is_wp_error($raw)) return $raw;
+        $data = theme_ai_parse_json_object($raw);
+        if (is_wp_error($data)) return $data;
+
+        $allowed = ['overall' => ['pass', 'review'], 'order_match' => ['match', 'mismatch', 'unclear'], 'items_match' => ['match', 'mismatch', 'unclear'], 'confidence' => ['high', 'medium', 'low']];
+        $result = [];
+        foreach ($allowed as $key => $values) {
+            $value = sanitize_key((string) ($data[$key] ?? ''));
+            $result[$key] = in_array($value, $values, true) ? $value : ($key === 'overall' ? 'review' : 'unclear');
+        }
+        if ($result['order_match'] !== 'match' || $result['items_match'] !== 'match') $result['overall'] = 'review';
+        $result['visible_order_reference'] = hithean_export_ai_clean_text($data['visible_order_reference'] ?? '', 120);
+        $result['masked_order_match'] = hithean_export_ai_is_expected_masked_reference($result['visible_order_reference'], $order);
+        if ($result['masked_order_match']) {
+            $result['order_match'] = 'match';
+            if ($result['items_match'] === 'match') $result['overall'] = 'pass';
+        }
+        $result['reason'] = hithean_export_ai_clean_text($data['reason'] ?? '', 600);
+        $result['missing_or_suspected_missing'] = hithean_export_ai_clean_list($data['missing_or_suspected_missing'] ?? []);
+        $result['unexpected_or_suspected_extra'] = hithean_export_ai_clean_list($data['unexpected_or_suspected_extra'] ?? []);
+        $result['checked_at'] = current_time('mysql');
+        $result['checked_by'] = get_current_user_id();
+        $result['provider'] = sanitize_key((string) $cfg['provider']);
+        update_post_meta($order_id, 'warehouse_export_ai_check', $result);
+        $order->add_order_note(hithean_export_ai_order_note($result));
+        return $result;
+    } finally {
+        delete_post_meta($order_id, $lock_key);
+    }
+}
+
+function hithean_render_export_ai_check(int $order_id): string
+{
+    $result = get_post_meta($order_id, 'warehouse_export_ai_check', true);
+    $result = is_array($result) ? $result : [];
+    $is_pass = ($result['overall'] ?? '') === 'pass';
+    $label = $is_pass ? 'AI: Khớp' : ($result ? 'AI: Cần kiểm tra' : 'AI check');
+    $html = '<section class="uexe-ai-check" style="margin-top:14px;padding:12px;border:1px solid ' . ($is_pass ? '#86efac' : '#cbd5e1') . ';border-radius:8px;background:' . ($is_pass ? '#f0fdf4' : '#f8fafc') . ';">';
+    $html .= '<button type="button" class="button uexe-ai-check-button" data-order-id="' . esc_attr($order_id) . '">' . esc_html($label) . '</button>';
+    $html .= '<p style="margin:8px 0 0;font-size:12px;color:#52606d;">Nhấn AI check sẽ gửi ảnh tới AI provider đã cấu hình. AI chỉ hỗ trợ đối chiếu, không tự xác nhận xuất kho.</p>';
+    if ($result) {
+        $labels = ['match' => 'Khớp', 'mismatch' => 'Không khớp', 'unclear' => 'Chưa đủ bằng chứng'];
+        $order_state = $result['order_match'] ?? 'unclear'; $item_state = $result['items_match'] ?? 'unclear'; $confidence = $result['confidence'] ?? 'low';
+        $order_tone = $order_state === 'match' ? 'success' : ($order_state === 'mismatch' ? 'danger' : 'warning');
+        $item_tone = $item_state === 'match' ? 'success' : ($item_state === 'mismatch' ? 'danger' : 'warning');
+        $order_value = $labels[$order_state] ?? 'Chưa đủ bằng chứng';
+        if (!empty($result['masked_order_match'])) $order_value .= ' theo mã che';
+        $confidence_labels = ['high' => 'Cao', 'medium' => 'Trung bình', 'low' => 'Thấp'];
+        $html .= '<div style="margin-top:10px;font-size:13px;line-height:1.55;"><div style="display:flex;flex-wrap:wrap;gap:6px;">';
+        $html .= hithean_export_ai_result_pill('Kết quả', $is_pass ? 'Khớp ảnh với đơn' : 'Cần kiểm tra thủ công', $is_pass ? 'success' : 'warning');
+        $html .= hithean_export_ai_result_pill('Mã đơn', $order_value, $order_tone);
+        $html .= hithean_export_ai_result_pill('Sản phẩm/SL', $labels[$item_state] ?? 'Chưa đủ bằng chứng', $item_tone);
+        $html .= hithean_export_ai_result_pill('Độ tin cậy', $confidence_labels[$confidence] ?? 'Thấp', $confidence === 'high' ? 'success' : ($confidence === 'medium' ? 'warning' : 'neutral'));
+        $html .= '</div>';
+        if (!empty($result['visible_order_reference'])) $html .= '<br>AI đọc được: ' . esc_html($result['visible_order_reference']) . '.';
+        if (!empty($result['reason'])) $html .= '<br>' . esc_html($result['reason']);
+        $issues = array_merge((array) ($result['missing_or_suspected_missing'] ?? []), (array) ($result['unexpected_or_suspected_extra'] ?? []));
+        if ($issues) { $html .= '<ul style="margin:6px 0 0 18px;">'; foreach ($issues as $issue) $html .= '<li>' . esc_html($issue) . '</li>'; $html .= '</ul>'; }
+        $html .= '<small style="display:block;margin-top:7px;color:#64748b;">Lần kiểm tra: ' . esc_html($result['checked_at'] ?? '') . '</small></div>';
+    }
+    return $html . '</section>';
+}
+
+function hithean_render_export_ai_bulk_controls(string $scope): string
+{
+    $scope = sanitize_key($scope);
+    return '<div class="uexe-ai-bulk" data-uexe-ai-bulk data-uexe-bulk-target="' . esc_attr($scope) . '" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:0 0 14px;padding:14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;"><label style="display:grid;gap:5px;min-width:min(100%,320px);font-size:13px;font-weight:600;color:#334155;">Ngoại trừ mã đơn<input type="text" data-uexe-bulk-exclude placeholder="#89339**, 8933991" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-weight:400;"></label><button type="button" class="button button-primary" data-uexe-bulk-check>AI check tất cả</button><span data-uexe-bulk-status role="status" aria-live="polite" style="font-size:13px;color:#475569;"></span><small style="flex-basis:100%;color:#64748b;">Chạy lần lượt từng đơn. Mã đầy đủ, ID gốc và mã che đều được nhận diện.</small></div>';
+}
+
 // ===== Shortcode Upload Ảnh =====
 function shortcode_upload_export_images_form()
 {
@@ -139,6 +341,7 @@ function shortcode_upload_export_images_form()
                 ❌ Bạn đã chọn quá 5 ảnh! Vui lòng chọn lại tối đa 5 ảnh.
             </span>
         </p>
+        <p style="max-width:500px;padding:10px 12px;border:1px solid #b7e4d5;border-radius:6px;background:#f0fdf8;"><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" name="ueif_ai_check" value="1" checked style="margin-top:3px;"><span><strong>Gọi AI kiểm tra ảnh sau khi upload</strong><br><small>Ảnh sẽ được gửi tới AI provider đã cấu hình để đối chiếu mã đơn, sản phẩm và số lượng; kết quả chỉ hỗ trợ kiểm tra, không tự xác nhận xuất kho.</small></span></label></p>
         <p>
             <button type="submit" class="button button-primary">Upload ảnh xuất kho</button>
         </p>
@@ -197,7 +400,8 @@ function shortcode_list_unconfirmed_exports()
         return ob_get_clean();
     }
 
-    echo '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;">';
+    echo hithean_render_export_ai_bulk_controls('unconfirmed');
+    echo '<div data-uexe-bulk-grid="unconfirmed" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;">';
 
     foreach ($orders as $order_post) {
         $order_id = $order_post->ID;
@@ -205,7 +409,7 @@ function shortcode_list_unconfirmed_exports()
         $status = wc_get_order_status_name($order->get_status());
         $edit_link = get_edit_post_link($order_id);
 
-        echo '<div class="order-card" style="border:1px solid #ccc;border-radius:8px;padding:15px;background:#fff;">';
+        echo '<div class="order-card uexe-export-card" data-uexe-order-id="' . esc_attr($order_id) . '" data-uexe-order-number="' . esc_attr($order->get_order_number()) . '" style="border:1px solid #ccc;border-radius:8px;padding:15px;background:#fff;">';
         echo '<h4 style="margin-top: 10px;">Đơn hàng #' . esc_html($order_id) . '</h4>';
         echo '<p>Trạng thái: <strong>' . esc_html($status) . '</strong> - ';
         echo '<a href="' . esc_url($edit_link) . '" target="_blank">✏️ Chỉnh sửa đơn</a></p>';
@@ -220,6 +424,7 @@ function shortcode_list_unconfirmed_exports()
         $images_raw = get_post_meta($order_id, 'warehouse_export_images', true);
         $urls = array_filter(array_map('trim', explode("\n", $images_raw)));
         echo hithean_render_export_image_gallery($urls);
+        echo hithean_render_export_ai_check($order_id);
 
         // Form xác nhận
     ?>
@@ -298,7 +503,8 @@ function shortcode_list_uploaded_not_shipped_exports()
         return ob_get_clean();
     }
 
-    echo '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;">';
+    echo hithean_render_export_ai_bulk_controls('not-shipped');
+    echo '<div data-uexe-bulk-grid="not-shipped" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;">';
 
     foreach ($filtered_orders as $order) {
         $order_id   = $order->get_id();
@@ -306,7 +512,7 @@ function shortcode_list_uploaded_not_shipped_exports()
         $edit_link  = get_edit_post_link($order_id);
         $confirmed  = get_post_meta($order_id, 'export_confirmed_by', true);
 
-        echo '<div class="order-card" style="border:1px solid #ccc;border-radius:8px;padding:15px;background:#fff;">';
+        echo '<div class="order-card uexe-export-card" data-uexe-order-id="' . esc_attr($order_id) . '" data-uexe-order-number="' . esc_attr($order->get_order_number()) . '" style="border:1px solid #ccc;border-radius:8px;padding:15px;background:#fff;">';
         echo '<h4 style="margin-top: 10px;">Đơn hàng #' . esc_html($order_id) . '</h4>';
         echo '<p>Trạng thái: <strong>' . esc_html($status) . '</strong> - ';
         echo '<a href="' . esc_url($edit_link) . '" target="_blank">✏️ Chỉnh sửa đơn</a></p>';
@@ -321,6 +527,7 @@ function shortcode_list_uploaded_not_shipped_exports()
         $images_raw = get_post_meta($order_id, 'warehouse_export_images', true);
         $urls = array_filter(array_map('trim', explode("\n", $images_raw)));
         echo hithean_render_export_image_gallery($urls);
+        echo hithean_render_export_ai_check($order_id);
 
         // Nút xác nhận
         echo '<div style="margin-top:15px;">';
@@ -354,9 +561,13 @@ add_action('wp_ajax_ajax_upload_images', function () {
     check_ajax_referer('ajax_upload_images_nonce', 'nonce');
     if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
 
-    $order_id = intval($_POST['ueif_order_id']);
+    $order_id = absint($_POST['ueif_order_id'] ?? 0);
     if (!$order_id || empty($_FILES['ueif_images'])) {
         wp_send_json_error("Thiếu dữ liệu");
+    }
+    $order = wc_get_order($order_id);
+    if (!$order) {
+        wp_send_json_error('Không tìm thấy đơn hàng.');
     }
 
     require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -401,9 +612,36 @@ add_action('wp_ajax_ajax_upload_images', function () {
         $existing = get_post_meta($order_id, 'warehouse_export_images', true);
         $all = array_filter(array_merge(explode("\n", $existing), $uploaded_urls));
         update_post_meta($order_id, 'warehouse_export_images', implode("\n", $all));
-        wp_send_json_success("✅ Đã upload thành công " . count($uploaded_urls) . " ảnh");
+        delete_post_meta($order_id, 'warehouse_export_ai_check');
+        $message = '✅ Đã upload thành công ' . count($uploaded_urls) . ' ảnh';
+        $ai_check = null;
+        if (!empty($_POST['ueif_ai_check'])) {
+            $ai_check = hithean_export_ai_check_order($order);
+            if (is_wp_error($ai_check)) {
+                $message .= '. Ảnh đã lưu, nhưng AI chưa kiểm tra: ' . $ai_check->get_error_message();
+                $order->add_order_note('🤖 AI review ảnh xuất kho chưa chạy: ' . sanitize_text_field($ai_check->get_error_message()));
+                $ai_check = null;
+            } else {
+                $message .= $ai_check['overall'] === 'pass' ? '. AI: ảnh có vẻ khớp đơn.' : '. AI: cần kiểm tra thủ công.';
+            }
+        }
+        wp_send_json_success(['message' => $message, 'ai_check' => $ai_check]);
     }
     wp_send_json_error("Không upload được ảnh");
+});
+
+add_action('wp_ajax_hithean_export_ai_check', function () {
+    check_ajax_referer('hithean_export_ai_check_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error(['message' => 'Không có quyền.'], 403);
+    $order_id = absint($_POST['order_id'] ?? 0);
+    $order = $order_id ? wc_get_order($order_id) : false;
+    if (!$order) wp_send_json_error(['message' => 'Không tìm thấy đơn hàng.'], 404);
+    $result = hithean_export_ai_check_order($order);
+    if (is_wp_error($result)) wp_send_json_error(['message' => $result->get_error_message()]);
+    wp_send_json_success([
+        'message' => $result['overall'] === 'pass' ? 'AI nhận định ảnh khớp đơn; vẫn cần kiểm tra và xác nhận thủ công.' : 'AI cần nhân viên kiểm tra thủ công.',
+        'html' => hithean_render_export_ai_check($order_id),
+    ]);
 });
 
 // Xác nhận xuất kho
@@ -486,6 +724,7 @@ add_action('wp_footer', function () {
     <script>
         var ueifNonce = "<?php echo esc_js(wp_create_nonce('ajax_upload_images_nonce')); ?>";
         var uexeNonce = "<?php echo esc_js(wp_create_nonce('ajax_confirm_export_nonce')); ?>";
+        var uexeAiNonce = "<?php echo esc_js(wp_create_nonce('hithean_export_ai_check_nonce')); ?>";
         var ueifChecklist = <?php echo wp_json_encode($checklist); ?>;
 
         function uexeShowToast(message, isSuccess) {
@@ -595,8 +834,9 @@ add_action('wp_footer', function () {
                 function doUpload() {
                     const btn = uploadForm.querySelector('button[type="submit"]');
                     const originalText = btn.textContent;
+                    const aiCheckRequested = !!uploadForm.querySelector('[name="ueif_ai_check"]:checked');
                     btn.disabled = true;
-                    btn.textContent = "⏳ Đang upload...";
+                    btn.textContent = aiCheckRequested ? "⏳ Đang upload và AI kiểm tra..." : "⏳ Đang upload...";
 
                     const formData = new FormData(uploadForm);
                     formData.append("action", "ajax_upload_images");
@@ -608,7 +848,8 @@ add_action('wp_footer', function () {
                     })
                     .then(r => r.json())
                     .then(res => {
-                        uexeShowToast(res.data, res.success);
+                        const message = res && res.data && typeof res.data === 'object' ? res.data.message : res.data;
+                        uexeShowToast(message, res.success);
                         if (res.success) {
                             uploadForm.reset();
                         }
@@ -748,6 +989,89 @@ add_action('wp_footer', function () {
                         btn.textContent = originalText;
                     });
                 });
+            });
+
+            function requestAiCheck(orderId) {
+                const formData = new FormData();
+                formData.append('action', 'hithean_export_ai_check');
+                formData.append('nonce', uexeAiNonce);
+                formData.append('order_id', String(orderId));
+                return fetch("<?php echo admin_url('admin-ajax.php'); ?>", { method: 'POST', body: formData })
+                    .then(function(response) { return response.json(); })
+                    .then(function(response) {
+                        const message = response && response.data && typeof response.data === 'object' ? response.data.message : response.data;
+                        if (!response.success) throw new Error(message || 'Không thể AI check ảnh.');
+                        return { message: message, html: response.data.html || '' };
+                    });
+            }
+            function updateAiCheckCard(card, result) {
+                const holder = card && card.querySelector('.uexe-ai-check');
+                if (holder && result.html) holder.outerHTML = result.html;
+            }
+            function normalizedOrderCode(value) { return String(value || '').replace(/\D/g, ''); }
+
+            document.addEventListener('click', function(event) {
+                const button = event.target.closest('.uexe-ai-check-button');
+                if (!button) return;
+                const orderId = parseInt(button.getAttribute('data-order-id'), 10) || 0;
+                if (!orderId) return;
+                const card = button.closest('.uexe-export-card');
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = '⏳ AI đang kiểm tra...';
+                requestAiCheck(orderId).then(function(result) {
+                    updateAiCheckCard(card, result);
+                    uexeShowToast(result.message, true);
+                }).catch(function(error) {
+                    uexeShowToast(error.message || 'Lỗi kết nối. Vui lòng thử lại.', false);
+                    button.disabled = false;
+                    button.textContent = originalText;
+                });
+            });
+
+            document.addEventListener('click', function(event) {
+                const button = event.target.closest('[data-uexe-bulk-check]');
+                if (!button || button.disabled) return;
+                const controls = button.closest('[data-uexe-ai-bulk]');
+                if (!controls) return;
+                const target = controls.getAttribute('data-uexe-bulk-target');
+                const grid = document.querySelector('[data-uexe-bulk-grid="' + target + '"]');
+                const status = controls.querySelector('[data-uexe-bulk-status]');
+                const excludeInput = controls.querySelector('[data-uexe-bulk-exclude]');
+                if (!grid || !status || !excludeInput) return;
+                const excluded = new Set(excludeInput.value.split(/[\s,;]+/).map(normalizedOrderCode).filter(Boolean));
+                const queue = Array.from(grid.querySelectorAll('.uexe-export-card')).filter(function(card) {
+                    return !excluded.has(normalizedOrderCode(card.getAttribute('data-uexe-order-id')))
+                        && !excluded.has(normalizedOrderCode(card.getAttribute('data-uexe-order-number')));
+                });
+                if (!queue.length) {
+                    status.textContent = excluded.size ? 'Không có đơn cần check sau khi loại trừ.' : 'Không có đơn cần check.';
+                    return;
+                }
+                const originalText = button.textContent;
+                button.disabled = true;
+                excludeInput.disabled = true;
+                let completed = 0, failed = 0;
+                (async function() {
+                    for (const card of queue) {
+                        const orderId = parseInt(card.getAttribute('data-uexe-order-id'), 10) || 0;
+                        status.textContent = 'Đang AI check ' + (completed + 1) + '/' + queue.length + ' — đơn #' + orderId + '…';
+                        const individualButton = card.querySelector('.uexe-ai-check-button');
+                        if (individualButton) { individualButton.disabled = true; individualButton.textContent = '⏳ Đang check…'; }
+                        try {
+                            updateAiCheckCard(card, await requestAiCheck(orderId));
+                        } catch (error) {
+                            failed++;
+                            if (individualButton) { individualButton.disabled = false; individualButton.textContent = 'AI check lại'; }
+                        }
+                        completed++;
+                    }
+                    status.textContent = 'Đã AI check ' + completed + '/' + queue.length + ' đơn' + (failed ? '; lỗi ' + failed + ' đơn.' : '.');
+                    uexeShowToast(status.textContent, failed === 0);
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    excludeInput.disabled = false;
+                }());
             });
         });
     </script>
