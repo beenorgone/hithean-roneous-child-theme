@@ -31,6 +31,16 @@
         box-shadow: 0 -2px 14px rgba(0, 0, 0, 0.12);
     }
 
+    /*
+     * The parent theme's logged-in sticky-header rule targets every `nav`.
+     * #pcn-root is also a nav, so that rule adds `top: 0` after scrolling and
+     * expands this bottom bar across the entire viewport. Keep the navigator
+     * anchored only to the bottom.
+     */
+    body.site-scrolled.admin-bar #pcn-root {
+        top: auto;
+    }
+
     .pcn__bar {
         display: flex;
         align-items: center;
