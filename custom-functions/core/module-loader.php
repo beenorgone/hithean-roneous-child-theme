@@ -63,6 +63,7 @@ $general_includes = [
     'custom-functions/woocommerce/orders/order-number.php',
     'custom-functions/woocommerce/orders/order-status.php',
     'custom-functions/woocommerce/orders/order-tracking.php',
+    'custom-functions/woocommerce/orders/warehouse-export-workflow.php',
     'custom-functions/woocommerce/orders/order-creator/create-order-for-customer.php', // Trang /tao-don/ — tạo đơn hộ khách
 
     // checkout-page.php → conditional (tpc_loader_modules)

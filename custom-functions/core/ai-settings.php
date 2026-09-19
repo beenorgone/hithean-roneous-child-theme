@@ -265,6 +265,13 @@ function theme_erp_settings_render_page(): void
                 'hithean_export_upload_checklist',
                 sanitize_textarea_field(wp_unslash($_POST['hithean_export_upload_checklist'] ?? ''))
             );
+            update_option('hithean_export_lark_settings', [
+                'enabled'     => !empty($_POST['hithean_export_lark_enabled']) ? '1' : '0',
+                'only_alerts' => !empty($_POST['hithean_export_lark_only_alerts']) ? '1' : '0',
+                'webhook_url' => function_exists('hithean_export_lark_sanitize_webhook')
+                    ? hithean_export_lark_sanitize_webhook(wp_unslash($_POST['hithean_export_lark_webhook'] ?? ''))
+                    : '',
+            ], false);
             $saved = true;
         }
 
@@ -373,6 +380,7 @@ function theme_erp_settings_render_page(): void
         <?php endif; ?>
 
         <?php if ($active_tab === 'xu-ly-don'): ?>
+            <?php $lark_settings = function_exists('hithean_export_lark_settings') ? hithean_export_lark_settings() : ['enabled' => '0', 'only_alerts' => '0', 'webhook_url' => '']; ?>
             <form method="post">
                 <?php wp_nonce_field('theme_erp_settings_save_xu-ly-don'); ?>
                 <table class="form-table" role="presentation">
@@ -395,6 +403,15 @@ function theme_erp_settings_render_page(): void
                                 echo esc_textarea(get_option('hithean_export_upload_checklist', $default));
                             ?></textarea>
                             <p class="description">Mỗi dòng là một mục kiểm tra. Popup sẽ hiện khi nhấn <em>Upload ảnh xuất kho</em>. Để trống để không hiện popup.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Thông báo nhóm Lark</th>
+                        <td>
+                            <label><input type="checkbox" name="hithean_export_lark_enabled" value="1" <?php checked(!empty($lark_settings['enabled'])); ?>> Gửi khi nhân viên xác nhận xuất kho</label>
+                            <p><label><input type="checkbox" name="hithean_export_lark_only_alerts" value="1" <?php checked(!empty($lark_settings['only_alerts'])); ?>> Chỉ gửi cảnh báo khi AI không đạt</label></p>
+                            <p><input type="url" class="large-text" style="max-width:600px" name="hithean_export_lark_webhook" value="<?php echo esc_attr((string) $lark_settings['webhook_url']); ?>" placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/..."></p>
+                            <p class="description">Dùng Incoming Webhook của đúng nhóm Lark. Tin nhắn chạy nền, ngắn gọn: đơn đã xuất kho và AI Đạt/Không đạt; không làm chậm thao tác xác nhận.</p>
                         </td>
                     </tr>
                 </table>

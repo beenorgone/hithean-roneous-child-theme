@@ -1350,6 +1350,7 @@ function ost_ajax_confirm_export_image() {
     $user = wp_get_current_user();
     update_post_meta($order_id, 'export_confirmed_by', $user->ID);
     $order->add_order_note('Đã xác nhận ảnh xuất kho bởi ' . $user->display_name);
+    do_action('hithean_warehouse_export_confirmed', $order);
     wp_send_json_success('Đã xác nhận ảnh xuất kho #' . $order_id);
 }
 

@@ -213,7 +213,7 @@ function hithean_export_ai_documents(int $order_id, array $urls)
     return $documents ?: new WP_Error('hithean_export_ai_no_images', 'Không tìm được ảnh xuất kho hợp lệ để AI kiểm tra.');
 }
 
-function hithean_export_ai_check_order(WC_Order $order)
+function hithean_export_ai_check_order(WC_Order $order, int $requested_by = 0)
 {
     require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
     if (!theme_ai_feature_enabled('export_image_ai_check')) return new WP_Error('hithean_export_ai_disabled', 'Tính năng AI kiểm tra ảnh xuất kho đang tắt trong Cài đặt ERP.');
@@ -268,10 +268,11 @@ function hithean_export_ai_check_order(WC_Order $order)
         $result['missing_or_suspected_missing'] = hithean_export_ai_clean_list($data['missing_or_suspected_missing'] ?? []);
         $result['unexpected_or_suspected_extra'] = hithean_export_ai_clean_list($data['unexpected_or_suspected_extra'] ?? []);
         $result['checked_at'] = current_time('mysql');
-        $result['checked_by'] = get_current_user_id();
+        $result['checked_by'] = $requested_by ?: get_current_user_id();
         $result['provider'] = sanitize_key((string) $cfg['provider']);
         update_post_meta($order_id, 'warehouse_export_ai_check', $result);
         $order->add_order_note(hithean_export_ai_order_note($result));
+        do_action('hithean_export_ai_check_completed', $order, $result);
         return $result;
     } finally {
         delete_post_meta($order_id, $lock_key);
@@ -282,11 +283,16 @@ function hithean_render_export_ai_check(int $order_id): string
 {
     $result = get_post_meta($order_id, 'warehouse_export_ai_check', true);
     $result = is_array($result) ? $result : [];
+    $review_status = get_post_meta($order_id, 'warehouse_export_ai_review_status', true);
+    $review_state = is_array($review_status) ? ($review_status['state'] ?? '') : '';
     $is_pass = ($result['overall'] ?? '') === 'pass';
-    $label = $is_pass ? 'AI: Khớp' : ($result ? 'AI: Cần kiểm tra' : 'AI check');
+    $label = $review_state === 'queued' ? 'AI: Đang kiểm tra' : ($is_pass ? 'AI: Khớp' : ($result ? 'AI: Cần kiểm tra' : 'AI check'));
     $html = '<section class="uexe-ai-check" style="margin-top:14px;padding:12px;border:1px solid ' . ($is_pass ? '#86efac' : '#cbd5e1') . ';border-radius:8px;background:' . ($is_pass ? '#f0fdf4' : '#f8fafc') . ';">';
     $html .= '<button type="button" class="button uexe-ai-check-button" data-order-id="' . esc_attr($order_id) . '">' . esc_html($label) . '</button>';
     $html .= '<p style="margin:8px 0 0;font-size:12px;color:#52606d;">Nhấn AI check sẽ gửi ảnh tới AI provider đã cấu hình. AI chỉ hỗ trợ đối chiếu, không tự xác nhận xuất kho.</p>';
+    if ($review_state === 'queued') {
+        $html .= '<p style="margin:8px 0 0;font-size:13px;color:#0f766e;">AI đang kiểm tra nền; bạn có thể tiếp tục thao tác.</p>';
+    }
     if ($result) {
         $labels = ['match' => 'Khớp', 'mismatch' => 'Không khớp', 'unclear' => 'Chưa đủ bằng chứng'];
         $order_state = $result['order_match'] ?? 'unclear'; $item_state = $result['items_match'] ?? 'unclear'; $confidence = $result['confidence'] ?? 'low';
@@ -613,16 +619,17 @@ add_action('wp_ajax_ajax_upload_images', function () {
         $all = array_filter(array_merge(explode("\n", $existing), $uploaded_urls));
         update_post_meta($order_id, 'warehouse_export_images', implode("\n", $all));
         delete_post_meta($order_id, 'warehouse_export_ai_check');
+        delete_post_meta($order_id, 'warehouse_export_ai_review_status');
         $message = '✅ Đã upload thành công ' . count($uploaded_urls) . ' ảnh';
         $ai_check = null;
         if (!empty($_POST['ueif_ai_check'])) {
-            $ai_check = hithean_export_ai_check_order($order);
-            if (is_wp_error($ai_check)) {
-                $message .= '. Ảnh đã lưu, nhưng AI chưa kiểm tra: ' . $ai_check->get_error_message();
-                $order->add_order_note('🤖 AI review ảnh xuất kho chưa chạy: ' . sanitize_text_field($ai_check->get_error_message()));
-                $ai_check = null;
+            $queued = hithean_export_ai_schedule_check($order_id, get_current_user_id());
+            if (is_wp_error($queued)) {
+                $message .= '. AI chưa được đưa vào hàng đợi: ' . $queued->get_error_message();
+                $order->add_order_note('🤖 AI review ảnh xuất kho chưa được đưa vào hàng đợi: ' . sanitize_text_field($queued->get_error_message()));
             } else {
-                $message .= $ai_check['overall'] === 'pass' ? '. AI: ảnh có vẻ khớp đơn.' : '. AI: cần kiểm tra thủ công.';
+                $message .= '. AI đang kiểm tra nền; bạn có thể tiếp tục thao tác.';
+                $order->add_order_note('🤖 AI review ảnh xuất kho đã được đưa vào hàng đợi.');
             }
         }
         wp_send_json_success(['message' => $message, 'ai_check' => $ai_check]);
@@ -661,6 +668,7 @@ add_action('wp_ajax_ajax_confirm_export', function () {
     $user = wp_get_current_user();
     update_post_meta($order_id, 'export_confirmed_by', $user->ID);
     $order->add_order_note("✅ Đã xác nhận xuất kho bởi " . $user->display_name);
+    do_action('hithean_warehouse_export_confirmed', $order);
     wp_send_json_success("✅ Đã xác nhận xuất kho đơn hàng #$order_id");
 });
 
@@ -836,7 +844,7 @@ add_action('wp_footer', function () {
                     const originalText = btn.textContent;
                     const aiCheckRequested = !!uploadForm.querySelector('[name="ueif_ai_check"]:checked');
                     btn.disabled = true;
-                    btn.textContent = aiCheckRequested ? "⏳ Đang upload và AI kiểm tra..." : "⏳ Đang upload...";
+                    btn.textContent = aiCheckRequested ? "⏳ Đang upload, đưa AI vào hàng đợi..." : "⏳ Đang upload...";
 
                     const formData = new FormData(uploadForm);
                     formData.append("action", "ajax_upload_images");
