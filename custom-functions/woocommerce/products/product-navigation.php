@@ -260,7 +260,10 @@ function hithean_pcn_render()
         return;
     }
 
-    $show_cta     = $product->is_purchasable();
+    // is_purchasable() alone may still be true for an out-of-stock simple
+    // product. Do not render a sticky add-to-cart CTA when the product page
+    // has no purchasable form for it to trigger.
+    $show_cta     = $product->is_purchasable() && $product->is_in_stock();
     $cta_label    = $show_cta ? $product->single_add_to_cart_text() : '';
     $product_type = $product->get_type();
     $desktop_mode = hithean_pcn_get_settings()['desktop_mode'];

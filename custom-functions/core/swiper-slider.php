@@ -23,7 +23,20 @@ function hithean_should_enqueue_swiper_slider(): bool
         return false;
     }
 
-    return (bool) apply_filters('hithean_enqueue_swiper_slider', is_front_page() || is_singular());
+    $needs_swiper = false;
+
+    if (is_singular()) {
+        $post = get_post(get_queried_object_id());
+        $content = $post instanceof WP_Post ? (string) $post->post_content : '';
+
+        // swiper-init.js only initializes these two custom slider variants.
+        // Avoid shipping the 155 KB vendor bundle to singular pages without
+        // either variant; a dynamic template can explicitly opt in via filter.
+        $needs_swiper = strpos($content, 'swiper-icons') !== false
+            || strpos($content, 'swiper-posts') !== false;
+    }
+
+    return (bool) apply_filters('hithean_enqueue_swiper_slider', $needs_swiper);
 }
 
 function enqueue_swiper_slider() {

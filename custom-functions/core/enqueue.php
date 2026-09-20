@@ -111,6 +111,34 @@ JS);
     add_action('wp_enqueue_scripts', 'roneous_child_enqueue_styles');
 }
 
+/**
+ * Use one stylesheet for all fonts used by the parent and child theme.
+ *
+ * The old setup printed the child fonts directly in header.php and enqueued a
+ * second Google Fonts stylesheet from the parent. Both contained Oswald, which
+ * created duplicate CSS work and an extra third-party request on every page.
+ */
+if (!function_exists('hithean_enqueue_consolidated_fonts')) {
+    function hithean_enqueue_consolidated_fonts(): void
+    {
+        if (is_admin()) {
+            return;
+        }
+
+        wp_dequeue_style('roneous-google-fonts');
+        wp_deregister_style('roneous-google-fonts');
+
+        wp_enqueue_style(
+            'hithean-google-fonts',
+            'https://fonts.googleapis.com/css2?family=Be+Vietnam:wght@400;500&family=Hind:wght@100;300;400;600;700&family=IBM+Plex+Sans:wght@400;500&family=Open+Sans:wght@300;400&family=Oswald:wght@100;300;400;500;600;700&display=swap',
+            [],
+            null
+        );
+    }
+    // The parent theme enqueues its fonts at priority 110.
+    add_action('wp_enqueue_scripts', 'hithean_enqueue_consolidated_fonts', 120);
+}
+
 if (!function_exists('roneous_child_language_setup')) {
     function roneous_child_language_setup()
     {
