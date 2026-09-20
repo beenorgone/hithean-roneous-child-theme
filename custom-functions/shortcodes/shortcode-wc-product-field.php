@@ -83,9 +83,9 @@ function child_theme_wc_product_field_shortcode($atts): string
             if ($product->is_in_stock()) {
                 return 'Xem & Mua ngay';
             }
-            // Sản phẩm gắn tag NEW: hiện "Sắp ra mắt" thay vì "Hết hàng"
+            // Sản phẩm gắn tag NEW: hiện "Mới ra mắt" thay vì "Hết hàng"
             if (has_term(['new', 'NEW'], 'product_tag', $product->get_id())) {
-                return 'Sắp ra mắt';
+                return 'Mới ra mắt';
             }
             return 'Hết hàng — Xem chi tiết';
 

@@ -227,7 +227,7 @@ function hithean_anc_product_cta_text(WC_Product $product, string $stock_status)
     }
 
     if (has_term(['new', 'NEW'], 'product_tag', $product->get_id())) {
-        return 'Sắp ra mắt';
+        return 'Mới ra mắt';
     }
 
     return 'Hết hàng — Xem chi tiết';
