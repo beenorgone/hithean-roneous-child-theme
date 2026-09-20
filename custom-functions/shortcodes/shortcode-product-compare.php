@@ -4,6 +4,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once __DIR__ . '/product-compare-ai.php';
+
 function tpc_compare_ajax_nonce()
 {
     return 'tpc_compare_ajax';
@@ -700,6 +702,8 @@ function tpc_product_compare_shortcode($atts)
     $instance_id = 'tpc-compare-' . wp_unique_id();
     $has_initial_products = !empty($products);
     $compare_page_url = home_url('/so-sanh/');
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
+    $can_manage_ai = tpc_compare_ai_can_manage() && theme_ai_feature_enabled('product_compare_ai');
 
     ob_start();
 ?>
@@ -729,8 +733,15 @@ function tpc_product_compare_shortcode($atts)
 
         <div class="tpc-actions">
             <button type="button" class="button button--light-blue tpc-build-button">Tạo bảng so sánh</button>
+            <?php if ($can_manage_ai) : ?>
+                <button type="button" class="button button--dark-blue-reverse tpc-ai-generate-button" hidden>So sánh bằng AI</button>
+            <?php endif; ?>
             <button type="button" class="button button--dark-blue-reverse tpc-reset-button" hidden>Tìm lại</button>
         </div>
+
+        <?php if ($can_manage_ai) : ?>
+            <section class="tpc-ai-panel" hidden aria-live="polite"></section>
+        <?php endif; ?>
 
         <div class="tpc-table-shell<?php echo $has_initial_products ? '' : ' tpc-table-shell--hidden'; ?>" <?php echo $has_initial_products ? '' : ' hidden'; ?>>
             <div class="tpc-table-scroll">
@@ -807,12 +818,87 @@ function tpc_product_compare_shortcode($atts)
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-actions .tpc-build-button,
+        #<?php echo esc_html($instance_id); ?> .tpc-actions .tpc-ai-generate-button,
         #<?php echo esc_html($instance_id); ?> .tpc-actions .tpc-reset-button,
         #<?php echo esc_html($instance_id); ?> .tpc-table-actions .tpc-copy-link-button,
         #<?php echo esc_html($instance_id); ?> .tpc-table-actions .tpc-reset-button {
             width: auto;
             max-width: max-content;
             flex: 0 0 auto;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel {
+            border: 1px solid #cbd8ee;
+            border-radius: 12px;
+            background: #f7faff;
+            padding: 16px;
+            box-shadow: 0 1px 2px rgba(19, 50, 91, .06);
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel__title {
+            margin: 0 0 6px;
+            color: #13325b;
+            font-size: 18px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel__help,
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel__status,
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-timestamp {
+            color: #56697f;
+            font-size: 13px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel__grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel label {
+            display: grid;
+            gap: 6px;
+            color: #13325b;
+            font-weight: 600;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel select,
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel textarea {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #b9cae5;
+            border-radius: 8px;
+            background: #fff;
+            padding: 10px;
+            font: inherit;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel textarea {
+            min-height: 126px;
+            resize: vertical;
+            font-weight: 400;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-panel__actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-public {
+            display: grid;
+            gap: 16px;
+            padding: 4px 2px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-public__block h3 {
+            margin: 0 0 6px;
+            color: #13325b;
+            font-size: 16px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-public__block p {
+            margin: 0 0 8px;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-table-shell {
@@ -1223,6 +1309,8 @@ function tpc_product_compare_shortcode($atts)
             const productMap = new Map();
             const initialProducts = <?php echo tpc_compare_json_encode_for_script($products); ?>;
             const buttons = Array.from(root.querySelectorAll('.tpc-build-button'));
+            const aiGenerateButton = root.querySelector('.tpc-ai-generate-button');
+            const aiPanel = root.querySelector('.tpc-ai-panel');
             const topResetButton = root.querySelector('.tpc-actions .tpc-reset-button');
             const copyButtons = Array.from(root.querySelectorAll('.tpc-copy-link-button'));
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
@@ -1233,6 +1321,10 @@ function tpc_product_compare_shortcode($atts)
             const maxProducts = <?php echo (int) $number; ?>;
             let selectedProducts = initialProducts.slice(0, maxProducts);
             let hasGeneratedTable = <?php echo $has_initial_products ? 'true' : 'false'; ?>;
+            let tableRevision = 0;
+            let aiVersions = [];
+            let activeAiVersionId = 0;
+            let aiBusy = false;
 
             initialProducts.forEach(function(product) {
                 productMap.set(String(product.id), product);
@@ -1490,7 +1582,20 @@ function tpc_product_compare_shortcode($atts)
                     '<tr class="tpc-section-row">' + cellsHtml.join('') + '</tr>';
             }
 
-            function renderRows(products, renderedColumnCount) {
+            function renderAiPublicSection(version, activeCols) {
+                if (!version || !version.conclusion_html || !version.neutral_analysis_html) {
+                    return '';
+                }
+
+                const timestamp = version.compared_label ? '<div class="tpc-ai-timestamp">So sánh lúc: ' + escapeHtml(version.compared_label) + '</div>' : '';
+                return '<tr class="tpc-section-head tpc-ai-public-head"><th colspan="' + activeCols + '" class="tpc-section-title"><span class="tpc-section-label">So sánh bằng AI</span></th></tr>' +
+                    '<tr class="tpc-section-row tpc-ai-public-row"><td colspan="' + activeCols + '"><div class="tpc-ai-public">' +
+                    '<div class="tpc-ai-public__block"><h3>Kết luận mua hàng</h3>' + version.conclusion_html + '</div>' +
+                    '<div class="tpc-ai-public__block"><h3>Phân tích trung lập</h3>' + version.neutral_analysis_html + '</div>' + timestamp +
+                    '</div></td></tr>';
+            }
+
+            function renderRows(products, renderedColumnCount, publicAiVersion) {
                 tableShell.hidden = false;
                 tableShell.classList.remove('tpc-table-shell--hidden');
                 setCopyButtonsVisible(true);
@@ -1501,6 +1606,10 @@ function tpc_product_compare_shortcode($atts)
                 root.setAttribute('data-tpc-active-cols', String(activeCols));
                 const rows = [];
 
+                const aiRows = renderAiPublicSection(publicAiVersion, activeCols);
+                if (aiRows) {
+                    rows.push(aiRows);
+                }
                 rows.push('<tr class="tpc-section-row tpc-product-summary-row">' + products.map(renderProductSummaryCell).join('') + '</tr>');
                 rows.push(renderSection('Giá bán', products.map(renderPriceCell)));
                 rows.push(renderSection('Mô tả ngắn', products.map(function(product) {
@@ -1542,6 +1651,126 @@ function tpc_product_compare_shortcode($atts)
                 });
             }
 
+            function loadPublicAiVersion(ids) {
+                return postAjax({
+                    action: 'tpc_product_compare_ai_public',
+                    nonce: nonce,
+                    product_ids: ids.join(',')
+                }).then(function(response) {
+                    return response && response.success && response.data ? response.data.version : null;
+                }).catch(function() {
+                    return null;
+                });
+            }
+
+            function setAiBusy(isBusy) {
+                aiBusy = isBusy;
+                if (aiGenerateButton) {
+                    aiGenerateButton.disabled = isBusy;
+                    aiGenerateButton.textContent = isBusy ? 'Đang xử lý AI...' : 'So sánh bằng AI';
+                }
+                if (aiPanel) {
+                    aiPanel.querySelectorAll('button, select, textarea').forEach(function(control) {
+                        control.disabled = isBusy;
+                    });
+                }
+            }
+
+            function getActiveAiVersion() {
+                return aiVersions.find(function(version) {
+                    return Number(version.id) === Number(activeAiVersionId);
+                }) || aiVersions[0] || null;
+            }
+
+            function aiStatusLabel(status) {
+                return status === 'published' ? 'Đang hiển thị' : (status === 'archived' ? 'Đã lưu lịch sử' : 'Nháp');
+            }
+
+            function renderAiPanel(message, isError) {
+                if (!aiPanel) {
+                    return;
+                }
+
+                aiPanel.hidden = false;
+                const version = getActiveAiVersion();
+                const status = message ? '<p class="tpc-ai-panel__status" style="color:' + (isError ? '#b42318' : '#0f5132') + '">' + escapeHtml(message) + '</p>' : '';
+                if (!version) {
+                    aiPanel.innerHTML = '<h3 class="tpc-ai-panel__title">So sánh bằng AI</h3><p class="tpc-ai-panel__help">Tạo bản nháp gồm Kết luận mua hàng và Phân tích trung lập. Chỉ bản bạn chọn công khai mới hiển thị cho khách.</p>' + status;
+                    return;
+                }
+
+                const options = aiVersions.map(function(item) {
+                    const label = '#' + item.id + ' — ' + aiStatusLabel(item.status) + (item.compared_label ? ' (' + item.compared_label + ')' : '');
+                    return '<option value="' + escapeHtml(item.id) + '"' + (Number(item.id) === Number(activeAiVersionId) ? ' selected' : '') + '>' + escapeHtml(label) + '</option>';
+                }).join('');
+                aiPanel.innerHTML = '<h3 class="tpc-ai-panel__title">So sánh bằng AI</h3>' +
+                    '<p class="tpc-ai-panel__help">Chọn phiên bản, hiệu đính nội dung rồi công khai khi sẵn sàng.</p>' + status +
+                    '<div class="tpc-ai-panel__grid">' +
+                    '<label>Phiên bản <select class="tpc-ai-version-select">' + options + '</select></label>' +
+                    '<label>Kết luận mua hàng <textarea class="tpc-ai-conclusion" maxlength="6000">' + escapeHtml(version.conclusion || '') + '</textarea></label>' +
+                    '<label>Phân tích trung lập <textarea class="tpc-ai-analysis" maxlength="6000">' + escapeHtml(version.neutral_analysis || '') + '</textarea></label>' +
+                    '<div class="tpc-ai-panel__actions"><button type="button" class="button button--dark-blue-reverse" data-tpc-ai-action="save">Lưu bản nháp</button><button type="button" class="button button--light-blue" data-tpc-ai-action="publish">Công khai phiên bản này</button></div>' +
+                    '</div>';
+                setAiBusy(aiBusy);
+            }
+
+            function loadAiVersions(preferredVersionId, message) {
+                if (!aiPanel) {
+                    return Promise.resolve();
+                }
+                const ids = selectedIds();
+                if (ids.length < 2) {
+                    aiVersions = [];
+                    activeAiVersionId = 0;
+                    renderAiPanel('Chọn ít nhất 2 sản phẩm trước khi dùng AI.', true);
+                    return Promise.resolve();
+                }
+                return postAjax({
+                    action: 'tpc_product_compare_ai_list',
+                    nonce: nonce,
+                    product_ids: ids.join(',')
+                }).then(function(response) {
+                    if (!response || !response.success) {
+                        throw new Error((response && response.data && response.data.message) || 'Không tải được lịch sử AI.');
+                    }
+                    aiVersions = Array.isArray(response.data.versions) ? response.data.versions : [];
+                    activeAiVersionId = Number(preferredVersionId) || Number((aiVersions[0] || {}).id || 0);
+                    renderAiPanel(message || '', false);
+                }).catch(function(error) {
+                    renderAiPanel(error.message || 'Không tải được lịch sử AI.', true);
+                });
+            }
+
+            function saveActiveAiVersion() {
+                const version = getActiveAiVersion();
+                if (!version || !aiPanel) {
+                    return Promise.reject(new Error('Chưa chọn phiên bản AI.'));
+                }
+                const conclusion = aiPanel.querySelector('.tpc-ai-conclusion');
+                const analysis = aiPanel.querySelector('.tpc-ai-analysis');
+                setAiBusy(true);
+                return postAjax({
+                    action: 'tpc_product_compare_ai_save',
+                    nonce: nonce,
+                    version_id: version.id,
+                    conclusion: conclusion ? conclusion.value : '',
+                    neutral_analysis: analysis ? analysis.value : ''
+                }).then(function(response) {
+                    if (!response || !response.success || !response.data.version) {
+                        throw new Error((response && response.data && response.data.message) || 'Không lưu được nội dung AI.');
+                    }
+                    return response.data.version;
+                }).finally(function() {
+                    setAiBusy(false);
+                });
+            }
+
+            function refreshBuiltTable() {
+                if (selectedIds().length >= 2) {
+                    buildTable();
+                }
+            }
+
             function setButtonsDisabled(isDisabled) {
                 buttons.forEach(function(button) {
                     button.disabled = isDisabled;
@@ -1552,12 +1781,13 @@ function tpc_product_compare_shortcode($atts)
                 const ids = selectedIds();
                 const activeIds = ids.filter(function(id) { return !!id; });
                 if (activeIds.length < 2) {
-                    window.alert('Cần chọn ít nhất 2 sản phẩm để tạo bảng so sánh');
+                    flashCopyFeedback('Cần chọn ít nhất 2 sản phẩm để tạo bảng so sánh', true);
                     return;
                 }
 
                 setButtonsDisabled(true);
                 showPlaceholder('Đang tạo bảng so sánh...');
+                const revision = ++tableRevision;
 
                 const sourceIds = activeIds;
 
@@ -1567,6 +1797,17 @@ function tpc_product_compare_shortcode($atts)
                 })).then(function(products) {
                     products = products.filter(function(product) { return !!product; });
                     renderRows(products, sourceIds.length);
+                    if (aiGenerateButton) {
+                        aiGenerateButton.hidden = false;
+                    }
+                    if (aiPanel) {
+                        loadAiVersions(0);
+                    }
+                    loadPublicAiVersion(sourceIds).then(function(version) {
+                        if (revision === tableRevision) {
+                            renderRows(products, sourceIds.length, version);
+                        }
+                    });
                 }).catch(function() {
                     showPlaceholder('Không tải được dữ liệu sản phẩm.');
                 }).finally(function() {
@@ -1575,6 +1816,7 @@ function tpc_product_compare_shortcode($atts)
             }
 
             function resetCompareState() {
+                tableRevision += 1;
                 selectedProducts = [];
                 renderSelectedProducts();
                 setCopyButtonsVisible(false);
@@ -1586,6 +1828,13 @@ function tpc_product_compare_shortcode($atts)
                 tableShell.classList.add('tpc-table-shell--hidden');
                 root.setAttribute('data-tpc-active-cols', '0');
                 body.innerHTML = '';
+                if (aiGenerateButton) {
+                    aiGenerateButton.hidden = true;
+                }
+                if (aiPanel) {
+                    aiPanel.hidden = true;
+                    aiPanel.innerHTML = '';
+                }
                 closeDropdown(searchDropdown);
                 if (searchInput) {
                     searchInput.value = '';
@@ -1731,6 +1980,85 @@ function tpc_product_compare_shortcode($atts)
                     buildTable();
                 });
             });
+
+            if (aiGenerateButton) {
+                aiGenerateButton.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    if (aiBusy) {
+                        return;
+                    }
+                    const ids = selectedIds();
+                    if (ids.length < 2) {
+                        flashCopyFeedback('Cần chọn ít nhất 2 sản phẩm để so sánh bằng AI', true);
+                        return;
+                    }
+                    setAiBusy(true);
+                    if (aiPanel) {
+                        aiPanel.hidden = false;
+                        aiPanel.innerHTML = '<h3 class="tpc-ai-panel__title">So sánh bằng AI</h3><p class="tpc-ai-panel__status">Đang tạo bản nháp AI từ dữ liệu catalogue...</p>';
+                    }
+                    postAjax({
+                        action: 'tpc_product_compare_ai_generate',
+                        nonce: nonce,
+                        product_ids: ids.join(','),
+                        fields: JSON.stringify(fieldDefinitions)
+                    }).then(function(response) {
+                        if (!response || !response.success || !response.data.version) {
+                            throw new Error((response && response.data && response.data.message) || 'Không tạo được bản nháp AI.');
+                        }
+                        return loadAiVersions(response.data.version.id, 'Đã tạo bản nháp AI. Hãy kiểm tra và chọn Công khai khi sẵn sàng.');
+                    }).catch(function(error) {
+                        renderAiPanel(error.message || 'Không tạo được bản nháp AI.', true);
+                    }).finally(function() {
+                        setAiBusy(false);
+                    });
+                });
+            }
+
+            if (aiPanel) {
+                aiPanel.addEventListener('change', function(event) {
+                    const select = event.target.closest('.tpc-ai-version-select');
+                    if (!select || aiBusy) {
+                        return;
+                    }
+                    activeAiVersionId = Number(select.value) || 0;
+                    renderAiPanel('', false);
+                });
+
+                aiPanel.addEventListener('click', function(event) {
+                    const actionButton = event.target.closest('[data-tpc-ai-action]');
+                    if (!actionButton || aiBusy) {
+                        return;
+                    }
+                    event.preventDefault();
+                    if (actionButton.getAttribute('data-tpc-ai-action') === 'save') {
+                        saveActiveAiVersion().then(function(version) {
+                            return loadAiVersions(version.id, 'Đã lưu nội dung AI.');
+                        }).then(refreshBuiltTable).catch(function(error) {
+                            renderAiPanel(error.message || 'Không lưu được nội dung AI.', true);
+                        });
+                        return;
+                    }
+
+                    saveActiveAiVersion().then(function(version) {
+                        setAiBusy(true);
+                        return postAjax({
+                            action: 'tpc_product_compare_ai_publish',
+                            nonce: nonce,
+                            version_id: version.id
+                        });
+                    }).then(function(response) {
+                        if (!response || !response.success || !response.data.version) {
+                            throw new Error((response && response.data && response.data.message) || 'Không thể công khai phiên bản AI.');
+                        }
+                        return loadAiVersions(response.data.version.id, 'Đã công khai phiên bản AI cho mọi người xem.');
+                    }).then(refreshBuiltTable).catch(function(error) {
+                        renderAiPanel(error.message || 'Không thể công khai phiên bản AI.', true);
+                    }).finally(function() {
+                        setAiBusy(false);
+                    });
+                });
+            }
 
             root.querySelectorAll('.tpc-reset-button').forEach(function(button) {
                 button.addEventListener('click', function(event) {

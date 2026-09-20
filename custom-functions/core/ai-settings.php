@@ -27,6 +27,10 @@ function theme_ai_feature_registry(): array
             'label'       => 'Tạo đơn hộ khách — AI bóc tách khách hàng',
             'description' => 'Nút "✨ Nhập khách hàng bằng AI" trong popup Khách hàng mới (trang /tao-don/): dán text/ảnh, AI tự điền thông tin khách.',
         ],
+        'product_compare_ai' => [
+            'label'       => 'So sánh sản phẩm bằng AI',
+            'description' => 'Tạo bản nháp kết luận mua hàng và phân tích trung lập cho bảng so sánh sản phẩm.',
+        ],
         'export_image_ai_check' => [
             'label'       => 'Xuất kho — AI kiểm tra ảnh lấy hàng',
             'description' => 'Đối chiếu ảnh lấy hàng với mã đơn, sản phẩm và số lượng. Kết quả chỉ để hỗ trợ kiểm tra, không tự xác nhận xuất kho.',

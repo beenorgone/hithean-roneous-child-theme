@@ -336,6 +336,11 @@ function tpc_loader_modules()
             'ajax_actions' => [
                 'tpc_product_compare_search',
                 'tpc_product_compare_get_product',
+                'tpc_product_compare_ai_public',
+                'tpc_product_compare_ai_generate',
+                'tpc_product_compare_ai_list',
+                'tpc_product_compare_ai_save',
+                'tpc_product_compare_ai_publish',
             ],
         ],
         [
