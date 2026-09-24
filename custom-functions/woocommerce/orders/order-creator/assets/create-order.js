@@ -1406,6 +1406,7 @@
             if (!res.success) { $('#oc-cust-ai-status').textContent = '❌ ' + ((res.data && res.data.message) || 'Bóc tách thất bại.'); return; }
             var f = (res.data && res.data.fields) || {};
             var un = (res.data && res.data.unmatched) || {};
+            var webSearchEnabled = !!(res.data && res.data.web_search_enabled);
             var filled = 0;
             ['first_name', 'last_name', 'email', 'phone', 'address_1', 'address_2'].forEach(function (k) {
                 var el = $('#oc-cust-' + k);
@@ -1415,7 +1416,7 @@
             if (f.city) { filled++; }
             custSetAddress(f.state || '', f.city || '').then(function () {
                 var msg = filled
-                    ? '✅ Đã điền ' + filled + ' trường' + (convertOldAddress ? ' theo địa chỉ hành chính 2026' : '') + ' — kiểm tra lại trước khi lưu.'
+                    ? '✅ Đã điền ' + filled + ' trường' + (convertOldAddress ? ' theo địa chỉ hành chính 2026' : '') + (webSearchEnabled ? ' (Google Search đã bật)' : '') + ' — kiểm tra lại trước khi lưu.'
                     : 'Không tìm thấy thông tin khách trong dữ liệu.';
                 var warn = [];
                 if (un.state) { warn.push('Tỉnh/Thành "' + un.state + '"'); }

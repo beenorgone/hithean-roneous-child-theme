@@ -129,9 +129,10 @@ function theme_ai_resolve_provider(string $requested): string
  * @param array  $messages  [{role, content}, ...]
  * @param int    $max_tokens
  * @param string $model     Model override cho feature; '' = mặc định của provider
+ * @param array  $options   Provider-specific options. Gemini supports google_search.
  * @return string|WP_Error
  */
-function theme_ai_call_provider(string $provider, string $system, array $messages, int $max_tokens = 2000, string $model = '')
+function theme_ai_call_provider(string $provider, string $system, array $messages, int $max_tokens = 2000, string $model = '', array $options = [])
 {
     $provider = theme_ai_resolve_provider($provider);
     $api_key  = theme_ai_get_api_key($provider);
@@ -150,7 +151,7 @@ function theme_ai_call_provider(string $provider, string $system, array $message
     }
 
     if ($provider === 'gemini' || $provider === 'gemini_billing') {
-        return theme_ai_call_gemini($api_key, $model, $system, $messages, $max_tokens);
+        return theme_ai_call_gemini($api_key, $model, $system, $messages, $max_tokens, $options);
     }
 
     if ($provider === 'openai') {
@@ -175,9 +176,24 @@ function theme_ai_gemini_thinking_config(string $model): array
 }
 
 /**
+ * Chỉ thêm các built-in tool Gemini đã được allowlist rõ ràng.
+ * Dùng object rỗng để wp_json_encode tạo đúng `google_search: {}` theo REST API.
+ */
+function theme_ai_gemini_apply_options(array $payload, array $options): array
+{
+    if (!empty($options['google_search'])) {
+        $payload['tools'] = array_merge((array) ($payload['tools'] ?? []), [
+            ['google_search' => (object) []],
+        ]);
+    }
+
+    return $payload;
+}
+
+/**
  * @return string|WP_Error
  */
-function theme_ai_call_gemini(string $api_key, string $model, string $system, array $messages, int $max_tokens = 2000)
+function theme_ai_call_gemini(string $api_key, string $model, string $system, array $messages, int $max_tokens = 2000, array $options = [])
 {
     $contents = [];
     foreach ($messages as $msg) {
@@ -197,6 +213,7 @@ function theme_ai_call_gemini(string $api_key, string $model, string $system, ar
             'thinkingConfig'  => theme_ai_gemini_thinking_config($model),
         ],
     ];
+    $payload = theme_ai_gemini_apply_options($payload, $options);
 
     $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($model) . ':generateContent';
     $response = wp_remote_post($endpoint, [
@@ -355,9 +372,10 @@ function theme_ai_call_claude(string $api_key, string $model, string $system, ar
  * @param string $provider  gemini | openai | claude | auto
  * @param array<int,array{path:string,mime_type?:string,title?:string}> $documents
  * @param string $model     Model override cho feature; '' = mặc định provider
+ * @param array  $options   Provider-specific options. Gemini supports google_search.
  * @return string|WP_Error
  */
-function theme_ai_call_provider_with_documents(string $provider, string $system, string $prompt, array $documents, int $max_tokens = 2000, int $timeout = 120, string $model = '')
+function theme_ai_call_provider_with_documents(string $provider, string $system, string $prompt, array $documents, int $max_tokens = 2000, int $timeout = 120, string $model = '', array $options = [])
 {
     $provider = theme_ai_resolve_provider($provider);
     $api_key  = theme_ai_get_api_key($provider);
@@ -376,7 +394,7 @@ function theme_ai_call_provider_with_documents(string $provider, string $system,
     }
 
     if ($provider === 'gemini' || $provider === 'gemini_billing') {
-        return theme_ai_call_gemini_with_documents($api_key, $model, $system, $prompt, $documents, $max_tokens, $timeout);
+        return theme_ai_call_gemini_with_documents($api_key, $model, $system, $prompt, $documents, $max_tokens, $timeout, $options);
     }
 
     if ($provider === 'openai') {
@@ -483,7 +501,7 @@ function theme_ai_call_claude_with_documents(string $api_key, string $model, str
  * @param array<int,array{path:string,mime_type?:string,title?:string}> $documents
  * @return string|WP_Error
  */
-function theme_ai_call_gemini_with_documents(string $api_key, string $model, string $system, string $prompt, array $documents, int $max_tokens = 2000, int $timeout = 120)
+function theme_ai_call_gemini_with_documents(string $api_key, string $model, string $system, string $prompt, array $documents, int $max_tokens = 2000, int $timeout = 120, array $options = [])
 {
     $parts = [];
     foreach ($documents as $document) {
@@ -510,6 +528,7 @@ function theme_ai_call_gemini_with_documents(string $api_key, string $model, str
             'thinkingConfig'  => theme_ai_gemini_thinking_config($model),
         ],
     ];
+    $payload = theme_ai_gemini_apply_options($payload, $options);
 
     $response = wp_remote_post('https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($model) . ':generateContent', [
         'timeout' => max(30, $timeout),
