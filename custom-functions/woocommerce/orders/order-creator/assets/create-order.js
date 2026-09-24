@@ -1380,7 +1380,9 @@
         var panel = $('#oc-cust-ai-panel');
         if (!panel) { return; }
         panel.hidden = true;
+        $('#oc-cust-ai-toggle').setAttribute('aria-expanded', 'false');
         $('#oc-cust-ai-text').value = '';
+        $('#oc-cust-ai-convert-address').checked = true;
         $('#oc-cust-ai-status').textContent = '';
         aiClearImage();
     }
@@ -1389,12 +1391,18 @@
         var text = $('#oc-cust-ai-text').value.trim();
         if (!text && !aiCustImage) { $('#oc-cust-ai-status').textContent = 'Dán dữ liệu hoặc chọn ảnh trước.'; return; }
         var btn = $('#oc-cust-ai-run');
+        var convertInput = $('#oc-cust-ai-convert-address');
+        var convertOldAddress = convertInput.checked;
         btn.disabled = true;
-        $('#oc-cust-ai-status').textContent = '⏳ Đang bóc tách bằng AI...';
-        var params = { text: text };
+        convertInput.disabled = true;
+        $('#oc-cust-ai-status').textContent = convertOldAddress
+            ? '⏳ Đang bóc tách và chuyển địa chỉ sang định dạng 2026...'
+            : '⏳ Đang bóc tách bằng AI...';
+        var params = { text: text, convert_old_address: convertOldAddress ? 1 : 0 };
         if (aiCustImage) { params.image = aiCustImage; }
         post('order_creator_ai_extract_customer', params).then(function (res) {
             btn.disabled = false;
+            convertInput.disabled = false;
             if (!res.success) { $('#oc-cust-ai-status').textContent = '❌ ' + ((res.data && res.data.message) || 'Bóc tách thất bại.'); return; }
             var f = (res.data && res.data.fields) || {};
             var un = (res.data && res.data.unmatched) || {};
@@ -1407,7 +1415,7 @@
             if (f.city) { filled++; }
             custSetAddress(f.state || '', f.city || '').then(function () {
                 var msg = filled
-                    ? '✅ Đã điền ' + filled + ' trường — kiểm tra lại trước khi lưu.'
+                    ? '✅ Đã điền ' + filled + ' trường' + (convertOldAddress ? ' theo địa chỉ hành chính 2026' : '') + ' — kiểm tra lại trước khi lưu.'
                     : 'Không tìm thấy thông tin khách trong dữ liệu.';
                 var warn = [];
                 if (un.state) { warn.push('Tỉnh/Thành "' + un.state + '"'); }
@@ -1417,6 +1425,7 @@
             });
         }).catch(function () {
             btn.disabled = false;
+            convertInput.disabled = false;
             $('#oc-cust-ai-status').textContent = '❌ Không gọi được AI, thử lại sau.';
         });
     }
@@ -1881,6 +1890,7 @@
             $('#oc-cust-ai-toggle').addEventListener('click', function () {
                 var panel = $('#oc-cust-ai-panel');
                 panel.hidden = !panel.hidden;
+                this.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
                 if (!panel.hidden) { $('#oc-cust-ai-text').focus(); }
             });
             $('#oc-cust-ai-run').addEventListener('click', aiExtractCustomer);

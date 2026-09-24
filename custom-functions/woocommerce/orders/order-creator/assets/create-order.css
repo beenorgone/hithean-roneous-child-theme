@@ -414,6 +414,25 @@ body.oc-modal-open { overflow: hidden; }
     background: #fafafa;
 }
 .oc-ai-panel textarea { width: 100%; }
+.oc-ai-convert-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 10px 0;
+    padding: 10px 12px;
+    border: 1px solid var(--oc-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--oc-text);
+    cursor: pointer;
+}
+.oc-ai-convert-option:hover { border-color: var(--oc-primary); background: var(--thean-erp-primary-lighter, #edfaf5); }
+.oc-ai-convert-option:focus-within { outline: 2px solid var(--oc-primary); outline-offset: 2px; }
+.oc-ai-convert-option input { width: auto !important; margin: 3px 0 0; accent-color: var(--oc-primary); flex: 0 0 auto; }
+.oc-ai-convert-option span { display: grid; gap: 3px; }
+.oc-ai-convert-option strong { font-size: 13px; line-height: 1.35; }
+.oc-ai-convert-option small { color: var(--oc-muted); font-size: 12px; line-height: 1.4; }
+.oc-ai-convert-option:has(input:disabled) { opacity: .65; cursor: progress; }
 .oc-ai-preview { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; }
 .oc-ai-preview img { max-height: 120px; max-width: 100%; border: 1px solid #c3c4c7; border-radius: 4px; }
 

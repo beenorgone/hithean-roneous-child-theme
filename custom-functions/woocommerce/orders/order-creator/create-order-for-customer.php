@@ -2069,6 +2069,9 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     }
 
     $text = sanitize_textarea_field(wp_unslash($_POST['text'] ?? ''));
+    $convert_value = isset($_POST['convert_old_address']) ? wp_unslash($_POST['convert_old_address']) : '1';
+    $convert_old_address = is_scalar($convert_value)
+        && !in_array(strtolower(trim((string) $convert_value)), ['0', 'false', 'no', 'off'], true);
 
     $image = null;
     if (!empty($_FILES['image']['tmp_name']) && is_uploaded_file($_FILES['image']['tmp_name'])) {
@@ -2092,15 +2095,23 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     require_once get_stylesheet_directory() . '/custom-functions/core/ai-providers.php';
     require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php';
 
+    $address_rules = $convert_old_address
+        ? 'Địa chỉ đầu ra phải dùng cấu trúc hành chính Việt Nam 2 cấp đang áp dụng trong năm 2026 (có hiệu lực từ 01/07/2025, không còn cấp quận/huyện). '
+            . 'Nếu địa chỉ nguồn dùng đơn vị hành chính cũ trước sáp nhập năm 2025, hãy quy đổi tỉnh/thành và phường/xã sang tên hiện hành khi xác định chắc chắn; loại tên quận/huyện và tên đơn vị cũ khỏi địa chỉ đã quy đổi. '
+            . 'Nếu không đủ căn cứ để quy đổi chính xác, giữ nguyên địa chỉ nguồn trong address_1 và giữ tên tỉnh/phường cũ đọc được trong state/city để giao diện cảnh báo nhân viên chọn lại; không suy đoán tên mới. '
+        : 'Không quy đổi địa chỉ hành chính. Giữ nguyên đầy đủ địa chỉ nguồn trong address_1, bao gồm phường/xã, quận/huyện và tỉnh/thành cũ nếu có; city/state ghi đúng tên xuất hiện trong dữ liệu nguồn và không suy đoán tên mới. ';
+
     $system = 'Bạn là công cụ bóc tách thông tin khách hàng cho cửa hàng online Việt Nam. '
         . 'Từ dữ liệu được cung cấp (tin nhắn, comment, ảnh chụp màn hình chat, phiếu ship...), trích xuất thông tin khách và trả về DUY NHẤT một JSON object với đúng các khóa: '
         . 'first_name, last_name, email, phone, address_1, address_2, city, state. '
-        . 'Địa chỉ dùng cấu trúc hành chính VN MỚI (sau sáp nhập 07/2025, 2 cấp, không còn quận/huyện): '
-        . 'state = tên tỉnh/thành, chỉ chọn trong danh sách: ' . implode('; ', theme_vn_address_provinces()) . '. '
-        . 'city = tên phường/xã theo cấu trúc mới kèm tiền tố, VD "Phường Ba Đình", "Xã Tiên Lữ" — nếu địa chỉ gốc ghi theo cấu trúc cũ (có quận/huyện), quy đổi sang phường/xã mới khi biết chắc, không chắc thì giữ nguyên tên phường/xã gốc. '
+        . $address_rules
+        . ($convert_old_address
+            ? 'state = tên tỉnh/thành hiện hành, chỉ chọn trong danh sách: ' . implode('; ', theme_vn_address_provinces()) . '. '
+                . 'city = tên phường/xã/đặc khu hiện hành kèm tiền tố, VD "Phường Ba Đình", "Xã Tiên Lữ", "Đặc khu Côn Đảo". '
+            : '')
         . 'Quy tắc khác: first_name = đầy đủ họ tên khách hàng theo thứ tự tự nhiên (VD "Nguyễn Thị Hằng"); last_name = chuỗi rỗng, chỉ dùng khi dữ liệu nguồn bắt buộc tách riêng họ. '
         . 'phone = SĐT Việt Nam, giữ số 0 đầu, chỉ gồm chữ số; '
-        . 'address_1 = full địa chỉ giao hàng đọc được, gồm số nhà/đường/thôn/xóm + phường/xã + quận/huyện cũ nếu có + tỉnh/thành; address_2 = thông tin bổ sung riêng như tòa nhà, tầng, căn hộ, cổng, ghi chú đường vào nếu có. '
+        . 'address_1 = full địa chỉ giao hàng theo quy tắc chuyển đổi ở trên; address_2 = thông tin bổ sung riêng như tòa nhà, tầng, căn hộ, cổng, ghi chú đường vào nếu có. '
         . 'Trường không tìm thấy → chuỗi rỗng. Không markdown, không giải thích, chỉ trả về JSON.';
 
     $prompt = $text !== '' ? "Dữ liệu khách hàng:\n" . $text : 'Bóc tách thông tin khách hàng từ ảnh đính kèm.';
@@ -3044,6 +3055,7 @@ function order_creator_render_page(): void
             <ol>
                 <li>Trong popup <em>Khách hàng mới</em>, bấm <em>✨ Nhập khách hàng bằng AI</em>.</li>
                 <li>Dán tin nhắn / comment của khách vào ô nhập, <strong>hoặc</strong> dán ảnh chụp màn hình bằng <kbd>Ctrl+V</kbd> / chọn file ảnh (JPG/PNG/WebP/GIF, tối đa 5MB). Có thể kết hợp cả text lẫn ảnh.</li>
+                <li>Tùy chọn <em>Chuyển địa chỉ cũ sang địa chỉ hành chính 2026</em> được tích mặc định. Bỏ tích nếu cần giữ nguyên địa chỉ trước sáp nhập năm 2025.</li>
                 <li>Bấm <em>Bóc tách &amp; điền</em> — AI tự điền Tên, Họ, SĐT, email và địa chỉ vào form.</li>
                 <li><strong>Luôn kiểm tra lại từng trường trước khi bấm Lưu khách hàng</strong> — AI chỉ hỗ trợ điền, không tự lưu.</li>
             </ol>
@@ -3129,10 +3141,17 @@ function order_creator_render_page(): void
         if (theme_ai_feature_enabled('order_creator_ai_extract_customer')) :
         ?>
         <div class="oc-field" id="oc-cust-ai-wrap">
-            <button type="button" class="oc-btn oc-btn--ghost" id="oc-cust-ai-toggle">✨ Nhập khách hàng bằng AI</button>
+            <button type="button" class="oc-btn oc-btn--ghost" id="oc-cust-ai-toggle" aria-controls="oc-cust-ai-panel" aria-expanded="false">✨ Nhập khách hàng bằng AI</button>
             <div id="oc-cust-ai-panel" class="oc-ai-panel" hidden>
                 <label for="oc-cust-ai-text">Dán tin nhắn / comment / địa chỉ khách gửi — hoặc dán (Ctrl+V) / chọn ảnh chụp màn hình</label>
                 <textarea id="oc-cust-ai-text" rows="4" placeholder="VD: Nguyễn Thị Hằng, 0912345678, 25 Lê Lợi, P. Bến Nghé, Q.1, TP.HCM&#10;(Có thể dán ảnh trực tiếp vào ô này)"></textarea>
+                <label class="oc-ai-convert-option" for="oc-cust-ai-convert-address">
+                    <input type="checkbox" id="oc-cust-ai-convert-address" checked>
+                    <span>
+                        <strong>Chuyển địa chỉ cũ sang địa chỉ hành chính 2026</strong>
+                        <small>Quy đổi địa chỉ trước sáp nhập năm 2025 sang Tỉnh/Thành → Phường/Xã hiện hành và bỏ cấp Quận/Huyện.</small>
+                    </span>
+                </label>
                 <div class="oc-ai-preview" id="oc-cust-ai-preview" hidden>
                     <img id="oc-cust-ai-preview-img" alt="Ảnh đã chọn">
                     <button type="button" class="oc-btn oc-btn--ghost" id="oc-cust-ai-remove-img">Bỏ ảnh</button>
@@ -3141,7 +3160,7 @@ function order_creator_render_page(): void
                     <input type="file" id="oc-cust-ai-image" accept="image/jpeg,image/png,image/webp,image/gif">
                     <button type="button" class="oc-btn oc-btn--primary" id="oc-cust-ai-run">Bóc tách &amp; điền</button>
                 </div>
-                <div class="oc-muted" id="oc-cust-ai-status"></div>
+                <div class="oc-muted" id="oc-cust-ai-status" aria-live="polite"></div>
             </div>
         </div>
         <?php endif; ?>
