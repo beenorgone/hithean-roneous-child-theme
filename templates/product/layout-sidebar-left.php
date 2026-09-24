@@ -20,7 +20,7 @@
             	do_action( 'woocommerce_before_shop_loop' );
                 ?>
                 <?php if ( have_posts() ) : ?>
-	                <div class="row masonry">
+	                <div class="row hithean-product-grid">
 	    				<?php woocommerce_product_subcategories(); ?>
 	    				<?php while ( have_posts() ) : the_post(); ?>
 	    					<?php get_template_part( 'templates/product/content', 'product' ); ?>

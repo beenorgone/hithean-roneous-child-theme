@@ -162,18 +162,95 @@ if (!function_exists('display_loop_product_subheading')) {
     add_action('woocommerce_after_shop_loop_item_title', 'display_loop_product_subheading', 12);
 }
 
+if (!function_exists('hithean_get_loop_addon_promo_lines')) {
+    /**
+     * Active promo lines of a product from the product-addon plugin (sale message or ON discount/coupon/product rules).
+     */
+    function hithean_get_loop_addon_promo_lines(int $product_id): array
+    {
+        if (!function_exists('simple_addon_get_product_addons') || !function_exists('simple_addon_get_product_sale_message')) {
+            return [];
+        }
+
+        $sale_message = trim(wp_strip_all_tags((string) simple_addon_get_product_sale_message($product_id)));
+        if ('' !== $sale_message) {
+            return [wp_trim_words($sale_message, 24, '…')];
+        }
+
+        $lines = [];
+        foreach (simple_addon_get_product_addons($product_id) as $addon) {
+            if ('ON' !== ($addon['status'] ?? '') || !in_array($addon['type'] ?? '', ['discount', 'coupon', 'product'], true)) {
+                continue;
+            }
+
+            $text = '' !== trim((string) ($addon['description'] ?? '')) ? $addon['description'] : ($addon['name'] ?? '');
+            $qty_label = function_exists('simple_addon_get_quantity_label') ? simple_addon_get_quantity_label($addon) : '';
+            $line = trim(('' !== $qty_label ? $qty_label . ': ' : '') . $text);
+
+            if ('' !== $line) {
+                $lines[$line] = $line;
+            }
+        }
+
+        return array_values($lines);
+    }
+}
+
+if (!function_exists('hithean_display_loop_addon_promo')) {
+    /**
+     * Show active product-addon program under price, above loop action buttons.
+     */
+    function hithean_display_loop_addon_promo()
+    {
+        global $product;
+
+        if (!$product instanceof WC_Product) {
+            return;
+        }
+
+        $lines = hithean_get_loop_addon_promo_lines($product->get_id());
+        if (empty($lines)) {
+            return;
+        }
+
+        static $styles_printed = false;
+        if (!$styles_printed) {
+            $styles_printed = true;
+            echo '<style id="hithean-product-addon-promo">' . ".product-addon-promo{margin:0 0 14px;padding:8px 10px;border:1px dashed #e0a100;border-radius:6px;background:#fff8e6;color:#7a4b00;font-size:13px;line-height:1.45;text-align:left}.product-addon-promo__label{display:inline-block;margin-bottom:4px;padding:1px 8px;border-radius:10px;background:#e0a100;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase}.product-addon-promo ul{margin:0;padding:0 0 0 16px}.product-addon-promo li{margin:0}.product-addon-promo .product-addon-promo__more{list-style:none;margin-left:-16px;font-style:italic}" . '</style>';
+        }
+
+        $max_lines = 2;
+        $extra = count($lines) - $max_lines;
+
+        echo '<div class="product-addon-promo"><span class="product-addon-promo__label">' . esc_html__('Ưu đãi', 'roneous') . '</span><ul>';
+        foreach (array_slice($lines, 0, $max_lines) as $line) {
+            echo '<li>' . esc_html($line) . '</li>';
+        }
+        if ($extra > 0) {
+            echo '<li class="product-addon-promo__more">' . esc_html(sprintf('+%d ưu đãi khác', $extra)) . '</li>';
+        }
+        echo '</ul></div>';
+    }
+    // After product link close (5), before add-to-cart (10) and "Xem chi tiết" (15).
+    add_action('woocommerce_after_shop_loop_item', 'hithean_display_loop_addon_promo', 7);
+}
+
 if (!function_exists('hithean_product_taxonomy_inline_styles')) {
     function hithean_product_taxonomy_inline_styles(): void
     {
-        if (!hithean_is_product_listing_context()) {
+        if (!hithean_is_product_listing_context() && !is_search()) {
             return;
         }
         ?>
         <style id="hithean-product-taxonomy-cro">
-            .woocommerce .masonry .product .image-box,.woocommerce-page .masonry .product .image-box{height:100%;}
-            .woocommerce .masonry .product .woocommerce-LoopProduct-link img,.woocommerce-page .masonry .product .woocommerce-LoopProduct-link img{width:100%;aspect-ratio:1/1;object-fit:cover}
-            .woocommerce .masonry .product .woocommerce-loop-product__title,.woocommerce-page .masonry .product .woocommerce-loop-product__title{min-height:2.6em;margin-top:14px}
-            .woocommerce .masonry .product .price,.woocommerce-page .masonry .product .price{display:block;margin:8px 0 14px}
+            .row.hithean-product-grid{display:flex;flex-wrap:wrap}
+            .row.hithean-product-grid:before,.row.hithean-product-grid:after{display:none}
+            .row.hithean-product-grid>.product{float:none;display:flex;margin-bottom:30px}
+            .hithean-product-grid .product .image-box{height:100%;width:100%;display:flex;flex-direction:column}
+            .hithean-product-grid .product .woocommerce-LoopProduct-link{flex:1 1 auto}
+            .hithean-product-grid .product .woocommerce-LoopProduct-link img{width:100%;aspect-ratio:1/1;object-fit:cover}
+            .hithean-product-grid .product .woocommerce-loop-product__title{min-height:2.6em;margin-top:14px}
+            .hithean-product-grid .product .price{display:block;margin:8px 0 14px}
             .product-info-subheading{min-height:2.4em;margin-bottom:16px}
         </style>
         <?php
