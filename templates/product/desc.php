@@ -11,7 +11,8 @@ if (!($term instanceof WP_Term)) return;
 
 // ----- Data -----
 $raw_desc  = !empty($term->description) ? $term->description : '';
-$term_desc = $raw_desc ? wp_kses_post(wpautop($raw_desc)) : '';
+// Giống the_content: autop rồi chạy shortcode trong mô tả
+$term_desc = $raw_desc ? do_shortcode(shortcode_unautop(wpautop(wp_kses_post($raw_desc)))) : '';
 
 $thumb_id  = (int) get_term_meta($term->term_id, 'thumbnail_id', true);
 $image_url = $thumb_id ? wp_get_attachment_image_url($thumb_id, 'full') : '';
