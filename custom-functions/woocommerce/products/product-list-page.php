@@ -243,11 +243,11 @@ if (!function_exists('hithean_product_taxonomy_inline_styles')) {
         }
         ?>
         <style id="hithean-product-taxonomy-cro">
-            .row.hithean-product-grid{display:flex;flex-wrap:wrap}
+            .row.hithean-product-grid{display:flex;flex-wrap:wrap;width:100%}
             .row.hithean-product-grid:before,.row.hithean-product-grid:after{display:none}
             .row.hithean-product-grid>.product{float:none;display:flex;margin-bottom:30px}
-            .hithean-product-grid .product .image-box{height:100%;width:100%;display:flex;flex-direction:column}
-            .hithean-product-grid .product .woocommerce-LoopProduct-link{flex:1 1 auto}
+            .hithean-product-grid .product .image-box{height:100%;width:100%;display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;align-content:flex-start}
+            .hithean-product-grid .product .woocommerce-LoopProduct-link,.hithean-product-grid .product .product-addon-promo{flex:0 0 100%}
             .hithean-product-grid .product .woocommerce-LoopProduct-link img{width:100%;aspect-ratio:1/1;object-fit:cover}
             .hithean-product-grid .product .woocommerce-loop-product__title{min-height:2.6em;margin-top:14px}
             .hithean-product-grid .product .price{display:block;margin:8px 0 14px}

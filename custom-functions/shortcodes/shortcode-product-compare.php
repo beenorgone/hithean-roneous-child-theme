@@ -1399,6 +1399,56 @@ function tpc_product_compare_shortcode($atts)
                 }).join('');
             }
 
+            // Cho phép UI bên ngoài (vd: modal so sánh ở trang danh mục) biết danh sách đang chọn.
+            function notifySelectionChange() {
+                root.dispatchEvent(new CustomEvent('tpc:selection-change', {
+                    detail: { ids: selectedIds(), max: maxProducts }
+                }));
+            }
+
+            function addSelectedProduct(productId, productLabel) {
+                productId = String(productId || '').trim();
+                if (!productId || selectedIds().includes(productId)) {
+                    return false;
+                }
+
+                if (selectedProducts.length >= maxProducts) {
+                    flashCopyFeedback('Đã đạt số sản phẩm tối đa', true);
+                    return false;
+                }
+
+                selectedProducts.push({
+                    id: productId,
+                    title: productLabel,
+                    label: productLabel,
+                });
+                renderSelectedProducts();
+                notifySelectionChange();
+                return true;
+            }
+
+            function removeSelectedProduct(productId) {
+                productId = String(productId || '').trim();
+                selectedProducts = selectedProducts.filter(function(product) {
+                    return String(product.id) !== productId;
+                });
+                renderSelectedProducts();
+                notifySelectionChange();
+            }
+
+            root.addEventListener('tpc:add-product', function(event) {
+                const detail = event.detail || {};
+                addSelectedProduct(detail.id, detail.label || '');
+            });
+
+            root.addEventListener('tpc:remove-product', function(event) {
+                removeSelectedProduct((event.detail || {}).id);
+            });
+
+            root.addEventListener('tpc:build', function() {
+                buildTable();
+            });
+
             function getCompareShareUrl() {
                 const ids = selectedIds().filter(function(id) {
                     return !!id;
@@ -1819,6 +1869,7 @@ function tpc_product_compare_shortcode($atts)
                 tableRevision += 1;
                 selectedProducts = [];
                 renderSelectedProducts();
+                notifySelectionChange();
                 setCopyButtonsVisible(false);
                 setTopResetVisible(false);
                 setTableActionsVisible(false);
@@ -1931,19 +1982,12 @@ function tpc_product_compare_shortcode($atts)
                         return;
                     }
 
-                    if (selectedProducts.length >= maxProducts) {
-                        flashCopyFeedback('Đã đạt số sản phẩm tối đa', true);
+                    if (!addSelectedProduct(productId, productLabel)) {
                         closeDropdown(searchDropdown);
                         return;
                     }
 
                     event.preventDefault();
-                    selectedProducts.push({
-                        id: productId,
-                        title: productLabel,
-                        label: productLabel,
-                    });
-                    renderSelectedProducts();
                     searchInput.value = '';
                     searchInput.dataset.selectedLabel = '';
                     closeDropdown(searchDropdown);
@@ -1954,11 +1998,7 @@ function tpc_product_compare_shortcode($atts)
                 const removeButton = event.target.closest('.tpc-selected-product-remove');
                 if (removeButton && root.contains(removeButton)) {
                     event.preventDefault();
-                    const removeId = String(removeButton.getAttribute('data-product-id') || '').trim();
-                    selectedProducts = selectedProducts.filter(function(product) {
-                        return String(product.id) !== removeId;
-                    });
-                    renderSelectedProducts();
+                    removeSelectedProduct(removeButton.getAttribute('data-product-id'));
                     return;
                 }
             });
@@ -2068,6 +2108,7 @@ function tpc_product_compare_shortcode($atts)
             });
 
             renderSelectedProducts();
+            root.tpcGetSelectedIds = selectedIds;
             syncBuildButtonLabel();
             hasGeneratedTable = selectedIds().length >= 2 && hasGeneratedTable;
             setTopResetVisible(hasGeneratedTable);

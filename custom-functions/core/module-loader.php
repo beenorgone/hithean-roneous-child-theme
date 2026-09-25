@@ -333,6 +333,8 @@ function tpc_loader_modules()
             'file' => 'custom-functions/shortcodes/shortcode-product-compare.php',
             'path_groups' => ['tools', 'compare'],
             'paths_filter' => 'tpc_compare_allowed_paths',
+            // Modal "So sánh sản phẩm" của sticky footer menu trang danh mục.
+            'condition' => 'tpc_cond_is_product_taxonomy',
             'ajax_actions' => [
                 'tpc_product_compare_search',
                 'tpc_product_compare_get_product',
@@ -380,6 +382,11 @@ function tpc_loader_modules()
             'id' => 'product_navigation',
             'file' => 'custom-functions/woocommerce/products/product-navigation.php',
             'condition' => 'tpc_cond_is_product',
+        ],
+        [
+            'id' => 'product_archive_footer_menu',
+            'file' => 'custom-functions/woocommerce/products/product-archive-footer-menu.php',
+            'condition' => 'tpc_cond_is_product_taxonomy',
         ],
         [
             'id' => 'checkout_page',
@@ -442,6 +449,11 @@ function tpc_loader_modules()
 function tpc_cond_is_product()
 {
     return function_exists('is_product') && is_product();
+}
+
+function tpc_cond_is_product_taxonomy()
+{
+    return function_exists('is_product_taxonomy') && is_product_taxonomy();
 }
 
 function tpc_cond_is_checkout()
