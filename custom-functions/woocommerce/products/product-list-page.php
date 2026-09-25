@@ -147,11 +147,6 @@ if (!function_exists('display_loop_product_subheading')) {
             return;
         }
 
-        // Hide on desktop for archive pages (Shop, Category, Tag, etc.)
-        if (!wp_is_mobile() && (is_shop() || is_product_taxonomy())) {
-            return;
-        }
-
         $subheading = trim((string) get_post_meta($product->get_id(), 'product_info_subheading', true));
         if ('' === $subheading) {
             return;
@@ -160,6 +155,21 @@ if (!function_exists('display_loop_product_subheading')) {
         echo '<div class="product-info-subheading">' . wp_kses_post($subheading) . '</div>';
     }
     add_action('woocommerce_after_shop_loop_item_title', 'display_loop_product_subheading', 12);
+}
+
+if (!function_exists('hithean_hide_loop_add_to_cart_when_out_of_stock')) {
+    /**
+     * Out-of-stock loop cards: no add-to-cart / "Read more" button — only "Xem chi tiết" remains.
+     */
+    function hithean_hide_loop_add_to_cart_when_out_of_stock($html, $product)
+    {
+        if ($product instanceof WC_Product && !$product->is_in_stock()) {
+            return '';
+        }
+
+        return $html;
+    }
+    add_filter('woocommerce_loop_add_to_cart_link', 'hithean_hide_loop_add_to_cart_when_out_of_stock', 20, 2);
 }
 
 if (!function_exists('hithean_get_loop_addon_promo_lines')) {
@@ -183,9 +193,7 @@ if (!function_exists('hithean_get_loop_addon_promo_lines')) {
                 continue;
             }
 
-            $text = '' !== trim((string) ($addon['description'] ?? '')) ? $addon['description'] : ($addon['name'] ?? '');
-            $qty_label = function_exists('simple_addon_get_quantity_label') ? simple_addon_get_quantity_label($addon) : '';
-            $line = trim(('' !== $qty_label ? $qty_label . ': ' : '') . $text);
+            $line = trim((string) ('' !== trim((string) ($addon['description'] ?? '')) ? $addon['description'] : ($addon['name'] ?? '')));
 
             if ('' !== $line) {
                 $lines[$line] = $line;
@@ -216,7 +224,7 @@ if (!function_exists('hithean_display_loop_addon_promo')) {
         static $styles_printed = false;
         if (!$styles_printed) {
             $styles_printed = true;
-            echo '<style id="hithean-product-addon-promo">' . ".product-addon-promo{margin:0 0 14px;padding:8px 10px;border:1px dashed #e0a100;border-radius:6px;background:#fff8e6;color:#7a4b00;font-size:13px;line-height:1.45;text-align:left}.product-addon-promo__label{display:inline-block;margin-bottom:4px;padding:1px 8px;border-radius:10px;background:#e0a100;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase}.product-addon-promo ul{margin:0;padding:0 0 0 16px}.product-addon-promo li{margin:0}.product-addon-promo .product-addon-promo__more{list-style:none;margin-left:-16px;font-style:italic}" . '</style>';
+            echo '<style id="hithean-product-addon-promo">' . ".product-addon-promo{margin:0 15px;padding:8px 10px;border:1px dashed #e0a100;border-radius:6px;background:#fff8e6;color:#7a4b00;font-size:13px;line-height:1.45;text-align:left}.product-addon-promo__label{display:inline-block;margin-bottom:4px;padding:1px 8px;border-radius:10px;background:#e0a100;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase}.product-addon-promo ul{margin:0;padding:0 0 0 16px}.product-addon-promo li{margin:0}.product-addon-promo .product-addon-promo__more{list-style:none;margin-left:-16px;font-style:italic}@media (max-width:767px){.product-addon-promo{margin:10px 15px 0}}" . '</style>';
         }
 
         $max_lines = 2;
@@ -247,7 +255,8 @@ if (!function_exists('hithean_product_taxonomy_inline_styles')) {
             .row.hithean-product-grid:before,.row.hithean-product-grid:after{display:none}
             .row.hithean-product-grid>.product{float:none;display:flex;margin-bottom:30px}
             .hithean-product-grid .product .image-box{height:100%;width:100%;display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;align-content:flex-start}
-            .hithean-product-grid .product .woocommerce-LoopProduct-link,.hithean-product-grid .product .product-addon-promo{flex:0 0 100%}
+            .hithean-product-grid .product .woocommerce-LoopProduct-link{flex:0 0 100%}
+            .hithean-product-grid .product .product-addon-promo{flex:0 0 calc(100% - 30px);max-width:calc(100% - 30px)}
             .hithean-product-grid .product .woocommerce-LoopProduct-link img{width:100%;aspect-ratio:1/1;object-fit:cover}
             .hithean-product-grid .product .woocommerce-loop-product__title{min-height:2.6em;margin-top:14px}
             .hithean-product-grid .product .price{display:block;margin:8px 0 14px}
