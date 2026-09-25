@@ -83,6 +83,23 @@
             syncPicks(detail.ids, detail.max);
         });
 
+        // Bảng nằm dưới danh sách chọn + form — cuộn modal tới bảng khi vừa tạo xong.
+        // renderRows chạy 2 lần mỗi lần tạo bảng (lần 2 kèm AI) — chỉ cuộn ở lần đầu.
+        var lastTableScroll = 0;
+        compareRoot.addEventListener('tpc:table-rendered', function () {
+            if (Date.now() - lastTableScroll < 3000) {
+                return;
+            }
+            lastTableScroll = Date.now();
+            var body = modal.querySelector('.apfm-modal__body');
+            var shell = compareRoot.querySelector('.tpc-table-shell');
+            if (!body || !shell || modal.hidden) {
+                return;
+            }
+            var top = shell.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop - 8;
+            body.scrollTo({ top: Math.max(0, top), behavior: reduceMotion ? 'auto' : 'smooth' });
+        });
+
         if (typeof compareRoot.tpcGetSelectedIds === 'function') {
             syncPicks(compareRoot.tpcGetSelectedIds());
         }

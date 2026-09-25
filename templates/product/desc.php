@@ -18,11 +18,7 @@ $thumb_id  = (int) get_term_meta($term->term_id, 'thumbnail_id', true);
 $image_url = $thumb_id ? wp_get_attachment_image_url($thumb_id, 'full') : '';
 
 $desc_block_rendered = '<h2 style="margin-top:0; text-align:center;">' . esc_html($term->name) . '</h2>'
-    . $term_desc
-    . '<div id="section-product-ctas" class="b-single-product-ctas" style="text-align:center;">'
-    . '<a class="button--dark-blue-reverse" href="#main-content"><i class="icon-products ti-angle-double-down"></i>Xem sản phẩm</a>'
-    . '<a target="_blank" class="button--light-blue" href="https://m.me/61558663706094"><i class="icon-facebook ti-facebook"></i>Chat với The An</a>'
-    . '</div>';
+    . $term_desc;
 
 // Chuẩn bị ảnh responsive (WP mặc định lazy + decoding async từ 6.x, nhưng ta set rõ)
 $img_html = '';
@@ -73,8 +69,6 @@ if ($thumb_id && $image_url) {
             display:flex;align-items:center;justify-content:center;text-align:center;padding:32px;min-height:260px;background:#e5e7eb;width:100%
         }
         .block-product-desc .fallback h2{margin:0;text-align:center;font-size:clamp(22px,3.2vw,32px);font-weight:700;color:#2a2f36}
-        .block-product-desc #section-product-ctas{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
-        .block-product-desc #section-product-ctas a{margin:0!important}
         /* Ẩn heading phụ cho screen reader */
         .screen-reader-text{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
     </style>

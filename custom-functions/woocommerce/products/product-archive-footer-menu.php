@@ -132,7 +132,8 @@ function hithean_apfm_render()
         }
     }
     ?>
-    <nav class="apfm" id="apfm-root" aria-label="<?php esc_attr_e('Menu danh mục sản phẩm', 'hithean.com'); ?>">
+    <?php // div thay vì <nav>: JS/CSS theme cha nhắm vào mọi `nav` (offcanvas, sticky header). ?>
+    <div class="apfm" id="apfm-root" role="navigation" aria-label="<?php esc_attr_e('Menu danh mục sản phẩm', 'hithean.com'); ?>">
         <ul class="apfm__list" role="list">
             <?php foreach ($items as $item) :
                 $label = (string) ($item['label'] ?? '');
@@ -160,7 +161,7 @@ function hithean_apfm_render()
                 </li>
             <?php endforeach; ?>
         </ul>
-    </nav>
+    </div>
     <?php
     if ($has_compare) {
         hithean_apfm_render_compare_modal();
@@ -203,7 +204,11 @@ function hithean_apfm_render_compare_modal()
                     </ul>
                 <?php endif; ?>
                 <div class="apfm-compare">
-                    <?php echo do_shortcode('[product_compare number="3"]'); ?>
+                    <?php
+                    // Tương đương shortcode bên theanmarket (fields="hdsd|...,thanh_phan|...,faq|...")
+                    // — hithean lưu các trường này với prefix product_info_ (product-metabox.php).
+                    echo do_shortcode('[product_compare products="" number="3" fields="product_info_hdsd|Hướng dẫn sử dụng,product_info_thanh_phan|Thành phần & dinh dưỡng,product_info_faq|Câu hỏi thường gặp"]');
+                    ?>
                 </div>
             </div>
         </div>

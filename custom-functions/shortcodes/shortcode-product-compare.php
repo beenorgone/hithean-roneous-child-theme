@@ -1676,6 +1676,9 @@ function tpc_product_compare_shortcode($atts)
                 body.innerHTML = rows.join('');
                 hasGeneratedTable = true;
                 syncBuildButtonLabel();
+                root.dispatchEvent(new CustomEvent('tpc:table-rendered', {
+                    detail: { cols: activeCols, withAi: !!aiRows }
+                }));
             }
 
             function fetchProductPayload(productId) {
