@@ -224,7 +224,7 @@ if (!function_exists('hithean_display_loop_addon_promo')) {
         static $styles_printed = false;
         if (!$styles_printed) {
             $styles_printed = true;
-            echo '<style id="hithean-product-addon-promo">' . ".product-addon-promo{margin:0 15px 10px;padding:8px 10px;border:1px dashed #e0a100;border-radius:6px;background:#fff8e6;color:#7a4b00;font-size:13px;line-height:1.45;text-align:left}.product-addon-promo__label{display:inline-block;margin-bottom:4px;padding:1px 8px;border-radius:10px;background:#e0a100;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase}.product-addon-promo ul{margin:0;padding:0 0 0 16px}.product-addon-promo li{margin:0}.product-addon-promo .product-addon-promo__more{list-style:none;margin-left:-16px;font-style:italic}@media (max-width:767px){.product-addon-promo{margin:10px 15px 0}}" . '</style>';
+            echo '<style id="hithean-product-addon-promo">' . ".product-addon-promo{margin:0 15px 10px;padding:8px 10px;border:1px dashed #e0a100;border-radius:6px;background:#fff8e6;color:#7a4b00;font-size:13px;line-height:1.45;text-align:left}.product-addon-promo__label{display:inline-block;margin-bottom:4px;padding:1px 8px;border-radius:10px;background:#e0a100;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase}.product-addon-promo ul{margin:0;padding:0 0 0 16px}.product-addon-promo li{margin:0}.product-addon-promo .product-addon-promo__more{list-style:none;margin-left:-16px;font-style:italic}@media (max-width:767px){.product-addon-promo{margin:10px 15px}}" . '</style>';
         }
 
         $max_lines = 2;
