@@ -45,7 +45,9 @@ jQuery(function ($) {
         var $btn = $(opts.button || $form.find('.single_add_to_cart_button').first());
         var data = new FormData(form);
 
-        var productId = data.get('add-to-cart') || $btn.val() || $form.data('product_id');
+        // Simple/grouped: id nằm trên nút submit name="add-to-cart" (FormData không chứa nút),
+        // nên đọc từ form — nút gửi có thể là sticky bar (không có value).
+        var productId = data.get('add-to-cart') || $form.find('[name="add-to-cart"]').val() || $form.data('product_id');
         data.delete('add-to-cart');
         data.set('hithean_atc_product', productId);
         data.set('action', config.action);
