@@ -128,6 +128,7 @@ function hithean_export_ai_config(): array
     return apply_filters('hithean_export_ai_config', [
         'provider' => $provider,
         'model'    => defined('HITHEAN_EXPORT_AI_MODEL') ? (string) HITHEAN_EXPORT_AI_MODEL : theme_ai_default_model(),
+        'pinned'   => defined('HITHEAN_EXPORT_AI_PROVIDER') && HITHEAN_EXPORT_AI_PROVIDER, // chọn cứng → không fallback
     ]);
 }
 
@@ -246,7 +247,9 @@ function hithean_export_ai_check_order(WC_Order $order, int $requested_by = 0)
             'expected_items' => $expected_items,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\nChỉ mẫu ma_phieu_da_che_chuan (ID gốc + đúng hai dấu *) được xem là mã che hợp lệ. Mã khác hoặc che kiểu khác phải dùng mismatch/unclear.";
         $cfg = hithean_export_ai_config();
-        $raw = theme_ai_call_provider_with_documents($cfg['provider'], $system, $prompt, $documents, 1100, 120, $cfg['model']);
+        $raw = theme_ai_feature_call($cfg, static function (string $provider, string $model, string $api_key) use ($system, $prompt, $documents) {
+            return theme_ai_call_provider_with_documents($provider, $system, $prompt, $documents, 1100, 120, $model, ['api_key' => $api_key]);
+        });
         if (is_wp_error($raw)) return $raw;
         $data = theme_ai_parse_json_object($raw);
         if (is_wp_error($data)) return $data;

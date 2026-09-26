@@ -12,7 +12,7 @@ defined('ABSPATH') || exit;
  *  - Frontend/AJAX: feature tự require_once trước khi kiểm tra bật/tắt
  *
  * Ưu tiên cấu hình: constant wp-config (VD ORDER_CREATOR_AI_MODEL) > trang settings > mặc định.
- * API key luôn nằm trong wp-config.php (CLAUDE_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY),
+ * API key luôn nằm trong wp-config.php (CLAUDE_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY / QWEN_API_KEY),
  * không lưu qua trang settings.
  */
 
@@ -65,7 +65,7 @@ function theme_ai_default_provider(): string
 {
     $provider = sanitize_key((string) (theme_erp_settings()['ai_provider'] ?? 'auto'));
 
-    return in_array($provider, ['claude', 'gemini', 'gemini_billing', 'openai'], true) ? $provider : 'auto';
+    return in_array($provider, ['claude', 'gemini', 'gemini_billing', 'openai', 'qwen'], true) ? $provider : 'auto';
 }
 
 function theme_ai_default_model(): string
@@ -96,7 +96,7 @@ function theme_erp_settings_sanitize($input): array
     $out   = [];
 
     $provider           = sanitize_key((string) ($input['ai_provider'] ?? 'auto'));
-    $out['ai_provider'] = in_array($provider, ['claude', 'gemini', 'gemini_billing', 'openai', 'auto'], true) ? $provider : 'auto';
+    $out['ai_provider'] = in_array($provider, ['claude', 'gemini', 'gemini_billing', 'openai', 'qwen', 'auto'], true) ? $provider : 'auto';
     $out['ai_model']    = sanitize_text_field((string) ($input['ai_model'] ?? ''));
 
     // Checkbox không tick sẽ không gửi lên → ghi rõ '0' để phân biệt "tắt" với "chưa cấu hình".
@@ -340,14 +340,14 @@ function theme_erp_settings_render_page(): void
                             <?php foreach ($key_status as $label => $has_key) : ?>
                                 <span style="margin-right:16px;"><?php echo $has_key ? '🟢' : '⚪'; ?> <?php echo esc_html($label); ?></span>
                             <?php endforeach; ?>
-                            <p class="description">Key khai báo trong wp-config.php: <code>CLAUDE_API_KEY</code> / <code>GEMINI_API_KEY</code> / <code>OPENAI_API_KEY</code>. Trang này không lưu key.</p>
+                            <p class="description">Key khai báo trong wp-config.php: <code>CLAUDE_API_KEY</code> / <code>GEMINI_API_KEY</code> / <code>OPENAI_API_KEY</code> / <code>QWEN_API_KEY</code>. Trang này không lưu key. Key bị limit sẽ tự chuyển sang key/provider khác (key phụ: <code>GEMINI_API_KEYS_EXTRA</code>...).</p>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="theme-erp-ai-provider">Nhà cung cấp mặc định</label></th>
                         <td>
                             <select id="theme-erp-ai-provider" name="theme_erp_settings[ai_provider]">
-                                <?php foreach (['auto' => 'Tự động (theo API key có sẵn: Claude → Gemini → OpenAI)', 'claude' => 'Claude (Anthropic)', 'gemini' => 'Gemini free (GEMINI_API_KEY — tính năng đơn giản)', 'gemini_billing' => 'Gemini billing (GEMINI_API_KEY_BILLING — trả phí, mặc định gemini-2.5-flash)', 'openai' => 'OpenAI'] as $value => $label) : ?>
+                                <?php foreach (['auto' => 'Tự động (theo API key có sẵn: Claude → Gemini → OpenAI → Qwen)', 'claude' => 'Claude (Anthropic)', 'gemini' => 'Gemini free (GEMINI_API_KEY — tính năng đơn giản)', 'gemini_billing' => 'Gemini billing (GEMINI_API_KEY_BILLING — trả phí, mặc định gemini-2.5-flash)', 'openai' => 'OpenAI', 'qwen' => 'Qwen (Alibaba Cloud Model Studio — QWEN_API_KEY)'] as $value => $label) : ?>
                                     <option value="<?php echo esc_attr($value); ?>" <?php selected($settings['ai_provider'], $value); ?>><?php echo esc_html($label); ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -357,7 +357,7 @@ function theme_erp_settings_render_page(): void
                         <th scope="row"><label for="theme-erp-ai-model">Model mặc định</label></th>
                         <td>
                             <input type="text" class="regular-text" id="theme-erp-ai-model" name="theme_erp_settings[ai_model]" value="<?php echo esc_attr($settings['ai_model']); ?>" placeholder="VD: claude-haiku-4-5">
-                            <p class="description">Bỏ trống = mặc định theo provider (Claude: <code>claude-opus-4-8</code>, Gemini: <code>gemini-3.1-flash-lite</code>, OpenAI: <code>gpt-4o-mini</code>).<br>Feature vẫn override được bằng constant riêng trong wp-config, VD <code>ORDER_CREATOR_AI_MODEL</code>.</p>
+                            <p class="description">Bỏ trống = mặc định theo provider (Claude: <code>claude-opus-4-8</code>, Gemini: <code>gemini-3.1-flash-lite</code>, OpenAI: <code>gpt-4o-mini</code>, Qwen: <code>qwen-plus</code> / ảnh <code>qwen-vl-plus</code>).<br>Feature vẫn override được bằng constant riêng trong wp-config, VD <code>ORDER_CREATOR_AI_MODEL</code>.</p>
                         </td>
                     </tr>
                     <tr>

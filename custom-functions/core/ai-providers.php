@@ -3,7 +3,8 @@ defined('ABSPATH') || exit;
 
 /**
  * AI provider abstraction dùng chung cho các feature trong theme.
- * Hỗ trợ Gemini, OpenAI (Chat Completions / Responses), Claude (Anthropic).
+ * Hỗ trợ Gemini, OpenAI (Chat Completions / Responses), Claude (Anthropic),
+ * Qwen (Alibaba Cloud Model Studio / DashScope — endpoint tương thích OpenAI).
  *
  * Cách dùng cho mỗi feature (quyết định gọi AI + cấp quyền tại thời điểm gọi):
  *   1. Feature tự khai báo provider/model riêng qua constant hoặc filter,
@@ -15,6 +16,8 @@ defined('ABSPATH') || exit;
  *      Riêng Gemini có 2 bậc: GEMINI_API_KEY (free — tính năng đơn giản)
  *      và GEMINI_API_KEY_BILLING (đã bật billing — tính năng trả phí,
  *      provider 'gemini_billing', mặc định gemini-2.5-flash).
+ *      Qwen: QWEN_API_KEY (hoặc DASHSCOPE_API_KEY); QWEN_API_BASE để đổi vùng
+ *      (mặc định Singapore/quốc tế); QWEN_CHAT_MODEL / QWEN_VISION_MODEL.
  *
  * File này chỉ được require khi feature cần AI thật sự chạy — không load global.
  *
@@ -59,6 +62,15 @@ function theme_ai_get_api_key(string $provider): string
         return (string) getenv('CLAUDE_API_KEY');
     }
 
+    if ($provider === 'qwen') {
+        foreach (['QWEN_API_KEY', 'DASHSCOPE_API_KEY'] as $name) {
+            $key = defined($name) && constant($name) ? (string) constant($name) : (string) getenv($name);
+            if ($key !== '') {
+                return $key;
+            }
+        }
+    }
+
     return '';
 }
 
@@ -99,7 +111,20 @@ function theme_ai_get_model(string $provider): string
         return 'claude-opus-4-8';
     }
 
+    if ($provider === 'qwen') {
+        if (defined('QWEN_CHAT_MODEL') && QWEN_CHAT_MODEL) {
+            return (string) QWEN_CHAT_MODEL;
+        }
+        return 'qwen-plus';
+    }
+
     return '';
+}
+
+/** Danh sách provider hợp lệ (dùng chung cho settings + resolve). */
+function theme_ai_providers(): array
+{
+    return ['claude', 'gemini', 'gemini_billing', 'openai', 'qwen'];
 }
 
 /**
@@ -108,11 +133,11 @@ function theme_ai_get_model(string $provider): string
 function theme_ai_resolve_provider(string $requested): string
 {
     $requested = sanitize_key($requested ?: 'auto');
-    if (in_array($requested, ['openai', 'gemini', 'gemini_billing', 'claude'], true)) {
+    if (in_array($requested, theme_ai_providers(), true)) {
         return $requested;
     }
 
-    foreach (['claude', 'gemini', 'openai'] as $p) {
+    foreach (['claude', 'gemini', 'openai', 'qwen'] as $p) {
         if (theme_ai_get_api_key($p) !== '') {
             return $p;
         }
@@ -138,7 +163,7 @@ function theme_ai_call_provider(string $provider, string $system, array $message
     $api_key  = (string) ($options['api_key'] ?? '') ?: theme_ai_get_api_key($provider);
 
     if ($api_key === '') {
-        $key_hint = $provider === 'gemini_billing' ? 'GEMINI_API_KEY_BILLING' : strtoupper($provider) . '_API_KEY';
+        $key_hint = ['gemini_billing' => 'GEMINI_API_KEY_BILLING', 'qwen' => 'QWEN_API_KEY'][$provider] ?? strtoupper($provider) . '_API_KEY';
         return new WP_Error(
             'theme_ai_missing_key',
             sprintf('Chưa có API key cho %s. Thêm %s vào wp-config.php.', strtoupper($provider), $key_hint),
@@ -156,6 +181,10 @@ function theme_ai_call_provider(string $provider, string $system, array $message
 
     if ($provider === 'openai') {
         return theme_ai_call_openai($api_key, $model, $system, $messages, $max_tokens);
+    }
+
+    if ($provider === 'qwen') {
+        return theme_ai_call_qwen($api_key, $model, $system, $messages, $max_tokens);
     }
 
     return theme_ai_call_claude($api_key, $model, $system, $messages, $max_tokens);
@@ -381,7 +410,7 @@ function theme_ai_call_provider_with_documents(string $provider, string $system,
     $api_key  = (string) ($options['api_key'] ?? '') ?: theme_ai_get_api_key($provider);
 
     if ($api_key === '') {
-        $key_hint = $provider === 'gemini_billing' ? 'GEMINI_API_KEY_BILLING' : strtoupper($provider) . '_API_KEY';
+        $key_hint = ['gemini_billing' => 'GEMINI_API_KEY_BILLING', 'qwen' => 'QWEN_API_KEY'][$provider] ?? strtoupper($provider) . '_API_KEY';
         return new WP_Error(
             'theme_ai_missing_key',
             sprintf('Chưa có API key cho %s. Thêm %s vào wp-config.php.', strtoupper($provider), $key_hint),
@@ -390,7 +419,11 @@ function theme_ai_call_provider_with_documents(string $provider, string $system,
     }
 
     if ($model === '') {
-        $model = theme_ai_get_model($provider);
+        $model = $provider === 'qwen' ? theme_ai_qwen_vision_model() : theme_ai_get_model($provider);
+    }
+
+    if ($provider === 'qwen') {
+        return theme_ai_call_qwen_with_documents($api_key, $model, $system, $prompt, $documents, $max_tokens, $timeout);
     }
 
     if ($provider === 'gemini' || $provider === 'gemini_billing') {
@@ -622,13 +655,114 @@ function theme_ai_call_openai_with_documents(string $api_key, string $model, str
 }
 
 // ================================================================
+// QWEN (Alibaba Cloud Model Studio — OpenAI-compatible mode)
+// ================================================================
+
+function theme_ai_qwen_endpoint(): string
+{
+    $base = defined('QWEN_API_BASE') && QWEN_API_BASE ? (string) QWEN_API_BASE : (string) getenv('QWEN_API_BASE');
+    if ($base === '') {
+        // Vùng quốc tế (Singapore). Key vùng Trung Quốc: https://dashscope.aliyuncs.com/compatible-mode/v1
+        $base = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
+    }
+
+    return rtrim($base, '/') . '/chat/completions';
+}
+
+/** Model đọc ảnh — model text (qwen-plus...) không nhận ảnh. */
+function theme_ai_qwen_vision_model(): string
+{
+    return defined('QWEN_VISION_MODEL') && QWEN_VISION_MODEL ? (string) QWEN_VISION_MODEL : 'qwen-vl-plus';
+}
+
+/**
+ * @return string|WP_Error
+ */
+function theme_ai_qwen_request(string $api_key, array $payload, int $timeout)
+{
+    $response = wp_remote_post(theme_ai_qwen_endpoint(), [
+        'timeout' => max(30, $timeout),
+        'headers' => ['Authorization' => 'Bearer ' . $api_key, 'Content-Type' => 'application/json'],
+        'body'    => wp_json_encode($payload),
+    ]);
+    if (is_wp_error($response)) {
+        return $response;
+    }
+
+    $code = (int) wp_remote_retrieve_response_code($response);
+    $data = json_decode((string) wp_remote_retrieve_body($response), true);
+    if ($code < 200 || $code >= 300) {
+        $msg = is_array($data) && !empty($data['error']['message']) ? (string) $data['error']['message'] : 'Qwen request failed.';
+        return new WP_Error('theme_ai_qwen_error', $msg, ['status' => $code, 'provider' => 'qwen']);
+    }
+
+    $text = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
+
+    return $text !== '' ? $text : new WP_Error('theme_ai_qwen_empty', 'Qwen trả về nội dung rỗng.', ['provider' => 'qwen']);
+}
+
+/**
+ * @return string|WP_Error
+ */
+function theme_ai_call_qwen(string $api_key, string $model, string $system, array $messages, int $max_tokens = 2000)
+{
+    $qwen_messages = [['role' => 'system', 'content' => $system]];
+    foreach ($messages as $msg) {
+        $qwen_messages[] = [
+            'role'    => in_array($msg['role'], ['user', 'assistant'], true) ? $msg['role'] : 'user',
+            'content' => (string) $msg['content'],
+        ];
+    }
+
+    return theme_ai_qwen_request($api_key, [
+        'model'       => $model,
+        'messages'    => $qwen_messages,
+        'max_tokens'  => $max_tokens,
+        'temperature' => 0,
+    ], 60);
+}
+
+/**
+ * Chỉ hỗ trợ ảnh (qwen-vl-*); PDF trả lỗi để fallback/feature xử lý.
+ *
+ * @param array<int,array{path:string,mime_type?:string,title?:string}> $documents
+ * @return string|WP_Error
+ */
+function theme_ai_call_qwen_with_documents(string $api_key, string $model, string $system, string $prompt, array $documents, int $max_tokens = 2000, int $timeout = 120)
+{
+    $content = [];
+    foreach ($documents as $document) {
+        $read = theme_ai_read_document($document, 'qwen');
+        if (is_wp_error($read)) {
+            return $read;
+        }
+        [$b64, $mime] = $read;
+        if (strpos($mime, 'image/') !== 0) {
+            return new WP_Error('theme_ai_qwen_unsupported_document', 'Qwen chỉ hỗ trợ tập tin ảnh.', ['provider' => 'qwen']);
+        }
+        $content[] = ['type' => 'image_url', 'image_url' => ['url' => 'data:' . $mime . ';base64,' . $b64]];
+    }
+    $content[] = ['type' => 'text', 'text' => $prompt];
+
+    return theme_ai_qwen_request($api_key, [
+        'model'       => $model,
+        'messages'    => [
+            ['role' => 'system', 'content' => $system],
+            ['role' => 'user', 'content' => $content],
+        ],
+        'max_tokens'  => $max_tokens,
+        'temperature' => 0,
+    ], $timeout);
+}
+
+// ================================================================
 // FALLBACK KHI KEY BỊ LIMIT
 // ================================================================
 
 /**
  * Key phụ cho cùng provider (VD nhiều key Gemini free) trong wp-config.php:
  *   define('GEMINI_API_KEYS_EXTRA', ['key2', 'key3']); // hoặc chuỗi 'key2,key3'
- * Tương tự CLAUDE_API_KEYS_EXTRA / OPENAI_API_KEYS_EXTRA.
+ * Tương tự QWEN_API_KEYS_EXTRA / CLAUDE_API_KEYS_EXTRA / OPENAI_API_KEYS_EXTRA.
  */
 function theme_ai_extra_api_keys(string $provider): array
 {
@@ -647,11 +781,13 @@ function theme_ai_extra_api_keys(string $provider): array
  */
 function theme_ai_fallback_chain(string $primary, string $model = ''): array
 {
-    $primary = theme_ai_resolve_provider($primary);
+    // Không chọn provider (auto) → bắt đầu từ free; key thiếu sẽ tự bị bỏ qua bên dưới.
+    $primary = in_array(sanitize_key($primary), ['', 'auto'], true) ? 'gemini' : theme_ai_resolve_provider($primary);
     $chain   = [];
     $seen    = [];
 
-    foreach (array_unique([$primary, 'gemini', 'gemini_billing', 'claude', 'openai']) as $provider) {
+    // Free trước (Gemini free, Qwen), trả phí sau.
+    foreach (array_unique([$primary, 'gemini', 'qwen', 'gemini_billing', 'claude', 'openai']) as $provider) {
         foreach (array_merge([theme_ai_get_api_key($provider)], theme_ai_extra_api_keys($provider)) as $key) {
             if ($key === '' || isset($seen[$key])) {
                 continue;
@@ -722,6 +858,9 @@ function theme_ai_call_with_fallback(string $provider, string $model, callable $
         }
 
         $error = $result;
+        if ($result->get_error_code() === 'theme_ai_qwen_unsupported_document') {
+            continue; // provider không đọc được loại tập tin này → thử provider kế tiếp, không cần cooldown
+        }
         if (!theme_ai_is_limit_error($result)) {
             return $result; // lỗi nội dung/cấu hình → đổi key cũng không giải quyết
         }
@@ -733,11 +872,38 @@ function theme_ai_call_with_fallback(string $provider, string $model, callable $
         );
     }
 
+    if (!theme_ai_is_limit_error($error)) {
+        return $error;
+    }
+
     return new WP_Error(
         'theme_ai_all_limited',
         'Tất cả API key AI đang bị giới hạn, thử lại sau ít phút. (' . $error->get_error_message() . ')',
         $error->get_error_data()
     );
+}
+
+/**
+ * Entry point cho feature: $cfg = ['provider' => ..., 'model' => ..., 'pinned' => bool].
+ * pinned = feature tự chọn chính xác provider (constant riêng / setting riêng) → gọi đúng provider đó,
+ * không fallback. Còn lại → theme_ai_call_with_fallback().
+ *
+ * @param callable $call  fn(string $provider, string $model, string $api_key): string|WP_Error
+ *                        ($api_key rỗng = key mặc định của provider)
+ * @return string|WP_Error
+ */
+function theme_ai_feature_call(array $cfg, callable $call, ?array &$used = null)
+{
+    $provider = (string) ($cfg['provider'] ?? 'auto');
+    $model    = (string) ($cfg['model'] ?? '');
+
+    if (!empty($cfg['pinned'])) {
+        $provider = theme_ai_resolve_provider($provider);
+        $used     = ['provider' => $provider, 'model' => $model];
+        return $call($provider, $model, '');
+    }
+
+    return theme_ai_call_with_fallback($provider, $model, $call, $used);
 }
 
 /**

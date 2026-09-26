@@ -2057,6 +2057,7 @@ function order_creator_ai_config(): array
     return apply_filters('order_creator_ai_config', [
         'provider' => $provider,
         'model'    => defined('ORDER_CREATOR_AI_MODEL') ? ORDER_CREATOR_AI_MODEL : theme_ai_default_model(),
+        'pinned'   => defined('ORDER_CREATOR_AI_PROVIDER') && ORDER_CREATOR_AI_PROVIDER, // chọn cứng → không fallback
     ]);
 }
 
@@ -2125,7 +2126,7 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
         return $convert_old_address && in_array($provider, ['gemini', 'gemini_billing'], true);
     };
     $used = null;
-    $raw  = theme_ai_call_with_fallback((string) $cfg['provider'], (string) $cfg['model'], static function (string $provider, string $model, string $api_key) use ($search_for, $system_head, $search_rules, $system_tail, $prompt, $image) {
+    $raw  = theme_ai_feature_call($cfg, static function (string $provider, string $model, string $api_key) use ($search_for, $system_head, $search_rules, $system_tail, $prompt, $image) {
         $search  = $search_for($provider);
         $system  = $system_head . ($search ? $search_rules : '') . $system_tail;
         $options = ['api_key' => $api_key, 'google_search' => $search];

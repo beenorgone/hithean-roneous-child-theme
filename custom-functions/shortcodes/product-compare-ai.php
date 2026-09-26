@@ -322,6 +322,7 @@ function tpc_compare_ai_config(): array
     return apply_filters('tpc_compare_ai_config', [
         'provider' => $provider,
         'model'    => defined('PRODUCT_COMPARE_AI_MODEL') ? (string) PRODUCT_COMPARE_AI_MODEL : theme_ai_default_model(),
+        'pinned'   => defined('PRODUCT_COMPARE_AI_PROVIDER') && PRODUCT_COMPARE_AI_PROVIDER, // chọn cứng → không fallback
     ]);
 }
 
@@ -346,9 +347,11 @@ function tpc_compare_ai_generate_copy(array $snapshot)
     $prompt = "Dữ liệu catalogue cho bảng so sánh:\n" . wp_json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $cfg = tpc_compare_ai_config();
     $documents = tpc_compare_ai_nutrition_documents($snapshot);
-    $raw = $documents
-        ? theme_ai_call_provider_with_documents($cfg['provider'], $system, $prompt, $documents, 2400, 120, $cfg['model'])
-        : theme_ai_call_provider($cfg['provider'], $system, [['role' => 'user', 'content' => $prompt]], 2400, $cfg['model']);
+    $raw = theme_ai_feature_call($cfg, static function (string $provider, string $model, string $api_key) use ($system, $prompt, $documents) {
+        return $documents
+            ? theme_ai_call_provider_with_documents($provider, $system, $prompt, $documents, 2400, 120, $model, ['api_key' => $api_key])
+            : theme_ai_call_provider($provider, $system, [['role' => 'user', 'content' => $prompt]], 2400, $model, ['api_key' => $api_key]);
+    });
     if (is_wp_error($raw)) {
         return $raw;
     }
