@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) exit;
   ADD TO CART POPUP — trang sản phẩm.
   Form "Thêm vào giỏ" (và sticky bar mobile) được gửi qua admin-ajax thay vì
   reload trang; sau khi thêm thành công hiện modal xem trước giỏ hàng với
-  2 nút "Tiếp tục mua sắm" / "Thanh toán".
+  2 nút "Tiếp tục mua sắm" / "Đặt hàng".
 
   Việc thêm vào giỏ vẫn do WC_Form_Handler::add_to_cart_action() xử lý, nên
   simple / variable / grouped + field của plugin addon hoạt động như submit
@@ -180,7 +180,7 @@ function hithean_atc_popup_render_modal()
                 <div class="atc-popup__cart"></div>
                 <div class="atc-popup__actions">
                     <button type="button" class="button atc-popup__continue" data-atc-popup-close><?php esc_html_e('Tiếp tục mua sắm', 'hithean.com'); ?></button>
-                    <a class="button alt atc-popup__checkout" href="<?php echo esc_url(wc_get_checkout_url()); ?>"><?php esc_html_e('Thanh toán', 'hithean.com'); ?></a>
+                    <a class="button alt atc-popup__checkout" href="<?php echo esc_url(wc_get_checkout_url()); ?>"><?php esc_html_e('Đặt hàng', 'hithean.com'); ?></a>
                 </div>
                 <a class="atc-popup__view-cart" href="<?php echo esc_url(wc_get_cart_url()); ?>"><?php esc_html_e('Xem giỏ hàng', 'hithean.com'); ?></a>
             </div>

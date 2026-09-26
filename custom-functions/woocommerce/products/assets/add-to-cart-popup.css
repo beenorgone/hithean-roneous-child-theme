@@ -181,10 +181,52 @@ html.atc-popup-open {
     margin-top: 16px;
 }
 
-.atc-popup__actions .button {
+/* Selector 4 class để thắng `.woocommerce button.button.alt` (css/custom.css) và style .button của parent theme. */
+.atc-popup .atc-popup__actions .button.atc-popup__continue,
+.atc-popup .atc-popup__actions .button.atc-popup__checkout {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+    margin: 0 !important;
+    padding: 0 12px;
+    border: 2px solid var(--default-color-dark-blue);
+    border-radius: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+
+.atc-popup .atc-popup__actions .button.atc-popup__continue {
+    background: var(--default-color-white);
+    color: var(--default-color-dark-blue);
+}
+
+.atc-popup .atc-popup__actions .button.atc-popup__continue:hover {
+    background: var(--default-color-grey);
+}
+
+.atc-popup .atc-popup__actions .button.atc-popup__checkout {
+    background: var(--default-color-dark-blue);
+    color: var(--default-color-white);
+}
+
+.atc-popup .atc-popup__actions .button.atc-popup__checkout:hover {
+    background: var(--default-color-navy-blue);
+    border-color: var(--default-color-navy-blue);
+}
+
+.atc-popup__state--error .atc-popup__actions .button {
     flex: 1;
     margin: 0 !important;
-    text-align: center;
 }
 
 .atc-popup__view-cart {
