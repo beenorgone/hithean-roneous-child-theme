@@ -254,5 +254,14 @@ html.atc-popup-open {
 
     .atc-popup__actions {
         flex-direction: column-reverse;
+        flex-shrink: 0;
+    }
+
+    /* Cột dọc: flex-basis 0 sẽ áp lên chiều cao và làm nút co về 0 → giữ height 45px. */
+    .atc-popup .atc-popup__actions .button.atc-popup__continue,
+    .atc-popup .atc-popup__actions .button.atc-popup__checkout,
+    .atc-popup__state--error .atc-popup__actions .button {
+        flex: 0 0 auto;
+        width: 100%;
     }
 }
