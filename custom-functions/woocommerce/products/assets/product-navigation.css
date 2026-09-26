@@ -247,7 +247,7 @@
         left: 0;
         right: 0;
         bottom: 63px;
-        /* Cao hơn sticky-atc-bar (9999) và sticky-atc-toast (10000, css/custom.css)
+        /* Cao hơn sticky-atc-bar (9999, css/custom.css)
            vì popover "Chi tiết SP" mở ra nằm trong cụm này và phải luôn nổi trên. */
         z-index: 10005;
         display: flex;

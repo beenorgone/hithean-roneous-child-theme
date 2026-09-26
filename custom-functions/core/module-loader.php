@@ -379,6 +379,12 @@ function tpc_loader_modules()
             'condition' => 'tpc_cond_is_product',
         ],
         [
+            'id' => 'add_to_cart_popup',
+            'file' => 'custom-functions/woocommerce/products/add-to-cart-popup.php',
+            'condition' => 'tpc_cond_is_product',
+            'ajax_actions' => ['hithean_atc_popup'],
+        ],
+        [
             'id' => 'product_navigation',
             'file' => 'custom-functions/woocommerce/products/product-navigation.php',
             'condition' => 'tpc_cond_is_product',

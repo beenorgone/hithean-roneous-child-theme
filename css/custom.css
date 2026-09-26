@@ -2010,59 +2010,9 @@ div.summary.entry-summary > div.b-greenspark-revenue-percentage-widget > div {
 
 }
 
-/* Toast notification */
-.sticky-atc-toast {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    bottom: 65px;
-    background: var(--default-color-dark-blue);
-    color: #fff;
-    padding: 10px 18px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    white-space: nowrap;
-    z-index: 10000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-}
-
-.sticky-atc-toast__cta {
-    color: #fff;
-    font-weight: 700;
-    text-decoration: underline;
-    margin-left: 10px;
-    white-space: nowrap;
-}
-
-.sticky-atc-toast__cta:hover {
-    color: #fff;
-    opacity: 0.85;
-}
-
-.sticky-atc-toast.is-visible {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateX(-50%) translateY(0);
-}
-
-.sticky-atc-toast--success {
-    background: var(--default-color-green-dark);
-}
-
-.sticky-atc-toast--error {
-    background: var(--default-color-red);
-}
-
 @media (min-width: 768px) {
     .sticky-atc-bar {
         display: none !important;
-    }
-
-    .sticky-atc-toast {
-        bottom: 24px;
     }
 }
 

@@ -433,72 +433,16 @@ function hithean_sticky_atc_js()
         var $qtyInput   = $bar.find('.sticky-atc-bar__qty-input');
         var $stickyBtn  = $bar.find('.sticky-atc-bar__btn');
         var $origBtn    = $('form.cart button.single_add_to_cart_button').first();
-        var btnOrigText = $stickyBtn.text().trim();
-        var ajaxUrl  = '<?php echo esc_url(add_query_arg('wc-ajax', 'add_to_cart', home_url('/'))); ?>';
-        var cartUrl  = '<?php echo esc_url(wc_get_cart_url()); ?>';
-        var $toast   = $('<div class="sticky-atc-toast" role="status" aria-live="polite"><span class="sticky-atc-toast__msg"></span></div>').appendTo('body');
-        var toastTimer = null;
 
-        function showToast(msg, type, cta) {
-            clearTimeout(toastTimer);
-            $toast.find('.sticky-atc-toast__cta').remove();
-            $toast.removeClass('sticky-atc-toast--success sticky-atc-toast--error is-visible')
-                  .find('.sticky-atc-toast__msg').text(msg);
-            $toast.addClass('sticky-atc-toast--' + type);
-            if (cta) {
-                $('<a class="sticky-atc-toast__cta">')
-                    .attr('href', cta.url)
-                    .text(cta.label)
-                    .appendTo($toast);
-            }
-            void $toast[0].offsetWidth;
-            $toast.addClass('is-visible');
-            toastTimer = setTimeout(function() { $toast.removeClass('is-visible'); }, 4000);
-        }
-
+        // Gửi form.cart qua add-to-cart-popup.php, số lượng lấy từ sticky bar.
         $stickyBtn.on('click', function() {
             if ($stickyBtn.hasClass('disabled') || $stickyBtn.prop('disabled')) return;
+            var form = $('form.cart')[0];
+            if (!form || !window.hitheanAtcPopup) return;
 
-            var $form     = $('form.cart');
-            var productId = $form.find('[name="add-to-cart"]').val() || $form.data('product_id');
-            var formData  = $form.serializeArray().filter(function(f) { return f.name !== 'add-to-cart'; });
-
-            // Ensure quantity comes from sticky bar
-            var hasQty = false;
-            $.each(formData, function(i, f) {
-                if (f.name === 'quantity') { f.value = parseInt($qtyInput.val()) || 1; hasQty = true; }
-            });
-            if (!hasQty) formData.push({ name: 'quantity', value: parseInt($qtyInput.val()) || 1 });
-            formData.push({ name: 'product_id', value: productId });
-
-            $stickyBtn.prop('disabled', true).text('Đang thêm...');
-
-            $.ajax({
-                url: ajaxUrl,
-                type: 'POST',
-                data: $.param(formData),
-                dataType: 'json',
-            }).done(function(response) {
-                if (response && response.error) {
-                    showToast('Không thể thêm sản phẩm', 'error');
-                } else {
-                    $(document.body).trigger('wc_fragment_refresh');
-                    $(document.body).trigger('added_to_cart', [response.fragments, response.cart_hash, $stickyBtn]);
-                    showToast('Đã thêm vào giỏ hàng!', 'success', { url: cartUrl, label: 'Xem giỏ hàng' });
-                }
-            }).fail(function(xhr) {
-                // WC sometimes responds with 200 but non-JSON — parse manually before showing error
-                try {
-                    var res = JSON.parse(xhr.responseText);
-                    if (!res.error) {
-                        $(document.body).trigger('wc_fragment_refresh');
-                        showToast('Đã thêm vào giỏ hàng!', 'success', { url: cartUrl, label: 'Xem giỏ hàng' });
-                        return;
-                    }
-                } catch (e) {}
-                showToast('Có lỗi xảy ra, vui lòng thử lại', 'error');
-            }).always(function() {
-                $stickyBtn.prop('disabled', false).text(btnOrigText);
+            window.hitheanAtcPopup.submit(form, {
+                quantity: parseInt($qtyInput.val(), 10) || 1,
+                button: $stickyBtn[0]
             });
         });
 
