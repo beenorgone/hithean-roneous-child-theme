@@ -129,13 +129,13 @@ function theme_ai_resolve_provider(string $requested): string
  * @param array  $messages  [{role, content}, ...]
  * @param int    $max_tokens
  * @param string $model     Model override cho feature; '' = mặc định của provider
- * @param array  $options   Provider-specific options. Gemini supports google_search.
+ * @param array  $options   api_key (override key), google_search (chỉ Gemini).
  * @return string|WP_Error
  */
 function theme_ai_call_provider(string $provider, string $system, array $messages, int $max_tokens = 2000, string $model = '', array $options = [])
 {
     $provider = theme_ai_resolve_provider($provider);
-    $api_key  = theme_ai_get_api_key($provider);
+    $api_key  = (string) ($options['api_key'] ?? '') ?: theme_ai_get_api_key($provider);
 
     if ($api_key === '') {
         $key_hint = $provider === 'gemini_billing' ? 'GEMINI_API_KEY_BILLING' : strtoupper($provider) . '_API_KEY';
@@ -372,13 +372,13 @@ function theme_ai_call_claude(string $api_key, string $model, string $system, ar
  * @param string $provider  gemini | openai | claude | auto
  * @param array<int,array{path:string,mime_type?:string,title?:string}> $documents
  * @param string $model     Model override cho feature; '' = mặc định provider
- * @param array  $options   Provider-specific options. Gemini supports google_search.
+ * @param array  $options   api_key (override key), google_search (chỉ Gemini).
  * @return string|WP_Error
  */
 function theme_ai_call_provider_with_documents(string $provider, string $system, string $prompt, array $documents, int $max_tokens = 2000, int $timeout = 120, string $model = '', array $options = [])
 {
     $provider = theme_ai_resolve_provider($provider);
-    $api_key  = theme_ai_get_api_key($provider);
+    $api_key  = (string) ($options['api_key'] ?? '') ?: theme_ai_get_api_key($provider);
 
     if ($api_key === '') {
         $key_hint = $provider === 'gemini_billing' ? 'GEMINI_API_KEY_BILLING' : strtoupper($provider) . '_API_KEY';
@@ -619,6 +619,125 @@ function theme_ai_call_openai_with_documents(string $api_key, string $model, str
     }
 
     return trim($text) !== '' ? trim($text) : new WP_Error('theme_ai_openai_document_empty', 'OpenAI trả về nội dung rỗng.', ['provider' => 'openai']);
+}
+
+// ================================================================
+// FALLBACK KHI KEY BỊ LIMIT
+// ================================================================
+
+/**
+ * Key phụ cho cùng provider (VD nhiều key Gemini free) trong wp-config.php:
+ *   define('GEMINI_API_KEYS_EXTRA', ['key2', 'key3']); // hoặc chuỗi 'key2,key3'
+ * Tương tự CLAUDE_API_KEYS_EXTRA / OPENAI_API_KEYS_EXTRA.
+ */
+function theme_ai_extra_api_keys(string $provider): array
+{
+    $const = strtoupper(sanitize_key($provider)) . '_API_KEYS_EXTRA';
+    $raw   = defined($const) ? constant($const) : (string) getenv($const);
+    $keys  = is_array($raw) ? $raw : explode(',', (string) $raw);
+
+    return array_values(array_filter(array_map('trim', array_map('strval', $keys))));
+}
+
+/**
+ * Danh sách [provider, model, api_key] thử lần lượt: provider chính (key chính → key phụ),
+ * sau đó các provider khác đang có key. Key trùng nhau chỉ thử 1 lần
+ * (VD gemini_billing chưa có key riêng sẽ dùng lại key free → bỏ qua).
+ * Model feature chỉ áp cho provider chính; provider dự phòng dùng model mặc định.
+ */
+function theme_ai_fallback_chain(string $primary, string $model = ''): array
+{
+    $primary = theme_ai_resolve_provider($primary);
+    $chain   = [];
+    $seen    = [];
+
+    foreach (array_unique([$primary, 'gemini', 'gemini_billing', 'claude', 'openai']) as $provider) {
+        foreach (array_merge([theme_ai_get_api_key($provider)], theme_ai_extra_api_keys($provider)) as $key) {
+            if ($key === '' || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $chain[]    = [
+                'provider' => $provider,
+                'model'    => $provider === $primary ? $model : '',
+                'api_key'  => $key,
+            ];
+        }
+    }
+
+    return (array) apply_filters('theme_ai_fallback_chain', $chain, $primary, $model);
+}
+
+/**
+ * Lỗi do key hết quota / bị rate limit / provider quá tải → nên chuyển sang key khác.
+ */
+function theme_ai_is_limit_error($error): bool
+{
+    if (!is_wp_error($error)) {
+        return false;
+    }
+
+    $status = (int) (((array) $error->get_error_data())['status'] ?? 0);
+    if ($status === 429 || $status >= 500) {
+        return true;
+    }
+
+    return in_array($status, [400, 402, 403], true)
+        && (bool) preg_match('/quota|rate.?limit|exhausted|billing|credit balance|insufficient/i', $error->get_error_message());
+}
+
+function theme_ai_cooldown_transient(array $entry): string
+{
+    return 'theme_ai_cd_' . md5($entry['provider'] . '|' . $entry['api_key']);
+}
+
+/**
+ * Gọi AI có fallback: key bị limit → đánh dấu nghỉ một lúc (transient) và thử key/provider kế tiếp.
+ * Key đang nghỉ được bỏ qua ở các request sau để không tốn thêm 1 lượt gọi hỏng;
+ * nếu mọi key đều đang nghỉ thì vẫn thử lại toàn bộ.
+ *
+ * @param callable $call  fn(string $provider, string $model, string $api_key): string|WP_Error
+ * @param array|null $used Nhận entry đã trả lời thành công (provider/model).
+ * @return string|WP_Error
+ */
+function theme_ai_call_with_fallback(string $provider, string $model, callable $call, ?array &$used = null)
+{
+    $chain = theme_ai_fallback_chain($provider, $model);
+    if (!$chain) {
+        return $call(theme_ai_resolve_provider($provider), $model, ''); // trả lỗi thiếu key chuẩn
+    }
+
+    $ready = array_values(array_filter($chain, static function (array $entry): bool {
+        return !get_transient(theme_ai_cooldown_transient($entry));
+    }));
+    $chain = $ready ?: $chain;
+
+    $error = null;
+    foreach ($chain as $entry) {
+        $result = $call($entry['provider'], (string) $entry['model'], $entry['api_key']);
+        if (!is_wp_error($result)) {
+            $used = $entry;
+            unset($used['api_key']);
+            return $result;
+        }
+
+        $error = $result;
+        if (!theme_ai_is_limit_error($result)) {
+            return $result; // lỗi nội dung/cấu hình → đổi key cũng không giải quyết
+        }
+
+        set_transient(
+            theme_ai_cooldown_transient($entry),
+            1,
+            (int) apply_filters('theme_ai_limit_cooldown', 5 * MINUTE_IN_SECONDS, $entry, $result)
+        );
+    }
+
+    return new WP_Error(
+        'theme_ai_all_limited',
+        'Tất cả API key AI đang bị giới hạn, thử lại sau ít phút. (' . $error->get_error_message() . ')',
+        $error->get_error_data()
+    );
 }
 
 /**

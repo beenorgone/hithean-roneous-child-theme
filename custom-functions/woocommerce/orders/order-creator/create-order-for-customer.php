@@ -2095,29 +2095,20 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     require_once get_stylesheet_directory() . '/custom-functions/core/ai-providers.php';
     require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php';
 
-    $cfg = order_creator_ai_config();
-    $provider = theme_ai_resolve_provider((string) $cfg['provider']);
-    $use_google_search = $convert_old_address && in_array($provider, ['gemini', 'gemini_billing'], true);
-
     $address_rules = $convert_old_address
         ? 'Địa chỉ đầu ra phải dùng cấu trúc hành chính Việt Nam 2 cấp đang áp dụng trong năm 2026 (có hiệu lực từ 01/07/2025, không còn cấp quận/huyện). '
             . 'Nếu địa chỉ nguồn dùng đơn vị hành chính cũ trước sáp nhập năm 2025, hãy quy đổi tỉnh/thành và phường/xã sang tên hiện hành khi xác định chắc chắn; loại tên quận/huyện và tên đơn vị cũ khỏi địa chỉ đã quy đổi. '
             . 'Nếu không đủ căn cứ để quy đổi chính xác, giữ nguyên địa chỉ nguồn trong address_1 và giữ tên tỉnh/phường cũ đọc được trong state/city để giao diện cảnh báo nhân viên chọn lại; không suy đoán tên mới. '
+            . 'state = tên tỉnh/thành hiện hành, chỉ chọn trong danh sách: ' . implode('; ', theme_vn_address_provinces()) . '. '
+            . 'city = tên phường/xã/đặc khu hiện hành kèm tiền tố, VD "Phường Ba Đình", "Xã Tiên Lữ", "Đặc khu Côn Đảo". '
         : 'Không quy đổi địa chỉ hành chính. Giữ nguyên đầy đủ địa chỉ nguồn trong address_1, bao gồm phường/xã, quận/huyện và tỉnh/thành cũ nếu có; city/state ghi đúng tên xuất hiện trong dữ liệu nguồn và không suy đoán tên mới. ';
-    if ($use_google_search) {
-        $address_rules .= 'Khi địa chỉ dùng đơn vị cũ, bắt buộc dùng Google Search để tra cứu ánh xạ hành chính cũ → mới và ưu tiên nguồn cơ quan nhà nước. '
-            . 'Câu tìm kiếm chỉ được chứa tên phường/xã, quận/huyện và tỉnh/thành; tuyệt đối không đưa họ tên, số điện thoại, email, số nhà hoặc tên đường của khách vào câu tìm kiếm. ';
-    }
-
-    $system = 'Bạn là công cụ bóc tách thông tin khách hàng cho cửa hàng online Việt Nam. '
+    $search_rules = 'Khi địa chỉ dùng đơn vị cũ, bắt buộc dùng Google Search để tra cứu ánh xạ hành chính cũ → mới và ưu tiên nguồn cơ quan nhà nước. '
+        . 'Câu tìm kiếm chỉ được chứa tên phường/xã, quận/huyện và tỉnh/thành; tuyệt đối không đưa họ tên, số điện thoại, email, số nhà hoặc tên đường của khách vào câu tìm kiếm. ';
+    $system_head = 'Bạn là công cụ bóc tách thông tin khách hàng cho cửa hàng online Việt Nam. '
         . 'Từ dữ liệu được cung cấp (tin nhắn, comment, ảnh chụp màn hình chat, phiếu ship...), trích xuất thông tin khách và trả về DUY NHẤT một JSON object với đúng các khóa: '
         . 'first_name, last_name, email, phone, address_1, address_2, city, state. '
-        . $address_rules
-        . ($convert_old_address
-            ? 'state = tên tỉnh/thành hiện hành, chỉ chọn trong danh sách: ' . implode('; ', theme_vn_address_provinces()) . '. '
-                . 'city = tên phường/xã/đặc khu hiện hành kèm tiền tố, VD "Phường Ba Đình", "Xã Tiên Lữ", "Đặc khu Côn Đảo". '
-            : '')
-        . 'Quy tắc khác: first_name = đầy đủ họ tên khách hàng theo thứ tự tự nhiên (VD "Nguyễn Thị Hằng"); last_name = chuỗi rỗng, chỉ dùng khi dữ liệu nguồn bắt buộc tách riêng họ. '
+        . $address_rules;
+    $system_tail = 'Quy tắc khác: first_name = đầy đủ họ tên khách hàng theo thứ tự tự nhiên (VD "Nguyễn Thị Hằng"); last_name = chuỗi rỗng, chỉ dùng khi dữ liệu nguồn bắt buộc tách riêng họ. '
         . 'phone = SĐT Việt Nam, giữ số 0 đầu, chỉ gồm chữ số; '
         . 'address_1 = full địa chỉ giao hàng theo quy tắc chuyển đổi ở trên; address_2 = thông tin bổ sung riêng như tòa nhà, tầng, căn hộ, cổng, ghi chú đường vào nếu có. '
         . 'Trường không tìm thấy → chuỗi rỗng. Không markdown, không giải thích, chỉ trả về JSON.';
@@ -2127,10 +2118,22 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
         $prompt .= "\n(Kết hợp thêm thông tin trong ảnh đính kèm nếu có.)";
     }
 
-    $ai_options = $use_google_search ? ['google_search' => true] : [];
-    $raw = $image
-        ? theme_ai_call_provider_with_documents($provider, $system, $prompt, [$image], 1024, 90, $cfg['model'], $ai_options)
-        : theme_ai_call_provider($provider, $system, [['role' => 'user', 'content' => $prompt]], 1024, $cfg['model'], $ai_options);
+    // Key/provider bị limit → tự chuyển sang key/provider kế tiếp. Google Search chỉ bật với Gemini,
+    // nên system prompt dựng lại theo provider thực tế của từng lượt thử.
+    $cfg        = order_creator_ai_config();
+    $search_for = static function (string $provider) use ($convert_old_address): bool {
+        return $convert_old_address && in_array($provider, ['gemini', 'gemini_billing'], true);
+    };
+    $used = null;
+    $raw  = theme_ai_call_with_fallback((string) $cfg['provider'], (string) $cfg['model'], static function (string $provider, string $model, string $api_key) use ($search_for, $system_head, $search_rules, $system_tail, $prompt, $image) {
+        $search  = $search_for($provider);
+        $system  = $system_head . ($search ? $search_rules : '') . $system_tail;
+        $options = ['api_key' => $api_key, 'google_search' => $search];
+
+        return $image
+            ? theme_ai_call_provider_with_documents($provider, $system, $prompt, [$image], 1024, 90, $model, $options)
+            : theme_ai_call_provider($provider, $system, [['role' => 'user', 'content' => $prompt]], 1024, $model, $options);
+    }, $used);
 
     if (is_wp_error($raw)) {
         wp_send_json_error(['message' => $raw->get_error_message()]);
@@ -2188,7 +2191,8 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     wp_send_json_success([
         'fields'             => $fields,
         'unmatched'          => $unmatched,
-        'web_search_enabled' => $use_google_search,
+        'web_search_enabled' => $search_for((string) ($used['provider'] ?? '')),
+        'ai_provider'        => (string) ($used['provider'] ?? ''),
     ]);
 });
 
