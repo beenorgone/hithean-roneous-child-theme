@@ -311,7 +311,7 @@ function theme_erp_settings_render_page(): void
     $settings = theme_erp_settings();
 
     $key_status = [];
-    foreach (['CLAUDE_API_KEY' => 'Claude', 'GEMINI_API_KEY' => 'Gemini (free)', 'GEMINI_API_KEY_BILLING' => 'Gemini (billing)', 'OPENAI_API_KEY' => 'OpenAI'] as $const => $label) {
+    foreach (['CLAUDE_API_KEY' => 'Claude', 'GEMINI_API_KEY' => 'Gemini (free)', 'GEMINI_API_KEY_BILLING' => 'Gemini (billing)', 'OPENAI_API_KEY' => 'OpenAI', 'QWEN_API_KEY' => 'Qwen'] as $const => $label) {
         $key_status[$label] = (defined($const) && constant($const)) || getenv($const);
     }
     ?>
