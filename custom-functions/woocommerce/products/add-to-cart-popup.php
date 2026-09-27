@@ -2,10 +2,12 @@
 if (!defined('ABSPATH')) exit;
 
 /*---------------------------------------*\
-  ADD TO CART POPUP — trang sản phẩm.
-  Form "Thêm vào giỏ" (và sticky bar mobile) được gửi qua admin-ajax thay vì
-  reload trang; sau khi thêm thành công hiện modal xem trước giỏ hàng với
-  2 nút "Tiếp tục mua sắm" / "Đặt hàng".
+  ADD TO CART POPUP — trang sản phẩm + mọi product loop.
+  Form "Thêm vào giỏ" (và sticky bar mobile) ở trang sản phẩm, cùng nút
+  "Thêm vào giỏ" trong product loop (danh mục, trang chủ, shortcode, sản phẩm
+  liên quan...) được gửi qua admin-ajax thay vì reload trang / AJAX mặc định
+  của WC; sau khi thêm thành công hiện modal xem trước giỏ hàng với 2 nút
+  "Tiếp tục mua sắm" / "Đặt hàng". Trang giỏ hàng / thanh toán giữ hành vi WC.
 
   Việc thêm vào giỏ vẫn do WC_Form_Handler::add_to_cart_action() xử lý, nên
   simple / variable / grouped + field của plugin addon hoạt động như submit
@@ -49,7 +51,8 @@ function hithean_atc_popup_ajax()
         $messages = array_values(array_filter($messages));
 
         wp_send_json_error([
-            'message' => $messages ? implode(' ', $messages) : __('Không thể thêm sản phẩm vào giỏ hàng.', 'hithean.com'),
+            'message'     => $messages ? implode(' ', $messages) : __('Không thể thêm sản phẩm vào giỏ hàng.', 'hithean.com'),
+            'product_url' => get_permalink($product_id) ?: '',
         ]);
     }
 
@@ -120,14 +123,46 @@ function hithean_atc_popup_render_cart(string $added_key): string
 }
 
 /*---------------------------------------*\
+  PRODUCT LOOP
+  Nút loop chỉ có class 'ajax_add_to_cart' khi bật "Enable AJAX add to cart"
+  trong WC; gắn thêm class riêng để popup chạy bất kể setting đó.
+\*---------------------------------------*/
+
+add_filter('woocommerce_loop_add_to_cart_args', 'hithean_atc_popup_loop_button_args', 10, 2);
+
+function hithean_atc_popup_loop_button_args($args, $product)
+{
+    if (
+        $product instanceof WC_Product
+        && $product->supports('ajax_add_to_cart')
+        && $product->is_purchasable()
+        && $product->is_in_stock()
+        && hithean_atc_popup_is_enabled()
+    ) {
+        $args['class'] = trim(($args['class'] ?? '') . ' hithean-atc-loop');
+    }
+
+    return $args;
+}
+
+/*---------------------------------------*\
   ASSETS + MARKUP MODAL
 \*---------------------------------------*/
+
+function hithean_atc_popup_is_enabled(): bool
+{
+    if (is_admin() || !function_exists('WC')) {
+        return false;
+    }
+
+    return !(function_exists('is_cart') && is_cart()) && !(function_exists('is_checkout') && is_checkout());
+}
 
 add_action('wp_enqueue_scripts', 'hithean_atc_popup_enqueue_assets', 20);
 
 function hithean_atc_popup_enqueue_assets()
 {
-    if (!function_exists('is_product') || !is_product()) {
+    if (!hithean_atc_popup_is_enabled()) {
         return;
     }
 
@@ -163,7 +198,7 @@ add_action('wp_footer', 'hithean_atc_popup_render_modal', 30);
 
 function hithean_atc_popup_render_modal()
 {
-    if (!function_exists('is_product') || !is_product()) {
+    if (!hithean_atc_popup_is_enabled()) {
         return;
     }
     ?>
@@ -191,6 +226,7 @@ function hithean_atc_popup_render_modal()
                 <div class="atc-popup__actions">
                     <button type="button" class="button alt" data-atc-popup-close><?php esc_html_e('Đóng', 'hithean.com'); ?></button>
                 </div>
+                <a class="atc-popup__view-cart atc-popup__product-link" href="#" hidden><?php esc_html_e('Xem chi tiết sản phẩm', 'hithean.com'); ?></a>
             </div>
         </div>
     </div>
