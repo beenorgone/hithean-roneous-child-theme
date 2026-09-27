@@ -25,3 +25,13 @@ button#place_order {
 .woocommerce-cart form.checkout_coupon {
     padding: 15px 10px;
 }
+
+/* custom.css ép mọi textarea cao 46px -> ô "Ghi chú đơn hàng" chỉ còn 1 dòng */
+.woocommerce-checkout #order_comments,
+.woocommerce-checkout .woocommerce-additional-fields textarea {
+    height: auto;
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.5;
+    padding: 10px 12px;
+}
