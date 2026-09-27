@@ -1,5 +1,6 @@
 /**
- * Add to cart popup — gửi form.cart qua AJAX rồi hiện modal xem trước giỏ hàng.
+ * Add to cart popup — gửi form.cart (trang sản phẩm) hoặc nút "Thêm vào giỏ" của
+ * product loop qua AJAX rồi hiện modal xem trước giỏ hàng.
  * API cho code khác (sticky bar mobile): window.hitheanAtcPopup.submit(form, { quantity, button }).
  */
 jQuery(function ($) {
@@ -25,8 +26,14 @@ jQuery(function ($) {
         if (lastFocus && lastFocus.focus) lastFocus.focus();
     }
 
-    function showError(message) {
+    function showError(message, productUrl) {
         $modal.find('.atc-popup__error-msg').text(message || config.errorText);
+        var $link = $modal.find('.atc-popup__product-link');
+        if (productUrl) {
+            $link.attr('href', productUrl).removeAttr('hidden');
+        } else {
+            $link.attr('hidden', 'hidden');
+        }
         open('error');
     }
 
@@ -34,6 +41,45 @@ jQuery(function ($) {
         if (!fragments) return;
         $.each(fragments, function (selector, html) {
             $(selector).replaceWith(html);
+        });
+    }
+
+    /**
+     * Gửi request thêm vào giỏ. opts.showProductLink: khi lỗi, hiện link sang trang
+     * sản phẩm (nút loop — sản phẩm có thể cần chọn thêm tuỳ chọn).
+     */
+    function send(data, $btn, opts) {
+        if (busy) return;
+        opts = opts || {};
+
+        var btnHtml = $btn.html();
+        busy = true;
+        $btn.addClass('loading').removeClass('added').prop('disabled', true);
+        if (opts.loadingText) $btn.text(config.addingText);
+
+        $.ajax({
+            url: config.ajaxUrl,
+            type: 'POST',
+            data: data,
+            processData: false,
+            contentType: false,
+            dataType: 'json'
+        }).done(function (res) {
+            if (!res || !res.success) {
+                var err = (res && res.data) || {};
+                showError(err.message, opts.showProductLink ? err.product_url : '');
+                return;
+            }
+            applyFragments(res.data.fragments);
+            $(document.body).trigger('added_to_cart', [res.data.fragments, res.data.cart_hash, $btn]);
+            $modal.find('.atc-popup__cart').html(res.data.html);
+            open('success');
+        }).fail(function () {
+            showError();
+        }).always(function () {
+            busy = false;
+            $btn.removeClass('loading').prop('disabled', false);
+            if (opts.loadingText) $btn.html(btnHtml);
         });
     }
 
@@ -53,32 +99,16 @@ jQuery(function ($) {
         data.set('action', config.action);
         if (opts.quantity) data.set('quantity', opts.quantity);
 
-        var btnText = $btn.text();
-        busy = true;
-        $btn.addClass('loading').prop('disabled', true).text(config.addingText);
+        send(data, $btn, { loadingText: true });
+    }
 
-        $.ajax({
-            url: config.ajaxUrl,
-            type: 'POST',
-            data: data,
-            processData: false,
-            contentType: false,
-            dataType: 'json'
-        }).done(function (res) {
-            if (!res || !res.success) {
-                showError(res && res.data && res.data.message);
-                return;
-            }
-            applyFragments(res.data.fragments);
-            $(document.body).trigger('added_to_cart', [res.data.fragments, res.data.cart_hash, $btn]);
-            $modal.find('.atc-popup__cart').html(res.data.html);
-            open('success');
-        }).fail(function () {
-            showError();
-        }).always(function () {
-            busy = false;
-            $btn.removeClass('loading').prop('disabled', false).text(btnText);
-        });
+    function submitLoop($btn) {
+        var data = new FormData();
+        data.set('hithean_atc_product', $btn.attr('data-product_id'));
+        data.set('quantity', $btn.attr('data-quantity') || 1);
+        data.set('action', config.action);
+
+        send(data, $btn, { showProductLink: true });
     }
 
     window.hitheanAtcPopup = { submit: submit, close: close };
@@ -91,6 +121,19 @@ jQuery(function ($) {
         e.preventDefault();
         var submitter = e.originalEvent && e.originalEvent.submitter;
         submit(this, { button: submitter && $(submitter).is('.single_add_to_cart_button') ? submitter : null });
+    });
+
+    // Nút "Thêm vào giỏ" của product loop (simple, còn hàng).
+    var LOOP_BTN = '.hithean-atc-loop[data-product_id], .ajax_add_to_cart[data-product_id]';
+
+    // wc-add-to-cart.js (handler ở body, chạy trước) — chặn request AJAX của WC để không thêm 2 lần.
+    $(document.body).on('should_send_ajax_request.adding_to_cart', function (e, $button) {
+        if ($button && $($button).is(LOOP_BTN)) return false;
+    });
+
+    $(document).on('click', LOOP_BTN, function (e) {
+        e.preventDefault();
+        submitLoop($(this));
     });
 
     $modal.on('click', '[data-atc-popup-close]', close);
