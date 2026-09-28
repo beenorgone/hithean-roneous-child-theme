@@ -920,13 +920,57 @@ function theme_ai_parse_json_object(string $text)
     $start = strpos($text, '{');
     $end   = strrpos($text, '}');
     if ($start === false || $end === false || $end <= $start) {
-        return new WP_Error('theme_ai_bad_json', 'AI không trả về JSON hợp lệ.');
+        return new WP_Error(
+            'theme_ai_bad_json',
+            $start !== false ? 'AI trả về JSON bị cắt giữa chừng (vượt giới hạn độ dài), thử lại.' : 'AI không trả về JSON hợp lệ.'
+        );
     }
 
-    $decoded = json_decode(substr($text, $start, $end - $start + 1), true);
+    $json    = substr($text, $start, $end - $start + 1);
+    $decoded = json_decode($json, true);
+    if (!is_array($decoded)) {
+        // Model hay xuống dòng/tab thật bên trong chuỗi (nội dung nhiều đoạn) → escape rồi thử lại.
+        $decoded = json_decode(theme_ai_escape_json_string_controls($json), true);
+    }
     if (!is_array($decoded)) {
         return new WP_Error('theme_ai_bad_json', 'AI không trả về JSON hợp lệ.');
     }
 
     return $decoded;
+}
+
+/**
+ * Escape ký tự điều khiển (\n, \r, \t...) nằm TRONG chuỗi JSON; giữ nguyên whitespace giữa các token.
+ */
+function theme_ai_escape_json_string_controls(string $json): string
+{
+    $out       = '';
+    $in_string = false;
+    $escaped   = false;
+    $len       = strlen($json);
+    for ($i = 0; $i < $len; $i++) {
+        $ch = $json[$i];
+        if (!$in_string) {
+            $in_string = $ch === '"';
+            $out      .= $ch;
+            continue;
+        }
+        if ($escaped) {
+            $escaped = false;
+            $out    .= $ch;
+            continue;
+        }
+        if ($ch === '\\') {
+            $escaped = true;
+        } elseif ($ch === '"') {
+            $in_string = false;
+        } elseif (ord($ch) < 0x20) {
+            $map  = ["\n" => '\n', "\r" => '\r', "\t" => '\t'];
+            $out .= $map[$ch] ?? sprintf('\u%04x', ord($ch));
+            continue;
+        }
+        $out .= $ch;
+    }
+
+    return $out;
 }

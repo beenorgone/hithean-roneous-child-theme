@@ -343,14 +343,14 @@ function tpc_compare_ai_generate_copy(array $snapshot)
         . 'conclusion (kết luận mua hàng theo nhu cầu, ngắn gọn) và neutral_analysis '
         . '(phân tích trung lập về khác biệt, đối tượng phù hợp, hương vị/cách dùng, dinh dưỡng-thành phần và dữ liệu thiếu). '
         . 'Cả hai phần phải có ít nhất hai đoạn ngắn khi dữ liệu cho phép; không chỉ lặp lại thông số. '
-        . 'Mỗi giá trị là plain text gồm các đoạn ngắn, không markdown, không HTML.';
+        . 'Mỗi giá trị là plain text gồm các đoạn ngắn, không markdown, không HTML; ngăn cách đoạn bằng ký tự escape \\n trong chuỗi JSON.';
     $prompt = "Dữ liệu catalogue cho bảng so sánh:\n" . wp_json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $cfg = tpc_compare_ai_config();
     $documents = tpc_compare_ai_nutrition_documents($snapshot);
     $raw = theme_ai_feature_call($cfg, static function (string $provider, string $model, string $api_key) use ($system, $prompt, $documents) {
         return $documents
-            ? theme_ai_call_provider_with_documents($provider, $system, $prompt, $documents, 2400, 120, $model, ['api_key' => $api_key])
-            : theme_ai_call_provider($provider, $system, [['role' => 'user', 'content' => $prompt]], 2400, $model, ['api_key' => $api_key]);
+            ? theme_ai_call_provider_with_documents($provider, $system, $prompt, $documents, 6000, 150, $model, ['api_key' => $api_key])
+            : theme_ai_call_provider($provider, $system, [['role' => 'user', 'content' => $prompt]], 6000, $model, ['api_key' => $api_key]);
     });
     if (is_wp_error($raw)) {
         return $raw;
