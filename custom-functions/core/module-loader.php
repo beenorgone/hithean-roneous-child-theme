@@ -366,12 +366,20 @@ function tpc_loader_modules()
             'path_groups' => ['anc_landing'],
             'condition' => 'is_front_page',
         ],
+        [
+            'id' => 'anc_new_partner_offer',
+            'file' => 'custom-functions/shortcodes/shortcode-anc-new-partner-offer.php',
+            'paths' => ['/an-new-chapter-b2b'],
+            // Cron purge cache trang khi hết hạn ưu đãi.
+            'cron_hooks' => ['hithean_anc_offer_expired'],
+        ],
 
         /* ===== Chuyển từ $general_includes sang conditional (Phase 2) =====
          * 'condition'  : callable, đánh giá ở hook 'wp' (front) để gate theo conditional tag.
          * 'shortcodes' : load nếu is_singular() và post_content có shortcode tương ứng.
          * 'admin'      : load ở include-time khi is_admin() (giữ kịp hook admin_menu/admin_init).
          * 'ajax_actions': load khi admin-ajax có action khớp.
+         * 'cron_hooks' : load trong request WP-Cron (callback của event đã hẹn).
          */
         [
             'id' => 'product_page',
@@ -556,3 +564,21 @@ function tpc_loader_load_ajax_modules()
     }
 }
 add_action('init', 'tpc_loader_load_ajax_modules', 1);
+
+/**
+ * Module có 'cron_hooks' được nạp trong request WP-Cron (ngoài ngữ cảnh 'wp')
+ * để callback của event đã hẹn tồn tại khi cron chạy.
+ */
+function tpc_loader_load_cron_modules()
+{
+    if (!wp_doing_cron()) {
+        return;
+    }
+
+    foreach (tpc_loader_modules() as $module) {
+        if (!empty($module['file']) && !empty($module['cron_hooks'])) {
+            tpc_loader_require_relative($module['file']);
+        }
+    }
+}
+add_action('init', 'tpc_loader_load_cron_modules', 1);

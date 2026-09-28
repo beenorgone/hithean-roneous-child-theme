@@ -562,3 +562,226 @@
     line-height: 1.6;
   }
 }
+
+/* ============================================================
+   ƯU ĐÃI ĐẠI LÝ MỚI — chỉ render khi [anc_new_partner_offer] còn hạn
+   ============================================================ */
+.anc-hero-offer-badge {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 10px;
+  margin: 0 0 18px;
+  padding: 8px 16px;
+  border: 1px solid var(--default-color-yellow);
+  border-radius: 999px;
+  background: rgba(0, 20, 60, 0.45);
+  color: var(--default-color-white) !important;
+  font-size: 13px;
+  line-height: 1.4;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+}
+
+.anc-hero-offer-badge strong {
+  color: var(--default-color-yellow);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.anc-hero-offer-badge span::before {
+  content: '·';
+  margin-right: 10px;
+  opacity: 0.7;
+}
+
+.anc-hero-offer-note {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.anc-new-partner-offer {
+  background: #fff;
+  padding-top: 0;
+}
+
+.anc-offer-panel {
+  box-sizing: border-box;
+  padding: 48px 40px;
+  border-left: 4px solid var(--anc-b2b-accent);
+  border-radius: 8px;
+  background: var(--anc-b2b-surface-green);
+  text-align: center;
+}
+
+.anc-offer-eyebrow {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--anc-b2b-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.anc-offer-steps {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  text-align: left;
+}
+
+.anc-offer-cta {
+  margin-top: 30px;
+}
+
+.anc-offer-cta .button--dark-blue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+}
+
+.anc-offer-footnote {
+  margin: 14px auto 0;
+  max-width: 560px;
+  color: var(--anc-b2b-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.anc-register-offer {
+  display: inline-block;
+  margin: -12px 0 20px;
+  padding: 8px 16px;
+  border: 1px solid var(--anc-b2b-accent);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--anc-b2b-accent);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.anc-offer-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.anc-offer-countdown[hidden] {
+  display: none;
+}
+
+.anc-offer-countdown-label {
+  color: var(--anc-b2b-accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.anc-offer-countdown-units {
+  display: flex;
+  gap: 8px;
+}
+
+.anc-offer-countdown-units > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 58px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--anc-b2b-border);
+}
+
+.anc-offer-countdown-units b {
+  color: var(--anc-b2b-ink);
+  font-family: "Oswald", sans-serif;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.anc-offer-countdown-units small {
+  color: var(--anc-b2b-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+/* Hero: nền tối, bản gọn */
+.anc-offer-countdown--hero {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: -6px;
+}
+
+.anc-offer-countdown--hero .anc-offer-countdown-label {
+  color: var(--default-color-yellow);
+  font-size: 12px;
+}
+
+.anc-offer-countdown--hero .anc-offer-countdown-units > span {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px 8px;
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.anc-offer-countdown--hero .anc-offer-countdown-units b {
+  color: var(--default-color-white);
+  font-size: 18px;
+}
+
+.anc-offer-countdown--hero .anc-offer-countdown-units small {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 10px;
+}
+
+@media screen and (min-width: 1000px) {
+  .anc-offer-countdown--hero {
+    justify-content: flex-start;
+  }
+}
+
+#anc-cta-band .anc-cta-band-offer {
+  margin: -14px auto 24px;
+  color: var(--default-color-yellow);
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .anc-hero-offer-badge {
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border-radius: 12px;
+  }
+
+  .anc-hero-offer-badge span::before {
+    content: none;
+  }
+
+  .anc-offer-panel {
+    padding: 32px 18px;
+  }
+
+  .anc-offer-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .anc-offer-cta .button--dark-blue {
+    box-sizing: border-box;
+    width: 100%;
+  }
+}

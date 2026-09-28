@@ -37,10 +37,27 @@
       <h1 class="anc-hero-title">Protein thuần chay &amp; Siêu thực phẩm hữu cơ</h1>
       <!--p class="anc-hero-subtitle">Trang B2B đầy đủ cho Yeast Hero Protein, Matcha, Matcha Latte Coconut, Inulin và bột củ dền hữu cơ dành cho phòng tập, cửa hàng healthy và đại lý online.</!p-->
 
+      [anc_new_partner_offer]
+      <a href="#anc-new-partner-offer" class="anc-hero-offer-badge"><strong>Ưu đãi đại lý mới</strong> <span>Giá nhập riêng cho {orders} đơn đầu</span> <span>Đăng ký đến hết {end_date}</span></a>
+      <div class="anc-offer-countdown anc-offer-countdown--hero" data-anc-countdown="{end_iso}" role="timer">
+        <span class="anc-offer-countdown-label">Ưu đãi kết thúc sau</span>
+        <span class="anc-offer-countdown-units">
+          <span><b data-unit="d">--</b><small>ngày</small></span>
+          <span><b data-unit="h">--</b><small>giờ</small></span>
+          <span><b data-unit="m">--</b><small>phút</small></span>
+          <span><b data-unit="s">--</b><small>giây</small></span>
+        </span>
+      </div>
+      [/anc_new_partner_offer]
+
       <div class="anc-hero-ctas">
-        <a href="#anc-register" class="button--dark-blue" data-modal-open="anc-register">Nhận bảng giá đại lý →</a>
+        <a href="#anc-register" class="button--dark-blue" data-modal-open="anc-register">[anc_new_partner_offer]Nhận bảng giá ưu đãi trong 24h →[/anc_new_partner_offer][anc_new_partner_offer_else]Nhận bảng giá đại lý →[/anc_new_partner_offer_else]</a>
         <a href="#anc-b2b-model" class="button--light-blue">Lợi ích hợp tác</a>
       </div>
+
+      [anc_new_partner_offer]
+      <p class="anc-hero-offer-note">Bảng giá ưu đãi gửi qua email/Zalo trong vòng 24 giờ sau khi đăng ký.</p>
+      [/anc_new_partner_offer]
 
       <ul class="anc-hero-trust" aria-label="Cam kết & chứng nhận">
         <li>Protein thuần chay hoàn chỉnh từ nấm men</li>
@@ -123,6 +140,48 @@
   </div>
 </section>
 
+
+[anc_new_partner_offer]
+<!-- ============================================================
+     ƯU ĐÃI ĐẠI LÝ MỚI — tự ẩn sau hạn (xem shortcode-anc-new-partner-offer.php)
+     ============================================================ -->
+<section id="anc-new-partner-offer" class="anc-b2b-section anc-new-partner-offer">
+  <div class="anc-b2b-inner anc-offer-panel">
+    <span class="anc-offer-eyebrow anc-fade-in">Chương trình đến hết {end_date}</span>
+    <h2 class="anc-section-title anc-fade-in">ƯU ĐÃI DÀNH CHO ĐẠI LÝ MỚI</h2>
+    <div class="anc-offer-countdown anc-fade-in" data-anc-countdown="{end_iso}" role="timer">
+      <span class="anc-offer-countdown-label">Ưu đãi kết thúc sau</span>
+      <span class="anc-offer-countdown-units">
+        <span><b data-unit="d">--</b><small>ngày</small></span>
+        <span><b data-unit="h">--</b><small>giờ</small></span>
+        <span><b data-unit="m">--</b><small>phút</small></span>
+        <span><b data-unit="s">--</b><small>giây</small></span>
+      </span>
+    </div>
+    <p class="anc-section-subtitle anc-fade-in">Chương trình dành cho đối tác đăng ký đến hết {end_date}. Giúp bạn làm quen với sản phẩm và thử phản hồi thị trường với chi phí nhập phù hợp hơn.</p>
+
+    <div class="anc-b2b-grid anc-b2b-flow anc-offer-steps anc-fade-in-children">
+      <div class="anc-b2b-card">
+        <strong>Đăng ký đến hết {end_day}</strong>
+        <p>Điền thông tin kênh bán và sản phẩm quan tâm, chỉ mất 2 phút.</p>
+      </div>
+      <div class="anc-b2b-card">
+        <strong>Nhận bảng giá ưu đãi trong 24h</strong>
+        <p>Bảng giá riêng cho đại lý mới kèm điều kiện áp dụng, gửi thẳng cho bạn qua email/Zalo.</p>
+      </div>
+      <div class="anc-b2b-card">
+        <strong>Áp dụng cho {orders} đơn đầu</strong>
+        <p>{orders} đơn nhập đầu tiên hưởng giá ưu đãi. Từ đơn thứ {next_order} áp dụng bảng giá đại lý thường kỳ.</p>
+      </div>
+    </div>
+
+    <div class="anc-offer-cta anc-fade-in">
+      <a href="#anc-register" class="button--dark-blue" data-modal-open="anc-register">Đăng ký nhận ưu đãi →</a>
+      <p class="anc-offer-footnote">Mức ưu đãi cụ thể và điều kiện áp dụng được ghi trong bảng giá gửi riêng cho từng đối tác.</p>
+    </div>
+  </div>
+</section>
+[/anc_new_partner_offer]
 
 [certifications id="anc-qc"]
   <h2 class="certs-title">HỆ THỐNG SẢN XUẤT &amp; CHỨNG NHẬN</h2>
@@ -226,11 +285,11 @@ ORGANIC PRODUCTS
       </div>
       <div class="anc-b2b-card">
         <strong>Nhận chính sách</strong>
-        <p>Gửi bảng giá, hồ sơ pháp lý sản phẩm, chính sách theo nhóm đại lý và các điều kiện hỗ trợ bán hàng liên quan.</p>
+        <p>Gửi bảng giá, hồ sơ pháp lý sản phẩm, chính sách theo nhóm đại lý và các điều kiện hỗ trợ bán hàng liên quan.[anc_new_partner_offer] Đại lý mới đăng ký đến hết {end_date} nhận thêm bảng giá ưu đãi cho {orders} đơn đầu, gửi trong 24 giờ.[/anc_new_partner_offer]</p>
       </div>
       <div class="anc-b2b-card">
         <strong>Nhập hàng</strong>
-        <p>Đối tác bắt đầu với lô phù hợp năng lực bán, có tài liệu tư vấn nếu cần.</p>
+        <p>Đối tác bắt đầu với lô phù hợp năng lực bán, có tài liệu tư vấn nếu cần.[anc_new_partner_offer] {orders} đơn đầu áp dụng giá ưu đãi đại lý mới.[/anc_new_partner_offer]</p>
       </div>
       <div class="anc-b2b-card">
         <strong>Hỗ trợ bán</strong>
@@ -258,7 +317,7 @@ ORGANIC PRODUCTS
       <strong>Trial Pack Yeast Hero Protein</strong>
       <p>Phù hợp cho PT, studio, reseller và KOC muốn trải nghiệm sản phẩm thực tế trước khi đăng ký bảng giá đại lý.</p>
       <a href="https://shopee.vn/search?keyword=the+an+organics+g%C3%B3i+l%E1%BA%BB" class="button--dark-blue" target="_blank" rel="noopener">Mua gói lẻ trên Shopee →</a>
-      <a href="#anc-register" class="anc-cta-band-secondary" data-modal-open="anc-register">Sau khi trải nghiệm, đăng ký bảng giá đại lý →</a>
+      <a href="#anc-register" class="anc-cta-band-secondary" data-modal-open="anc-register">[anc_new_partner_offer]Sau khi trải nghiệm, đăng ký để nhận giá ưu đãi {orders} đơn đầu →[/anc_new_partner_offer][anc_new_partner_offer_else]Sau khi trải nghiệm, đăng ký bảng giá đại lý →[/anc_new_partner_offer_else]</a>
     </div>
   </div>
 </section>
@@ -272,7 +331,8 @@ ORGANIC PRODUCTS
     <button type="button" class="anc-modal-close" data-modal-close aria-label="Đóng">×</button>
     <div class="anc-modal-body anc-register-section">
       <h2 id="anc-register-title">ĐĂNG KÝ ĐỐI TÁC PHÂN PHỐI</h2>
-      <p>Điền thông tin bên dưới để nhận bảng giá, MOQ, chính sách theo nhóm đại lý và gợi ý danh mục sản phẩm phù hợp. Team The An Organics sẽ liên hệ trong 24-48 giờ làm việc.</p>
+      <p>[anc_new_partner_offer]Điền thông tin bên dưới để nhận bảng giá đại lý và <strong>bảng giá ưu đãi cho {orders} đơn đầu</strong> (áp dụng cho đối tác đăng ký đến hết {end_date}). Bảng giá ưu đãi được gửi qua email/Zalo trong vòng 24 giờ, sau đó team sẽ liên hệ tư vấn danh mục phù hợp.[/anc_new_partner_offer][anc_new_partner_offer_else]Điền thông tin bên dưới để nhận bảng giá, MOQ, chính sách theo nhóm đại lý và gợi ý danh mục sản phẩm phù hợp. Team The An Organics sẽ liên hệ trong 24-48 giờ làm việc.[/anc_new_partner_offer_else]</p>
+      [anc_new_partner_offer]<div class="anc-register-offer">🎁 Ưu đãi đại lý mới – {orders} đơn đầu</div>[/anc_new_partner_offer]
       <div class="anc-register-frame-wrap">
         <iframe src="https://ivarvietnam.com/dang-ky-dai-ly/?embed=1&src=hithean" title="Đăng ký tài khoản đại lý" loading="lazy" style="width:100%;min-height:780px;border:0" referrerpolicy="strict-origin-when-cross-origin"></iframe>
       </div>
@@ -304,7 +364,7 @@ ORGANIC PRODUCTS
 
         <details class="anc-faq-item">
           <summary>Có công khai giá sỉ trên landing page không?</summary>
-          <p>Không. Giá đại lý, MOQ và chính sách theo kênh sẽ được gửi sau khi đối tác đăng ký thông tin để team The An Organics tư vấn đúng mô hình bán hàng và nhóm sản phẩm phù hợp.</p>
+          <p>Không. Giá đại lý, MOQ và chính sách theo kênh sẽ được gửi sau khi đối tác đăng ký thông tin để team The An Organics tư vấn đúng mô hình bán hàng và nhóm sản phẩm phù hợp.[anc_new_partner_offer] Đại lý mới đăng ký đến hết {end_date} sẽ nhận thêm bảng giá ưu đãi riêng cho {orders} đơn đầu.[/anc_new_partner_offer]</p>
         </details>
 
         <details class="anc-faq-item">
@@ -314,8 +374,20 @@ ORGANIC PRODUCTS
 
         <details class="anc-faq-item">
           <summary>Sau khi đăng ký thì bước tiếp theo là gì?</summary>
-          <p>Team The An Organics sẽ liên hệ trong 24-48 giờ làm việc để xác nhận kênh bán, tư vấn danh mục, gửi bảng giá/MOQ/chính sách và thống nhất lô nhập đầu phù hợp.</p>
+          <p>[anc_new_partner_offer]Trong vòng 24 giờ, bạn nhận được bảng giá đại lý kèm bảng giá ưu đãi đại lý mới qua email/Zalo. Sau đó team The An Organics liên hệ để xác nhận kênh bán, tư vấn danh mục, MOQ và thống nhất lô nhập đầu phù hợp.[/anc_new_partner_offer][anc_new_partner_offer_else]Team The An Organics sẽ liên hệ trong 24-48 giờ làm việc để xác nhận kênh bán, tư vấn danh mục, gửi bảng giá/MOQ/chính sách và thống nhất lô nhập đầu phù hợp.[/anc_new_partner_offer_else]</p>
         </details>
+
+        [anc_new_partner_offer]
+        <details class="anc-faq-item">
+          <summary>Ưu đãi đại lý mới áp dụng thế nào?</summary>
+          <p>Đối tác đăng ký đến hết {end_date} được áp dụng giá nhập ưu đãi riêng cho {orders} đơn hàng đầu tiên. Từ đơn thứ {next_order} áp dụng bảng giá đại lý thường kỳ. Mức ưu đãi và điều kiện chi tiết được gửi kèm bảng giá trong vòng 24 giờ sau khi đăng ký.</p>
+        </details>
+
+        <details class="anc-faq-item">
+          <summary>Tôi đã là đại lý thì có được áp dụng không?</summary>
+          <p>Chương trình dành cho đối tác lần đầu hợp tác. Đại lý hiện hữu vui lòng liên hệ sales để được tư vấn chính sách phù hợp.</p>
+        </details>
+        [/anc_new_partner_offer]
 
         <details class="anc-faq-item">
           <summary>Có thể xem trang bán lẻ trước khi nhập hàng không?</summary>
@@ -372,7 +444,7 @@ ORGANIC PRODUCTS
     {
       "@type": "Question",
       "name": "Có công khai giá sỉ trên landing page không?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Không. Giá đại lý, MOQ và chính sách theo kênh sẽ được gửi sau khi đối tác đăng ký thông tin để team The An Organics tư vấn đúng mô hình bán hàng và nhóm sản phẩm phù hợp." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Không. Giá đại lý, MOQ và chính sách theo kênh sẽ được gửi sau khi đối tác đăng ký thông tin để team The An Organics tư vấn đúng mô hình bán hàng và nhóm sản phẩm phù hợp.[anc_new_partner_offer] Đại lý mới đăng ký đến hết {end_date} sẽ nhận thêm bảng giá ưu đãi riêng cho {orders} đơn đầu.[/anc_new_partner_offer]" }
     },
     {
       "@type": "Question",
@@ -382,8 +454,20 @@ ORGANIC PRODUCTS
     {
       "@type": "Question",
       "name": "Sau khi đăng ký thì bước tiếp theo là gì?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Team The An Organics sẽ liên hệ trong 24-48 giờ làm việc để xác nhận kênh bán, tư vấn danh mục, gửi bảng giá/MOQ/chính sách và thống nhất lô nhập đầu phù hợp." }
+      "acceptedAnswer": { "@type": "Answer", "text": "[anc_new_partner_offer]Trong vòng 24 giờ, bạn nhận được bảng giá đại lý kèm bảng giá ưu đãi đại lý mới qua email/Zalo. Sau đó team The An Organics liên hệ để xác nhận kênh bán, tư vấn danh mục, MOQ và thống nhất lô nhập đầu phù hợp.[/anc_new_partner_offer][anc_new_partner_offer_else]Team The An Organics sẽ liên hệ trong 24-48 giờ làm việc để xác nhận kênh bán, tư vấn danh mục, gửi bảng giá/MOQ/chính sách và thống nhất lô nhập đầu phù hợp.[/anc_new_partner_offer_else]" }
     },
+    [anc_new_partner_offer]
+    {
+      "@type": "Question",
+      "name": "Ưu đãi đại lý mới áp dụng thế nào?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Đối tác đăng ký đến hết {end_date} được áp dụng giá nhập ưu đãi riêng cho {orders} đơn hàng đầu tiên. Từ đơn thứ {next_order} áp dụng bảng giá đại lý thường kỳ. Mức ưu đãi và điều kiện chi tiết được gửi kèm bảng giá trong vòng 24 giờ sau khi đăng ký." }
+    },
+    {
+      "@type": "Question",
+      "name": "Tôi đã là đại lý thì có được áp dụng không?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Chương trình dành cho đối tác lần đầu hợp tác. Đại lý hiện hữu vui lòng liên hệ sales để được tư vấn chính sách phù hợp." }
+    },
+    [/anc_new_partner_offer]
     {
       "@type": "Question",
       "name": "Sản phẩm được sản xuất tại đâu?",
@@ -436,7 +520,8 @@ ORGANIC PRODUCTS
 <section id="anc-cta-band">
   <h2 class="anc-fade-in">CÙNG PHÂN PHỐI THE AN ORGANICS</h2>
   <p class="anc-fade-in">Danh mục protein thuần chay &amp; siêu thực phẩm hữu cơ với hồ sơ chứng nhận rõ ràng, nội dung sản phẩm đầy đủ và hỗ trợ bán hàng theo từng kênh.</p>
-  <a href="#anc-register" class="button--light-blue anc-fade-in" data-modal-open="anc-register">NHẬN BẢNG GIÁ ĐẠI LÝ →</a>
+  [anc_new_partner_offer]<p class="anc-cta-band-offer anc-fade-in">Ưu đãi {orders} đơn đầu cho đại lý mới đăng ký đến hết {end_date}.</p>[/anc_new_partner_offer]
+  <a href="#anc-register" class="button--light-blue anc-fade-in" data-modal-open="anc-register">[anc_new_partner_offer]NHẬN BẢNG GIÁ ƯU ĐÃI TRONG 24H →[/anc_new_partner_offer][anc_new_partner_offer_else]NHẬN BẢNG GIÁ ĐẠI LÝ →[/anc_new_partner_offer_else]</a>
   <a href="#anc-products" class="anc-cta-band-secondary anc-fade-in">Xem lại protein &amp; siêu thực phẩm →</a>
 </section>
 

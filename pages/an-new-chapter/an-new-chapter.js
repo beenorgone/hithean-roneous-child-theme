@@ -274,6 +274,46 @@
     }
 
     /* ============================================================
+       OFFER COUNTDOWN ([data-anc-countdown="<ISO hạn chót>"])
+       Hết giờ thì ẩn đồng hồ; nội dung ưu đãi do shortcode tự tắt phía server.
+       ============================================================ */
+
+    function initOfferCountdown() {
+        var timers = document.querySelectorAll('[data-anc-countdown]');
+        if (!timers.length) return;
+
+        function pad(n) { return n < 10 ? '0' + n : String(n); }
+
+        function tick() {
+            var now = Date.now();
+            var running = false;
+
+            timers.forEach(function (el) {
+                var left = Math.floor((Date.parse(el.getAttribute('data-anc-countdown')) - now) / 1000);
+                if (isNaN(left) || left <= 0) {
+                    el.hidden = true;
+                    return;
+                }
+                running = true;
+                var values = {
+                    d: Math.floor(left / 86400),
+                    h: pad(Math.floor(left % 86400 / 3600)),
+                    m: pad(Math.floor(left % 3600 / 60)),
+                    s: pad(left % 60)
+                };
+                el.querySelectorAll('[data-unit]').forEach(function (unit) {
+                    unit.textContent = values[unit.getAttribute('data-unit')];
+                });
+            });
+
+            if (!running) clearInterval(timer);
+        }
+
+        var timer = setInterval(tick, 1000);
+        tick();
+    }
+
+    /* ============================================================
        INIT
        ============================================================ */
 
@@ -285,6 +325,7 @@
         initGalleries();
         initProductSwitcher();
         initLazyMaps();
+        initOfferCountdown();
     }
 
     if (document.readyState === 'loading') {

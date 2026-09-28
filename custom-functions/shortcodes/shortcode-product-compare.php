@@ -399,6 +399,11 @@ function tpc_compare_get_field_value($product, $product_id, $field_key)
 
     $meta_value = get_post_meta($product_id, $field_key, true);
 
+    // Metabox lưu với prefix "product_info_" (hdsd → product_info_hdsd, faq → product_info_faq...).
+    if (($meta_value === '' || $meta_value === null) && strpos($field_key, 'product_info_') !== 0) {
+        $meta_value = get_post_meta($product_id, 'product_info_' . $field_key, true);
+    }
+
     return tpc_compare_format_field_value($meta_value);
 }
 
