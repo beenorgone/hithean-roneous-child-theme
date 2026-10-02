@@ -813,6 +813,7 @@ body.anc-modal-locked {
     .anc-sticky-menu {
         top: auto;
         bottom: 0;
+        height: auto;
         left: 0;
         right: 0;
         max-width: none;
@@ -971,28 +972,32 @@ body.anc-modal-locked {
         transform: translateY(100%);
     }
 
-    /* Mobile: chỉ ảnh, ẩn tên (trừ item không có ảnh) */
+    /* Mobile: chia đều full width, ảnh trên – tên dưới */
     .anc-pf-thumbnav .anc-pf-thumbnav-item {
-        width: 52px;
-        height: 52px;
-        padding: 0;
-        justify-content: center;
+        flex: 1 1 0;
+        min-width: 64px;
+        max-width: 110px;
+        height: auto;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 4px;
+        padding: 4px 3px 5px;
+        font-size: 10.5px;
+        white-space: normal;
+        text-align: center;
     }
 
     .anc-pf-thumbnav-item img {
-        width: 100%;
-        height: 100%;
-        border-radius: 0;
+        width: 44px;
+        height: 44px;
     }
 
-    .anc-pf-thumbnav-label:not(.is-only) {
-        display: none;
-    }
-
-    .anc-pf-thumbnav-label.is-only {
-        font-size: 10px;
-        white-space: normal;
-        text-align: center;
+    .anc-pf-thumbnav-label {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.2;
     }
 }
 

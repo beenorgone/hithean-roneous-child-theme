@@ -173,8 +173,8 @@ function hithean_anc_render_thumbnav(array $cards, string $aria_label): string
         if ($card['image'] !== '') {
             $html .= '<img src="' . esc_url($card['image']) . '" alt="" width="64" height="64" loading="lazy" decoding="async" />';
         }
-        // Tên ngắn (label như chip cũ): hiện cạnh ảnh trên desktop, ẩn trên mobile nếu có ảnh.
-        $html .= '<span class="anc-pf-thumbnav-label' . ($card['image'] === '' ? ' is-only' : '') . '">' . esc_html($card['label']) . '</span>';
+        // Tên ngắn (label như chip cũ): cạnh ảnh trên desktop, dưới ảnh trên mobile.
+        $html .= '<span class="anc-pf-thumbnav-label">' . esc_html($card['label']) . '</span>';
         $html .= '</button>';
     }
 
