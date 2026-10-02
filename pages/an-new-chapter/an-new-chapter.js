@@ -269,6 +269,44 @@
     // Khớp breakpoint CSS: dưới 680px các sticky menu chuyển thành footer cố định.
     var mqMobile = window.matchMedia('(max-width: 679px)');
 
+    /* Cuộn mượt với thời lượng tự định (behavior: 'smooth' của trình duyệt
+       không chỉnh được tốc độ). Người dùng tự cuộn/chạm thì dừng ngay. */
+    function slowScrollTo(y) {
+        var startY = window.pageYOffset;
+        var dist = y - startY;
+        if (Math.abs(dist) < 2) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            window.scrollTo(0, y);
+            return;
+        }
+        // ~gấp đôi thời lượng smooth-scroll mặc định (≈ chậm 1 nửa).
+        var duration = Math.min(2400, Math.max(900, Math.abs(dist) * 0.6));
+        var start = null, stopped = false;
+
+        function stop() { stopped = true; }
+        var opts = { passive: true, once: true };
+        window.addEventListener('wheel', stop, opts);
+        window.addEventListener('touchstart', stop, opts);
+        window.addEventListener('keydown', stop, { once: true });
+
+        function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+        function frame(ts) {
+            if (stopped) return;
+            if (start === null) start = ts;
+            var t = Math.min(1, (ts - start) / duration);
+            window.scrollTo(0, startY + dist * ease(t));
+            if (t < 1) {
+                window.requestAnimationFrame(frame);
+            } else {
+                window.removeEventListener('wheel', stop, opts);
+                window.removeEventListener('touchstart', stop, opts);
+                window.removeEventListener('keydown', stop);
+            }
+        }
+        window.requestAnimationFrame(frame);
+    }
+
     function initProductSwitcher() {
         var switchers = document.querySelectorAll('[data-product-switcher]');
         switchers.forEach(function (root) {
@@ -315,14 +353,21 @@
             var panelsWrap = root.querySelector('.anc-pf-panels');
             var thumbnav   = root.querySelector('.anc-pf-thumbnav');
 
-            // Chọn từ menu ảnh sticky khi đang cuộn giữa card → đưa đầu card mới
-            // lên ngay dưới menu, tránh rơi vào giữa nội dung sản phẩm khác.
+            // Đổi sản phẩm → đưa ảnh sản phẩm (không phải đoạn giới thiệu phía trên)
+            // vào điểm nhìn: ngay dưới menu ảnh (desktop) hoặc sát đầu màn hình
+            // (mobile, menu nằm ở footer).
             function revealPanels() {
-                if (!thumbnav || !panelsWrap) return;
-                var offset = thumbnav.getBoundingClientRect().bottom + 12;
-                var top = panelsWrap.getBoundingClientRect().top;
-                if (top < offset) {
-                    window.scrollBy({ top: top - offset, behavior: 'smooth' });
+                var active = root.querySelector('.anc-pf-panel.is-active');
+                var target = active && (active.querySelector('.anc-pf-visual') || active);
+                if (!target) return;
+                var adminBar = parseFloat(getComputedStyle(document.documentElement)
+                    .getPropertyValue('--wp-admin--admin-bar--height')) || 0;
+                var offset = (thumbnav && !mqMobile.matches)
+                    ? thumbnav.getBoundingClientRect().bottom + 12
+                    : adminBar + 12;
+                var delta = target.getBoundingClientRect().top - offset;
+                if (Math.abs(delta) > 4) {
+                    window.scrollBy({ top: delta, behavior: 'smooth' });
                 }
             }
 
@@ -465,8 +510,7 @@
                 if (!target) return;
                 e.preventDefault();
                 var offset = mqMobile.matches ? 16 : zoneTop() - 8;
-                var y = target.getBoundingClientRect().top + window.pageYOffset - offset;
-                window.scrollTo({ top: y, behavior: 'smooth' });
+                slowScrollTo(target.getBoundingClientRect().top + window.pageYOffset - offset);
             });
         });
     }
