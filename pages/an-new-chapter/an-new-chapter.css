@@ -765,6 +765,10 @@ body.anc-modal-locked {
 
 .anc-sticky-menu-link {
     flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
     padding: 9px 16px;
     border-radius: 999px;
     color: var(--default-color-dark-blue) !important;
@@ -776,8 +780,7 @@ body.anc-modal-locked {
     transition: background 0.18s ease, color 0.18s ease;
 }
 
-.anc-sticky-menu-link:hover,
-.anc-sticky-menu-link.is-current {
+.anc-sticky-menu-link:hover {
     background: var(--default-color-light-blue, #b0dded);
 }
 

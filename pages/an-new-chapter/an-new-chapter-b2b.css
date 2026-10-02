@@ -497,6 +497,7 @@
   line-height: 1.7;
 }
 
+.anc-shopee-promo,
 .anc-shopee-card .anc-shopee-promo {
   padding: 10px 14px;
   border: 1px dashed var(--anc-b2b-accent);
@@ -517,6 +518,23 @@
   font-weight: 700;
   letter-spacing: 1px;
   user-select: all;
+}
+
+/* Popup đặt mẫu thử (mở từ sticky menu) */
+.anc-trial-modal-body .anc-shopee-promo {
+  margin: 0 0 16px;
+}
+
+.anc-trial-modal-body .button--dark-blue {
+  display: block !important;
+  text-align: center !important;
+}
+
+.anc-trial-modal-body .anc-cta-band-secondary {
+  display: block;
+  margin-top: 14px;
+  text-align: center;
+  color: var(--anc-b2b-accent);
 }
 
 .anc-shopee-card .anc-cta-band-secondary {

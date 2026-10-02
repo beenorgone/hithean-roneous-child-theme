@@ -39,6 +39,10 @@
        ============================================================ */
 
     function openModal(modal) {
+        // Mở popup từ trong popup khác (vd mẫu thử → đăng ký): đóng popup cũ trước.
+        document.querySelectorAll('.anc-modal.is-open').forEach(function (m) {
+            if (m !== modal) closeModal(m);
+        });
         modal.classList.add('is-open');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('anc-modal-locked');
@@ -269,44 +273,6 @@
     // Khớp breakpoint CSS: dưới 680px các sticky menu chuyển thành footer cố định.
     var mqMobile = window.matchMedia('(max-width: 679px)');
 
-    /* Cuộn mượt với thời lượng tự định (behavior: 'smooth' của trình duyệt
-       không chỉnh được tốc độ). Người dùng tự cuộn/chạm thì dừng ngay. */
-    function slowScrollTo(y) {
-        var startY = window.pageYOffset;
-        var dist = y - startY;
-        if (Math.abs(dist) < 2) return;
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            window.scrollTo(0, y);
-            return;
-        }
-        // ~gấp đôi thời lượng smooth-scroll mặc định (≈ chậm 1 nửa).
-        var duration = Math.min(2400, Math.max(900, Math.abs(dist) * 0.6));
-        var start = null, stopped = false;
-
-        function stop() { stopped = true; }
-        var opts = { passive: true, once: true };
-        window.addEventListener('wheel', stop, opts);
-        window.addEventListener('touchstart', stop, opts);
-        window.addEventListener('keydown', stop, { once: true });
-
-        function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
-
-        function frame(ts) {
-            if (stopped) return;
-            if (start === null) start = ts;
-            var t = Math.min(1, (ts - start) / duration);
-            window.scrollTo(0, startY + dist * ease(t));
-            if (t < 1) {
-                window.requestAnimationFrame(frame);
-            } else {
-                window.removeEventListener('wheel', stop, opts);
-                window.removeEventListener('touchstart', stop, opts);
-                window.removeEventListener('keydown', stop);
-            }
-        }
-        window.requestAnimationFrame(frame);
-    }
-
     function initProductSwitcher() {
         var switchers = document.querySelectorAll('[data-product-switcher]');
         switchers.forEach(function (root) {
@@ -454,6 +420,7 @@
        STICKY MENU mặc định ([data-anc-sticky-menu])
        Hiện sau khi cuộn qua hero; ẩn khi section slide sản phẩm đang chiếm
        đầu màn hình (menu ảnh sản phẩm của section đó thay chỗ).
+       Các nút trong menu mở popup qua data-modal-open / data-cert-open.
        ============================================================ */
 
     function initStickyMenu() {
@@ -464,10 +431,6 @@
         var productSections = Array.prototype.map.call(
             document.querySelectorAll('[data-product-switcher]'),
             function (root) { return root.closest('section') || root; }
-        );
-        var links = Array.prototype.filter.call(
-            menu.querySelectorAll('a[href^="#"]:not([data-modal-open])'),
-            function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }
         );
 
         function zoneTop() {
@@ -487,11 +450,6 @@
             var visible = pastHero && !inProducts && !productNavShown;
             menu.classList.toggle('is-visible', visible);
             menu.setAttribute('aria-hidden', visible ? 'false' : 'true');
-
-            links.forEach(function (a) {
-                var r = document.getElementById(a.getAttribute('href').slice(1)).getBoundingClientRect();
-                a.classList.toggle('is-current', r.top < line && r.bottom > line);
-            });
         }
 
         var ticking = false;
@@ -502,17 +460,6 @@
         }, { passive: true });
         window.addEventListener('resize', update);
         update();
-
-        // Cuộn tới section, chừa chỗ cho chính menu để tiêu đề không bị che.
-        links.forEach(function (a) {
-            a.addEventListener('click', function (e) {
-                var target = document.getElementById(a.getAttribute('href').slice(1));
-                if (!target) return;
-                e.preventDefault();
-                var offset = mqMobile.matches ? 16 : zoneTop() - 8;
-                slowScrollTo(target.getBoundingClientRect().top + window.pageYOffset - offset);
-            });
-        });
     }
 
     /* ============================================================
