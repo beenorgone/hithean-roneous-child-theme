@@ -803,11 +803,50 @@ body.anc-modal-locked {
     outline-offset: 1px;
 }
 
-@media (max-width: 479px) {
-    .anc-sticky-menu-link {
-        padding: 8px 11px;
-        font-size: 12.5px;
+/* Mobile: sticky menu thành footer cố định, full width */
+@media (max-width: 679px) {
+    /* Chừa chỗ để footer menu không che nội dung cuối trang */
+    body.anc-page:has(.anc-sticky-menu) {
+        padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
     }
+
+    .anc-sticky-menu {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: none;
+        gap: 4px;
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+        border-radius: 0;
+        box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.12);
+        transform: translateY(100%);
+    }
+
+    .anc-sticky-menu.is-visible {
+        transform: translateY(0);
+    }
+
+    .anc-sticky-menu-link {
+        flex: 1 1 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .anc-sticky-menu-link--fb {
+        flex: 0 0 44px;
+        padding: 6px;
+    }
+}
+
+@media (max-width: 479px) {
 
     /* Facebook chỉ còn icon để 4 nút vừa 1 hàng */
     .anc-sticky-menu-link--fb .anc-sticky-menu-label {
@@ -861,17 +900,21 @@ body.anc-modal-locked {
 
 .anc-pf-thumbnav .anc-pf-thumbnav-item {
     flex: 0 0 auto;
-    width: 60px;
-    height: 60px;
-    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 56px;
+    padding: 4px 14px 4px 4px;
     border: 2px solid transparent;
     border-radius: 10px;
     background: #fff;
     color: var(--default-color-dark-blue);
-    font-size: 10px;
-    line-height: 1.1;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.15;
+    white-space: nowrap;
     overflow: hidden;
-    opacity: 0.6;
+    opacity: 0.65;
     box-shadow: none;
     transition: opacity 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
@@ -884,6 +927,7 @@ body.anc-modal-locked {
 
 .anc-pf-thumbnav .anc-pf-thumbnav-item.is-active {
     background: #fff;
+    color: var(--default-color-dark-blue);
     opacity: 1;
     border-color: var(--default-color-dark-blue);
     box-shadow: none;
@@ -895,22 +939,60 @@ body.anc-modal-locked {
 }
 
 .anc-pf-thumbnav-item img {
-    width: 100%;
-    height: 100%;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 7px;
     object-fit: cover;
     display: block;
     pointer-events: none;
 }
 
 @media (max-width: 679px) {
+    /* Mobile: footer cố định full width; JS bật .is-floating khi đang ở vùng card */
     .anc-pf-thumbnav {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 900;
+        justify-content: safe center;
         gap: 6px;
-        padding: 5px;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+        border-radius: 0;
+        box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.12);
     }
 
+    .anc-pf-thumbnav.is-hidden {
+        transform: translateY(100%);
+    }
+
+    /* Mobile: chỉ ảnh, ẩn tên (trừ item không có ảnh) */
     .anc-pf-thumbnav .anc-pf-thumbnav-item {
         width: 52px;
         height: 52px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .anc-pf-thumbnav-item img {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+    }
+
+    .anc-pf-thumbnav-label:not(.is-only) {
+        display: none;
+    }
+
+    .anc-pf-thumbnav-label.is-only {
+        font-size: 10px;
+        white-space: normal;
+        text-align: center;
     }
 }
 
@@ -2210,7 +2292,9 @@ body.anc-modal-locked {
 
 .anc-fade-in.is-visible {
     opacity: 1;
-    transform: translateY(0);
+    /* none (không phải translateY(0)) để không tạo containing block,
+       nếu không menu position: fixed bên trong sẽ bị neo theo khối này */
+    transform: none;
 }
 
 .anc-fade-in-children > * {

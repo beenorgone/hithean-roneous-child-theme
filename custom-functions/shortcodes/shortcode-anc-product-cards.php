@@ -172,9 +172,9 @@ function hithean_anc_render_thumbnav(array $cards, string $aria_label): string
         $html .= '<button type="button" class="anc-pf-chip anc-pf-thumbnav-item' . ($active ? ' is-active' : '') . '" role="tab" aria-selected="' . ($active ? 'true' : 'false') . '" data-card="' . esc_attr($card['card']) . '" aria-label="' . esc_attr($label) . '" title="' . esc_attr($label) . '">';
         if ($card['image'] !== '') {
             $html .= '<img src="' . esc_url($card['image']) . '" alt="" width="64" height="64" loading="lazy" decoding="async" />';
-        } else {
-            $html .= '<span>' . esc_html($card['label']) . '</span>';
         }
+        // Tên ngắn (label như chip cũ): hiện cạnh ảnh trên desktop, ẩn trên mobile nếu có ảnh.
+        $html .= '<span class="anc-pf-thumbnav-label' . ($card['image'] === '' ? ' is-only' : '') . '">' . esc_html($card['label']) . '</span>';
         $html .= '</button>';
     }
 

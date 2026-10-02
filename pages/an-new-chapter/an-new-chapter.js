@@ -266,6 +266,9 @@
        PRODUCT SWITCHER (menu ảnh sticky / chips → đổi card sản phẩm)
        ============================================================ */
 
+    // Khớp breakpoint CSS: dưới 680px các sticky menu chuyển thành footer cố định.
+    var mqMobile = window.matchMedia('(max-width: 679px)');
+
     function initProductSwitcher() {
         var switchers = document.querySelectorAll('[data-product-switcher]');
         switchers.forEach(function (root) {
@@ -337,8 +340,17 @@
                 var ticking = false;
                 var updateThumbnav = function () {
                     ticking = false;
-                    var navBottom = thumbnav.getBoundingClientRect().bottom;
-                    var past = panelsWrap.getBoundingClientRect().bottom < navBottom + 40;
+                    var r = panelsWrap.getBoundingClientRect();
+                    if (mqMobile.matches) {
+                        // Mobile: footer cố định, chỉ hiện khi vùng card đang chiếm màn hình.
+                        var vh = window.innerHeight;
+                        var show = r.top < vh - thumbnav.offsetHeight && r.bottom > vh * 0.5;
+                        thumbnav.classList.toggle('is-floating', show);
+                        thumbnav.classList.toggle('is-hidden', !show);
+                        return;
+                    }
+                    thumbnav.classList.remove('is-floating');
+                    var past = r.bottom < thumbnav.getBoundingClientRect().bottom + 40;
                     thumbnav.classList.toggle('is-hidden', past);
                 };
                 window.addEventListener('scroll', function () {
@@ -425,7 +437,9 @@
                 var r = sec.getBoundingClientRect();
                 return r.top < line && r.bottom > line;
             });
-            var visible = pastHero && !inProducts;
+            // Mobile: menu ảnh sản phẩm cũng nằm ở footer → nhường chỗ khi nó đang hiện.
+            var productNavShown = mqMobile.matches && !!document.querySelector('.anc-pf-thumbnav.is-floating');
+            var visible = pastHero && !inProducts && !productNavShown;
             menu.classList.toggle('is-visible', visible);
             menu.setAttribute('aria-hidden', visible ? 'false' : 'true');
 
@@ -450,7 +464,8 @@
                 var target = document.getElementById(a.getAttribute('href').slice(1));
                 if (!target) return;
                 e.preventDefault();
-                var y = target.getBoundingClientRect().top + window.pageYOffset - zoneTop() + 8;
+                var offset = mqMobile.matches ? 16 : zoneTop() - 8;
+                var y = target.getBoundingClientRect().top + window.pageYOffset - offset;
                 window.scrollTo({ top: y, behavior: 'smooth' });
             });
         });
