@@ -376,7 +376,7 @@ function tpc_loader_modules()
 
         /* ===== Chuyển từ $general_includes sang conditional (Phase 2) =====
          * 'condition'  : callable, đánh giá ở hook 'wp' (front) để gate theo conditional tag.
-         * 'shortcodes' : load nếu is_singular() và post_content có shortcode tương ứng.
+         * 'shortcodes' : load nếu is_singular() và nội dung trang (post_content hoặc file HTML landing) có shortcode tương ứng.
          * 'admin'      : load ở include-time khi is_admin() (giữ kịp hook admin_menu/admin_init).
          * 'ajax_actions': load khi admin-ajax có action khớp.
          * 'cron_hooks' : load trong request WP-Cron (callback của event đã hẹn).
@@ -494,10 +494,10 @@ function tpc_loader_front_module_matches(array $module)
 
     // 3) Khớp khi trang đơn có chứa shortcode tương ứng.
     if (!empty($module['shortcodes']) && is_singular()) {
-        $post = get_post();
-        if ($post instanceof WP_Post && $post->post_content !== '') {
+        $content = hithean_singular_raw_content();
+        if ($content !== '') {
             foreach ((array) $module['shortcodes'] as $shortcode) {
-                if (tpc_loader_content_has_shortcode($post->post_content, $shortcode)) {
+                if (tpc_loader_content_has_shortcode($content, $shortcode)) {
                     return true;
                 }
             }

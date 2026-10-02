@@ -21,6 +21,17 @@
 <main id="anc-main">
 
 <!-- ============================================================
+     STICKY MENU mặc định — hiện khi đã cuộn qua hero, tự ẩn khi đang ở
+     section slide sản phẩm (menu ảnh sản phẩm thay chỗ). Logic: an-new-chapter.js
+     ============================================================ -->
+<nav class="anc-sticky-menu" data-anc-sticky-menu aria-label="Điều hướng nhanh">
+  <a href="#anc-register" class="anc-sticky-menu-link anc-sticky-menu-link--primary" data-modal-open="anc-register">Đăng ký đại lý</a>
+  <a href="#anc-shopee-trial" class="anc-sticky-menu-link">Đặt mẫu thử</a>
+  <a href="#anc-qc" class="anc-sticky-menu-link">Chứng nhận &amp; Nhà máy</a>
+  <a href="https://web.facebook.com/theanorganics.phanphoi" class="anc-sticky-menu-link anc-sticky-menu-link--fb" target="_blank" rel="noopener"><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.5V4.4c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.4H8v3h2.6V21h2.9z"/></svg><span class="anc-sticky-menu-label">Facebook</span></a>
+</nav>
+
+<!-- ============================================================
      HERO
      ============================================================ -->
 <section id="anc-hero">
@@ -241,7 +252,7 @@
      CAM KẾT "KHÔNG..." — swiper tách riêng, nền beige
      ============================================================ -->
 <section id="anc-commitments" class="anc-commitments">
-  <div class="swiper-icons" style="margin: 0 auto; padding: 20px 0; max-width: unset;" data-slides-per-view="5" data-autoplay="1" data-speed="4000" data-navigation="false" data-space-between="10" data-loop="true">
+  <div class="swiper swiper-icons" style="margin: 0 auto; padding: 20px 0; max-width: unset;" data-slides-per-view="5" data-autoplay="1" data-speed="4000" data-navigation="false" data-space-between="10" data-loop="true">
     <div class="swiper-wrapper">
       <div class="swiper-slide"><img src="https://hithean.com/wp-content/uploads/2024/12/icon-KHONG-DAU-NANH-notext.png" alt="Không đậu nành" width="100" height="100" />Không Đậu Nành</div>
       <div class="swiper-slide"><img src="https://hithean.com/wp-content/uploads/2024/12/icon-KHONG-THEM-DUONG-notext.png" alt="Không thêm đường" width="100" height="100" />Không Thêm Đường</div>
@@ -316,7 +327,8 @@ ORGANIC PRODUCTS
     <div class="anc-shopee-card anc-fade-in">
       <strong>Trial Pack Yeast Hero Protein</strong>
       <p>Phù hợp cho PT, studio, reseller và KOC muốn trải nghiệm sản phẩm thực tế trước khi đăng ký bảng giá đại lý.</p>
-      <a href="https://shopee.vn/search?keyword=the+an+organics+g%C3%B3i+l%E1%BA%BB" class="button--dark-blue" target="_blank" rel="noopener">Mua gói lẻ trên Shopee →</a>
+      <p class="anc-shopee-promo">🎁 Nhập mã <span class="anc-shopee-code">THEAB2B</span> để nhận thêm ưu đãi giảm 10% cho đơn trải nghiệm</p>
+      <a href="https://shopee.vn/The-An-Organics-Yeast-Hero-Protein-i.1500077147.57618478288" class="button--dark-blue" target="_blank" rel="noopener">Mua gói lẻ trên Shopee →</a>
       <a href="#anc-register" class="anc-cta-band-secondary" data-modal-open="anc-register">[anc_new_partner_offer]Sau khi trải nghiệm, đăng ký để nhận giá ưu đãi {orders} đơn đầu →[/anc_new_partner_offer][anc_new_partner_offer_else]Sau khi trải nghiệm, đăng ký bảng giá đại lý →[/anc_new_partner_offer_else]</a>
     </div>
   </div>
@@ -338,7 +350,7 @@ ORGANIC PRODUCTS
       </div>
       <p class="anc-register-alt">
         Hoặc liên hệ trực tiếp:<br />
-        <a href='mailto:[company_info field="email_sales"]'>[company_info field="email_sales"]</a>
+        [company_info field="email_sales" link="yes"]
       </p>
     </div>
   </div>

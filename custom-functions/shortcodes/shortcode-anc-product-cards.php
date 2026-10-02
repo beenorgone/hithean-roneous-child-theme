@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) exit;
  * Shortcodes for AN New Chapter product panels.
  *
  * [anc_product_switcher] renders the section + switcher shell and generates
- * chips from nested [anc_product_card] shortcodes.
+ * the sticky product-image menu from nested [anc_product_card] shortcodes.
  * [anc_product_card] renders one .anc-pf-panel compatible with an-new-chapter.js.
  */
 
@@ -133,9 +133,18 @@ function hithean_anc_extract_card_metas(string $content): array
         }
 
         $meta = hithean_anc_card_meta_from_atts($atts);
-        if ($meta['card'] !== '') {
-            $cards[] = $meta;
+        if ($meta['card'] === '') {
+            continue;
         }
+
+        $product = hithean_anc_resolve_product($atts);
+        if (!$product instanceof WC_Product) {
+            continue;
+        }
+
+        $meta['name']  = $product->get_name();
+        $meta['image'] = (string) wp_get_attachment_image_url((int) $product->get_image_id(), 'woocommerce_thumbnail');
+        $cards[] = $meta;
     }
 
     if ($cards && !array_filter($cards, static fn($card) => !empty($card['active']))) {
@@ -145,19 +154,28 @@ function hithean_anc_extract_card_metas(string $content): array
     return $cards;
 }
 
-function hithean_anc_render_chips(array $cards, string $aria_label, string $extra_class = ''): string
+/**
+ * Menu ảnh sản phẩm (sticky khi cuộn trong section) — thay cho chips tên.
+ * Nút giữ class/data-card như chip cũ để an-new-chapter.js dùng chung logic chọn card.
+ */
+function hithean_anc_render_thumbnav(array $cards, string $aria_label): string
 {
-    if (!$cards) {
+    if (count($cards) < 2) {
         return '';
     }
 
-    $classes = trim('anc-pf-chips ' . $extra_class);
-    $html = '<div class="' . esc_attr($classes) . '" role="tablist" aria-label="' . esc_attr($aria_label) . '">';
+    $html = '<div class="anc-pf-thumbnav" role="tablist" aria-label="' . esc_attr($aria_label) . '">';
 
     foreach ($cards as $card) {
         $active = !empty($card['active']);
-        $classes = 'anc-pf-chip' . ($active ? ' is-active' : '');
-        $html .= '<button type="button" class="' . esc_attr($classes) . '" role="tab" aria-selected="' . ($active ? 'true' : 'false') . '" data-card="' . esc_attr($card['card']) . '">' . esc_html($card['label']) . '</button>';
+        $label = $card['name'] !== '' ? $card['name'] : $card['label'];
+        $html .= '<button type="button" class="anc-pf-chip anc-pf-thumbnav-item' . ($active ? ' is-active' : '') . '" role="tab" aria-selected="' . ($active ? 'true' : 'false') . '" data-card="' . esc_attr($card['card']) . '" aria-label="' . esc_attr($label) . '" title="' . esc_attr($label) . '">';
+        if ($card['image'] !== '') {
+            $html .= '<img src="' . esc_url($card['image']) . '" alt="" width="64" height="64" loading="lazy" decoding="async" />';
+        } else {
+            $html .= '<span>' . esc_html($card['label']) . '</span>';
+        }
+        $html .= '</button>';
     }
 
     return $html . '</div>';
@@ -172,7 +190,6 @@ function hithean_anc_product_switcher_shortcode($atts, $content = ''): string
         'story'        => '',
         'aria_label'   => 'Chọn sản phẩm',
         'class'        => '',
-        'bottom_chips' => '1',
         'fade_in'      => '1',
     ], $atts, 'anc_product_switcher');
 
@@ -193,15 +210,11 @@ function hithean_anc_product_switcher_shortcode($atts, $content = ''): string
                 <p class="anc-organic-story"><?php echo wp_kses_post($atts['story']); ?></p>
             <?php endif; ?>
 
-            <?php echo hithean_anc_render_chips($cards, (string) $atts['aria_label']); ?>
+            <?php echo hithean_anc_render_thumbnav($cards, (string) $atts['aria_label']); ?>
 
             <div class="anc-pf-panels">
                 <?php echo do_shortcode((string) $content); ?>
             </div>
-
-            <?php if (hithean_anc_bool($atts['bottom_chips'], true)) : ?>
-                <?php echo hithean_anc_render_chips($cards, (string) $atts['aria_label'], 'anc-pf-chips--bottom'); ?>
-            <?php endif; ?>
         </div>
     </section>
     <?php
@@ -214,6 +227,11 @@ function hithean_anc_product_cta_text(WC_Product $product, string $stock_status)
         return 'Sắp ra mắt';
     }
 
+    // Chỉ sản phẩm gắn tag NEW mới hiện "Mới ra mắt" (kể cả khi còn hàng).
+    if (has_term('new', 'product_tag', $product->get_id())) {
+        return 'Mới ra mắt';
+    }
+
     if ($stock_status === 'out_of_stock') {
         return 'Hết hàng — Xem chi tiết';
     }
@@ -224,10 +242,6 @@ function hithean_anc_product_cta_text(WC_Product $product, string $stock_status)
 
     if ($product->is_in_stock()) {
         return 'Xem & Mua ngay';
-    }
-
-    if (has_term(['new', 'NEW'], 'product_tag', $product->get_id())) {
-        return 'Mới ra mắt';
     }
 
     return 'Hết hàng — Xem chi tiết';
@@ -320,19 +334,17 @@ function hithean_anc_product_card_shortcode($atts): string
             <?php if (hithean_anc_bool($atts['show_gallery'], true)) : ?>
                 <?php echo hithean_anc_product_gallery_html($product); ?>
             <?php endif; ?>
-            <div class="anc-pf-controls">
-                <button type="button" class="anc-pf-nav anc-pf-nav--prev" aria-label="Sản phẩm trước">‹</button>
-                <?php if (hithean_anc_bool($atts['show_nutrition'], true)) : ?>
+            <?php if (hithean_anc_bool($atts['show_nutrition'], true)) : ?>
+                <div class="anc-pf-controls">
                     <?php echo do_shortcode('[product_nutrition_label product_id="' . absint($product->get_id()) . '"]'); ?>
-                <?php endif; ?>
-                <button type="button" class="anc-pf-nav anc-pf-nav--next" aria-label="Sản phẩm kế tiếp">›</button>
-            </div>
+                </div>
+            <?php endif; ?>
         </div>
         <div class="anc-pf-details">
             <?php if ($atts['badge'] !== '') : ?>
                 <span class="anc-pf-badge"><?php echo wp_kses_post($atts['badge']); ?></span>
             <?php endif; ?>
-            <h3 class="anc-pf-name"><?php echo esc_html($product->get_name()); ?></h3>
+            <h3 class="anc-pf-name"><a href="<?php echo esc_url((string) get_permalink($product->get_id())); ?>"><?php echo esc_html($product->get_name()); ?></a></h3>
             <?php if ($pills) : ?>
                 <div class="anc-pf-pills">
                     <?php foreach ($pills as $pill) : ?>

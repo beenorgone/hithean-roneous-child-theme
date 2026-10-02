@@ -26,8 +26,7 @@ function hithean_should_enqueue_swiper_slider(): bool
     $needs_swiper = false;
 
     if (is_singular()) {
-        $post = get_post(get_queried_object_id());
-        $content = $post instanceof WP_Post ? (string) $post->post_content : '';
+        $content = hithean_singular_raw_content(get_queried_object_id());
 
         // swiper-init.js only initializes these two custom slider variants.
         // Avoid shipping the 155 KB vendor bundle to singular pages without

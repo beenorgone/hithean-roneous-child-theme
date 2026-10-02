@@ -497,6 +497,28 @@
   line-height: 1.7;
 }
 
+.anc-shopee-card .anc-shopee-promo {
+  padding: 10px 14px;
+  border: 1px dashed var(--anc-b2b-accent);
+  border-radius: 6px;
+  background: rgba(255, 247, 237, 0.9);
+  color: var(--anc-b2b-ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.anc-shopee-code {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--anc-b2b-accent);
+  color: #fff;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 1px;
+  user-select: all;
+}
+
 .anc-shopee-card .anc-cta-band-secondary {
   display: inline-block;
   margin-top: 14px;

@@ -158,7 +158,112 @@
     }
 
     /* ============================================================
-       PRODUCT SWITCHER (chips → đổi card sản phẩm trong #anc-products)
+       GALLERY LIGHTBOX (bấm ảnh chính .anc-gallery-main → popup xem cả album)
+       ============================================================ */
+
+    function initGalleryLightbox() {
+        var galleries = document.querySelectorAll('.anc-gallery');
+        if (!galleries.length) return;
+
+        var box = null, img, counter, items = [], index = 0, lastFocus = null;
+
+        function show(i) {
+            index = (i + items.length) % items.length;
+            img.src = items[index];
+            counter.textContent = items.length > 1 ? (index + 1) + ' / ' + items.length : '';
+        }
+
+        function close() {
+            box.classList.remove('is-open');
+            box.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('anc-modal-locked');
+            if (lastFocus) lastFocus.focus();
+        }
+
+        function build() {
+            box = document.createElement('div');
+            box.className = 'anc-lightbox';
+            box.setAttribute('role', 'dialog');
+            box.setAttribute('aria-modal', 'true');
+            box.setAttribute('aria-label', 'Thư viện ảnh sản phẩm');
+            box.setAttribute('aria-hidden', 'true');
+            box.innerHTML =
+                '<button type="button" class="anc-lightbox-close" aria-label="Đóng">×</button>' +
+                '<button type="button" class="anc-lightbox-nav anc-lightbox-nav--prev" aria-label="Ảnh trước">‹</button>' +
+                '<figure class="anc-lightbox-figure"><img class="anc-lightbox-img" alt="" />' +
+                '<figcaption class="anc-lightbox-counter"></figcaption></figure>' +
+                '<button type="button" class="anc-lightbox-nav anc-lightbox-nav--next" aria-label="Ảnh kế tiếp">›</button>';
+            document.body.appendChild(box);
+            img = box.querySelector('.anc-lightbox-img');
+            counter = box.querySelector('.anc-lightbox-counter');
+
+            box.addEventListener('click', function (e) {
+                if (e.target.closest('.anc-lightbox-nav--prev')) { show(index - 1); return; }
+                if (e.target.closest('.anc-lightbox-nav--next')) { show(index + 1); return; }
+                // Bấm nền tối hoặc nút × thì đóng; bấm vào ảnh thì giữ nguyên.
+                if (e.target === box || e.target.closest('.anc-lightbox-close') || e.target.classList.contains('anc-lightbox-figure')) close();
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (!box.classList.contains('is-open')) return;
+                if (e.key === 'Escape') close();
+                else if (e.key === 'ArrowLeft' && items.length > 1) show(index - 1);
+                else if (e.key === 'ArrowRight' && items.length > 1) show(index + 1);
+            });
+
+            var swipeX = null, swipeY = null;
+            box.addEventListener('touchstart', function (e) {
+                var t = e.changedTouches[0];
+                swipeX = t.clientX; swipeY = t.clientY;
+            }, { passive: true });
+            box.addEventListener('touchend', function (e) {
+                if (swipeX === null || items.length < 2) return;
+                var t = e.changedTouches[0];
+                var dx = t.clientX - swipeX, dy = t.clientY - swipeY;
+                swipeX = swipeY = null;
+                if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+                    show(index + (dx < 0 ? 1 : -1));
+                }
+            }, { passive: true });
+        }
+
+        function open(gallery, mainImg) {
+            if (!box) build();
+            items = Array.prototype.map.call(gallery.querySelectorAll('.anc-gallery-thumb'), function (t) {
+                return t.getAttribute('data-src');
+            }).filter(Boolean);
+            if (!items.length) items = [mainImg.getAttribute('src')];
+
+            img.alt = mainImg.getAttribute('alt') || '';
+            box.classList.toggle('is-single', items.length < 2);
+            var start = items.indexOf(mainImg.getAttribute('src'));
+            show(start < 0 ? 0 : start);
+
+            lastFocus = document.activeElement;
+            box.classList.add('is-open');
+            box.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('anc-modal-locked');
+            box.querySelector('.anc-lightbox-close').focus();
+        }
+
+        galleries.forEach(function (gallery) {
+            var mainImg = gallery.querySelector('.anc-gallery-main');
+            if (!mainImg) return;
+            mainImg.setAttribute('role', 'button');
+            mainImg.setAttribute('tabindex', '0');
+            mainImg.setAttribute('aria-label', 'Phóng to ảnh ' + (mainImg.getAttribute('alt') || 'sản phẩm'));
+            mainImg.addEventListener('click', function () { open(gallery, mainImg); });
+            mainImg.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    open(gallery, mainImg);
+                }
+            });
+        });
+    }
+
+    /* ============================================================
+       PRODUCT SWITCHER (menu ảnh sticky / chips → đổi card sản phẩm)
        ============================================================ */
 
     function initProductSwitcher() {
@@ -204,12 +309,46 @@
                 applySectionBg(card, true);
             }
 
+            var panelsWrap = root.querySelector('.anc-pf-panels');
+            var thumbnav   = root.querySelector('.anc-pf-thumbnav');
+
+            // Chọn từ menu ảnh sticky khi đang cuộn giữa card → đưa đầu card mới
+            // lên ngay dưới menu, tránh rơi vào giữa nội dung sản phẩm khác.
+            function revealPanels() {
+                if (!thumbnav || !panelsWrap) return;
+                var offset = thumbnav.getBoundingClientRect().bottom + 12;
+                var top = panelsWrap.getBoundingClientRect().top;
+                if (top < offset) {
+                    window.scrollBy({ top: top - offset, behavior: 'smooth' });
+                }
+            }
+
             chips.forEach(function (chip) {
                 chip.addEventListener('click', function () {
                     if (chip.classList.contains('is-active')) return;
                     selectCard(chip.getAttribute('data-card'));
+                    revealPanels();
                 });
             });
+
+            // Sticky chỉ nhả ở mép dưới switcher nên menu sẽ trượt đè lên cuối
+            // card trước khi ra khỏi màn hình → ẩn hẳn khi đã cuộn qua hết card.
+            if (thumbnav && panelsWrap) {
+                var ticking = false;
+                var updateThumbnav = function () {
+                    ticking = false;
+                    var navBottom = thumbnav.getBoundingClientRect().bottom;
+                    var past = panelsWrap.getBoundingClientRect().bottom < navBottom + 40;
+                    thumbnav.classList.toggle('is-hidden', past);
+                };
+                window.addEventListener('scroll', function () {
+                    if (ticking) return;
+                    ticking = true;
+                    window.requestAnimationFrame(updateThumbnav);
+                }, { passive: true });
+                window.addEventListener('resize', updateThumbnav);
+                updateThumbnav();
+            }
 
             // Điều hướng trái/phải: thứ tự sản phẩm theo DOM của panels, cuộn vòng.
             var order = Array.prototype.map.call(panels, function (p) {
@@ -231,7 +370,6 @@
             });
 
             // Vuốt trái/phải trên vùng card (mobile).
-            var panelsWrap = root.querySelector('.anc-pf-panels');
             if (panelsWrap) {
                 var swipeX = null, swipeY = null;
                 panelsWrap.addEventListener('touchstart', function (e) {
@@ -252,6 +390,69 @@
             // Áp background của sản phẩm đang active lúc tải trang (không fade).
             var initial = root.querySelector('.anc-pf-panel.is-active');
             if (initial) { applySectionBg(initial.getAttribute('data-card'), false); }
+        });
+    }
+
+    /* ============================================================
+       STICKY MENU mặc định ([data-anc-sticky-menu])
+       Hiện sau khi cuộn qua hero; ẩn khi section slide sản phẩm đang chiếm
+       đầu màn hình (menu ảnh sản phẩm của section đó thay chỗ).
+       ============================================================ */
+
+    function initStickyMenu() {
+        var menu = document.querySelector('[data-anc-sticky-menu]');
+        if (!menu) return;
+
+        var hero = document.querySelector('#anc-hero, [id$="-hero"]');
+        var productSections = Array.prototype.map.call(
+            document.querySelectorAll('[data-product-switcher]'),
+            function (root) { return root.closest('section') || root; }
+        );
+        var links = Array.prototype.filter.call(
+            menu.querySelectorAll('a[href^="#"]:not([data-modal-open])'),
+            function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }
+        );
+
+        function zoneTop() {
+            return menu.getBoundingClientRect().height + 24;
+        }
+
+        function update() {
+            ticking = false;
+            var line = zoneTop();
+            var pastHero = !hero || hero.getBoundingClientRect().bottom < line;
+            var inProducts = productSections.some(function (sec) {
+                var r = sec.getBoundingClientRect();
+                return r.top < line && r.bottom > line;
+            });
+            var visible = pastHero && !inProducts;
+            menu.classList.toggle('is-visible', visible);
+            menu.setAttribute('aria-hidden', visible ? 'false' : 'true');
+
+            links.forEach(function (a) {
+                var r = document.getElementById(a.getAttribute('href').slice(1)).getBoundingClientRect();
+                a.classList.toggle('is-current', r.top < line && r.bottom > line);
+            });
+        }
+
+        var ticking = false;
+        window.addEventListener('scroll', function () {
+            if (ticking) return;
+            ticking = true;
+            window.requestAnimationFrame(update);
+        }, { passive: true });
+        window.addEventListener('resize', update);
+        update();
+
+        // Cuộn tới section, chừa chỗ cho chính menu để tiêu đề không bị che.
+        links.forEach(function (a) {
+            a.addEventListener('click', function (e) {
+                var target = document.getElementById(a.getAttribute('href').slice(1));
+                if (!target) return;
+                e.preventDefault();
+                var y = target.getBoundingClientRect().top + window.pageYOffset - zoneTop() + 8;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            });
         });
     }
 
@@ -323,7 +524,9 @@
         initScrollAnimations();
         initSmoothScroll();
         initGalleries();
+        initGalleryLightbox();
         initProductSwitcher();
+        initStickyMenu();
         initLazyMaps();
         initOfferCountdown();
     }

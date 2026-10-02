@@ -73,3 +73,49 @@ function hithean_load_grouped_template($template): string
     return (string) $template;
 }
 add_filter('template_include', 'hithean_load_grouped_template', 20);
+
+/**
+ * File HTML chứa nội dung của page dùng template "Landing Page"
+ * (pages/{slug}/{slug}.html). Trả '' nếu page không dùng template đó.
+ */
+function hithean_landing_page_html_path($post = null): string
+{
+    $post = get_post($post);
+    if (!$post instanceof WP_Post || $post->post_type !== 'page') {
+        return '';
+    }
+
+    if (basename((string) get_page_template_slug($post)) !== 'template-landing-page.php') {
+        return '';
+    }
+
+    $slug = (string) $post->post_name;
+    return $slug !== '' ? get_stylesheet_directory() . '/pages/' . $slug . '/' . $slug . '.html' : '';
+}
+
+/**
+ * Nội dung thô của trang đơn, dùng để dò shortcode/markup khi nạp module hoặc
+ * enqueue asset có điều kiện. Page landing render từ file HTML trong theme
+ * (không phải post_content) nên phải gộp cả file đó, nếu không sẽ dò trượt.
+ */
+function hithean_singular_raw_content($post = null): string
+{
+    static $cache = [];
+
+    $post = get_post($post);
+    if (!$post instanceof WP_Post) {
+        return '';
+    }
+
+    if (isset($cache[$post->ID])) {
+        return $cache[$post->ID];
+    }
+
+    $content = (string) $post->post_content;
+    $path    = hithean_landing_page_html_path($post);
+    if ($path !== '' && is_readable($path)) {
+        $content .= "\n" . (string) file_get_contents($path);
+    }
+
+    return $cache[$post->ID] = $content;
+}

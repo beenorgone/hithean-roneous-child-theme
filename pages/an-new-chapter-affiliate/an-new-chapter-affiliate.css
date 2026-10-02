@@ -448,6 +448,28 @@
       line-height: 1.7;
     }
 
+    .anc-aff-trial-card .anc-aff-promo {
+      padding: 10px 14px;
+      border: 1px dashed var(--anc-aff-blue);
+      border-radius: 6px;
+      background: var(--anc-aff-soft);
+      color: var(--anc-aff-ink);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .anc-aff-code {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 4px;
+      background: var(--anc-aff-blue);
+      color: #fff;
+      font-family: monospace;
+      font-weight: 700;
+      letter-spacing: 1px;
+      user-select: all;
+    }
+
     .anc-aff-trial-card .button--dark-blue,
     .anc-aff-trial-card .anc-cta-band-secondary {
       width: 100%;

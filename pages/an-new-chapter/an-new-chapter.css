@@ -726,6 +726,194 @@ body.anc-modal-locked {
     box-shadow: 0 4px 14px rgba(47, 107, 79, 0.28);
 }
 
+/* Sticky menu mặc định (Đăng ký / mẫu thử / chứng nhận...) — JS bật .is-visible
+   khi đã qua hero và không ở section slide sản phẩm */
+.anc-sticky-menu {
+    position: fixed;
+    top: calc(var(--wp-admin--admin-bar--height, 0px) + 10px);
+    left: 50%;
+    z-index: 900;
+    display: flex;
+    gap: 6px;
+    max-width: calc(100% - 24px);
+    padding: 6px;
+    box-sizing: border-box;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: rgba(255, 255, 255, 0.9);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-radius: 999px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, -12px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.anc-sticky-menu::-webkit-scrollbar {
+    display: none;
+}
+
+.anc-sticky-menu.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+}
+
+.anc-sticky-menu-link {
+    flex: 0 0 auto;
+    padding: 9px 16px;
+    border-radius: 999px;
+    color: var(--default-color-dark-blue) !important;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none !important;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.anc-sticky-menu-link:hover,
+.anc-sticky-menu-link.is-current {
+    background: var(--default-color-light-blue, #b0dded);
+}
+
+.anc-sticky-menu-link--primary,
+.anc-sticky-menu-link--primary:hover {
+    background: var(--default-color-dark-blue);
+    color: #fff !important;
+}
+
+.anc-sticky-menu-link--fb {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #1877f2 !important;
+}
+
+.anc-sticky-menu-link--fb svg {
+    flex: 0 0 auto;
+}
+
+.anc-sticky-menu-link:focus-visible {
+    outline: 3px solid var(--default-color-light-blue, #b0dded);
+    outline-offset: 1px;
+}
+
+@media (max-width: 479px) {
+    .anc-sticky-menu-link {
+        padding: 8px 11px;
+        font-size: 12.5px;
+    }
+
+    /* Facebook chỉ còn icon để 4 nút vừa 1 hàng */
+    .anc-sticky-menu-link--fb .anc-sticky-menu-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .anc-sticky-menu { transition: none; }
+}
+
+/* Menu ảnh sản phẩm: dính đầu màn hình khi cuộn trong section sản phẩm,
+   tự nhả khi hết section (sticky trong .anc-pf-switcher) */
+.anc-pf-thumbnav {
+    position: sticky;
+    top: calc(var(--wp-admin--admin-bar--height, 0px) + 10px);
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto 8px;
+    padding: 6px;
+    box-sizing: border-box;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: rgba(255, 255, 255, 0.9);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.anc-pf-thumbnav.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-8px);
+}
+
+.anc-pf-thumbnav::-webkit-scrollbar {
+    display: none;
+}
+
+.anc-pf-thumbnav .anc-pf-thumbnav-item {
+    flex: 0 0 auto;
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--default-color-dark-blue);
+    font-size: 10px;
+    line-height: 1.1;
+    overflow: hidden;
+    opacity: 0.6;
+    box-shadow: none;
+    transition: opacity 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.anc-pf-thumbnav .anc-pf-thumbnav-item:hover {
+    background: #fff;
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+.anc-pf-thumbnav .anc-pf-thumbnav-item.is-active {
+    background: #fff;
+    opacity: 1;
+    border-color: var(--default-color-dark-blue);
+    box-shadow: none;
+}
+
+.anc-pf-thumbnav .anc-pf-thumbnav-item:focus-visible {
+    outline: 3px solid var(--default-color-light-blue, #b0dded);
+    outline-offset: 1px;
+}
+
+.anc-pf-thumbnav-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+}
+
+@media (max-width: 679px) {
+    .anc-pf-thumbnav {
+        gap: 6px;
+        padding: 5px;
+    }
+
+    .anc-pf-thumbnav .anc-pf-thumbnav-item {
+        width: 52px;
+        height: 52px;
+    }
+}
+
 .anc-pf-panel[hidden] {
     display: none;
 }
@@ -904,6 +1092,18 @@ body.anc-modal-locked {
     align-self: flex-start;
 }
 
+.anc-pf-name a {
+    color: inherit !important;
+    text-decoration: none;
+}
+
+.anc-pf-name a:hover,
+.anc-pf-name a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 2px;
+}
+
 .anc-pf-name {
     font-family: 'Oswald', sans-serif !important;
     font-size: clamp(2rem, 5vw, 2.8rem) !important;
@@ -966,6 +1166,116 @@ body.anc-modal-locked {
 .anc-pf-visual .anc-gallery-main {
     max-height: 380px;
     background: var(--default-color-beige);
+}
+
+/* Ảnh chính bấm được → mở lightbox */
+.anc-gallery-main[role="button"] {
+    cursor: zoom-in;
+}
+
+.anc-gallery-main[role="button"]:focus-visible {
+    outline: 3px solid var(--default-color-light-blue, #b0dded);
+    outline-offset: 2px;
+}
+
+/* =============================================
+   GALLERY LIGHTBOX
+   ============================================= */
+
+.anc-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 64px;
+    background: rgba(10, 20, 30, 0.92);
+}
+
+.anc-lightbox.is-open {
+    display: flex;
+}
+
+.anc-lightbox-figure {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.anc-lightbox-img {
+    max-width: 100%;
+    max-height: calc(100% - 32px);
+    object-fit: contain;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.anc-lightbox-counter {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    letter-spacing: 1px;
+    min-height: 1em;
+}
+
+.anc-lightbox-close,
+.anc-lightbox-nav {
+    position: absolute;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.anc-lightbox-close:hover,
+.anc-lightbox-nav:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.anc-lightbox-close {
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 30px;
+}
+
+.anc-lightbox-nav {
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    font-size: 30px;
+}
+
+.anc-lightbox-nav--prev { left: 10px; }
+.anc-lightbox-nav--next { right: 10px; }
+
+.anc-lightbox.is-single .anc-lightbox-nav {
+    display: none;
+}
+
+@media (max-width: 679px) {
+    .anc-lightbox {
+        padding: 60px 12px;
+    }
+
+    .anc-lightbox-nav {
+        top: auto;
+        bottom: 10px;
+        transform: none;
+    }
 }
 
 /* In product card: 1:1 crop */
@@ -2006,7 +2316,8 @@ body.anc-modal-locked {
         min-height: 220px;
     }
 
-    .anc-pf-controls {
+    /* Chừa chỗ cho nút ‹ › (chỉ trang còn markup tĩnh có .anc-pf-nav) */
+    .anc-pf-controls:has(.anc-pf-nav) {
         padding: 0 56px;
         box-sizing: border-box;
     }
