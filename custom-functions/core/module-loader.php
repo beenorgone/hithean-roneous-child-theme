@@ -451,6 +451,12 @@ function tpc_loader_modules()
             'ajax_actions' => ['load_return_orders', 'upload_return_images', 'return_lookup_order', 'attach_return_order', 'process_return_order'],
         ],
         [
+            'id' => 'product_info_search',
+            'file' => 'custom-functions/shortcodes/shortcode-product-info-search.php',
+            'shortcodes' => ['product_info_search'],
+            'ajax_actions' => ['product_info_search'],
+        ],
+        [
             'id' => 'company_info',
             'file' => 'custom-functions/shortcodes/shortcode-company-info.php',
             'shortcodes' => ['company_info'],

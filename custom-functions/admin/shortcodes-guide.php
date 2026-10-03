@@ -49,6 +49,23 @@ if (!function_exists('ivar_shortcodes_guide_data')) {
                     'Quản lý nội dung các trường tại <strong>Cài đặt ERP &gt; Thông tin doanh nghiệp</strong> — có nút Export/Import JSON để migrate sang site khác.',
                 ],
             ],
+            'product_info_search' => [
+                'name'    => '[product_info_search]',
+                'summary' => 'Công cụ <strong>Tra thông tin &amp; HDSD sản phẩm</strong> cho CSKH/sale: tìm SP theo tên → card hiện tồn kho &amp; HSD từng biến thể, giá (gộp theo mức giá, có "sale còn"), thông tin nổi bật (mô tả ngắn), HDSD (field <code>product_info_hdsd</code>). Có nút <em>Copy giới thiệu</em> / <em>Copy HDSD</em> để dán gửi khách.',
+                'args'    => [
+                    ['default_ids', 'Danh sách ID sản phẩm gợi ý hiển thị sẵn, ngăn cách dấu phẩy. Để trống = 12 SP bán chạy nhất (hoặc filter <code>pis_default_product_ids</code>).', 'rỗng'],
+                    ['exclude_private', '<code>true</code> để chỉ tìm SP đã xuất bản. SP riêng tư chỉ hiện với user có quyền <code>read_private_products</code>.', 'false'],
+                    ['title', 'Tiêu đề phía trên ô tìm kiếm (để trống <code>title=""</code> để ẩn).', 'Tra thông tin &amp; HDSD sản phẩm'],
+                ],
+                'examples' => [
+                    ['Mặc định', '[product_info_search]'],
+                    ['Gợi ý SP cố định', '[product_info_search default_ids="123,456,789"]'],
+                ],
+                'notes' => [
+                    'Nội dung card có thể sửa trực tiếp (contenteditable) trước khi bấm copy; phần tồn kho không được copy.',
+                    'Tồn/HSD hiển thị công khai — nên đặt shortcode ở trang nội bộ (vd /tien-ich-admin).',
+                ],
+            ],
             'certifications' => [
                 'name'    => '[certifications]',
                 'summary' => 'Khối "Hệ thống sản xuất &amp; chứng nhận": 3 card (Hữu cơ / Eurofins / ISO·HACCP·GMP) mở modal chi tiết + modal gộp. Nội dung card cấu hình qua filter <code>ivar_certifications_config</code>; giao diện chỉnh qua các argument dưới đây (map sang CSS variables, áp cho cả section lẫn modal).',
