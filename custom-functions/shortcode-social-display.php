@@ -289,11 +289,15 @@ if (!function_exists('social_display_print_assets')) {
 .sd-lightbox[hidden]{display:none}
 .sd-lightbox__backdrop{position:absolute;inset:0;background:rgba(0,0,0,.78)}
 .sd-lightbox__wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:.75rem}
-.sd-lightbox__ext{color:#fff;font-size:.9rem;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.sd-lightbox__ext{color:#fff;font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
 .sd-lightbox__ext:hover{color:#fff;opacity:.85}
 .sd-lightbox__inner{position:relative;z-index:1;width:min(94vw,400px);aspect-ratio:9/16;max-height:calc(92vh - 2.5rem);background:#000;border-radius:1rem;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.55)}
 .sd-lightbox__frame,.sd-lightbox__frame iframe{width:100%;height:100%;border:0;display:block}
-.sd-lightbox__close{position:absolute;top:.5rem;right:.5rem;z-index:2;width:2.2rem;height:2.2rem;border:none;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:1.4rem;line-height:1;cursor:pointer}
+.sd-lightbox__close{position:absolute;top:8px;right:8px;z-index:3;width:36px;height:36px;border:none;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:24px;line-height:1;cursor:pointer}
+.sd-lightbox__blocked{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;background:rgba(0,0,0,.82);color:#fff;text-align:center;font-size:15px;line-height:1.5}
+.sd-lightbox__blocked[hidden]{display:none}
+.sd-lightbox__blocked a{display:inline-block;padding:11px 20px;border-radius:999px;background:#fe2c55;color:#fff;font-weight:700;text-decoration:none}
+.sd-lightbox__blocked a:hover{color:#fff;opacity:.9}
 .sd-lightbox__close:hover{background:rgba(0,0,0,.8)}
 </style>
 <div class="sd-lightbox" id="sd-lightbox" hidden>
@@ -302,6 +306,10 @@ if (!function_exists('social_display_print_assets')) {
   <div class="sd-lightbox__inner">
     <button type="button" class="sd-lightbox__close" data-sd-close aria-label="Đóng">&times;</button>
     <div class="sd-lightbox__frame"></div>
+    <div class="sd-lightbox__blocked" hidden>
+      <p style="margin:0">Tác giả không cho phát video này ngoài TikTok.</p>
+      <a href="#" target="_blank" rel="noopener noreferrer">Xem video trên TikTok ↗</a>
+    </div>
   </div>
   <a class="sd-lightbox__ext" href="#" target="_blank" rel="noopener noreferrer">Không phát được? Xem trên TikTok ↗</a>
   </div>
@@ -433,14 +441,27 @@ if (!function_exists('social_display_print_footer_runner')) {
       if(lb.parentNode!==document.body){document.body.appendChild(lb);}
       var frame=lb.querySelector('.sd-lightbox__frame');
       var ext=lb.querySelector('.sd-lightbox__ext');
+      var blocked=lb.querySelector('.sd-lightbox__blocked');
+      var readyTimer=null;
+      // Video phát được: player gửi postMessage {type:'onPlayerReady','x-tiktok-player':true}.
+      // Video bị tác giả chặn nhúng (API trả link phát rỗng) không bao giờ gửi
+      // → quá hạn thì che khung đen bằng thông báo + nút mở thẳng trên TikTok.
+      window.addEventListener('message',function(e){
+        if(!/tiktok\.com$/.test(e.origin)) return;
+        var d=e.data; if(typeof d==='string'){ try{d=JSON.parse(d);}catch(err){return;} }
+        var f=frame.querySelector('iframe');
+        if(d && d.type==='onPlayerReady' && f && e.source===f.contentWindow){ clearTimeout(readyTimer); }
+      });
       function openLB(id,href){
-        // Nhiều video TikTok không cho phát qua player nhúng (API trả link phát rỗng)
-        // → luôn kèm link mở thẳng video trên TikTok.
-        if(ext){ext.href=href||('https://www.tiktok.com/video/'+id);}
+        var url=href||('https://www.tiktok.com/video/'+id);
+        if(ext){ext.href=url;}
+        if(blocked){blocked.hidden=true; blocked.querySelector('a').href=url;}
         frame.innerHTML='<iframe src="https://www.tiktok.com/player/v1/'+id+'?autoplay=1&loop=1&rel=0&description=0&music_info=0" allow="autoplay;encrypted-media;fullscreen" allowfullscreen></iframe>';
         lb.hidden=false; document.documentElement.style.overflow='hidden';
+        clearTimeout(readyTimer);
+        readyTimer=setTimeout(function(){ if(blocked && !lb.hidden) blocked.hidden=false; },6000);
       }
-      function closeLB(){ frame.innerHTML=''; lb.hidden=true; document.documentElement.style.overflow=''; }
+      function closeLB(){ clearTimeout(readyTimer); frame.innerHTML=''; if(blocked)blocked.hidden=true; lb.hidden=true; document.documentElement.style.overflow=''; }
       document.addEventListener('click',function(e){
         var a=e.target.closest('a[data-sd-video]');
         if(a){ e.preventDefault(); openLB(a.getAttribute('data-sd-video'),a.getAttribute('href')); return; }
