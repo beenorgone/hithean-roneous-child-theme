@@ -315,7 +315,10 @@ if (!function_exists('social_display_print_assets')) {
   </div>
 </div>
 <?php
-        return (string) ob_get_clean();
+        // Bỏ dòng trống: ở mô tả sản phẩm, wpautop chạy sau shortcode và chèn
+        // </p><p> vào mỗi dòng trống trong <style> → rule ngay sau đó (vd
+        // .sd-lightbox{position:fixed}) bị hỏng, popup rơi xuống cuối trang.
+        return (string) preg_replace('/\n\s*\n/', "\n", (string) ob_get_clean());
     }
 }
 
