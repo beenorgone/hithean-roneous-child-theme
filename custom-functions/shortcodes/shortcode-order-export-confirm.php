@@ -288,9 +288,9 @@ function hithean_render_export_ai_check(int $order_id): string
     $result = is_array($result) ? $result : [];
     $review_status = get_post_meta($order_id, 'warehouse_export_ai_review_status', true);
     $review_state = is_array($review_status) ? ($review_status['state'] ?? '') : '';
-    $is_pass = ($result['overall'] ?? '') === 'pass';
+    $is_pass = hithean_export_ai_is_confirmable($order_id);
     $label = $review_state === 'queued' ? 'AI: Đang kiểm tra' : ($is_pass ? 'AI: Khớp' : ($result ? 'AI: Cần kiểm tra' : 'AI check'));
-    $html = '<section class="uexe-ai-check" style="margin-top:14px;padding:12px;border:1px solid ' . ($is_pass ? '#86efac' : '#cbd5e1') . ';border-radius:8px;background:' . ($is_pass ? '#f0fdf4' : '#f8fafc') . ';">';
+    $html = '<section class="uexe-ai-check" data-uexe-ai-pass="' . ($is_pass ? '1' : '0') . '" style="margin-top:14px;padding:12px;border:1px solid ' . ($is_pass ? '#86efac' : '#cbd5e1') . ';border-radius:8px;background:' . ($is_pass ? '#f0fdf4' : '#f8fafc') . ';">';
     $html .= '<button type="button" class="button uexe-ai-check-button" data-order-id="' . esc_attr($order_id) . '">' . esc_html($label) . '</button>';
     $html .= '<p style="margin:8px 0 0;font-size:12px;color:#52606d;">Nhấn AI check sẽ gửi ảnh tới AI provider đã cấu hình. AI chỉ hỗ trợ đối chiếu, không tự xác nhận xuất kho.</p>';
     if ($review_state === 'queued') {
@@ -319,10 +319,23 @@ function hithean_render_export_ai_check(int $order_id): string
     return $html . '</section>';
 }
 
+function hithean_export_ai_is_confirmable(int $order_id): bool
+{
+    $result = get_post_meta($order_id, 'warehouse_export_ai_check', true);
+    $review_status = get_post_meta($order_id, 'warehouse_export_ai_review_status', true);
+    $locked_at = (int) get_post_meta($order_id, '_hithean_export_ai_check_lock', true);
+    return is_array($result)
+        && ($result['overall'] ?? '') === 'pass'
+        && ($result['order_match'] ?? '') === 'match'
+        && ($result['items_match'] ?? '') === 'match'
+        && (!$locked_at || time() - $locked_at >= 180)
+        && (!is_array($review_status) || ($review_status['state'] ?? '') !== 'queued');
+}
+
 function hithean_render_export_ai_bulk_controls(string $scope): string
 {
     $scope = sanitize_key($scope);
-    return '<div class="uexe-ai-bulk" data-uexe-ai-bulk data-uexe-bulk-target="' . esc_attr($scope) . '" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:0 0 14px;padding:14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;"><label style="display:grid;gap:5px;min-width:min(100%,320px);font-size:13px;font-weight:600;color:#334155;">Ngoại trừ mã đơn<input type="text" data-uexe-bulk-exclude placeholder="#89339**, 8933991" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-weight:400;"></label><button type="button" class="button button-primary" data-uexe-bulk-check>AI check tất cả</button><span data-uexe-bulk-status role="status" aria-live="polite" style="font-size:13px;color:#475569;"></span><small style="flex-basis:100%;color:#64748b;">Chạy lần lượt từng đơn. Mã đầy đủ, ID gốc và mã che đều được nhận diện.</small></div>';
+    return '<div class="uexe-ai-bulk" data-uexe-ai-bulk data-uexe-bulk-target="' . esc_attr($scope) . '" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:0 0 14px;padding:14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;"><label style="display:grid;gap:5px;min-width:min(100%,320px);font-size:13px;font-weight:600;color:#334155;">Ngoại trừ mã đơn<input type="text" data-uexe-bulk-exclude placeholder="#89339**, 8933991" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-weight:400;"></label><button type="button" class="button button-primary" data-uexe-bulk-check>AI check tất cả</button><button type="button" class="button" data-uexe-bulk-confirm disabled>Xác nhận tất cả đơn AI khớp (0)</button><span data-uexe-bulk-status role="status" aria-live="polite" style="font-size:13px;color:#475569;"></span><small style="flex-basis:100%;color:#64748b;">Áp dụng cho các đơn đang hiển thị, trừ mã đã nhập. Chỉ xác nhận đơn AI khớp và chưa xác nhận.</small></div>';
 }
 
 // ===== Shortcode Upload Ảnh =====
@@ -662,13 +675,21 @@ add_action('wp_ajax_ajax_confirm_export', function () {
     check_ajax_referer('ajax_confirm_export_nonce', 'nonce');
     if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
 
-    $order_id = intval($_POST['uexe_order_id']);
+    $order_id = absint($_POST['uexe_order_id'] ?? 0);
     $order = wc_get_order($order_id);
     if (!$order) wp_send_json_error("Không tìm thấy đơn");
+
+    if (get_post_meta($order_id, 'export_confirmed_by', true)) {
+        wp_send_json_error('Đơn này đã được xác nhận xuất kho.');
+    }
 
     $image_urls = array_filter(array_map('trim', explode("\n", (string) get_post_meta($order_id, 'warehouse_export_images', true))));
     if (empty($image_urls)) {
         wp_send_json_error('Hãy upload ít nhất một ảnh xuất kho trước khi xác nhận.');
+    }
+
+    if (!empty($_POST['uexe_ai_pass_only']) && !hithean_export_ai_is_confirmable($order_id)) {
+        wp_send_json_error('AI chưa xác nhận ảnh khớp đơn này. Vui lòng kiểm tra lại.');
     }
 
     $user = wp_get_current_user();
@@ -992,6 +1013,7 @@ add_action('wp_footer', function () {
                         uexeShowToast(res.data, res.success);
                         if (res.success) {
                             form.outerHTML = '<p><strong style="color:green;">✅ Đã xác nhận</strong></p>';
+                            refreshBulkConfirmButtons();
                         } else {
                             btn.disabled = false;
                             btn.textContent = originalText;
@@ -1021,8 +1043,82 @@ add_action('wp_footer', function () {
             function updateAiCheckCard(card, result) {
                 const holder = card && card.querySelector('.uexe-ai-check');
                 if (holder && result.html) holder.outerHTML = result.html;
+                refreshBulkConfirmButtons();
             }
             function normalizedOrderCode(value) { return String(value || '').replace(/\D/g, ''); }
+            function bulkEligibleCards(controls) {
+                const grid = document.querySelector('[data-uexe-bulk-grid="' + controls.getAttribute('data-uexe-bulk-target') + '"]');
+                if (!grid) return [];
+                const excluded = new Set(controls.querySelector('[data-uexe-bulk-exclude]').value.split(/[\s,;]+/).map(normalizedOrderCode).filter(Boolean));
+                return Array.from(grid.querySelectorAll('.uexe-export-card')).filter(function(card) {
+                    return card.querySelector('form.export-confirm-form')
+                        && card.querySelector('.uexe-ai-check[data-uexe-ai-pass="1"]')
+                        && !excluded.has(normalizedOrderCode(card.getAttribute('data-uexe-order-id')))
+                        && !excluded.has(normalizedOrderCode(card.getAttribute('data-uexe-order-number')));
+                });
+            }
+            function refreshBulkConfirmButtons() {
+                document.querySelectorAll('[data-uexe-ai-bulk]').forEach(function(controls) {
+                    const button = controls.querySelector('[data-uexe-bulk-confirm]');
+                    const count = bulkEligibleCards(controls).length;
+                    button.textContent = 'Xác nhận tất cả đơn AI khớp (' + count + ')';
+                    if (!controls.dataset.uexeBusy) button.disabled = count === 0;
+                });
+            }
+            document.querySelectorAll('[data-uexe-bulk-exclude]').forEach(function(input) {
+                input.addEventListener('input', refreshBulkConfirmButtons);
+            });
+            refreshBulkConfirmButtons();
+
+            document.addEventListener('click', function(event) {
+                const button = event.target.closest('[data-uexe-bulk-confirm]');
+                if (!button || button.disabled) return;
+                const controls = button.closest('[data-uexe-ai-bulk]');
+                if (!controls || controls.dataset.uexeBusy) return;
+                const queue = bulkEligibleCards(controls);
+                if (!queue.length) return;
+                const status = controls.querySelector('[data-uexe-bulk-status]');
+                const checkButton = controls.querySelector('[data-uexe-bulk-check]');
+                const excludeInput = controls.querySelector('[data-uexe-bulk-exclude]');
+                controls.dataset.uexeBusy = '1';
+                button.disabled = true;
+                checkButton.disabled = true;
+                excludeInput.disabled = true;
+                queue.forEach(function(card) {
+                    const submit = card.querySelector('form.export-confirm-form button[type="submit"]');
+                    if (submit) submit.disabled = true;
+                });
+                (async function() {
+                    let confirmed = 0, failed = 0;
+                    for (const card of queue) {
+                        const orderId = card.getAttribute('data-uexe-order-id');
+                        const form = card.querySelector('form.export-confirm-form');
+                        if (!form) continue;
+                        status.textContent = 'Đang xác nhận ' + (confirmed + failed + 1) + '/' + queue.length + ' — đơn #' + orderId + '…';
+                        const formData = new FormData(form);
+                        formData.append('action', 'ajax_confirm_export');
+                        formData.append('nonce', uexeNonce);
+                        formData.append('uexe_ai_pass_only', '1');
+                        try {
+                            const response = await fetch("<?php echo admin_url('admin-ajax.php'); ?>", { method: 'POST', body: formData });
+                            const result = await response.json();
+                            if (!result.success) throw new Error(result.data || 'Không thể xác nhận.');
+                            form.outerHTML = '<p><strong style="color:green;">✅ Đã xác nhận</strong></p>';
+                            confirmed++;
+                        } catch (error) {
+                            failed++;
+                            const submit = form.querySelector('button[type="submit"]');
+                            if (submit) submit.disabled = false;
+                        }
+                    }
+                    status.textContent = 'Đã xác nhận ' + confirmed + '/' + queue.length + ' đơn AI khớp' + (failed ? '; ' + failed + ' đơn lỗi, cần kiểm tra lại.' : '.');
+                    uexeShowToast(status.textContent, failed === 0);
+                    delete controls.dataset.uexeBusy;
+                    checkButton.disabled = false;
+                    excludeInput.disabled = false;
+                    refreshBulkConfirmButtons();
+                }());
+            });
 
             document.addEventListener('click', function(event) {
                 const button = event.target.closest('.uexe-ai-check-button');
@@ -1047,7 +1143,7 @@ add_action('wp_footer', function () {
                 const button = event.target.closest('[data-uexe-bulk-check]');
                 if (!button || button.disabled) return;
                 const controls = button.closest('[data-uexe-ai-bulk]');
-                if (!controls) return;
+                if (!controls || controls.dataset.uexeBusy) return;
                 const target = controls.getAttribute('data-uexe-bulk-target');
                 const grid = document.querySelector('[data-uexe-bulk-grid="' + target + '"]');
                 const status = controls.querySelector('[data-uexe-bulk-status]');
@@ -1063,7 +1159,9 @@ add_action('wp_footer', function () {
                     return;
                 }
                 const originalText = button.textContent;
+                controls.dataset.uexeBusy = '1';
                 button.disabled = true;
+                controls.querySelector('[data-uexe-bulk-confirm]').disabled = true;
                 excludeInput.disabled = true;
                 let completed = 0, failed = 0;
                 (async function() {
@@ -1085,6 +1183,8 @@ add_action('wp_footer', function () {
                     button.disabled = false;
                     button.textContent = originalText;
                     excludeInput.disabled = false;
+                    delete controls.dataset.uexeBusy;
+                    refreshBulkConfirmButtons();
                 }());
             });
         });
