@@ -34,6 +34,7 @@ function hithean_revision_meta_keys(): array
         'product_info_thanh_phan',
         'product_info_nhan_phu',
         'product_info_ho_so_phap_ly',
+        'product_info_kiem_nghiem',
         'product_info_faq',
         'from_sourcing_order_variation',
         'product_expiry_date_variation',

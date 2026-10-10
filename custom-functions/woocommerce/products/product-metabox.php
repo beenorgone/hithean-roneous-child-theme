@@ -76,7 +76,16 @@ function hithean_product_additional_info_metabox($meta_boxes)
                     'textarea_rows' => 4,
                 ],
                 'name' => esc_html__('Hồ sơ pháp lý sản phẩm', 'hithean-product-metabox'),
-                'desc' => esc_html__('Thông tin nhập tại đây sẽ hiển thị ở Tab Hồ Sơ Sản Phẩm', 'hithean-product-metabox'),
+                'desc' => esc_html__('Nội dung thường hiển thị ở Tab Hồ Sơ Sản Phẩm. Nếu dán mã script nhúng Hồ sơ pháp lý từ IVAR (chế độ Văn bản), mã hợp lệ sẽ hiện trong menu Hồ sơ & kiểm nghiệm trên mobile.', 'hithean-product-metabox'),
+            ],
+
+            [
+                'id' => $prefix . 'kiem_nghiem',
+                'type' => 'wysiwyg',
+                'raw' => true,
+                'options' => ['textarea_rows' => 4],
+                'name' => esc_html__('Kiểm nghiệm sản phẩm (mã nhúng IVAR)', 'hithean-product-metabox'),
+                'desc' => esc_html__('Dán mã script nhúng Kiểm nghiệm do IVAR tạo ở chế độ Văn bản. Mã thiếu hoặc sai định dạng sẽ không hiển thị.', 'hithean-product-metabox'),
             ],
 
             [

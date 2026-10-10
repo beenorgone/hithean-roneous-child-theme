@@ -279,6 +279,14 @@ function add_custom_product_tabs($tabs)
     foreach ($custom_fields as $field_key => $info) {
         $field_value = get_post_meta($product->get_id(), $field_key, true);
 
+        // This legacy field also accepts the IVAR embed snippet. Do not run a
+        // second copy of a script inside the old product tab (or display a
+        // malformed script there); the mobile proof dialog owns that UI.
+        if ($field_key === 'product_info_ho_so_phap_ly'
+            && preg_match('~(?:<|&lt;)\s*(?:script|iframe)\b~i', (string) $field_value)) {
+            continue;
+        }
+
         if (!empty($field_value)) {
             $slug = generate_slug($info['title']);
             $tabs[$slug] = array(
