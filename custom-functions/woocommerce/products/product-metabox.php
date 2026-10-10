@@ -64,6 +64,7 @@ function hithean_product_additional_info_metabox($meta_boxes)
                 'options' => [
                     'textarea_rows' => 4,
                 ],
+                'sanitize_callback' => 'hithean_product_proof_embed_sanitize',
                 'name' => esc_html__('Hồ sơ pháp lý sản phẩm', 'hithean-product-metabox'),
                 'desc' => esc_html__('Nội dung thường hiển thị ở Tab Hồ Sơ Sản Phẩm. Nếu dán mã script nhúng Hồ sơ pháp lý từ IVAR (chế độ Văn bản), mã hợp lệ sẽ hiện trong menu Hồ sơ & kiểm nghiệm trên mobile.', 'hithean-product-metabox'),
             ],
@@ -73,6 +74,7 @@ function hithean_product_additional_info_metabox($meta_boxes)
                 'type' => 'wysiwyg',
                 'raw' => true,
                 'options' => ['textarea_rows' => 4],
+                'sanitize_callback' => 'hithean_product_proof_embed_sanitize',
                 'name' => esc_html__('Kiểm nghiệm sản phẩm (mã nhúng IVAR)', 'hithean-product-metabox'),
                 'desc' => esc_html__('Dán mã script nhúng Kiểm nghiệm do IVAR tạo ở chế độ Văn bản. Mã thiếu hoặc sai định dạng sẽ không hiển thị.', 'hithean-product-metabox'),
             ],
@@ -94,6 +96,17 @@ function hithean_product_additional_info_metabox($meta_boxes)
 }
 
 add_filter('rwmb_meta_boxes', 'hithean_product_additional_info_metabox');
+
+// Meta Box lọc field wysiwyg bằng wp_kses_post, làm mất thẻ <script> của mã nhúng
+// IVAR. Giữ lại đúng đoạn script đã qua allowlist (hithean_pcn_proof_embed_script),
+// mọi nội dung khác vẫn lọc như mặc định.
+function hithean_product_proof_embed_sanitize($value, $field)
+{
+    $kind = ($field['id'] ?? '') === 'product_info_kiem_nghiem' ? 'qc' : 'legal';
+    $script = hithean_pcn_proof_embed_script(wp_unslash((string) $value), $kind);
+
+    return $script !== '' ? $script : wp_kses_post($value);
+}
 
 // Nội dung mặc định hiện dưới tiêu đề "Chọn kênh mua hàng" khi admin để trống field mô tả.
 function hithean_ecom_modal_default_desc(): string
