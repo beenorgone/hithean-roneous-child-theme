@@ -332,6 +332,55 @@
     }
 }
 
+.pcn-proof-dialog:not([open]) { display: none; }
+.pcn-proof-dialog {
+    box-sizing: border-box;
+    position: fixed;
+    inset: auto 0 0;
+    width: 100%;
+    max-width: 460px;
+    max-height: min(82dvh, 680px);
+    margin: 0 auto;
+    padding: 0 0 env(safe-area-inset-bottom, 0px);
+    overflow-y: auto;
+    border: 0;
+    border-radius: 16px 16px 0 0;
+    background: #fff;
+    color: #2e1203;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, .22);
+    pointer-events: auto;
+}
+.pcn-proof-dialog::backdrop { background: rgba(15, 23, 42, .55); }
+.pcn-proof-dialog__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px 8px;
+}
+.pcn-proof-dialog__eyebrow {
+    margin: 0 0 4px;
+    color: var(--default-color-dark-blue, #0047ba);
+    font-size: 12px;
+    font-weight: 700;
+}
+.pcn-proof-dialog__head h2 { margin: 0; font-size: 19px; line-height: 1.25; }
+.pcn-proof-dialog__close {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #2e1203;
+    font-size: 24px;
+    cursor: pointer;
+}
+.pcn-proof-dialog__hint { margin: 0; padding: 0 20px 14px; font-size: 13px; }
+.pcn-proof-dialog__items { display: grid; gap: 12px; padding: 0 20px 22px; }
+.pcn-proof-dialog__item { display: flex; justify-content: center; min-width: 0; }
+.pcn-proof-dialog__item[hidden] { display: none; }
+
 /* ---------- Popover "Chi tiết SP" (mobile) ----------
    Cơ chế định vị: popover position:absolute neo bên trong .pcn-mobile__cluster
    (đã position:relative, nằm trong .pcn-mobile position:fixed đúng vị trí) —

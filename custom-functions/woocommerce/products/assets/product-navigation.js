@@ -202,6 +202,63 @@
         popoverControllers.forEach(function (controller) { controller.close(); });
     }
 
+    /* ---------- IVAR proof widgets in the "Chi tiết SP" popover ---------- */
+    var proofToggle = document.querySelector('[data-pcn-proof-toggle]');
+    var proofDialog = document.getElementById('pcn-proof-dialog');
+    if (proofToggle && proofDialog) {
+        var proofSlots = Array.prototype.slice.call(proofDialog.querySelectorAll('[data-pcn-proof-kind]'));
+        var proofEntry = proofToggle.closest('[data-pcn-proof-entry]');
+        // The entry lives in the popover, which is closed while the dialog is
+        // open, so return focus to the button that opens the popover.
+        var proofReturnFocus = document.querySelector('.pcn-mobile [data-pcn-popover-toggle]');
+        var proofChecks = 0;
+
+        function closeProofDialog() {
+            if (typeof proofDialog.close === 'function') proofDialog.close();
+            else {
+                proofDialog.removeAttribute('open');
+                if (proofReturnFocus) proofReturnFocus.focus();
+            }
+        }
+
+        function refreshProofAvailability() {
+            var available = 0;
+            proofSlots.forEach(function (slot) {
+                var host = slot.querySelector('.ivar-qc-widget-host, .ivar-legal-host');
+                var scope = host && (host.shadowRoot || host);
+                var hasButton = !!(scope && scope.querySelector('button[data-qc-widget-open], button[data-ivar-legal-open]'));
+                slot.hidden = !hasButton;
+                if (hasButton) available++;
+            });
+            if (proofEntry) proofEntry.hidden = available === 0;
+            if (!available && proofDialog.open) closeProofDialog();
+            proofChecks++;
+            if (available === proofSlots.length || proofChecks >= 120) {
+                window.clearInterval(proofTimer);
+            }
+        }
+
+        // IVAR scripts fetch public data asynchronously and remove their host
+        // when there is no published widget. Never expose an empty menu entry.
+        var proofTimer = window.setInterval(refreshProofAvailability, 250);
+        refreshProofAvailability();
+
+        proofToggle.addEventListener('click', function () {
+            closeAllPopovers();
+            if (typeof proofDialog.showModal === 'function') proofDialog.showModal();
+            else proofDialog.setAttribute('open', 'open');
+        });
+        proofDialog.querySelector('[data-pcn-proof-close]').addEventListener('click', function () {
+            closeProofDialog();
+        });
+        proofDialog.addEventListener('click', function (event) {
+            if (event.target === proofDialog) closeProofDialog();
+        });
+        proofDialog.addEventListener('close', function () {
+            if (proofReturnFocus) proofReturnFocus.focus();
+        });
+    }
+
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-target]');
         if (!btn) return;

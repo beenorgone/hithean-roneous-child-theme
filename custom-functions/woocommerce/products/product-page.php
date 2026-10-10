@@ -724,6 +724,8 @@ function hithean_ecom_buy_modal_js()
   - Mobile (nút Thêm vào giỏ trong trang bị ẩn, dùng sticky bar):
     Kiểm nghiệm → Hồ sơ pháp lý → Xem bảng dinh dưỡng → Chat.
   .summary không phải flex nên bọc cả cụm để đổi thứ tự bằng CSS order.
+  Mục "Hồ sơ & kiểm nghiệm" trong menu Chi tiết SP (product-navigation.php) chạy
+  bản script riêng trong popup; cả hai theo cùng cài đặt hithean_pcn_can_view_proof_embeds().
   Module này nạp trên 'wp' (PHP_INT_MAX - 1), sau snippet remove_action của trang
   hướng dẫn Nutrition Label — nút dinh dưỡng đã bị gỡ thì giữ nguyên là gỡ.
 \*---------------------------------------*/
