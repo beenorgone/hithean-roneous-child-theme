@@ -289,6 +289,14 @@ function hithean_pcn_render()
                         <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
+                <?php if ($proof_scripts) : ?>
+                    <li class="pcn__item" data-pcn-proof-entry hidden>
+                        <button type="button" class="pcn__link" data-pcn-proof-toggle aria-haspopup="dialog" aria-controls="pcn-proof-dialog">
+                            <span class="pcn__icon" aria-hidden="true"><?php echo hithean_pcn_item_icon_svg('legal'); ?></span>
+                            <span class="pcn__label">Hồ sơ &amp; kiểm nghiệm</span>
+                        </button>
+                    </li>
+                <?php endif; ?>
             </ul>
             <?php if ($show_cta) : ?>
                 <button type="button" class="pcn__cta" data-pcn-cta data-product-type="<?php echo esc_attr($product_type); ?>">
@@ -324,6 +332,14 @@ function hithean_pcn_render()
                                 <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
+                        <?php if ($proof_scripts) : ?>
+                            <li data-pcn-proof-entry hidden>
+                                <button type="button" class="pcn-popover__item" data-pcn-proof-toggle aria-haspopup="dialog" aria-controls="pcn-proof-dialog">
+                                    <span class="pcn-popover__icon" aria-hidden="true"><?php echo hithean_pcn_item_icon_svg('legal'); ?></span>
+                                    <span class="pcn-popover__label">Hồ sơ &amp; kiểm nghiệm</span>
+                                </button>
+                            </li>
+                        <?php endif; ?>
                     </ul>
                     <?php if ($show_cta) : ?>
                         <button type="button" class="pcn-popover__cta" data-pcn-cta data-product-type="<?php echo esc_attr($product_type); ?>">
@@ -374,23 +390,23 @@ function hithean_pcn_render()
                 </ul>
             </div>
         </div>
-        <?php if ($proof_scripts) : ?>
-            <dialog class="pcn-proof-dialog" id="pcn-proof-dialog" aria-labelledby="pcn-proof-title">
-                <div class="pcn-proof-dialog__head">
-                    <div>
-                        <p class="pcn-proof-dialog__eyebrow">Thông tin minh bạch</p>
-                        <h2 id="pcn-proof-title">Hồ sơ &amp; kiểm nghiệm</h2>
-                    </div>
-                    <button type="button" class="pcn-proof-dialog__close" data-pcn-proof-close aria-label="Đóng">&times;</button>
-                </div>
-                <p class="pcn-proof-dialog__hint">Chọn hồ sơ để xem thông tin của sản phẩm.</p>
-                <div class="pcn-proof-dialog__items">
-                    <?php foreach ($proof_scripts as $kind => $script) : ?>
-                        <div class="pcn-proof-dialog__item" data-pcn-proof-kind="<?php echo esc_attr($kind); ?>" hidden><?php echo $script; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rebuilt from allowlisted IVAR URLs above. ?></div>
-                    <?php endforeach; ?>
-                </div>
-            </dialog>
-        <?php endif; ?>
     </div>
+    <?php if ($proof_scripts) : ?>
+        <dialog class="pcn-proof-dialog" id="pcn-proof-dialog" aria-labelledby="pcn-proof-title">
+            <div class="pcn-proof-dialog__head">
+                <div>
+                    <p class="pcn-proof-dialog__eyebrow">Thông tin minh bạch</p>
+                    <h2 id="pcn-proof-title">Hồ sơ &amp; kiểm nghiệm</h2>
+                </div>
+                <button type="button" class="pcn-proof-dialog__close" data-pcn-proof-close aria-label="Đóng">&times;</button>
+            </div>
+            <p class="pcn-proof-dialog__hint">Chọn hồ sơ để xem thông tin của sản phẩm.</p>
+            <div class="pcn-proof-dialog__items">
+                <?php foreach ($proof_scripts as $kind => $script) : ?>
+                    <div class="pcn-proof-dialog__item" data-pcn-proof-kind="<?php echo esc_attr($kind); ?>" hidden><?php echo $script; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rebuilt from allowlisted IVAR URLs above. ?></div>
+                <?php endforeach; ?>
+            </div>
+        </dialog>
+    <?php endif; ?>
     <?php
 }

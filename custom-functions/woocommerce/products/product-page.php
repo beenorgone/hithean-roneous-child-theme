@@ -719,13 +719,12 @@ function hithean_ecom_buy_modal_js()
 
 /*---------------------------------------*\
   NÚT KIỂM NGHIỆM / HỒ SƠ PHÁP LÝ (mã nhúng IVAR)
-  Nằm cùng cụm với nút "Xem bảng dinh dưỡng", ngay trên nút Chat:
-  - Desktop: Thêm vào giỏ → Xem bảng dinh dưỡng → Kiểm nghiệm → Hồ sơ pháp lý → Chat.
-  - Mobile (nút Thêm vào giỏ trong trang bị ẩn, dùng sticky bar):
-    Kiểm nghiệm → Hồ sơ pháp lý → Xem bảng dinh dưỡng → Chat.
-  .summary không phải flex nên bọc cả cụm để đổi thứ tự bằng CSS order.
-  Mục "Hồ sơ & kiểm nghiệm" trong menu Chi tiết SP (product-navigation.php) chạy
-  bản script riêng trong popup; cả hai theo cùng cài đặt hithean_pcn_can_view_proof_embeds().
+  Nằm ngay trên nút "Xem bảng dinh dưỡng", sau nút Thêm vào giỏ (mobile: sau khối
+  freeship, nút Thêm vào giỏ trong trang bị ẩn vì đã có sticky bar):
+  Kiểm nghiệm → Hồ sơ pháp lý → Xem bảng dinh dưỡng → Chat.
+  Mục "Hồ sơ & kiểm nghiệm" trong thanh sticky desktop và menu Chi tiết SP
+  (product-navigation.php) chạy bản script riêng trong popup; cả hai theo cùng
+  cài đặt hithean_pcn_can_view_proof_embeds().
   Module này nạp trên 'wp' (PHP_INT_MAX - 1), sau snippet remove_action của trang
   hướng dẫn Nutrition Label — nút dinh dưỡng đã bị gỡ thì giữ nguyên là gỡ.
 \*---------------------------------------*/
@@ -750,10 +749,10 @@ function hithean_render_product_trust_ctas(bool $with_nutrition): void
     }
     ?>
     <div class="product-trust-ctas">
-        <?php if ($with_nutrition) hithean_render_product_nutrition_label(); ?>
         <?php foreach (['qc', 'legal'] as $kind) : if (empty($proof_scripts[$kind])) continue; ?>
             <div class="product-trust-ctas__embed product-trust-ctas__embed--<?php echo esc_attr($kind); ?>"><?php echo $proof_scripts[$kind]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rebuilt from allowlisted IVAR URLs. ?></div>
         <?php endforeach; ?>
+        <?php if ($with_nutrition) hithean_render_product_nutrition_label(); ?>
     </div>
     <style>
         .product-trust-ctas { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
@@ -761,8 +760,10 @@ function hithean_render_product_trust_ctas(bool $with_nutrition): void
         .product-trust-ctas__embed { display: flex; justify-content: center; min-width: 0; }
         /* IVAR scripts gỡ host khi không có hồ sơ công khai: không chừa khoảng trống. */
         .product-trust-ctas__embed:not(:has(.ivar-qc-widget-host, .ivar-legal-host)) { display: none; }
+        /* Badge IVAR nằm trong shadow DOM (max-width: 100%): giới hạn qua host.
+           !important vì qc-embed.js đặt max-width inline cho host. */
+        .product-trust-ctas .ivar-qc-widget-host { max-width: min(400px, 100%) !important; }
         @media (min-width: 769px) { .product-trust-ctas__embed { justify-content: flex-start; } }
-        @media (max-width: 767px) { .product-trust-ctas .product-nutrition-label { order: 1; } }
     </style>
     <?php
 }

@@ -202,22 +202,33 @@
         popoverControllers.forEach(function (controller) { controller.close(); });
     }
 
-    /* ---------- IVAR proof widgets in the "Chi tiết SP" popover ---------- */
-    var proofToggle = document.querySelector('[data-pcn-proof-toggle]');
+    /* ---------- IVAR proof widgets: desktop sticky bar + "Chi tiết SP" popovers ---------- */
+    var proofToggles = Array.prototype.slice.call(document.querySelectorAll('[data-pcn-proof-toggle]'));
     var proofDialog = document.getElementById('pcn-proof-dialog');
-    if (proofToggle && proofDialog) {
+    if (proofToggles.length && proofDialog) {
         var proofSlots = Array.prototype.slice.call(proofDialog.querySelectorAll('[data-pcn-proof-kind]'));
-        var proofEntry = proofToggle.closest('[data-pcn-proof-entry]');
-        // The entry lives in the popover, which is closed while the dialog is
-        // open, so return focus to the button that opens the popover.
-        var proofReturnFocus = document.querySelector('.pcn-mobile [data-pcn-popover-toggle]');
+        var proofEntries = Array.prototype.slice.call(document.querySelectorAll('[data-pcn-proof-entry]'));
+        var proofOpener = null;
         var proofChecks = 0;
+
+        // An entry inside a popover is gone once the popover closes; return
+        // focus to the button that opens that popover instead.
+        function proofReturnFocus() {
+            if (!proofOpener) return;
+            var target = proofOpener;
+            var popover = proofOpener.closest('[data-pcn-popover]');
+            if (popover && popover.hidden) {
+                target = document.querySelector('[aria-controls="' + popover.id + '"]');
+            }
+            if (target && target.offsetParent !== null) target.focus();
+            proofOpener = null;
+        }
 
         function closeProofDialog() {
             if (typeof proofDialog.close === 'function') proofDialog.close();
             else {
                 proofDialog.removeAttribute('open');
-                if (proofReturnFocus) proofReturnFocus.focus();
+                proofReturnFocus();
             }
         }
 
@@ -230,7 +241,7 @@
                 slot.hidden = !hasButton;
                 if (hasButton) available++;
             });
-            if (proofEntry) proofEntry.hidden = available === 0;
+            proofEntries.forEach(function (entry) { entry.hidden = available === 0; });
             if (!available && proofDialog.open) closeProofDialog();
             proofChecks++;
             if (available === proofSlots.length || proofChecks >= 120) {
@@ -243,10 +254,13 @@
         var proofTimer = window.setInterval(refreshProofAvailability, 250);
         refreshProofAvailability();
 
-        proofToggle.addEventListener('click', function () {
-            closeAllPopovers();
-            if (typeof proofDialog.showModal === 'function') proofDialog.showModal();
-            else proofDialog.setAttribute('open', 'open');
+        proofToggles.forEach(function (toggle) {
+            toggle.addEventListener('click', function () {
+                proofOpener = toggle;
+                closeAllPopovers();
+                if (typeof proofDialog.showModal === 'function') proofDialog.showModal();
+                else proofDialog.setAttribute('open', 'open');
+            });
         });
         proofDialog.querySelector('[data-pcn-proof-close]').addEventListener('click', function () {
             closeProofDialog();
@@ -254,9 +268,7 @@
         proofDialog.addEventListener('click', function (event) {
             if (event.target === proofDialog) closeProofDialog();
         });
-        proofDialog.addEventListener('close', function () {
-            if (proofReturnFocus) proofReturnFocus.focus();
-        });
+        proofDialog.addEventListener('close', proofReturnFocus);
     }
 
     document.addEventListener('click', function (e) {

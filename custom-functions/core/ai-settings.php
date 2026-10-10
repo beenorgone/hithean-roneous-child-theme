@@ -144,7 +144,7 @@ function hithean_pcn_render_settings_tab(): void
                                 <option value="<?php echo esc_attr($value); ?>" <?php selected($settings['proof_embeds'], $value); ?>><?php echo esc_html($label); ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <p class="description">Ai thấy 2 nút nhúng IVAR (field Kiểm nghiệm sản phẩm và Hồ sơ pháp lý sản phẩm), hiện cạnh nút Xem bảng dinh dưỡng và trong mục Hồ sơ &amp; kiểm nghiệm của menu Chi tiết SP (mobile).</p>
+                        <p class="description">Ai thấy 2 nút nhúng IVAR (field Kiểm nghiệm sản phẩm và Hồ sơ pháp lý sản phẩm), hiện trên nút Xem bảng dinh dưỡng và trong mục Hồ sơ &amp; kiểm nghiệm của thanh điều hướng desktop / menu Chi tiết SP mobile.</p>
                     </td>
                 </tr>
             </tbody>

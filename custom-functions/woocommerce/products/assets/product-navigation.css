@@ -351,6 +351,16 @@
     pointer-events: auto;
 }
 .pcn-proof-dialog::backdrop { background: rgba(15, 23, 42, .55); }
+@media (min-width: 768px) {
+    /* Desktop: centred card instead of a bottom sheet. */
+    .pcn-proof-dialog {
+        inset: 0;
+        height: fit-content;
+        margin: auto;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+    }
+}
 .pcn-proof-dialog__head {
     display: flex;
     align-items: flex-start;
@@ -380,6 +390,9 @@
 .pcn-proof-dialog__items { display: grid; gap: 12px; padding: 0 20px 22px; }
 .pcn-proof-dialog__item { display: flex; justify-content: center; min-width: 0; }
 .pcn-proof-dialog__item[hidden] { display: none; }
+/* Badge IVAR nằm trong shadow DOM (max-width: 100%): giới hạn qua host.
+   !important vì qc-embed.js đặt max-width inline cho host. */
+.pcn-proof-dialog .ivar-qc-widget-host { max-width: min(400px, 100%) !important; }
 
 /* ---------- Popover "Chi tiết SP" (mobile) ----------
    Cơ chế định vị: popover position:absolute neo bên trong .pcn-mobile__cluster
