@@ -717,6 +717,54 @@ function hithean_ecom_buy_modal_js()
     <?php
 }
 
+/*---------------------------------------*\
+  NÚT KIỂM NGHIỆM / HỒ SƠ PHÁP LÝ (mã nhúng IVAR)
+  Nằm cùng cụm với nút "Xem bảng dinh dưỡng", ngay trên nút Chat:
+  - Desktop: Thêm vào giỏ → Xem bảng dinh dưỡng → Kiểm nghiệm → Hồ sơ pháp lý → Chat.
+  - Mobile (nút Thêm vào giỏ trong trang bị ẩn, dùng sticky bar):
+    Kiểm nghiệm → Hồ sơ pháp lý → Xem bảng dinh dưỡng → Chat.
+  .summary không phải flex nên bọc cả cụm để đổi thứ tự bằng CSS order.
+  Module này nạp trên 'wp' (PHP_INT_MAX - 1), sau snippet remove_action của trang
+  hướng dẫn Nutrition Label — nút dinh dưỡng đã bị gỡ thì giữ nguyên là gỡ.
+\*---------------------------------------*/
+
+$hithean_trust_ctas_with_nutrition = remove_action('hithean_before_product_chat_ctas', 'hithean_render_product_nutrition_label', 10);
+add_action('hithean_before_product_chat_ctas', static function () use ($hithean_trust_ctas_with_nutrition): void {
+    hithean_render_product_trust_ctas($hithean_trust_ctas_with_nutrition);
+}, 10, 0);
+
+function hithean_render_product_trust_ctas(bool $with_nutrition): void
+{
+    global $product;
+
+    $product_id = $product instanceof WC_Product ? $product->get_id() : (int) get_queried_object_id();
+    $proof_scripts = hithean_pcn_can_view_proof_embeds() ? hithean_pcn_proof_embed_scripts($product_id) : [];
+
+    if (!$proof_scripts) {
+        if ($with_nutrition) {
+            hithean_render_product_nutrition_label();
+        }
+        return;
+    }
+    ?>
+    <div class="product-trust-ctas">
+        <?php if ($with_nutrition) hithean_render_product_nutrition_label(); ?>
+        <?php foreach (['qc', 'legal'] as $kind) : if (empty($proof_scripts[$kind])) continue; ?>
+            <div class="product-trust-ctas__embed product-trust-ctas__embed--<?php echo esc_attr($kind); ?>"><?php echo $proof_scripts[$kind]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rebuilt from allowlisted IVAR URLs. ?></div>
+        <?php endforeach; ?>
+    </div>
+    <style>
+        .product-trust-ctas { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+        .product-trust-ctas .product-nutrition-label { margin: 0 !important; }
+        .product-trust-ctas__embed { display: flex; justify-content: center; min-width: 0; }
+        /* IVAR scripts gỡ host khi không có hồ sơ công khai: không chừa khoảng trống. */
+        .product-trust-ctas__embed:not(:has(.ivar-qc-widget-host, .ivar-legal-host)) { display: none; }
+        @media (min-width: 769px) { .product-trust-ctas__embed { justify-content: flex-start; } }
+        @media (max-width: 767px) { .product-trust-ctas .product-nutrition-label { order: 1; } }
+    </style>
+    <?php
+}
+
 // Unset tabs
 function unset_tabs($tabs)
 {

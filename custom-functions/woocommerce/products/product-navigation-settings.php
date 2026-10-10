@@ -17,7 +17,29 @@ function hithean_pcn_default_settings(): array
         // Mobile không có setting — luôn là cụm nút nổi (đã build sẵn).
         'desktop_mode' => 'sticky_bar', // 'sticky_bar' | 'floating_toc'
         'menus'        => [],
+        // Nút nhúng Kiểm nghiệm / Hồ sơ pháp lý IVAR: 'admin' | 'everyone' | 'off'.
+        'proof_embeds' => 'admin',
     ];
+}
+
+function hithean_pcn_proof_embed_visibility_options(): array
+{
+    return [
+        'admin'    => 'Chỉ admin (manage_options)',
+        'everyone' => 'Mọi người',
+        'off'      => 'Tắt',
+    ];
+}
+
+/** Người xem hiện tại có được thấy nút nhúng Kiểm nghiệm / Hồ sơ pháp lý không. */
+function hithean_pcn_can_view_proof_embeds(): bool
+{
+    $visibility = (string) (hithean_pcn_get_settings()['proof_embeds'] ?? 'admin');
+    if ($visibility === 'everyone') {
+        return true;
+    }
+
+    return $visibility === 'admin' && current_user_can('manage_options');
 }
 
 function hithean_pcn_get_settings(): array
@@ -80,6 +102,7 @@ function hithean_pcn_sanitize_settings($input): array
     $out = [
         'desktop_mode' => in_array($input['desktop_mode'] ?? '', $modes, true) ? $input['desktop_mode'] : $defaults['desktop_mode'],
         'menus'        => [],
+        'proof_embeds' => array_key_exists($input['proof_embeds'] ?? '', hithean_pcn_proof_embed_visibility_options()) ? $input['proof_embeds'] : $defaults['proof_embeds'],
     ];
 
     foreach (array_slice((array) ($input['menus'] ?? []), 0, 30) as $item) {

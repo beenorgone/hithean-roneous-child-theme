@@ -66,7 +66,7 @@ function hithean_product_additional_info_metabox($meta_boxes)
                 ],
                 'sanitize_callback' => 'hithean_product_proof_embed_sanitize',
                 'name' => esc_html__('Hồ sơ pháp lý sản phẩm', 'hithean-product-metabox'),
-                'desc' => esc_html__('Nội dung thường hiển thị ở Tab Hồ Sơ Sản Phẩm. Nếu dán mã script nhúng Hồ sơ pháp lý từ IVAR (chế độ Văn bản), mã hợp lệ sẽ hiện trong menu Hồ sơ & kiểm nghiệm trên mobile.', 'hithean-product-metabox'),
+                'desc' => esc_html__('Nội dung thường hiển thị ở Tab Hồ Sơ Sản Phẩm. Nếu dán mã script nhúng Hồ sơ pháp lý từ IVAR (chế độ Văn bản), mã hợp lệ sẽ hiện thành nút cạnh nút Xem bảng dinh dưỡng (ai được thấy: Cài đặt ERP > WooCommerce).', 'hithean-product-metabox'),
             ],
 
             [
@@ -76,7 +76,7 @@ function hithean_product_additional_info_metabox($meta_boxes)
                 'options' => ['textarea_rows' => 4],
                 'sanitize_callback' => 'hithean_product_proof_embed_sanitize',
                 'name' => esc_html__('Kiểm nghiệm sản phẩm (mã nhúng IVAR)', 'hithean-product-metabox'),
-                'desc' => esc_html__('Dán mã script nhúng Kiểm nghiệm do IVAR tạo ở chế độ Văn bản. Mã thiếu hoặc sai định dạng sẽ không hiển thị.', 'hithean-product-metabox'),
+                'desc' => esc_html__('Dán mã script nhúng Kiểm nghiệm do IVAR tạo ở chế độ Văn bản. Nút hiện cạnh nút Xem bảng dinh dưỡng; mã thiếu hoặc sai định dạng sẽ không hiển thị.', 'hithean-product-metabox'),
             ],
 
             [

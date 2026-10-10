@@ -136,6 +136,17 @@ function hithean_pcn_render_settings_tab(): void
                         <option value="floating_toc" <?php selected($settings['desktop_mode'], 'floating_toc'); ?>>Nút mục lục nổi</option>
                     </select></td>
                 </tr>
+                <tr>
+                    <th scope="row"><label for="hithean-pcn-proof-embeds">Nút Kiểm nghiệm / Hồ sơ pháp lý</label></th>
+                    <td>
+                        <select id="hithean-pcn-proof-embeds" name="<?php echo esc_attr(HITHEAN_PCN_SETTINGS_OPTION); ?>[proof_embeds]">
+                            <?php foreach (hithean_pcn_proof_embed_visibility_options() as $value => $label) : ?>
+                                <option value="<?php echo esc_attr($value); ?>" <?php selected($settings['proof_embeds'], $value); ?>><?php echo esc_html($label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="description">Ai thấy 2 nút nhúng IVAR (field Kiểm nghiệm sản phẩm và Hồ sơ pháp lý sản phẩm), đặt cạnh nút Xem bảng dinh dưỡng.</p>
+                    </td>
+                </tr>
             </tbody>
         </table>
 

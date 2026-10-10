@@ -259,10 +259,6 @@ function hithean_pcn_render()
         return;
     }
 
-    $proof_scripts = current_user_can('manage_options')
-        ? hithean_pcn_proof_embed_scripts($product->get_id())
-        : [];
-
     // is_purchasable() alone may still be true for an out-of-stock simple
     // product. Do not render a sticky add-to-cart CTA when the product page
     // has no purchasable form for it to trigger.
@@ -342,11 +338,6 @@ function hithean_pcn_render()
                 <span class="pcn-mobile__detail-icon" aria-hidden="true"><?php echo hithean_product_tab_icon_svg('description'); ?></span>
                 <span class="pcn-mobile__detail-label"><?php esc_html_e('Chi tiết SP', 'hithean.com'); ?></span>
             </button>
-            <?php if ($proof_scripts) : ?>
-                <button type="button" class="pcn-mobile__proof" data-pcn-proof-toggle aria-haspopup="dialog" aria-controls="pcn-proof-dialog" hidden>
-                    Hồ sơ &amp; kiểm nghiệm
-                </button>
-            <?php endif; ?>
             <div class="pcn-popover" id="pcn-popover" data-pcn-popover hidden>
                 <div class="pcn-popover__header">
                     <h2 class="pcn-popover__title"><?php esc_html_e('Chi tiết sản phẩm', 'hithean.com'); ?></h2>
@@ -371,23 +362,6 @@ function hithean_pcn_render()
                 </ul>
             </div>
         </div>
-        <?php if ($proof_scripts) : ?>
-            <dialog class="pcn-proof-dialog" id="pcn-proof-dialog" aria-labelledby="pcn-proof-title">
-                <div class="pcn-proof-dialog__head">
-                    <div>
-                        <p class="pcn-proof-dialog__eyebrow">Thông tin minh bạch</p>
-                        <h2 id="pcn-proof-title">Hồ sơ &amp; kiểm nghiệm</h2>
-                    </div>
-                    <button type="button" class="pcn-proof-dialog__close" data-pcn-proof-close aria-label="Đóng">&times;</button>
-                </div>
-                <p class="pcn-proof-dialog__hint">Chọn hồ sơ để xem thông tin của sản phẩm.</p>
-                <div class="pcn-proof-dialog__items">
-                    <?php foreach ($proof_scripts as $kind => $script) : ?>
-                        <div class="pcn-proof-dialog__item" data-pcn-proof-kind="<?php echo esc_attr($kind); ?>" hidden><?php echo $script; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rebuilt from allowlisted IVAR URLs above. ?></div>
-                    <?php endforeach; ?>
-                </div>
-            </dialog>
-        <?php endif; ?>
     </div>
     <?php
 }
