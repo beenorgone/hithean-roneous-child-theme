@@ -58,17 +58,6 @@ function hithean_product_additional_info_metabox($meta_boxes)
             ],
 
             [
-                'id' => $prefix . 'nhan_phu',
-                'type' => 'wysiwyg',
-                'raw' => true,
-                'options' => [
-                    'textarea_rows' => 4,
-                ],
-                'name' => esc_html__('Nhãn phụ', 'hithean-product-metabox'),
-                'desc' => esc_html__('Thông tin nhập tại đây sẽ hiển thị ở Tab Nhãn Phụ', 'hithean-product-metabox'),
-            ],
-
-            [
                 'id' => $prefix . 'ho_so_phap_ly',
                 'type' => 'wysiwyg',
                 'raw' => true,

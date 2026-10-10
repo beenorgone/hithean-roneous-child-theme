@@ -272,7 +272,6 @@ function add_custom_product_tabs($tabs)
         'product_info_faq' => array('title' => 'Câu hỏi thường gặp', 'priority' => 20),
         'product_info_hdsd' => array('title' => 'Hướng dẫn sử dụng', 'priority' => 15),
         'product_info_thanh_phan' => array('title' => 'Thành phần', 'priority' => 10),
-        'product_info_nhan_phu' => array('title' => 'Nhãn phụ', 'priority' => 25),
         'product_info_ho_so_phap_ly' => array('title' => 'Hồ sơ sản phẩm', 'priority' => 30),
     );
 

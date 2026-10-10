@@ -118,7 +118,6 @@ function hithean_pcn_default_tab_map(): array
         sanitize_title('Thành phần')            => ['icon' => 'ingredients'],
         sanitize_title('Câu hỏi thường gặp')    => ['icon' => 'faq'],
         sanitize_title('Hướng dẫn sử dụng')     => ['icon' => 'usage'],
-        sanitize_title('Nhãn phụ')              => ['icon' => 'label'],
         sanitize_title('Hồ sơ sản phẩm')        => ['icon' => 'legal'],
         'thuong-hieu'                           => ['icon' => 'brand'],
     ];
