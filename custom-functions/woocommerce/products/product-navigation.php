@@ -334,7 +334,9 @@ function hithean_pcn_render()
         return;
     }
 
-    $proof_scripts = hithean_pcn_proof_embed_scripts($product->get_id());
+    $proof_scripts = current_user_can('manage_options')
+        ? hithean_pcn_proof_embed_scripts($product->get_id())
+        : [];
 
     // is_purchasable() alone may still be true for an out-of-stock simple
     // product. Do not render a sticky add-to-cart CTA when the product page
