@@ -11,6 +11,41 @@ function tpc_compare_ajax_nonce()
     return 'tpc_compare_ajax';
 }
 
+/**
+ * Icon SVG nét (stroke) dùng cho các nút của shortcode, màu theo currentColor.
+ */
+function tpc_compare_icon_svg($key)
+{
+    static $shapes = [
+        'search'  => '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+        'link'    => '<path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/>',
+        'table'   => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16M15 4v16"/>',
+        'sparkle' => '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/>',
+        'reset'   => '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+        'close'   => '<path d="M18 6 6 18M6 6l12 12"/>',
+        'check'   => '<path d="m5 12 5 5L20 7"/>',
+        'compare' => '<path d="m8 3-4 4 4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+        'cart'    => '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L22 7H6"/>',
+        'eye'     => '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+        'save'    => '<path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8M7 21v-7h10v7"/>',
+        'globe'   => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+    ];
+
+    if (!isset($shapes[$key])) {
+        return '';
+    }
+
+    return '<svg class="tpc-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">' . $shapes[$key] . '</svg>';
+}
+
+/**
+ * Nội dung nút: icon + nhãn (nhãn bọc span để JS đổi chữ mà không mất icon).
+ */
+function tpc_compare_button_inner($icon, $label)
+{
+    return tpc_compare_icon_svg($icon) . '<span class="tpc-btn__label">' . esc_html($label) . '</span>';
+}
+
 function tpc_compare_format_price_text($amount)
 {
     if ($amount === '' || $amount === null) {
@@ -444,6 +479,7 @@ function tpc_compare_build_product_payload($product_id, array $fields)
     $cart_config = [
         'url'        => esc_url_raw($product_permalink),
         'label'      => 'Xem sản phẩm',
+        'icon'       => 'eye',
         'classes'    => 'button button-primary',
         'target'     => '_blank',
         'rel'        => 'noopener',
@@ -456,6 +492,7 @@ function tpc_compare_build_product_payload($product_id, array $fields)
         $cart_config = [
             'url'        => esc_url_raw($product->add_to_cart_url()),
             'label'      => 'Xem thêm / Mua',
+            'icon'       => 'cart',
             'classes'    => 'button button-primary add_to_cart_button ajax_add_to_cart product_type_simple',
             'target'     => '',
             'rel'        => '',
@@ -465,6 +502,7 @@ function tpc_compare_build_product_payload($product_id, array $fields)
         ];
     } elseif ($product->is_type('variable')) {
         $cart_config['label'] = 'Xem thêm / Mua';
+        $cart_config['icon'] = 'cart';
     }
 
     return tpc_compare_sanitize_utf8([
@@ -929,7 +967,7 @@ function tpc_product_compare_shortcode($atts)
     <div id="<?php echo esc_attr($instance_id); ?>" class="tpc-compare-root">
         <div class="tpc-header">
             <h2 class="tpc-title">So sánh sản phẩm</h2>
-            <button type="button" class="button button--dark-blue-reverse tpc-copy-link-button" hidden>Copy link xem bảng</button>
+            <button type="button" class="button button--dark-blue-reverse tpc-btn tpc-copy-link-button" hidden><?php echo tpc_compare_button_inner('link', 'Copy link xem bảng'); ?></button>
             <span class="tpc-copy-feedback" aria-live="polite" hidden>Đã copy link</span>
         </div>
 
@@ -938,7 +976,7 @@ function tpc_product_compare_shortcode($atts)
                 <div class="tpc-picker-label">Chọn sản phẩm so sánh</div>
                 <div class="tpc-selected-products"></div>
                 <button type="button" class="tpc-picker-trigger" aria-haspopup="dialog" aria-controls="<?php echo esc_attr($instance_id); ?>-picker">
-                    <span class="tpc-picker-trigger__icon" aria-hidden="true">&#128269;</span>
+                    <?php echo tpc_compare_icon_svg('search'); ?>
                     <span class="tpc-picker-trigger__text"><?php echo esc_html(sprintf('Tìm và chọn sản phẩm (tối đa %d)...', $number)); ?></span>
                 </button>
                 <div class="tpc-picker-help"><?php echo esc_html(sprintf('Chọn tối đa %d sản phẩm.', $number)); ?></div>
@@ -950,7 +988,7 @@ function tpc_product_compare_shortcode($atts)
             <div class="tpc-pm__dialog">
                 <div class="tpc-pm__head">
                     <h3 id="<?php echo esc_attr($instance_id); ?>-picker-title" class="tpc-pm__title">Chọn sản phẩm so sánh</h3>
-                    <button type="button" class="tpc-pm__close" aria-label="Đóng" data-tpc-picker-close>&times;</button>
+                    <button type="button" class="tpc-pm__close" aria-label="Đóng" data-tpc-picker-close><?php echo tpc_compare_icon_svg('close'); ?></button>
                 </div>
                 <div class="tpc-pm__search">
                     <input type="search" class="tpc-pm__input" autocomplete="off" placeholder="Tìm theo tên sản phẩm..." aria-label="Tìm sản phẩm">
@@ -960,19 +998,19 @@ function tpc_product_compare_shortcode($atts)
                 <div class="tpc-pm__foot">
                     <span class="tpc-pm__count" aria-live="polite"></span>
                     <div class="tpc-pm__foot-actions">
-                        <button type="button" class="button button--dark-blue-reverse tpc-pm__done" data-tpc-picker-close>Xong</button>
-                        <button type="button" class="button button--light-blue tpc-pm__build">So sánh ngay</button>
+                        <button type="button" class="button button--dark-blue-reverse tpc-btn tpc-pm__done" data-tpc-picker-close><?php echo tpc_compare_button_inner('check', 'Xong'); ?></button>
+                        <button type="button" class="button button--light-blue tpc-btn tpc-pm__build"><?php echo tpc_compare_button_inner('compare', 'So sánh ngay'); ?></button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="tpc-actions">
-            <button type="button" class="button button--light-blue tpc-build-button">Tạo bảng so sánh</button>
+            <button type="button" class="button button--light-blue tpc-btn tpc-build-button"><?php echo tpc_compare_button_inner('table', 'Tạo bảng so sánh'); ?></button>
             <?php if ($can_manage_ai) : ?>
-                <button type="button" class="button button--dark-blue-reverse tpc-ai-generate-button" hidden>So sánh bằng AI</button>
+                <button type="button" class="button button--dark-blue-reverse tpc-btn tpc-ai-generate-button" hidden><?php echo tpc_compare_button_inner('sparkle', 'So sánh bằng AI'); ?></button>
             <?php endif; ?>
-            <button type="button" class="button button--dark-blue-reverse tpc-reset-button" hidden>Tìm lại</button>
+            <button type="button" class="button button--dark-blue-reverse tpc-btn tpc-reset-button" hidden><?php echo tpc_compare_button_inner('reset', 'Tìm lại'); ?></button>
         </div>
 
         <?php if ($can_manage_ai) : ?>
@@ -994,8 +1032,8 @@ function tpc_product_compare_shortcode($atts)
         </div>
 
         <div class="tpc-table-actions" hidden>
-            <button type="button" class="button button--dark-blue-reverse tpc-copy-link-button" hidden>Copy link xem bảng</button>
-            <button type="button" class="button button--dark-blue-reverse tpc-reset-button">Tìm lại</button>
+            <button type="button" class="button button--dark-blue-reverse tpc-btn tpc-copy-link-button" hidden><?php echo tpc_compare_button_inner('link', 'Copy link xem bảng'); ?></button>
+            <button type="button" class="button button--dark-blue-reverse tpc-btn tpc-reset-button"><?php echo tpc_compare_button_inner('reset', 'Tìm lại'); ?></button>
         </div>
     </div>
 
@@ -1333,6 +1371,26 @@ function tpc_product_compare_shortcode($atts)
             color: #5f6b76;
         }
 
+        #<?php echo esc_html($instance_id); ?> .tpc-btn,
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-btn,
+        #<?php echo esc_html($instance_id); ?> .tpc-add-to-cart {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-icon,
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-icon {
+            flex: 0 0 auto;
+            width: 18px;
+            height: 18px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-picker-trigger .tpc-icon {
+            color: #5f6b76;
+        }
+
         #<?php echo esc_html($instance_id); ?> .tpc-picker-trigger {
             display: flex;
             align-items: center;
@@ -1425,9 +1483,15 @@ function tpc_product_compare_shortcode($atts)
             border-radius: 50%;
             background: #f1f5f9;
             color: #334155;
-            font-size: 24px;
-            line-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__close .tpc-icon {
+            width: 20px;
+            height: 20px;
         }
 
         #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__search {
@@ -1846,6 +1910,10 @@ function tpc_product_compare_shortcode($atts)
             const pickerCount = picker.querySelector('.tpc-pm__count');
             const pickerBuild = picker.querySelector('.tpc-pm__build');
             const maxProducts = <?php echo (int) $number; ?>;
+            const icons = <?php echo tpc_compare_json_encode_for_script(array_combine(
+                ['cart', 'eye', 'save', 'globe'],
+                array_map('tpc_compare_icon_svg', ['cart', 'eye', 'save', 'globe'])
+            ), '{}'); ?>;
             const browseCategories = <?php echo tpc_compare_json_encode_for_script($browse_categories); ?>;
             let browseGroups = null;
             let browseRequest = null;
@@ -2020,10 +2088,23 @@ function tpc_product_compare_shortcode($atts)
                 }
             }
 
+            function iconButtonInner(icon, label) {
+                return (icons[icon] || '') + '<span class="tpc-btn__label">' + escapeHtml(label) + '</span>';
+            }
+
+            function setButtonLabel(button, label) {
+                const labelEl = button.querySelector('.tpc-btn__label');
+                if (labelEl) {
+                    labelEl.textContent = label;
+                } else {
+                    button.textContent = label;
+                }
+            }
+
             function syncBuildButtonLabel() {
                 const label = hasGeneratedTable ? 'Tạo lại bảng so sánh' : 'Tạo bảng so sánh';
                 buttons.forEach(function(button) {
-                    button.textContent = label;
+                    setButtonLabel(button, label);
                 });
             }
 
@@ -2146,7 +2227,7 @@ function tpc_product_compare_shortcode($atts)
                 const dataSku = product.cart.sku ? ' data-product_sku="' + escapeHtml(product.cart.sku) + '"' : '';
                 const dataQuantity = product.cart.ajax ? ' data-quantity="1"' : '';
 
-                return '<td><a class="tpc-add-to-cart ' + escapeHtml(classes) + '" href="' + escapeHtml(product.cart.url) + '"' + target + rel + dataProductId + dataSku + dataQuantity + '>' + escapeHtml(product.cart.label || 'Thêm vào giỏ hàng') + '</a></td>';
+                return '<td><a class="tpc-add-to-cart ' + escapeHtml(classes) + '" href="' + escapeHtml(product.cart.url) + '"' + target + rel + dataProductId + dataSku + dataQuantity + '>' + iconButtonInner(product.cart.icon || 'cart', product.cart.label || 'Thêm vào giỏ hàng') + '</a></td>';
             }
 
             function renderSection(title, cellsHtml) {
@@ -2244,7 +2325,7 @@ function tpc_product_compare_shortcode($atts)
                 aiBusy = isBusy;
                 if (aiGenerateButton) {
                     aiGenerateButton.disabled = isBusy;
-                    aiGenerateButton.textContent = isBusy ? 'Đang xử lý AI...' : 'So sánh bằng AI';
+                    setButtonLabel(aiGenerateButton, isBusy ? 'Đang xử lý AI...' : 'So sánh bằng AI');
                 }
                 if (aiPanel) {
                     aiPanel.querySelectorAll('button, select, textarea').forEach(function(control) {
@@ -2286,7 +2367,7 @@ function tpc_product_compare_shortcode($atts)
                     '<label>Phiên bản <select class="tpc-ai-version-select">' + options + '</select></label>' +
                     '<label>Kết luận mua hàng <textarea class="tpc-ai-conclusion" maxlength="6000">' + escapeHtml(version.conclusion || '') + '</textarea></label>' +
                     '<label>Phân tích trung lập <textarea class="tpc-ai-analysis" maxlength="6000">' + escapeHtml(version.neutral_analysis || '') + '</textarea></label>' +
-                    '<div class="tpc-ai-panel__actions"><button type="button" class="button button--dark-blue-reverse" data-tpc-ai-action="save">Lưu bản nháp</button><button type="button" class="button button--light-blue" data-tpc-ai-action="publish">Công khai phiên bản này</button></div>' +
+                    '<div class="tpc-ai-panel__actions"><button type="button" class="button button--dark-blue-reverse tpc-btn" data-tpc-ai-action="save">' + iconButtonInner('save', 'Lưu bản nháp') + '</button><button type="button" class="button button--light-blue tpc-btn" data-tpc-ai-action="publish">' + iconButtonInner('globe', 'Công khai phiên bản này') + '</button></div>' +
                     '</div>';
                 setAiBusy(aiBusy);
             }
