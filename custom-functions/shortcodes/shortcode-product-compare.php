@@ -1044,7 +1044,10 @@ function tpc_product_compare_shortcode($atts)
     <style>
         #<?php echo esc_html($instance_id); ?> {
             display: grid;
+            grid-template-columns: minmax(0, 1fr);
             gap: 14px;
+            min-width: 0;
+            max-width: 100%;
         }
 
         #<?php echo esc_html($instance_id); ?> [hidden] {
@@ -1281,7 +1284,7 @@ function tpc_product_compare_shortcode($atts)
         }
 
         #<?php echo esc_html($instance_id); ?>[data-tpc-active-cols="2"] .tpc-compare-table {
-            min-width: 100vw;
+            min-width: 100%;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
@@ -1333,35 +1336,34 @@ function tpc_product_compare_shortcode($atts)
             background: #eef3ff;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-section-head th {
-            padding: 8px 2px 4px;
-            background: transparent;
-            text-align: center;
-        }
-
-        #<?php echo esc_html($instance_id); ?> .tpc-section-head,
-        #<?php echo esc_html($instance_id); ?> .tpc-section-head th {
-            display: block;
-            width: 100vw;
-            min-width: 100vw;
-            box-sizing: border-box;
-        }
-
-        #<?php echo esc_html($instance_id); ?> .tpc-section-title {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            width: 100%;
-            padding: 14px 18px;
+        /* Tiêu đề mục là ô colspan phủ hết bảng; phần chữ (.tpc-section-inner) dính mép trái
+           vùng cuộn và rộng đúng bằng vùng đang nhìn thấy (--tpc-scroll-w do JS đo) → luôn
+           nằm giữa, lề hai bên đều nhau kể cả khi bảng cuộn ngang. */
+        #<?php echo esc_html($instance_id); ?> .tpc-section-head th.tpc-section-title {
+            display: table-cell;
+            padding: 0;
             border-radius: 0;
             text-align: center;
-            align-items: center;
-            justify-content: center;
             font-size: 30px;
             font-weight: 800;
             color: #13325b;
             background: linear-gradient(135deg, #e8f0ff 0%, #dce8ff 100%);
             box-shadow: 0 10px 24px rgba(29, 78, 216, 0.12);
+        }
+
+        /* left/width trừ 14px padding ngang của .tpc-compare-table để lề hai bên luôn 14px. */
+        #<?php echo esc_html($instance_id); ?> .tpc-section-inner {
+            position: sticky;
+            left: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            width: calc(var(--tpc-scroll-w, 100%) - 28px);
+            max-width: 100%;
+            padding: 14px 18px;
+            box-sizing: border-box;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-section-label,
@@ -1919,23 +1921,33 @@ function tpc_product_compare_shortcode($atts)
                 max-width: 120px;
             }
 
-            #<?php echo esc_html($instance_id); ?> .tpc-section-title {
+            #<?php echo esc_html($instance_id); ?> .tpc-section-head th.tpc-section-title {
                 font-size: 18px;
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-section-inner {
                 padding: 12px 14px;
             }
 
-            #<?php echo esc_html($instance_id); ?> .tpc-section-head,
-            #<?php echo esc_html($instance_id); ?> .tpc-section-head th {
-                display: block;
-                width: 100vw;
-                min-width: 100vw;
-                box-sizing: border-box;
+            /* Nút theme cha có min-width 150px — phá cột hẹp, lệch lề phải. */
+            #<?php echo esc_html($instance_id); ?> .tpc-add-to-cart {
+                width: 100%;
+                min-width: 0 !important;
+                max-width: 100%;
+                height: auto !important;
+                white-space: normal;
+                text-align: center;
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
+            #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
+                overflow-wrap: anywhere;
             }
         }
 
         @media (min-width: 400px) and (max-width: 767px) {
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table {
-                min-width: calc(var(--tpc-active-cols, <?php echo (int) $number; ?>) * 50vw);
+                min-width: calc(var(--tpc-active-cols, <?php echo (int) $number; ?>) * 50%);
             }
 
             #<?php echo esc_html($instance_id); ?> .tpc-section-note {
@@ -1945,7 +1957,7 @@ function tpc_product_compare_shortcode($atts)
 
         @media (max-width: 399px) {
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table {
-                min-width: calc(var(--tpc-active-cols, <?php echo (int) $number; ?>) * 72vw);
+                min-width: calc(var(--tpc-active-cols, <?php echo (int) $number; ?>) * 72%);
             }
 
             #<?php echo esc_html($instance_id); ?> .tpc-section-note {
@@ -1966,6 +1978,20 @@ function tpc_product_compare_shortcode($atts)
             const body = root.querySelector('.tpc-compare-body');
             const tableShell = root.querySelector('.tpc-table-shell');
             const aiPublicWrap = root.querySelector('.tpc-ai-public-wrap');
+            const tableScroll = root.querySelector('.tpc-table-scroll');
+
+            // Bề rộng vùng nhìn thấy của bảng → tiêu đề mục dính và căn giữa đúng vùng này.
+            function syncScrollWidth() {
+                if (tableScroll && tableScroll.clientWidth > 0) {
+                    root.style.setProperty('--tpc-scroll-w', tableScroll.clientWidth + 'px');
+                }
+            }
+
+            if (tableScroll && 'ResizeObserver' in window) {
+                new ResizeObserver(syncScrollWidth).observe(tableScroll);
+            } else {
+                window.addEventListener('resize', syncScrollWidth);
+            }
             const fieldDefinitions = <?php echo tpc_compare_json_encode_for_script($field_definitions); ?>;
             const comparePageUrl = <?php echo wp_json_encode($compare_page_url); ?>;
             const productMap = new Map();
@@ -2310,7 +2336,7 @@ function tpc_product_compare_shortcode($atts)
             function renderSection(title, cellsHtml) {
                 const activeCols = Math.max(cellsHtml.length, 1);
                 const noteHtml = activeCols > 2 ? '<span class="tpc-section-note">Kéo sang phải để xem từng sản phẩm.</span>' : '';
-                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title"><span class="tpc-section-label">' + escapeHtml(decodeHtmlEntities(title)) + '</span>' + noteHtml + '</th></tr>' +
+                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title"><div class="tpc-section-inner"><span class="tpc-section-label">' + escapeHtml(decodeHtmlEntities(title)) + '</span>' + noteHtml + '</div></th></tr>' +
                     '<tr class="tpc-section-row">' + cellsHtml.join('') + '</tr>';
             }
 
@@ -2348,6 +2374,7 @@ function tpc_product_compare_shortcode($atts)
                 const rows = [];
 
                 const hasAi = renderAiPublicSection(publicAiVersion);
+                syncScrollWidth();
                 rows.push('<tr class="tpc-section-row tpc-product-summary-row">' + products.map(renderProductSummaryCell).join('') + '</tr>');
                 rows.push(renderSection('Giá bán', products.map(renderPriceCell)));
                 rows.push(renderSection('Mô tả ngắn', products.map(function(product) {

@@ -399,9 +399,13 @@ body.site-scrolled.admin-bar #apfm-root {
 
 #apfm-compare .apfm-compare .tpc-compare-root .tpc-section-title {
     font-size: 18px;
-    padding: 10px 14px;
+    padding: 0;
     border-radius: 8px;
     box-shadow: none;
+}
+
+#apfm-compare .apfm-compare .tpc-compare-root .tpc-section-inner {
+    padding: 10px 14px;
 }
 
 #apfm-compare .apfm-compare .tpc-compare-root .tpc-section-note {
@@ -493,11 +497,15 @@ body.site-scrolled.admin-bar #apfm-root {
     }
 
     #apfm-compare .apfm-compare .tpc-compare-root .tpc-section-title {
-        align-items: flex-start;
-        padding: 7px 10px;
+        padding: 0;
         font-size: 13px;
         text-align: left;
         letter-spacing: 0.02em;
+    }
+
+    #apfm-compare .apfm-compare .tpc-compare-root .tpc-section-inner {
+        align-items: flex-start;
+        padding: 7px 10px;
     }
 
     /* Hàng sản phẩm dính đầu: ảnh nhỏ + tên 2 dòng để luôn biết cột nào là sản phẩm nào. */
