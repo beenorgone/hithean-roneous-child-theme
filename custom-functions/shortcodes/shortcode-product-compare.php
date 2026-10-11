@@ -937,16 +937,33 @@ function tpc_product_compare_shortcode($atts)
             <div class="tpc-picker-wrap">
                 <div class="tpc-picker-label">Chọn sản phẩm so sánh</div>
                 <div class="tpc-selected-products"></div>
-                <div class="tpc-product-picker">
-                    <input
-                        type="text"
-                        class="tpc-product-search"
-                        value=""
-                        data-selected-label=""
-                        placeholder="<?php echo esc_attr(sprintf('Tìm và thêm sản phẩm (tối đa %d)...', $number)); ?>">
-                    <div class="tpc-product-dropdown" hidden></div>
-                </div>
+                <button type="button" class="tpc-picker-trigger" aria-haspopup="dialog" aria-controls="<?php echo esc_attr($instance_id); ?>-picker">
+                    <span class="tpc-picker-trigger__icon" aria-hidden="true">&#128269;</span>
+                    <span class="tpc-picker-trigger__text"><?php echo esc_html(sprintf('Tìm và chọn sản phẩm (tối đa %d)...', $number)); ?></span>
+                </button>
                 <div class="tpc-picker-help"><?php echo esc_html(sprintf('Chọn tối đa %d sản phẩm.', $number)); ?></div>
+            </div>
+        </div>
+
+        <div id="<?php echo esc_attr($instance_id); ?>-picker" class="tpc-picker-modal" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($instance_id); ?>-picker-title" hidden>
+            <div class="tpc-pm__backdrop" data-tpc-picker-close></div>
+            <div class="tpc-pm__dialog">
+                <div class="tpc-pm__head">
+                    <h3 id="<?php echo esc_attr($instance_id); ?>-picker-title" class="tpc-pm__title">Chọn sản phẩm so sánh</h3>
+                    <button type="button" class="tpc-pm__close" aria-label="Đóng" data-tpc-picker-close>&times;</button>
+                </div>
+                <div class="tpc-pm__search">
+                    <input type="search" class="tpc-pm__input" autocomplete="off" placeholder="Tìm theo tên sản phẩm..." aria-label="Tìm sản phẩm">
+                </div>
+                <div class="tpc-pm__chips" aria-live="polite"></div>
+                <div class="tpc-pm__body"></div>
+                <div class="tpc-pm__foot">
+                    <span class="tpc-pm__count" aria-live="polite"></span>
+                    <div class="tpc-pm__foot-actions">
+                        <button type="button" class="button button--dark-blue-reverse tpc-pm__done" data-tpc-picker-close>Xong</button>
+                        <button type="button" class="button button--light-blue tpc-pm__build">So sánh ngay</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1316,83 +1333,356 @@ function tpc_product_compare_shortcode($atts)
             color: #5f6b76;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-product-picker {
-            position: relative;
-        }
-
-        #<?php echo esc_html($instance_id); ?> .tpc-product-search {
+        #<?php echo esc_html($instance_id); ?> .tpc-picker-trigger {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             width: 100%;
             min-width: 180px;
             border: 1px solid #c8d1d6;
             border-radius: 8px;
             background: #fff;
             padding: 10px 12px;
+            color: #687684;
+            font: inherit;
+            text-align: left;
+            text-transform: none;
+            letter-spacing: normal;
+            cursor: pointer;
+            box-shadow: none;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-product-dropdown {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: calc(100% + 4px);
-            z-index: 10;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
+        #<?php echo esc_html($instance_id); ?> .tpc-picker-trigger:hover,
+        #<?php echo esc_html($instance_id); ?> .tpc-picker-trigger:focus-visible {
+            border-color: #1d4ed8;
             background: #fff;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-            max-height: 360px;
-            overflow: auto;
+            color: #17324a;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-group-label {
+        #<?php echo esc_html($instance_id); ?>-picker {
+            position: fixed;
+            inset: 0;
+            z-index: 10050;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+            font-size: 15px;
+            color: #17324a;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker[hidden] {
+            display: none !important;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker *,
+        #<?php echo esc_html($instance_id); ?>-picker *::before,
+        #<?php echo esc_html($instance_id); ?>-picker *::after {
+            box-sizing: border-box;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, .55);
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__dialog {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            width: min(980px, 100%);
+            height: min(820px, calc(100vh - 32px));
+            height: min(820px, calc(100dvh - 32px));
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, .28);
+            overflow: hidden;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 20px 8px;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__title {
+            margin: 0;
+            font-size: 20px;
+            line-height: 1.3;
+            color: #13325b;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__close {
+            flex: 0 0 auto;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            background: #f1f5f9;
+            color: #334155;
+            font-size: 24px;
+            line-height: 36px;
+            cursor: pointer;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__search {
+            padding: 8px 20px;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__input {
+            width: 100%;
+            border: 1px solid #c8d1d6;
+            border-radius: 10px;
+            background: #fff;
+            padding: 12px 14px;
+            font: inherit;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__input:focus {
+            outline: 2px solid #bfd3fb;
+            border-color: #1d4ed8;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 20px;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__chips:not(:empty) {
+            padding-bottom: 8px;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            max-width: 100%;
+            padding: 5px 6px 5px 12px;
+            border: 0;
+            border-radius: 999px;
+            background: #1d4ed8;
+            color: #fff;
+            font: inherit;
+            font-size: 13px;
+            line-height: 1.3;
+            cursor: pointer;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__chip-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__chip-x {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .25);
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding: 4px 20px 16px;
+            border-top: 1px solid #eef1f5;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__group + .tpc-pm__group {
+            margin-top: 8px;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__group-label {
             position: sticky;
-            top: 0;
+            top: -4px;
             z-index: 1;
-            padding: 8px 12px;
+            margin: 0 -20px 10px;
+            padding: 10px 20px;
             background: #eef4ff;
             color: #13325b;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .02em;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-state,
-        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-empty {
-            padding: 10px 12px;
-            color: #5f6b76;
-            font-size: 13px;
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-list {
-            margin: 0;
-            padding: 6px 0;
-            list-style: none;
-        }
-
-        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-item {
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__item {
+            position: relative;
             display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            width: 100%;
+            margin: 0;
+            padding: 10px;
+            border: 2px solid #e5e9f0;
+            border-radius: 12px;
+            background: #fff;
+            color: #17324a;
+            font: inherit;
+            text-align: left;
+            text-transform: none;
+            letter-spacing: normal;
             cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
+            box-shadow: none;
+            transition: border-color .15s, box-shadow .15s;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-item:last-child {
-            border-bottom: 0;
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__item:hover {
+            border-color: #9db8f2;
+            background: #fff;
+            color: #17324a;
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-item:hover {
-            background: #f9fafb;
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__item[aria-pressed="true"] {
+            border-color: #1d4ed8;
+            background: #f5f8ff;
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, .12);
         }
 
-        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-thumb {
-            width: 36px;
-            height: 36px;
-            border-radius: 4px;
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__item.is-disabled {
+            opacity: .45;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__thumb {
+            display: block;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 8px;
             object-fit: cover;
             background: #f3f4f6;
-            flex-shrink: 0;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__name {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__check {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, .25);
+            color: transparent;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__item[aria-pressed="true"] .tpc-pm__check {
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__state {
+            padding: 28px 0;
+            color: #5f6b76;
+            text-align: center;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 12px 20px;
+            border-top: 1px solid #eef1f5;
+            background: #fafbfd;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__count {
+            font-weight: 600;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__count.is-error {
+            color: #b42318;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__foot-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__foot-actions .button {
+            width: auto;
+            margin: 0;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__build:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 767px) {
+            #<?php echo esc_html($instance_id); ?>-picker {
+                padding: 0;
+            }
+
+            #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__dialog {
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+            }
+
+            #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__head,
+            #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__search,
+            #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__chips,
+            #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__body,
+            #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__foot {
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+
+            #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__group-label {
+                margin-left: -14px;
+                margin-right: -14px;
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+
+            #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+
+            #<?php echo esc_html($instance_id); ?>-picker .tpc-pm__foot {
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+            }
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-placeholder-cell {
@@ -1548,8 +1838,13 @@ function tpc_product_compare_shortcode($atts)
             const copyFeedback = root.querySelector('.tpc-copy-feedback');
             const tableActions = root.querySelector('.tpc-table-actions');
             const selectedProductsWrap = root.querySelector('.tpc-selected-products');
-            const searchInput = root.querySelector('.tpc-product-search');
-            const searchDropdown = root.querySelector('.tpc-product-dropdown');
+            const pickerTrigger = root.querySelector('.tpc-picker-trigger');
+            const picker = root.querySelector('.tpc-picker-modal');
+            const pickerInput = picker.querySelector('.tpc-pm__input');
+            const pickerBody = picker.querySelector('.tpc-pm__body');
+            const pickerChips = picker.querySelector('.tpc-pm__chips');
+            const pickerCount = picker.querySelector('.tpc-pm__count');
+            const pickerBuild = picker.querySelector('.tpc-pm__build');
             const maxProducts = <?php echo (int) $number; ?>;
             const browseCategories = <?php echo tpc_compare_json_encode_for_script($browse_categories); ?>;
             let browseGroups = null;
@@ -1599,16 +1894,6 @@ function tpc_product_compare_shortcode($atts)
                 });
             }
 
-            function setDropdownState(dropdown, html) {
-                dropdown.hidden = false;
-                dropdown.innerHTML = html;
-            }
-
-            function closeDropdown(dropdown) {
-                dropdown.hidden = true;
-                dropdown.innerHTML = '';
-            }
-
             function selectedIds() {
                 return selectedProducts.map(function(product) {
                     return product && product.id ? String(product.id) : '';
@@ -1621,6 +1906,8 @@ function tpc_product_compare_shortcode($atts)
                 if (!selectedProductsWrap) {
                     return;
                 }
+
+                syncPicker();
 
                 if (!selectedProducts.length) {
                     selectedProductsWrap.innerHTML = '';
@@ -1650,6 +1937,7 @@ function tpc_product_compare_shortcode($atts)
 
                 if (selectedProducts.length >= maxProducts) {
                     flashCopyFeedback('Đã đạt số sản phẩm tối đa', true);
+                    flashPickerCount('Đã đủ ' + maxProducts + ' sản phẩm — bỏ bớt để chọn sản phẩm khác.');
                     return false;
                 }
 
@@ -2125,63 +2413,112 @@ function tpc_product_compare_shortcode($atts)
                     aiPanel.hidden = true;
                     aiPanel.innerHTML = '';
                 }
-                closeDropdown(searchDropdown);
-                if (searchInput) {
-                    searchInput.value = '';
-                    searchInput.dataset.selectedLabel = '';
-                    searchInput.focus();
+                closePicker();
+                pickerInput.value = '';
+                if (pickerTrigger) {
+                    pickerTrigger.focus();
                 }
             }
 
-            function renderDropdownItem(item) {
-                const thumb = item.thumb ?
-                    '<img class="tpc-dropdown-thumb" src="' + escapeHtml(item.thumb) + '" alt="" loading="lazy">' :
-                    '<span class="tpc-dropdown-thumb"></span>';
+            // ---------- Modal chọn sản phẩm (chọn nhiều + tìm kiếm ngay trong modal) ----------
+            let pickerOpen = false;
+            let pickerSearchTimer = 0;
+            let pickerLastFocus = null;
+            let pickerPrevOverflow = '';
+            let pickerView = { type: 'browse', items: null };
 
-                return '<li class="tpc-dropdown-item" data-id="' + escapeHtml(item.id) + '" data-label="' + escapeHtml(item.label) + '">' +
+            // Portal ra <body>: tổ tiên có transform/overflow (vd: modal footer trang danh mục) làm lệch position:fixed.
+            document.body.appendChild(picker);
+
+            function pickerItemHtml(item) {
+                const id = String(item.id);
+                const isSelected = selectedIds().includes(id);
+                const isFull = !isSelected && selectedProducts.length >= maxProducts;
+                const thumb = item.thumb ?
+                    '<img class="tpc-pm__thumb" src="' + escapeHtml(item.thumb) + '" alt="" loading="lazy">' :
+                    '<span class="tpc-pm__thumb"></span>';
+
+                return '<button type="button" class="tpc-pm__item' + (isFull ? ' is-disabled' : '') + '" data-id="' + escapeHtml(id) + '" data-label="' + escapeHtml(item.label) + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '">' +
                     thumb +
-                    '<div class="tpc-dropdown-title">' + escapeHtml(item.label) + '</div>' +
-                    '</li>';
+                    '<span class="tpc-pm__check" aria-hidden="true">&#10003;</span>' +
+                    '<span class="tpc-pm__name">' + escapeHtml(item.label) + '</span>' +
+                    '</button>';
             }
 
-            function renderBrowseGroups(groups) {
-                const excluded = selectedIds();
-                const html = groups.map(function(group) {
-                    const items = (Array.isArray(group.items) ? group.items : []).filter(function(item) {
-                        return !excluded.includes(String(item.id));
-                    });
+            function renderPickerBody() {
+                if (pickerView.type === 'state') {
+                    pickerBody.innerHTML = '<div class="tpc-pm__state">' + escapeHtml(pickerView.message) + '</div>';
+                    return;
+                }
 
-                    if (!items.length) {
-                        return '';
-                    }
+                if (pickerView.type === 'search') {
+                    const items = pickerView.items || [];
+                    pickerBody.innerHTML = items.length ?
+                        '<div class="tpc-pm__group"><div class="tpc-pm__group-label">Kết quả tìm kiếm (' + items.length + ')</div><div class="tpc-pm__grid">' + items.map(pickerItemHtml).join('') + '</div></div>' :
+                        '<div class="tpc-pm__state">Không tìm thấy sản phẩm nào.</div>';
+                } else {
+                    const html = (pickerView.items || []).map(function(group) {
+                        const items = Array.isArray(group.items) ? group.items : [];
+                        if (!items.length) {
+                            return '';
+                        }
+                        return '<div class="tpc-pm__group"><div class="tpc-pm__group-label">' + escapeHtml(group.name || group.slug) + '</div>' +
+                            '<div class="tpc-pm__grid">' + items.map(pickerItemHtml).join('') + '</div></div>';
+                    }).join('');
+                    pickerBody.innerHTML = html || '<div class="tpc-pm__state">Không có sản phẩm gợi ý. Hãy gõ tên để tìm.</div>';
+                }
+            }
 
-                    return '<li class="tpc-dropdown-group-label">' + escapeHtml(group.name || group.slug) + '</li>' +
-                        items.map(renderDropdownItem).join('');
+            function syncPicker() {
+                if (!picker) {
+                    return;
+                }
+
+                const count = selectedProducts.length;
+                pickerCount.classList.remove('is-error');
+                pickerCount.textContent = 'Đã chọn ' + count + '/' + maxProducts + (count < 2 ? ' — cần ít nhất 2' : '');
+                pickerBuild.disabled = count < 2;
+                pickerChips.innerHTML = selectedProducts.map(function(product) {
+                    return '<button type="button" class="tpc-pm__chip" data-id="' + escapeHtml(product.id) + '" aria-label="Bỏ ' + escapeHtml(product.title || product.label || '') + '">' +
+                        '<span class="tpc-pm__chip-label">' + escapeHtml(product.title || product.label || ('#' + product.id)) + '</span>' +
+                        '<span class="tpc-pm__chip-x" aria-hidden="true">&times;</span></button>';
                 }).join('');
 
-                if (!html) {
-                    setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không có sản phẩm gợi ý. Hãy gõ tên để tìm.</div>');
-                    return;
+                if (pickerOpen) {
+                    updatePickerItems();
                 }
-
-                setDropdownState(searchDropdown, '<ul class="tpc-dropdown-list">' + html + '</ul>');
             }
 
-            // Khi ô tìm kiếm trống: hiện sản phẩm theo nhóm danh mục (thuộc tính "cat" của shortcode).
-            function showBrowseDropdown() {
-                const revision = ++searchRevision;
+            // Cập nhật trạng thái chọn tại chỗ (không render lại) để giữ focus và vị trí cuộn.
+            function updatePickerItems() {
+                const ids = selectedIds();
+                const isFull = ids.length >= maxProducts;
+                pickerBody.querySelectorAll('.tpc-pm__item').forEach(function(item) {
+                    const isSelected = ids.includes(String(item.getAttribute('data-id')));
+                    item.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+                    item.classList.toggle('is-disabled', isFull && !isSelected);
+                });
+            }
 
-                if (selectedProducts.length >= maxProducts) {
-                    closeDropdown(searchDropdown);
+            function flashPickerCount(message) {
+                if (!pickerOpen) {
                     return;
                 }
+                pickerCount.textContent = message;
+                pickerCount.classList.add('is-error');
+                window.clearTimeout(flashPickerCount._timer);
+                flashPickerCount._timer = window.setTimeout(syncPicker, 2200);
+            }
 
+            function setPickerState(message) {
+                pickerView = { type: 'state', message: message };
+                renderPickerBody();
+            }
+
+            function loadBrowseGroups() {
                 if (browseGroups) {
-                    renderBrowseGroups(browseGroups);
-                    return;
+                    return Promise.resolve(browseGroups);
                 }
-
-                setDropdownState(searchDropdown, '<div class="tpc-dropdown-state">Đang tải...</div>');
 
                 if (!browseRequest) {
                     browseRequest = postAjax({
@@ -2196,142 +2533,169 @@ function tpc_product_compare_shortcode($atts)
                     });
                 }
 
-                browseRequest.then(function(groups) {
-                    if (revision === searchRevision && searchInput && searchInput.value.trim() === '' && document.activeElement === searchInput) {
-                        renderBrowseGroups(groups);
-                    }
-                }).catch(function() {
-                    if (revision === searchRevision) {
-                        setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không tải được danh sách sản phẩm.</div>');
-                    }
-                });
+                return browseRequest;
             }
 
-            function renderSearchResults(items) {
-                if (!items.length) {
-                    setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không tìm thấy sản phẩm nào.</div>');
-                    return;
-                }
-
-                const html = items.map(renderDropdownItem).join('');
-
-                setDropdownState(searchDropdown, '<ul class="tpc-dropdown-list">' + html + '</ul>');
-            }
-
-            function searchProducts(term) {
-                if (term === '') {
-                    showBrowseDropdown();
-                    return;
-                }
+            // Ô trống → sản phẩm theo nhóm danh mục (thuộc tính "cat"); từ 2 ký tự → tìm theo tên.
+            function runPickerSearch(term) {
+                const revision = ++searchRevision;
 
                 if (term.length < 2) {
-                    closeDropdown(searchDropdown);
+                    if (!browseGroups) {
+                        setPickerState('Đang tải...');
+                    }
+                    loadBrowseGroups().then(function(groups) {
+                        if (revision === searchRevision) {
+                            pickerView = { type: 'browse', items: groups };
+                            renderPickerBody();
+                        }
+                    }).catch(function() {
+                        if (revision === searchRevision) {
+                            setPickerState('Không tải được danh sách sản phẩm.');
+                        }
+                    });
                     return;
                 }
 
-                const revision = ++searchRevision;
-                setDropdownState(searchDropdown, '<div class="tpc-dropdown-state">Đang tải...</div>');
-
+                setPickerState('Đang tìm...');
                 postAjax({
                     action: 'tpc_product_compare_search',
                     nonce: nonce,
                     term: term,
-                    exclude_ids: selectedIds().join(',')
+                    exclude_ids: ''
                 }).then(function(response) {
-                    if (revision !== searchRevision) {
-                        return;
+                    if (revision === searchRevision) {
+                        pickerView = { type: 'search', items: Array.isArray(response) ? response : [] };
+                        pickerBody.scrollTop = 0;
+                        renderPickerBody();
                     }
-                    const items = Array.isArray(response) ? response : [];
-                    renderSearchResults(items);
                 }).catch(function() {
                     if (revision === searchRevision) {
-                        setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không tải được kết quả.</div>');
+                        setPickerState('Không tải được kết quả.');
                     }
                 });
             }
 
-            const searchTimers = new WeakMap();
-
-            root.addEventListener('input', function(event) {
-                const input = event.target.closest('.tpc-product-search');
-                if (!input || !root.contains(input)) {
+            function openPicker() {
+                if (pickerOpen) {
                     return;
                 }
+                pickerOpen = true;
+                pickerLastFocus = document.activeElement;
+                pickerPrevOverflow = document.documentElement.style.overflow;
+                document.documentElement.style.overflow = 'hidden';
+                picker.hidden = false;
+                syncPicker();
+                runPickerSearch(pickerInput.value.trim());
+                window.setTimeout(function() {
+                    pickerInput.focus();
+                }, 30);
+            }
 
-                if (searchTimers.has(input)) {
-                    clearTimeout(searchTimers.get(input));
+            function closePicker() {
+                if (!pickerOpen) {
+                    return;
                 }
+                pickerOpen = false;
+                picker.hidden = true;
+                document.documentElement.style.overflow = pickerPrevOverflow;
+                if (pickerLastFocus && typeof pickerLastFocus.focus === 'function' && document.contains(pickerLastFocus)) {
+                    pickerLastFocus.focus();
+                }
+            }
 
-                const timerId = window.setTimeout(function() {
-                    searchProducts(input.value.trim());
+            if (pickerTrigger) {
+                pickerTrigger.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    openPicker();
+                });
+            }
+
+            pickerInput.addEventListener('input', function() {
+                window.clearTimeout(pickerSearchTimer);
+                pickerSearchTimer = window.setTimeout(function() {
+                    runPickerSearch(pickerInput.value.trim());
                 }, 250);
-
-                searchTimers.set(input, timerId);
             });
 
-            root.addEventListener('focusin', function(event) {
-                const input = event.target.closest('.tpc-product-search');
-                if (!input || !root.contains(input)) {
+            picker.addEventListener('click', function(event) {
+                const item = event.target.closest('.tpc-pm__item');
+                if (item) {
+                    event.preventDefault();
+                    const id = item.getAttribute('data-id');
+                    if (item.getAttribute('aria-pressed') === 'true') {
+                        removeSelectedProduct(id);
+                    } else {
+                        addSelectedProduct(id, item.getAttribute('data-label') || '');
+                    }
                     return;
                 }
 
-                searchProducts(input.value.trim());
+                const chip = event.target.closest('.tpc-pm__chip');
+                if (chip) {
+                    event.preventDefault();
+                    removeSelectedProduct(chip.getAttribute('data-id'));
+                    return;
+                }
+
+                if (event.target.closest('.tpc-pm__build')) {
+                    event.preventDefault();
+                    closePicker();
+                    buildTable();
+                    return;
+                }
+
+                if (event.target.closest('[data-tpc-picker-close]')) {
+                    event.preventDefault();
+                    closePicker();
+                }
             });
 
-            // Input đang focus sẵn (vd: sau khi chọn 1 sản phẩm) thì focusin không bắn lại → mở bằng click.
-            if (searchInput) {
-                searchInput.addEventListener('click', function() {
-                    if (searchDropdown.hidden) {
-                        searchProducts(searchInput.value.trim());
-                    }
+            // Bắt ở pha capture của window: Esc chỉ đóng modal chọn SP (dù focus đang ở đâu)
+            // và không lan tới handler Esc của modal so sánh bên ngoài (trang danh mục).
+            window.addEventListener('keydown', function(event) {
+                if (!pickerOpen) {
+                    return;
+                }
+
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    closePicker();
+                    return;
+                }
+
+                if (event.key !== 'Tab') {
+                    return;
+                }
+
+                const focusables = Array.from(picker.querySelectorAll('button:not([disabled]), input')).filter(function(element) {
+                    return element.offsetParent !== null;
                 });
-            }
+                if (!focusables.length) {
+                    return;
+                }
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                const active = document.activeElement;
+                if (!picker.contains(active)) {
+                    event.preventDefault();
+                    (event.shiftKey ? last : first).focus();
+                } else if (event.shiftKey && active === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && active === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }, true);
 
             root.addEventListener('click', function(event) {
-                const item = event.target.closest('.tpc-dropdown-item');
-                if (item && root.contains(item)) {
-                    if (!searchInput || !searchDropdown) {
-                        return;
-                    }
-
-                    const productId = String(item.getAttribute('data-id') || '').trim();
-                    const productLabel = item.getAttribute('data-label') || '';
-
-                    if (!productId || selectedIds().includes(productId)) {
-                        closeDropdown(searchDropdown);
-                        searchInput.value = '';
-                        return;
-                    }
-
-                    if (!addSelectedProduct(productId, productLabel)) {
-                        closeDropdown(searchDropdown);
-                        return;
-                    }
-
-                    event.preventDefault();
-                    searchInput.value = '';
-                    searchInput.dataset.selectedLabel = '';
-                    closeDropdown(searchDropdown);
-                    searchInput.focus();
-                    return;
-                }
-
                 const removeButton = event.target.closest('.tpc-selected-product-remove');
                 if (removeButton && root.contains(removeButton)) {
                     event.preventDefault();
                     removeSelectedProduct(removeButton.getAttribute('data-product-id'));
                     return;
-                }
-            });
-
-            document.addEventListener('mousedown', function(event) {
-                if (!event.target.closest('#' + <?php echo wp_json_encode($instance_id); ?>)) {
-                    closeDropdown(searchDropdown);
-                    return;
-                }
-
-                if (!event.target.closest('.tpc-product-picker')) {
-                    closeDropdown(searchDropdown);
                 }
             });
 
