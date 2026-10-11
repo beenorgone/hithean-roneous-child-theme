@@ -480,19 +480,88 @@ function tpc_compare_build_product_payload($product_id, array $fields)
     ]);
 }
 
+/**
+ * Đổi 1 token (ID hoặc SKU) thành ID sản phẩm cha. Trả về 0 nếu không khớp.
+ * Token toàn số được ưu tiên hiểu là ID; nếu không phải ID sản phẩm thì thử như SKU.
+ * SKU/ID của biến thể được quy về sản phẩm cha.
+ */
+function tpc_compare_resolve_product_token($token)
+{
+    $token = trim((string) $token);
+    if ($token === '') {
+        return 0;
+    }
+
+    $product_id = 0;
+
+    if (ctype_digit($token)) {
+        $post_type = get_post_type((int) $token);
+        if ($post_type === 'product' || $post_type === 'product_variation') {
+            $product_id = (int) $token;
+        }
+    }
+
+    if (!$product_id && function_exists('wc_get_product_id_by_sku')) {
+        $product_id = (int) wc_get_product_id_by_sku($token);
+    }
+
+    if ($product_id && get_post_type($product_id) === 'product_variation') {
+        $product_id = (int) wp_get_post_parent_id($product_id);
+    }
+
+    return $product_id;
+}
+
+/**
+ * Nhận danh sách ID và/hoặc SKU (ngăn cách bởi dấu phẩy, khoảng trắng hoặc "-")
+ * và trả về mảng ID sản phẩm. Vì SKU có thể chứa "-", mỗi đoạn được thử khớp
+ * nguyên khối trước, sau đó ghép tham lam các phần dài nhất có thể thành SKU.
+ * Ví dụ: "123-WPI-1KG-456" → [123, <ID của SKU WPI-1KG>, 456].
+ */
 function tpc_compare_normalize_product_ids($raw_ids)
 {
     if (is_array($raw_ids)) {
-        $raw_ids = implode('-', $raw_ids);
+        $raw_ids = implode(',', $raw_ids);
     }
 
     if (!is_string($raw_ids) || trim($raw_ids) === '') {
         return [];
     }
 
-    $ids = array_map('absint', preg_split('/[\s,-]+/', $raw_ids));
+    $ids = [];
+    $chunks = array_filter(preg_split('/[\s,]+/', sanitize_text_field($raw_ids)), 'strlen');
 
-    return array_values(array_unique(array_filter($ids)));
+    foreach ($chunks as $chunk) {
+        $chunk_id = tpc_compare_resolve_product_token($chunk);
+        if ($chunk_id) {
+            $ids[] = $chunk_id;
+            continue;
+        }
+
+        $parts = array_slice(array_values(array_filter(explode('-', $chunk), 'strlen')), 0, 30);
+        $count = count($parts);
+        $index = 0;
+
+        while ($index < $count) {
+            $matched = false;
+
+            for ($end = $count; $end > $index; $end--) {
+                $part_id = tpc_compare_resolve_product_token(implode('-', array_slice($parts, $index, $end - $index)));
+                if ($part_id) {
+                    $ids[] = $part_id;
+                    $index = $end;
+                    $matched = true;
+                    break;
+                }
+            }
+
+            if (!$matched) {
+                $index++;
+            }
+        }
+    }
+
+    return array_values(array_unique(array_filter(array_map('absint', $ids))));
 }
 
 function tpc_compare_get_product_ids_from_query()
@@ -532,6 +601,153 @@ function tpc_compare_cache_group()
 {
     return 'tpc_product_compare';
 }
+
+/**
+ * ID danh mục kèm toàn bộ danh mục con (có cache).
+ */
+function tpc_compare_get_category_term_ids($category_id)
+{
+    $category_id = absint($category_id);
+    if (!$category_id) {
+        return [];
+    }
+
+    $cache_key = 'product_cat_descendants:' . $category_id;
+    $term_ids = wp_cache_get($cache_key, tpc_compare_cache_group());
+    if ($term_ids === false || !is_array($term_ids)) {
+        $children = get_term_children($category_id, 'product_cat');
+        $term_ids = array_merge([$category_id], is_wp_error($children) ? [] : $children);
+        $term_ids = array_values(array_unique(array_filter(array_map('absint', $term_ids))));
+        wp_cache_set($cache_key, $term_ids, tpc_compare_cache_group(), HOUR_IN_SECONDS);
+    }
+
+    return $term_ids;
+}
+
+/**
+ * Danh sách slug danh mục mặc định cho dropdown khi bấm vào ô tìm kiếm.
+ */
+function tpc_compare_default_browse_categories()
+{
+    return 'protein,sieu-thuc-pham';
+}
+
+function tpc_compare_parse_category_slugs($raw_slugs)
+{
+    if (is_array($raw_slugs)) {
+        $raw_slugs = implode(',', $raw_slugs);
+    }
+
+    if (!is_string($raw_slugs) || trim($raw_slugs) === '') {
+        return [];
+    }
+
+    $slugs = array_map('sanitize_title', preg_split('/\s*,\s*/', trim($raw_slugs)));
+
+    return array_slice(array_values(array_unique(array_filter($slugs))), 0, 10);
+}
+
+/**
+ * Sản phẩm (đã publish, có ảnh, có giá) theo từng nhóm danh mục, giữ thứ tự slug truyền vào.
+ */
+function tpc_compare_get_category_groups(array $slugs)
+{
+    global $wpdb;
+
+    $cache_key = 'browse:' . md5(wp_json_encode($slugs));
+    $cached_groups = wp_cache_get($cache_key, tpc_compare_cache_group());
+    if ($cached_groups !== false && is_array($cached_groups)) {
+        return $cached_groups;
+    }
+
+    $per_category = max(1, (int) apply_filters('tpc_compare_browse_per_category', 60));
+    $lookup_table = $wpdb->prefix . 'wc_product_meta_lookup';
+    $charset = get_bloginfo('charset') ?: 'UTF-8';
+    $groups = [];
+
+    foreach ($slugs as $slug) {
+        $category = get_term_by('slug', $slug, 'product_cat');
+        if (!$category || is_wp_error($category)) {
+            continue;
+        }
+
+        $term_ids = tpc_compare_get_category_term_ids($category->term_id);
+        if (empty($term_ids)) {
+            continue;
+        }
+
+        $category_placeholders = implode(', ', array_fill(0, count($term_ids), '%d'));
+        $sql = "
+            SELECT DISTINCT p.ID, p.post_title, thumb_meta.meta_value AS thumbnail_id
+            FROM {$wpdb->posts} AS p
+            INNER JOIN {$wpdb->postmeta} AS thumb_meta
+                ON thumb_meta.post_id = p.ID
+               AND thumb_meta.meta_key = '_thumbnail_id'
+               AND thumb_meta.meta_value <> ''
+            INNER JOIN {$lookup_table} AS product_lookup
+                ON product_lookup.product_id = p.ID
+            WHERE p.post_type = 'product'
+              AND p.post_status = 'publish'
+              AND product_lookup.min_price IS NOT NULL
+              AND EXISTS (
+                    SELECT 1
+                    FROM {$wpdb->term_relationships} AS category_relationships
+                    INNER JOIN {$wpdb->term_taxonomy} AS category_taxonomy
+                        ON category_taxonomy.term_taxonomy_id = category_relationships.term_taxonomy_id
+                    WHERE category_relationships.object_id = p.ID
+                      AND category_taxonomy.taxonomy = 'product_cat'
+                      AND category_taxonomy.term_id IN ({$category_placeholders})
+              )
+            ORDER BY p.post_title ASC
+            LIMIT %d
+        ";
+
+        $rows = $wpdb->get_results($wpdb->prepare($sql, ...array_merge($term_ids, [$per_category])));
+        $items = [];
+
+        foreach ($rows as $row) {
+            $thumb = !empty($row->thumbnail_id) ? wp_get_attachment_image_url((int) $row->thumbnail_id, 'thumbnail') : '';
+            if (!$thumb) {
+                continue;
+            }
+
+            $items[] = [
+                'id'    => (int) $row->ID,
+                'label' => html_entity_decode($row->post_title, ENT_QUOTES, $charset),
+                'thumb' => $thumb,
+            ];
+        }
+
+        if (empty($items)) {
+            continue;
+        }
+
+        $groups[] = [
+            'slug'  => $category->slug,
+            'name'  => html_entity_decode($category->name, ENT_QUOTES, $charset),
+            'items' => $items,
+        ];
+    }
+
+    $groups = tpc_compare_sanitize_utf8($groups);
+    wp_cache_set($cache_key, $groups, tpc_compare_cache_group(), 10 * MINUTE_IN_SECONDS);
+
+    return $groups;
+}
+
+function tpc_compare_browse_products_ajax()
+{
+    tpc_compare_verify_ajax_request();
+
+    $slugs = tpc_compare_parse_category_slugs(isset($_REQUEST['cats']) ? wp_unslash($_REQUEST['cats']) : '');
+    if (empty($slugs)) {
+        $slugs = tpc_compare_parse_category_slugs(tpc_compare_default_browse_categories());
+    }
+
+    wp_send_json(tpc_compare_get_category_groups($slugs));
+}
+add_action('wp_ajax_tpc_product_compare_browse', 'tpc_compare_browse_products_ajax');
+add_action('wp_ajax_nopriv_tpc_product_compare_browse', 'tpc_compare_browse_products_ajax');
 
 function tpc_compare_search_products_ajax()
 {
@@ -581,16 +797,7 @@ function tpc_compare_search_products_ajax()
             wp_send_json([]);
         }
 
-        $term_ids_cache_key = 'product_cat_descendants:' . $category_id;
-        $cached_term_ids = wp_cache_get($term_ids_cache_key, tpc_compare_cache_group());
-        if ($cached_term_ids === false || !is_array($cached_term_ids)) {
-            $cached_term_ids = array_merge([$category_id], get_term_children($category_id, 'product_cat'));
-            $cached_term_ids = array_values(array_unique(array_filter(array_map('absint', $cached_term_ids))));
-            wp_cache_set($term_ids_cache_key, $cached_term_ids, tpc_compare_cache_group(), HOUR_IN_SECONDS);
-        }
-
-        $term_ids = $cached_term_ids;
-        $term_ids = array_values(array_unique(array_filter(array_map('absint', $term_ids))));
+        $term_ids = tpc_compare_get_category_term_ids($category_id);
 
         if (empty($term_ids)) {
             wp_send_json([]);
@@ -676,7 +883,13 @@ function tpc_product_compare_shortcode($atts)
         'products' => '',
         'number'   => 3,
         'fields'   => '',
+        'cat'      => tpc_compare_default_browse_categories(),
     ], $atts, 'product_compare');
+
+    $browse_categories = tpc_compare_parse_category_slugs($atts['cat']);
+    if (empty($browse_categories)) {
+        $browse_categories = tpc_compare_parse_category_slugs(tpc_compare_default_browse_categories());
+    }
 
     $number = absint($atts['number']);
     if ($number < 2) {
@@ -1125,8 +1338,21 @@ function tpc_product_compare_shortcode($atts)
             border-radius: 8px;
             background: #fff;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-            max-height: 280px;
+            max-height: 360px;
             overflow: auto;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-dropdown-group-label {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            padding: 8px 12px;
+            background: #eef4ff;
+            color: #13325b;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .02em;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-dropdown-state,
@@ -1324,6 +1550,10 @@ function tpc_product_compare_shortcode($atts)
             const searchInput = root.querySelector('.tpc-product-search');
             const searchDropdown = root.querySelector('.tpc-product-dropdown');
             const maxProducts = <?php echo (int) $number; ?>;
+            const browseCategories = <?php echo tpc_compare_json_encode_for_script($browse_categories); ?>;
+            let browseGroups = null;
+            let browseRequest = null;
+            let searchRevision = 0;
             let selectedProducts = initialProducts.slice(0, maxProducts);
             let hasGeneratedTable = <?php echo $has_initial_products ? 'true' : 'false'; ?>;
             let tableRevision = 0;
@@ -1902,32 +2132,103 @@ function tpc_product_compare_shortcode($atts)
                 }
             }
 
+            function renderDropdownItem(item) {
+                const thumb = item.thumb ?
+                    '<img class="tpc-dropdown-thumb" src="' + escapeHtml(item.thumb) + '" alt="" loading="lazy">' :
+                    '<span class="tpc-dropdown-thumb"></span>';
+
+                return '<li class="tpc-dropdown-item" data-id="' + escapeHtml(item.id) + '" data-label="' + escapeHtml(item.label) + '">' +
+                    thumb +
+                    '<div class="tpc-dropdown-title">' + escapeHtml(item.label) + '</div>' +
+                    '</li>';
+            }
+
+            function renderBrowseGroups(groups) {
+                const excluded = selectedIds();
+                const html = groups.map(function(group) {
+                    const items = (Array.isArray(group.items) ? group.items : []).filter(function(item) {
+                        return !excluded.includes(String(item.id));
+                    });
+
+                    if (!items.length) {
+                        return '';
+                    }
+
+                    return '<li class="tpc-dropdown-group-label">' + escapeHtml(group.name || group.slug) + '</li>' +
+                        items.map(renderDropdownItem).join('');
+                }).join('');
+
+                if (!html) {
+                    setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không có sản phẩm gợi ý. Hãy gõ tên để tìm.</div>');
+                    return;
+                }
+
+                setDropdownState(searchDropdown, '<ul class="tpc-dropdown-list">' + html + '</ul>');
+            }
+
+            // Khi ô tìm kiếm trống: hiện sản phẩm theo nhóm danh mục (thuộc tính "cat" của shortcode).
+            function showBrowseDropdown() {
+                const revision = ++searchRevision;
+
+                if (selectedProducts.length >= maxProducts) {
+                    closeDropdown(searchDropdown);
+                    return;
+                }
+
+                if (browseGroups) {
+                    renderBrowseGroups(browseGroups);
+                    return;
+                }
+
+                setDropdownState(searchDropdown, '<div class="tpc-dropdown-state">Đang tải...</div>');
+
+                if (!browseRequest) {
+                    browseRequest = postAjax({
+                        action: 'tpc_product_compare_browse',
+                        nonce: nonce,
+                        cats: browseCategories.join(',')
+                    }).then(function(response) {
+                        browseGroups = Array.isArray(response) ? response : [];
+                        return browseGroups;
+                    }).finally(function() {
+                        browseRequest = null;
+                    });
+                }
+
+                browseRequest.then(function(groups) {
+                    if (revision === searchRevision && searchInput && searchInput.value.trim() === '' && document.activeElement === searchInput) {
+                        renderBrowseGroups(groups);
+                    }
+                }).catch(function() {
+                    if (revision === searchRevision) {
+                        setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không tải được danh sách sản phẩm.</div>');
+                    }
+                });
+            }
+
             function renderSearchResults(items) {
                 if (!items.length) {
                     setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không tìm thấy sản phẩm nào.</div>');
                     return;
                 }
 
-                const html = items.map(function(item) {
-                    const thumb = item.thumb ?
-                        '<img class="tpc-dropdown-thumb" src="' + escapeHtml(item.thumb) + '" alt="">' :
-                        '<span class="tpc-dropdown-thumb"></span>';
-
-                    return '<li class="tpc-dropdown-item" data-id="' + escapeHtml(item.id) + '" data-label="' + escapeHtml(item.label) + '">' +
-                        thumb +
-                        '<div class="tpc-dropdown-title">' + escapeHtml(item.label) + '</div>' +
-                        '</li>';
-                }).join('');
+                const html = items.map(renderDropdownItem).join('');
 
                 setDropdownState(searchDropdown, '<ul class="tpc-dropdown-list">' + html + '</ul>');
             }
 
             function searchProducts(term) {
+                if (term === '') {
+                    showBrowseDropdown();
+                    return;
+                }
+
                 if (term.length < 2) {
                     closeDropdown(searchDropdown);
                     return;
                 }
 
+                const revision = ++searchRevision;
                 setDropdownState(searchDropdown, '<div class="tpc-dropdown-state">Đang tải...</div>');
 
                 postAjax({
@@ -1936,10 +2237,15 @@ function tpc_product_compare_shortcode($atts)
                     term: term,
                     exclude_ids: selectedIds().join(',')
                 }).then(function(response) {
+                    if (revision !== searchRevision) {
+                        return;
+                    }
                     const items = Array.isArray(response) ? response : [];
                     renderSearchResults(items);
                 }).catch(function() {
-                    setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không tải được kết quả.</div>');
+                    if (revision === searchRevision) {
+                        setDropdownState(searchDropdown, '<div class="tpc-dropdown-empty">Không tải được kết quả.</div>');
+                    }
                 });
             }
 
@@ -1968,11 +2274,17 @@ function tpc_product_compare_shortcode($atts)
                     return;
                 }
 
-                const value = input.value.trim();
-                if (value.length >= 2) {
-                    searchProducts(value);
-                }
+                searchProducts(input.value.trim());
             });
+
+            // Input đang focus sẵn (vd: sau khi chọn 1 sản phẩm) thì focusin không bắn lại → mở bằng click.
+            if (searchInput) {
+                searchInput.addEventListener('click', function() {
+                    if (searchDropdown.hidden) {
+                        searchProducts(searchInput.value.trim());
+                    }
+                });
+            }
 
             root.addEventListener('click', function(event) {
                 const item = event.target.closest('.tpc-dropdown-item');

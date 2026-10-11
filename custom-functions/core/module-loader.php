@@ -337,6 +337,7 @@ function tpc_loader_modules()
             'condition' => 'tpc_cond_is_product_taxonomy',
             'ajax_actions' => [
                 'tpc_product_compare_search',
+                'tpc_product_compare_browse',
                 'tpc_product_compare_get_product',
                 'tpc_product_compare_ai_public',
                 'tpc_product_compare_ai_generate',
