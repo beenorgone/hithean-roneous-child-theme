@@ -649,12 +649,13 @@ function tpc_compare_parse_category_slugs($raw_slugs)
 
 /**
  * Sản phẩm (đã publish, có ảnh, có giá) theo từng nhóm danh mục, giữ thứ tự slug truyền vào.
+ * Trong mỗi nhóm: bán chạy nhất lên trước (total_sales), cùng lượt bán thì theo tên A→Z.
  */
 function tpc_compare_get_category_groups(array $slugs)
 {
     global $wpdb;
 
-    $cache_key = 'browse:' . md5(wp_json_encode($slugs));
+    $cache_key = 'browse:v2:' . md5(wp_json_encode($slugs));
     $cached_groups = wp_cache_get($cache_key, tpc_compare_cache_group());
     if ($cached_groups !== false && is_array($cached_groups)) {
         return $cached_groups;
@@ -678,7 +679,7 @@ function tpc_compare_get_category_groups(array $slugs)
 
         $category_placeholders = implode(', ', array_fill(0, count($term_ids), '%d'));
         $sql = "
-            SELECT DISTINCT p.ID, p.post_title, thumb_meta.meta_value AS thumbnail_id
+            SELECT DISTINCT p.ID, p.post_title, thumb_meta.meta_value AS thumbnail_id, product_lookup.total_sales
             FROM {$wpdb->posts} AS p
             INNER JOIN {$wpdb->postmeta} AS thumb_meta
                 ON thumb_meta.post_id = p.ID
@@ -698,7 +699,7 @@ function tpc_compare_get_category_groups(array $slugs)
                       AND category_taxonomy.taxonomy = 'product_cat'
                       AND category_taxonomy.term_id IN ({$category_placeholders})
               )
-            ORDER BY p.post_title ASC
+            ORDER BY product_lookup.total_sales DESC, p.post_title ASC
             LIMIT %d
         ";
 
