@@ -2508,7 +2508,7 @@ function tpc_product_compare_shortcode($atts)
             let pickerPrevOverflow = '';
             let pickerView = { type: 'browse', items: null };
 
-            // Portal ra <body>: tổ tiên có transform/overflow (vd: modal footer trang danh mục) làm lệch position:fixed.
+            // Portal ra thẳng document.body (không ghi tên thẻ dạng HTML trong script inline: plugin tối ưu/cache có thể hiểu nhầm là thẻ thật): tổ tiên có transform/overflow (vd: modal footer trang danh mục) làm lệch position:fixed.
             document.body.appendChild(picker);
 
             function pickerItemHtml(item) {
