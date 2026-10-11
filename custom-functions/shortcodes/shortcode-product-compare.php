@@ -30,6 +30,8 @@ function tpc_compare_icon_svg($key)
         'save'    => '<path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8M7 21v-7h10v7"/>',
         'globe'   => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
         'chevron' => '<path d="m6 9 6 6 6-6"/>',
+        'prev'    => '<path d="m15 18-6-6 6-6"/>',
+        'next'    => '<path d="m9 18 6-6-6-6"/>',
     ];
 
     if (!isset($shapes[$key])) {
@@ -515,6 +517,8 @@ function tpc_compare_build_product_payload($product_id, array $fields)
         'variants'          => tpc_compare_get_variants($product, $product_id, get_the_title($product_id)),
         'short_description' => wp_kses_post($short_description),
         'fields'            => $field_values,
+        // Ảnh của nút "Xem bảng dinh dưỡng" — hiện trong dòng Thành phần & dinh dưỡng.
+        'nutrition_labels'  => function_exists('hithean_product_nutrition_label_items') ? hithean_product_nutrition_label_items($product_id) : [],
         'cart'              => $cart_config,
     ]);
 }
@@ -984,6 +988,23 @@ function tpc_product_compare_shortcode($atts)
             </div>
         </div>
 
+        <div id="<?php echo esc_attr($instance_id); ?>-nutrition" class="tpc-nl" role="dialog" aria-modal="true" aria-label="Bảng dinh dưỡng" hidden>
+            <div class="tpc-nl__backdrop" data-tpc-nl-close></div>
+            <div class="tpc-nl__dialog" tabindex="-1">
+                <button type="button" class="tpc-nl__close" aria-label="Đóng" data-tpc-nl-close><?php echo tpc_compare_icon_svg('close'); ?></button>
+                <div class="tpc-nl__stage">
+                    <button type="button" class="tpc-nl__nav tpc-nl__nav--prev" aria-label="Sản phẩm trước" data-tpc-nl-step="-1"><?php echo tpc_compare_icon_svg('prev'); ?></button>
+                    <img class="tpc-nl__image" src="" alt="" decoding="async" draggable="false">
+                    <button type="button" class="tpc-nl__nav tpc-nl__nav--next" aria-label="Sản phẩm kế" data-tpc-nl-step="1"><?php echo tpc_compare_icon_svg('next'); ?></button>
+                </div>
+                <div class="tpc-nl__caption">
+                    <a class="tpc-nl__product" href="#" target="_blank" rel="noopener"></a>
+                    <span class="tpc-nl__title"></span>
+                    <span class="tpc-nl__counter" aria-live="polite"></span>
+                </div>
+            </div>
+        </div>
+
         <div id="<?php echo esc_attr($instance_id); ?>-picker" class="tpc-picker-modal" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($instance_id); ?>-picker-title" hidden>
             <div class="tpc-pm__backdrop" data-tpc-picker-close></div>
             <div class="tpc-pm__dialog">
@@ -1377,6 +1398,55 @@ function tpc_product_compare_shortcode($atts)
             text-transform: uppercase;
         }
 
+        #<?php echo esc_html($instance_id); ?> .tpc-overview {
+            display: grid;
+            gap: 14px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-overview__part + .tpc-overview__part {
+            padding-top: 12px;
+            border-top: 1px dashed #cbd8ee;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-overview__label {
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            color: #56697f;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-nutrition-labels {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-nutrition-label {
+            margin: 0;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-nutrition-label a {
+            display: block;
+            cursor: zoom-in;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-nutrition-label img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid #dbe4f3;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-nutrition-label figcaption {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #56697f;
+            text-align: center;
+        }
+
         #<?php echo esc_html($instance_id); ?> .tpc-faq-toggle {
             width: auto;
             max-width: max-content;
@@ -1509,6 +1579,174 @@ function tpc_product_compare_shortcode($atts)
             border-color: #1d4ed8;
             background: #fff;
             color: #17324a;
+        }
+
+        /* Popup xem ảnh bảng dinh dưỡng: vuốt / mũi tên để sang sản phẩm kế hoặc trước. */
+        #<?php echo esc_html($instance_id); ?>-nutrition {
+            position: fixed;
+            inset: 0;
+            z-index: 10060;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+            color: #17324a;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition[hidden] {
+            display: none !important;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, .75);
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__dialog {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            width: min(760px, 100%);
+            max-height: calc(100vh - 32px);
+            max-height: calc(100dvh - 32px);
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, .35);
+            overflow: hidden;
+            outline: 0;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(241, 245, 249, .92);
+            color: #334155;
+            cursor: pointer;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__stage {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1 1 auto;
+            min-height: 0;
+            padding: 16px 56px;
+            background: #f5f8ff;
+            touch-action: pan-y pinch-zoom;
+            user-select: none;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__image {
+            display: block;
+            max-width: 100%;
+            max-height: calc(100vh - 190px);
+            max-height: calc(100dvh - 190px);
+            height: auto;
+            object-fit: contain;
+            -webkit-user-drag: none;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__nav {
+            position: absolute;
+            top: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            background: #fff;
+            color: #13325b;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, .18);
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__nav--prev {
+            left: 8px;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__nav--next {
+            right: 8px;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__nav:disabled {
+            opacity: .3;
+            cursor: default;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__nav,
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__close {
+            min-width: 0;
+            line-height: 1;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__nav .tpc-icon,
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__close .tpc-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__caption {
+            display: grid;
+            gap: 2px;
+            padding: 12px 16px 14px;
+            text-align: center;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__product {
+            font-size: 16px;
+            font-weight: 800;
+            color: #13325b;
+            text-decoration: none;
+        }
+
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__title,
+        #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__counter {
+            font-size: 13px;
+            color: #56697f;
+        }
+
+        @media (max-width: 767px) {
+            #<?php echo esc_html($instance_id); ?>-nutrition {
+                padding: 0;
+            }
+
+            #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__dialog {
+                width: 100%;
+                height: 100%;
+                max-height: none;
+                border-radius: 0;
+            }
+
+            #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__stage {
+                padding: 56px 8px 64px;
+            }
+
+            #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__image {
+                max-height: calc(100dvh - 200px);
+            }
+
+            #<?php echo esc_html($instance_id); ?>-nutrition .tpc-nl__nav {
+                top: auto;
+                bottom: 12px;
+                transform: none;
+            }
         }
 
         #<?php echo esc_html($instance_id); ?>-picker {
@@ -2271,9 +2509,9 @@ function tpc_product_compare_shortcode($atts)
                 body.innerHTML = '<tr><td colspan="' + activeCols + '" class="tpc-placeholder-cell">' + escapeHtml(message) + '</td></tr>';
             }
 
-            function renderPriceCell(product) {
+            function priceListHtml(product) {
                 if (!product || !Array.isArray(product.price_groups) || product.price_groups.length === 0) {
-                    return '<td><span class="tpc-empty-cell">-</span></td>';
+                    return '';
                 }
 
                 const items = product.price_groups.map(function(group) {
@@ -2287,7 +2525,39 @@ function tpc_product_compare_shortcode($atts)
                     return html;
                 }).join('');
 
-                return '<td><ul class="tpc-cell-list">' + items + '</ul></td>';
+                return '<ul class="tpc-cell-list">' + items + '</ul>';
+            }
+
+            function isHighlightField(field) {
+                return field.key === 'subheading' || field.key === 'product_info_subheading';
+            }
+
+            // Ô "Tổng quan": giá bán, mô tả ngắn và điểm nhấn gộp chung một dòng; phần nào trống thì bỏ.
+            function renderOverviewCell(product, highlightField) {
+                if (!product) {
+                    return '<td><span class="tpc-empty-cell">-</span></td>';
+                }
+
+                function contentHtml(html) {
+                    return html ? '<div class="tpc-cell-content">' + html + '</div>' : '';
+                }
+
+                const highlightHtml = highlightField && product.fields ? product.fields[highlightField.key] : '';
+                const parts = [
+                    ['Giá bán', priceListHtml(product)],
+                    ['Mô tả ngắn', contentHtml(product.short_description)],
+                    [highlightField ? highlightField.label || 'Điểm nhấn' : '', contentHtml(highlightHtml)]
+                ].filter(function(part) {
+                    return part[0] && part[1];
+                });
+
+                if (!parts.length) {
+                    return '<td><span class="tpc-empty-cell">-</span></td>';
+                }
+
+                return '<td><div class="tpc-overview">' + parts.map(function(part) {
+                    return '<div class="tpc-overview__part"><div class="tpc-overview__label">' + escapeHtml(decodeHtmlEntities(part[0])) + '</div>' + part[1] + '</div>';
+                }).join('') + '</div></td>';
             }
 
             function renderVariantCell(product) {
@@ -2329,12 +2599,55 @@ function tpc_product_compare_shortcode($atts)
                 return '<td><div class="tpc-product-summary">' + imageHtml + '<a class="tpc-product-title-link tpc-product-summary-title" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' + escapeHtml(product.title || '-') + '</a></div></td>';
             }
 
-            function renderFieldCell(product, key) {
-                if (!product || !product.fields || !product.fields[key]) {
-                    return '<td><span class="tpc-empty-cell">-</span></td>';
+            // Các trường này chỉ so sánh phần chữ: bỏ ảnh/media trong nội dung.
+            const textOnlyFieldKeys = ['hdsd', 'product_info_hdsd', 'thanh_phan', 'product_info_thanh_phan'];
+            const nutritionFieldKeys = ['thanh_phan', 'product_info_thanh_phan'];
+
+            // Ảnh bảng dinh dưỡng của mọi cột, theo thứ tự cột — popup duyệt qua danh sách này.
+            let nutritionSlides = [];
+
+            function nutritionLabelsHtml(product) {
+                if (!product || !Array.isArray(product.nutrition_labels) || !product.nutrition_labels.length) {
+                    return '';
                 }
 
-                return renderHtmlCell(product.fields[key]);
+                return '<div class="tpc-nutrition-labels">' + product.nutrition_labels.map(function(item) {
+                    const title = escapeHtml(item.title || 'Bảng dinh dưỡng');
+                    const index = nutritionSlides.push({
+                        url: item.url,
+                        title: item.title || 'Bảng dinh dưỡng',
+                        productTitle: product.title || '',
+                        productUrl: product.permalink || ''
+                    }) - 1;
+                    return '<figure class="tpc-nutrition-label"><a href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener" data-tpc-nl-index="' + index + '"><img src="' + escapeHtml(item.url) + '" alt="' + title + '" loading="lazy" decoding="async"></a><figcaption>' + title + '</figcaption></figure>';
+                }).join('') + '</div>';
+            }
+
+            function stripMedia(html) {
+                const template = document.createElement('template');
+                template.innerHTML = html;
+                template.content.querySelectorAll('img, picture, figure, video, audio, iframe, svg, source').forEach(function(node) {
+                    node.remove();
+                });
+                // Thẻ chỉ còn bọc ảnh (link, đoạn văn...) thì bỏ luôn để không để lại khoảng trống.
+                Array.from(template.content.querySelectorAll('a, p, span, div, li')).reverse().forEach(function(node) {
+                    if (!node.textContent.trim() && !node.querySelector('br, hr, input')) {
+                        node.remove();
+                    }
+                });
+                return template.innerHTML.trim();
+            }
+
+            function renderFieldCell(product, key) {
+                const rawHtml = product && product.fields ? product.fields[key] || '' : '';
+                const textHtml = textOnlyFieldKeys.indexOf(key) !== -1 ? stripMedia(rawHtml) : rawHtml;
+                const labelsHtml = nutritionFieldKeys.indexOf(key) !== -1 ? nutritionLabelsHtml(product) : '';
+
+                if (!labelsHtml) {
+                    return renderHtmlCell(textHtml);
+                }
+
+                return '<td>' + (textHtml ? '<div class="tpc-cell-content">' + textHtml + '</div>' : '') + labelsHtml + '</td>';
             }
 
             function renderCartCell(product) {
@@ -2410,16 +2723,21 @@ function tpc_product_compare_shortcode($atts)
                 root.style.setProperty('--tpc-active-cols', String(activeCols));
                 root.setAttribute('data-tpc-active-cols', String(activeCols));
                 const rows = [];
+                nutritionSlides = [];
 
                 const hasAi = renderAiPublicSection(publicAiVersion);
                 syncScrollWidth();
                 rows.push('<tr class="tpc-section-row tpc-product-summary-row">' + products.map(renderProductSummaryCell).join('') + '</tr>');
-                rows.push(renderSection('Giá bán', products.map(renderPriceCell)));
-                rows.push(renderSection('Mô tả ngắn', products.map(function(product) {
-                    return renderHtmlCell(product ? product.short_description : '');
+                const highlightField = fieldDefinitions.find(isHighlightField) || null;
+                rows.push(renderSection('Tổng quan', products.map(function(product) {
+                    return renderOverviewCell(product, highlightField);
                 })));
 
                 fieldDefinitions.forEach(function(field) {
+                    if (field === highlightField) {
+                        return;
+                    }
+
                     rows.push(renderSection(field.label || field.key, products.map(function(product) {
                         return renderFieldCell(product, field.key);
                     }), isFaqField(field)));
@@ -2806,6 +3124,139 @@ function tpc_product_compare_shortcode($atts)
                 });
             }
 
+            const nutritionModal = root.querySelector('.tpc-nl');
+            const nutritionDialog = nutritionModal.querySelector('.tpc-nl__dialog');
+            const nutritionStage = nutritionModal.querySelector('.tpc-nl__stage');
+            const nutritionImage = nutritionModal.querySelector('.tpc-nl__image');
+            const nutritionProduct = nutritionModal.querySelector('.tpc-nl__product');
+            const nutritionTitle = nutritionModal.querySelector('.tpc-nl__title');
+            const nutritionCounter = nutritionModal.querySelector('.tpc-nl__counter');
+            const nutritionPrev = nutritionModal.querySelector('.tpc-nl__nav--prev');
+            const nutritionNext = nutritionModal.querySelector('.tpc-nl__nav--next');
+            let nutritionIndex = -1;
+            let nutritionLastFocus = null;
+            let nutritionPrevOverflow = '';
+            let nutritionSwipeStart = null;
+
+            function showNutritionSlide(index) {
+                const slide = nutritionSlides[index];
+                if (!slide) {
+                    return;
+                }
+                nutritionIndex = index;
+                nutritionImage.src = slide.url;
+                nutritionImage.alt = slide.title + (slide.productTitle ? ' - ' + slide.productTitle : '');
+                nutritionProduct.textContent = slide.productTitle;
+                nutritionProduct.href = slide.productUrl || '#';
+                nutritionProduct.hidden = !slide.productTitle;
+                nutritionTitle.textContent = slide.title;
+                nutritionCounter.textContent = nutritionSlides.length > 1 ? (index + 1) + ' / ' + nutritionSlides.length : '';
+                nutritionPrev.disabled = index <= 0;
+                nutritionNext.disabled = index >= nutritionSlides.length - 1;
+                nutritionPrev.hidden = nutritionNext.hidden = nutritionSlides.length < 2;
+            }
+
+            function stepNutrition(step) {
+                showNutritionSlide(Math.min(Math.max(nutritionIndex + step, 0), nutritionSlides.length - 1));
+            }
+
+            function openNutrition(index) {
+                if (!nutritionSlides[index]) {
+                    return;
+                }
+                if (nutritionModal.hidden) {
+                    nutritionLastFocus = document.activeElement;
+                    nutritionPrevOverflow = document.documentElement.style.overflow;
+                    document.documentElement.style.overflow = 'hidden';
+                    nutritionModal.hidden = false;
+                }
+                showNutritionSlide(index);
+                nutritionDialog.focus();
+            }
+
+            function closeNutrition() {
+                if (nutritionModal.hidden) {
+                    return;
+                }
+                nutritionModal.hidden = true;
+                nutritionImage.removeAttribute('src');
+                document.documentElement.style.overflow = nutritionPrevOverflow;
+                if (nutritionLastFocus && typeof nutritionLastFocus.focus === 'function' && document.contains(nutritionLastFocus)) {
+                    nutritionLastFocus.focus();
+                }
+            }
+
+            nutritionModal.addEventListener('click', function(event) {
+                if (event.target.closest('[data-tpc-nl-close]')) {
+                    event.preventDefault();
+                    closeNutrition();
+                    return;
+                }
+                const stepButton = event.target.closest('[data-tpc-nl-step]');
+                if (stepButton) {
+                    event.preventDefault();
+                    stepNutrition(Number(stepButton.getAttribute('data-tpc-nl-step')));
+                }
+            });
+
+            // Vuốt ngang trên ảnh (cảm ứng hoặc kéo chuột) để sang sản phẩm kế / trước.
+            nutritionStage.addEventListener('pointerdown', function(event) {
+                if (event.target.closest('button')) {
+                    return;
+                }
+                nutritionSwipeStart = { x: event.clientX, y: event.clientY };
+            });
+            nutritionStage.addEventListener('pointerup', function(event) {
+                if (!nutritionSwipeStart) {
+                    return;
+                }
+                const dx = event.clientX - nutritionSwipeStart.x;
+                const dy = event.clientY - nutritionSwipeStart.y;
+                nutritionSwipeStart = null;
+                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+                    stepNutrition(dx < 0 ? 1 : -1);
+                }
+            });
+            nutritionStage.addEventListener('pointercancel', function() {
+                nutritionSwipeStart = null;
+            });
+
+            // Pha capture như modal chọn SP: Esc chỉ đóng popup ảnh, không đóng modal so sánh bên ngoài.
+            window.addEventListener('keydown', function(event) {
+                if (nutritionModal.hidden) {
+                    return;
+                }
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    closeNutrition();
+                } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    stepNutrition(event.key === 'ArrowRight' ? 1 : -1);
+                } else if (event.key === 'Tab') {
+                    const focusables = Array.from(nutritionModal.querySelectorAll('button:not([disabled]), a[href]')).filter(function(element) {
+                        return element.offsetParent !== null;
+                    });
+                    if (!focusables.length) {
+                        return;
+                    }
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+                    const active = document.activeElement;
+                    if (!nutritionModal.contains(active) || active === nutritionDialog) {
+                        event.preventDefault();
+                        (event.shiftKey ? last : first).focus();
+                    } else if (event.shiftKey && active === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && active === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                }
+            }, true);
+
             function openPicker() {
                 if (pickerOpen) {
                     return;
@@ -2921,6 +3372,13 @@ function tpc_product_compare_shortcode($atts)
             }, true);
 
             root.addEventListener('click', function(event) {
+                const nutritionLink = event.target.closest('[data-tpc-nl-index]');
+                if (nutritionLink && root.contains(nutritionLink) && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0) {
+                    event.preventDefault();
+                    openNutrition(Number(nutritionLink.getAttribute('data-tpc-nl-index')));
+                    return;
+                }
+
                 const faqToggle = event.target.closest('.tpc-faq-toggle');
                 if (faqToggle && root.contains(faqToggle)) {
                     event.preventDefault();
