@@ -2538,17 +2538,19 @@ function tpc_product_compare_shortcode($atts)
                     return '<td><span class="tpc-empty-cell">-</span></td>';
                 }
 
+                // PHP trả "<span class="tpc-empty-value">-</span>" cho trường trống → coi như không có.
                 function contentHtml(html) {
-                    return html ? '<div class="tpc-cell-content">' + html + '</div>' : '';
+                    return html && html.indexOf('tpc-empty-value') === -1 ? '<div class="tpc-cell-content">' + html + '</div>' : '';
                 }
 
-                const highlightHtml = highlightField && product.fields ? product.fields[highlightField.key] : '';
+                const highlightHtml = highlightField && product.fields ? stripHeading(product.fields[highlightField.key] || '', highlightField.label || 'Điểm nhấn') : '';
+                // Chỉ phần giá có nhãn; mô tả ngắn và điểm nhấn hiện thẳng nội dung.
                 const parts = [
                     ['Giá bán', priceListHtml(product)],
-                    ['Mô tả ngắn', contentHtml(product.short_description)],
-                    [highlightField ? highlightField.label || 'Điểm nhấn' : '', contentHtml(highlightHtml)]
+                    ['', contentHtml(stripHeading(product.short_description || '', 'Mô tả ngắn'))],
+                    ['', contentHtml(highlightHtml)]
                 ].filter(function(part) {
-                    return part[0] && part[1];
+                    return part[1];
                 });
 
                 if (!parts.length) {
@@ -2556,7 +2558,8 @@ function tpc_product_compare_shortcode($atts)
                 }
 
                 return '<td><div class="tpc-overview">' + parts.map(function(part) {
-                    return '<div class="tpc-overview__part"><div class="tpc-overview__label">' + escapeHtml(decodeHtmlEntities(part[0])) + '</div>' + part[1] + '</div>';
+                    const labelHtml = part[0] ? '<div class="tpc-overview__label">' + escapeHtml(part[0]) + '</div>' : '';
+                    return '<div class="tpc-overview__part">' + labelHtml + part[1] + '</div>';
                 }).join('') + '</div></td>';
             }
 
@@ -2638,8 +2641,29 @@ function tpc_product_compare_shortcode($atts)
                 return template.innerHTML.trim();
             }
 
-            function renderFieldCell(product, key) {
-                const rawHtml = product && product.fields ? product.fields[key] || '' : '';
+            function normalizeHeadingText(text) {
+                return decodeHtmlEntities(String(text || '')).replace(/\s+/g, ' ').replace(/[:：]\s*$/, '').trim().toLowerCase();
+            }
+
+            // Bỏ tiêu đề trong nội dung trùng tên mục (vd. <h2>Hướng dẫn sử dụng</h2>) — tiêu đề mục đã có ở dòng trên.
+            function stripHeading(html, label) {
+                const target = normalizeHeadingText(label);
+                if (!html || !target) {
+                    return html;
+                }
+                const template = document.createElement('template');
+                template.innerHTML = html;
+                template.content.querySelectorAll('h1, h2, h3, h4, h5, h6, p > strong:only-child, p > b:only-child').forEach(function(node) {
+                    const block = node.tagName === 'STRONG' || node.tagName === 'B' ? node.parentElement : node;
+                    if (normalizeHeadingText(block.textContent) === target) {
+                        block.remove();
+                    }
+                });
+                return template.innerHTML.trim();
+            }
+
+            function renderFieldCell(product, key, label) {
+                const rawHtml = stripHeading(product && product.fields ? product.fields[key] || '' : '', label);
                 const textHtml = textOnlyFieldKeys.indexOf(key) !== -1 ? stripMedia(rawHtml) : rawHtml;
                 const labelsHtml = nutritionFieldKeys.indexOf(key) !== -1 ? nutritionLabelsHtml(product) : '';
 
@@ -2739,7 +2763,7 @@ function tpc_product_compare_shortcode($atts)
                     }
 
                     rows.push(renderSection(field.label || field.key, products.map(function(product) {
-                        return renderFieldCell(product, field.key);
+                        return renderFieldCell(product, field.key, field.label || field.key);
                     }), isFaqField(field)));
                 });
 
