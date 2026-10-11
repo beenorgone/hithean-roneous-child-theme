@@ -29,6 +29,7 @@ function tpc_compare_icon_svg($key)
         'eye'     => '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
         'save'    => '<path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8M7 21v-7h10v7"/>',
         'globe'   => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+        'chevron' => '<path d="m6 9 6 6 6-6"/>',
     ];
 
     if (!isset($shapes[$key])) {
@@ -1376,6 +1377,22 @@ function tpc_product_compare_shortcode($atts)
             text-transform: uppercase;
         }
 
+        #<?php echo esc_html($instance_id); ?> .tpc-faq-toggle {
+            width: auto;
+            max-width: max-content;
+            margin: 6px 0 0;
+            font-size: 14px;
+            text-transform: none;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-faq-toggle .tpc-icon {
+            transition: transform .2s ease;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-faq-toggle[aria-expanded="true"] .tpc-icon {
+            transform: rotate(180deg);
+        }
+
         #<?php echo esc_html($instance_id); ?> .tpc-section-note {
             display: none;
             font-size: 12px;
@@ -2013,8 +2030,8 @@ function tpc_product_compare_shortcode($atts)
             const pickerBuild = picker.querySelector('.tpc-pm__build');
             const maxProducts = <?php echo (int) $number; ?>;
             const icons = <?php echo tpc_compare_json_encode_for_script(array_combine(
-                ['cart', 'eye', 'save', 'globe', 'sparkle'],
-                array_map('tpc_compare_icon_svg', ['cart', 'eye', 'save', 'globe', 'sparkle'])
+                ['cart', 'eye', 'save', 'globe', 'sparkle', 'chevron'],
+                array_map('tpc_compare_icon_svg', ['cart', 'eye', 'save', 'globe', 'sparkle', 'chevron'])
             ), '{}'); ?>;
             const browseCategories = <?php echo tpc_compare_json_encode_for_script($browse_categories); ?>;
             let browseGroups = null;
@@ -2026,6 +2043,8 @@ function tpc_product_compare_shortcode($atts)
             let aiVersions = [];
             let activeAiVersionId = 0;
             let aiBusy = false;
+            // Dòng FAQ dài nên ẩn mặc định, khách bấm "Xem thêm" ở tiêu đề mục để mở.
+            let faqOpen = false;
 
             initialProducts.forEach(function(product) {
                 productMap.set(String(product.id), product);
@@ -2333,11 +2352,30 @@ function tpc_product_compare_shortcode($atts)
                 return '<td><a class="tpc-add-to-cart ' + escapeHtml(classes) + '" href="' + escapeHtml(product.cart.url) + '"' + target + rel + dataProductId + dataSku + dataQuantity + '>' + iconButtonInner(product.cart.icon || 'cart', product.cart.label || 'Thêm vào giỏ hàng') + '</a></td>';
             }
 
-            function renderSection(title, cellsHtml) {
+            function isFaqField(field) {
+                return field.key === 'faq' || field.key === 'product_info_faq';
+            }
+
+            function faqToggleLabel() {
+                return faqOpen ? 'Thu gọn' : 'Xem thêm';
+            }
+
+            function renderSection(title, cellsHtml, collapsible) {
                 const activeCols = Math.max(cellsHtml.length, 1);
                 const noteHtml = activeCols > 2 ? '<span class="tpc-section-note">Kéo sang phải để xem từng sản phẩm.</span>' : '';
-                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title"><div class="tpc-section-inner"><span class="tpc-section-label">' + escapeHtml(decodeHtmlEntities(title)) + '</span>' + noteHtml + '</div></th></tr>' +
-                    '<tr class="tpc-section-row">' + cellsHtml.join('') + '</tr>';
+                const toggleHtml = collapsible ? '<button type="button" class="button button--dark-blue-reverse tpc-btn tpc-faq-toggle" aria-expanded="' + (faqOpen ? 'true' : 'false') + '">' + iconButtonInner('chevron', faqToggleLabel()) + '</button>' : '';
+                const rowAttrs = collapsible ? ' tpc-faq-row"' + (faqOpen ? '' : ' hidden') : '"';
+                return '<tr class="tpc-section-head"><th colspan="' + activeCols + '" class="tpc-section-title"><div class="tpc-section-inner"><span class="tpc-section-label">' + escapeHtml(decodeHtmlEntities(title)) + '</span>' + noteHtml + toggleHtml + '</div></th></tr>' +
+                    '<tr class="tpc-section-row' + rowAttrs + '>' + cellsHtml.join('') + '</tr>';
+            }
+
+            function toggleFaq(button) {
+                faqOpen = !faqOpen;
+                body.querySelectorAll('.tpc-faq-row').forEach(function(row) {
+                    row.hidden = !faqOpen;
+                });
+                button.setAttribute('aria-expanded', faqOpen ? 'true' : 'false');
+                setButtonLabel(button, faqToggleLabel());
             }
 
             // Khối AI nằm ngoài bảng (bảng có min-width theo số cột → nội dung dài bị kéo ngang trên mobile).
@@ -2384,7 +2422,7 @@ function tpc_product_compare_shortcode($atts)
                 fieldDefinitions.forEach(function(field) {
                     rows.push(renderSection(field.label || field.key, products.map(function(product) {
                         return renderFieldCell(product, field.key);
-                    })));
+                    }), isFaqField(field)));
                 });
 
                 rows.push(renderSection('Mua sản phẩm', products.map(renderCartCell)));
@@ -2883,6 +2921,13 @@ function tpc_product_compare_shortcode($atts)
             }, true);
 
             root.addEventListener('click', function(event) {
+                const faqToggle = event.target.closest('.tpc-faq-toggle');
+                if (faqToggle && root.contains(faqToggle)) {
+                    event.preventDefault();
+                    toggleFaq(faqToggle);
+                    return;
+                }
+
                 const removeButton = event.target.closest('.tpc-selected-product-remove');
                 if (removeButton && root.contains(removeButton)) {
                     event.preventDefault();
