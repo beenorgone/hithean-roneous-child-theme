@@ -1017,17 +1017,21 @@ function tpc_product_compare_shortcode($atts)
             <section class="tpc-ai-panel" hidden aria-live="polite"></section>
         <?php endif; ?>
 
-        <div class="tpc-table-shell<?php echo $has_initial_products ? '' : ' tpc-table-shell--hidden'; ?>" <?php echo $has_initial_products ? '' : ' hidden'; ?>>
-            <div class="tpc-table-scroll">
-                <table class="tpc-compare-table">
-                    <tbody class="tpc-compare-body">
-                        <tr>
-                            <td colspan="<?php echo esc_attr($number); ?>" class="tpc-placeholder-cell">
-                                <?php echo $has_initial_products ? 'Đang tải dữ liệu so sánh...' : 'Chọn sản phẩm rồi bấm "Tạo bảng so sánh".'; ?>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="tpc-results">
+            <section class="tpc-ai-public-wrap" aria-label="So sánh bằng AI" hidden></section>
+
+            <div class="tpc-table-shell<?php echo $has_initial_products ? '' : ' tpc-table-shell--hidden'; ?>" <?php echo $has_initial_products ? '' : ' hidden'; ?>>
+                <div class="tpc-table-scroll">
+                    <table class="tpc-compare-table">
+                        <tbody class="tpc-compare-body">
+                            <tr>
+                                <td colspan="<?php echo esc_attr($number); ?>" class="tpc-placeholder-cell">
+                                    <?php echo $has_initial_products ? 'Đang tải dữ liệu so sánh...' : 'Chọn sản phẩm rồi bấm "Tạo bảng so sánh".'; ?>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -1159,20 +1163,91 @@ function tpc_product_compare_shortcode($atts)
             flex-wrap: wrap;
         }
 
+        #<?php echo esc_html($instance_id); ?> .tpc-results {
+            display: grid;
+            gap: 14px;
+            min-width: 0;
+            /* Khối AI tải sau và chèn phía trên bảng: không neo cuộn vào bảng để AI hiện ngay đầu khung nhìn. */
+            overflow-anchor: none;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-public-wrap {
+            min-width: 0;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 10px 24px rgba(29, 78, 216, 0.08);
+            overflow: hidden;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-public__title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 0;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #e8f0ff 0%, #dce8ff 100%);
+            color: #13325b;
+            font-size: 24px;
+            font-weight: 800;
+            line-height: 1.25;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-public__title .tpc-icon {
+            width: 22px;
+            height: 22px;
+        }
+
         #<?php echo esc_html($instance_id); ?> .tpc-ai-public {
             display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
-            padding: 4px 2px;
+            padding: 18px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-public__block {
+            min-width: 0;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: #f5f8ff;
+            overflow-wrap: anywhere;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-ai-public__block h3 {
-            margin: 0 0 6px;
+            margin: 0 0 8px;
             color: #13325b;
-            font-size: 16px;
+            font-size: 17px;
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-ai-public__block p {
             margin: 0 0 8px;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-public__block > :last-child {
+            margin-bottom: 0;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-ai-public .tpc-ai-timestamp {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 767px) {
+            #<?php echo esc_html($instance_id); ?> .tpc-ai-public {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 12px;
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-ai-public__title {
+                font-size: 18px;
+                padding: 12px 14px;
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-ai-public__block {
+                padding: 12px;
+            }
         }
 
         #<?php echo esc_html($instance_id); ?> .tpc-table-shell {
@@ -1890,6 +1965,7 @@ function tpc_product_compare_shortcode($atts)
             const nonce = <?php echo wp_json_encode(wp_create_nonce(tpc_compare_ajax_nonce())); ?>;
             const body = root.querySelector('.tpc-compare-body');
             const tableShell = root.querySelector('.tpc-table-shell');
+            const aiPublicWrap = root.querySelector('.tpc-ai-public-wrap');
             const fieldDefinitions = <?php echo tpc_compare_json_encode_for_script($field_definitions); ?>;
             const comparePageUrl = <?php echo wp_json_encode($compare_page_url); ?>;
             const productMap = new Map();
@@ -1911,8 +1987,8 @@ function tpc_product_compare_shortcode($atts)
             const pickerBuild = picker.querySelector('.tpc-pm__build');
             const maxProducts = <?php echo (int) $number; ?>;
             const icons = <?php echo tpc_compare_json_encode_for_script(array_combine(
-                ['cart', 'eye', 'save', 'globe'],
-                array_map('tpc_compare_icon_svg', ['cart', 'eye', 'save', 'globe'])
+                ['cart', 'eye', 'save', 'globe', 'sparkle'],
+                array_map('tpc_compare_icon_svg', ['cart', 'eye', 'save', 'globe', 'sparkle'])
             ), '{}'); ?>;
             const browseCategories = <?php echo tpc_compare_json_encode_for_script($browse_categories); ?>;
             let browseGroups = null;
@@ -2138,6 +2214,7 @@ function tpc_product_compare_shortcode($atts)
             }
 
             function showPlaceholder(message) {
+                renderAiPublicSection(null);
                 setCopyButtonsVisible(false);
                 setTopResetVisible(false);
                 setTableActionsVisible(false);
@@ -2237,17 +2314,26 @@ function tpc_product_compare_shortcode($atts)
                     '<tr class="tpc-section-row">' + cellsHtml.join('') + '</tr>';
             }
 
-            function renderAiPublicSection(version, activeCols) {
+            // Khối AI nằm ngoài bảng (bảng có min-width theo số cột → nội dung dài bị kéo ngang trên mobile).
+            function renderAiPublicSection(version) {
+                if (!aiPublicWrap) {
+                    return false;
+                }
+
                 if (!version || !version.conclusion_html || !version.neutral_analysis_html) {
-                    return '';
+                    aiPublicWrap.hidden = true;
+                    aiPublicWrap.innerHTML = '';
+                    return false;
                 }
 
                 const timestamp = version.compared_label ? '<div class="tpc-ai-timestamp">So sánh lúc: ' + escapeHtml(version.compared_label) + '</div>' : '';
-                return '<tr class="tpc-section-head tpc-ai-public-head"><th colspan="' + activeCols + '" class="tpc-section-title"><span class="tpc-section-label">So sánh bằng AI</span></th></tr>' +
-                    '<tr class="tpc-section-row tpc-ai-public-row"><td colspan="' + activeCols + '"><div class="tpc-ai-public">' +
+                aiPublicWrap.innerHTML = '<h2 class="tpc-ai-public__title">' + (icons.sparkle || '') + '<span>So sánh bằng AI</span></h2>' +
+                    '<div class="tpc-ai-public">' +
                     '<div class="tpc-ai-public__block"><h3>Kết luận mua hàng</h3>' + version.conclusion_html + '</div>' +
                     '<div class="tpc-ai-public__block"><h3>Phân tích trung lập</h3>' + version.neutral_analysis_html + '</div>' + timestamp +
-                    '</div></td></tr>';
+                    '</div>';
+                aiPublicWrap.hidden = false;
+                return true;
             }
 
             function renderRows(products, renderedColumnCount, publicAiVersion) {
@@ -2261,10 +2347,7 @@ function tpc_product_compare_shortcode($atts)
                 root.setAttribute('data-tpc-active-cols', String(activeCols));
                 const rows = [];
 
-                const aiRows = renderAiPublicSection(publicAiVersion, activeCols);
-                if (aiRows) {
-                    rows.push(aiRows);
-                }
+                const hasAi = renderAiPublicSection(publicAiVersion);
                 rows.push('<tr class="tpc-section-row tpc-product-summary-row">' + products.map(renderProductSummaryCell).join('') + '</tr>');
                 rows.push(renderSection('Giá bán', products.map(renderPriceCell)));
                 rows.push(renderSection('Mô tả ngắn', products.map(function(product) {
@@ -2282,7 +2365,7 @@ function tpc_product_compare_shortcode($atts)
                 hasGeneratedTable = true;
                 syncBuildButtonLabel();
                 root.dispatchEvent(new CustomEvent('tpc:table-rendered', {
-                    detail: { cols: activeCols, withAi: !!aiRows }
+                    detail: { cols: activeCols, withAi: hasAi }
                 }));
             }
 
@@ -2485,6 +2568,7 @@ function tpc_product_compare_shortcode($atts)
                 syncBuildButtonLabel();
                 tableShell.hidden = true;
                 tableShell.classList.add('tpc-table-shell--hidden');
+                renderAiPublicSection(null);
                 root.setAttribute('data-tpc-active-cols', '0');
                 body.innerHTML = '';
                 if (aiGenerateButton) {

@@ -92,7 +92,8 @@
             }
             lastTableScroll = Date.now();
             var body = modal.querySelector('.apfm-modal__body');
-            var shell = compareRoot.querySelector('.tpc-table-shell');
+            // .tpc-results bọc khối AI (tải sau, chèn phía trên) + bảng → cuộn tới đây để AI hiện đầu khung nhìn.
+            var shell = compareRoot.querySelector('.tpc-results') || compareRoot.querySelector('.tpc-table-shell');
             if (!body || !shell || modal.hidden) {
                 return;
             }
