@@ -213,6 +213,18 @@ function hithean_proof_cache_page_assets(?array $add = null): array
     return $assets;
 }
 
+/** Hithean skin for the IVAR popups (assets/proof-widget-skin.css), inlined per shadow root. */
+function hithean_proof_cache_skin_css(): string
+{
+    static $css = null;
+    if ($css === null) {
+        $css = (string) @file_get_contents(__DIR__ . '/assets/proof-widget-skin.css');
+        $css = trim((string) preg_replace(['~/\*.*?\*/~s', '~\s+~'], ['', ' '], $css));
+    }
+
+    return $css;
+}
+
 function hithean_proof_cache_host(string $kind, array $entry): string
 {
     hithean_proof_cache_page_assets(['js' => $entry['js'], 'font' => $entry['font'] ?? '']);
@@ -223,7 +235,8 @@ function hithean_proof_cache_host(string $kind, array $entry): string
     $style = 'display:inline-block;max-width:100%' . ($kind === 'qc' ? ';vertical-align:middle' : '');
 
     return '<span class="' . $class . '" data-hithean-proof="' . esc_attr($kind) . '" style="' . $style . '">'
-        . '<template shadowrootmode="open"><link rel="stylesheet" href="' . esc_url($entry['css']) . '">'
+        . '<template shadowrootmode="open"><link rel="stylesheet" href="' . esc_url($entry['css']) . '" data-no-minify="1">' // keep WP Rocket from copying it to hithean's cache
+        . '<style>' . hithean_proof_cache_skin_css() . '</style>' // after IVAR's CSS: same specificity, later wins
         . $entry['html'] // phpcs:ignore -- rendered by IVAR, fetched over https from the allowlisted host.
         . '</template></span>';
 }

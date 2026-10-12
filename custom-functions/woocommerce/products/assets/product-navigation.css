@@ -332,25 +332,34 @@
     }
 }
 
+/* ---------- Popup "Hồ sơ & kiểm nghiệm" ----------
+   Cùng kiểu với .pcn-popover bên dưới (nền, mờ, bo, đầu, nút đóng); popup QC /
+   pháp lý mở từ đây cũng mặc skin này (assets/proof-widget-skin.css). */
 .pcn-proof-dialog:not([open]) { display: none; }
 .pcn-proof-dialog {
     box-sizing: border-box;
     position: fixed;
     inset: auto 0 0;
-    width: 100%;
+    width: calc(100vw - 24px);
     max-width: 460px;
     max-height: min(82dvh, 680px);
     margin: 0 auto;
-    padding: 0 0 env(safe-area-inset-bottom, 0px);
+    padding: 16px 18px calc(18px + env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
     border: 0;
     border-radius: 16px 16px 0 0;
-    background: #fff;
+    background: rgba(255, 255, 255, 0.97);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
     color: #2e1203;
-    box-shadow: 0 -12px 40px rgba(0, 0, 0, .22);
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
     pointer-events: auto;
 }
-.pcn-proof-dialog::backdrop { background: rgba(15, 23, 42, .55); }
+.pcn-proof-dialog::backdrop {
+    background: rgba(15, 23, 42, 0.45);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+}
 @media (min-width: 768px) {
     /* Desktop: centred card instead of a bottom sheet. */
     .pcn-proof-dialog {
@@ -358,41 +367,53 @@
         height: fit-content;
         margin: auto;
         border-radius: 16px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
     }
 }
 .pcn-proof-dialog__head {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 18px 20px 8px;
+    margin-bottom: 10px;
 }
 .pcn-proof-dialog__eyebrow {
-    margin: 0 0 4px;
+    margin: 0 0 2px;
     color: var(--default-color-dark-blue, #0047ba);
     font-size: 12px;
     font-weight: 700;
 }
-.pcn-proof-dialog__head h2 { margin: 0; font-size: 19px; line-height: 1.25; }
+/* Như .pcn-popover__title: h2 của theme (Oswald) cỡ 16px. */
+.pcn-proof-dialog__head h2 { margin: 0; font-size: 16px; font-weight: 700; line-height: 1.3; }
 .pcn-proof-dialog__close {
-    flex: 0 0 36px;
-    width: 36px;
-    height: 36px;
+    display: inline-flex;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     border: 0;
     border-radius: 50%;
-    background: #f1f5f9;
-    color: #2e1203;
-    font-size: 24px;
+    background: #f1f1f1;
+    color: #111;
+    font-size: 22px;
+    line-height: 1;
     cursor: pointer;
 }
-.pcn-proof-dialog__hint { margin: 0; padding: 0 20px 14px; font-size: 13px; }
-.pcn-proof-dialog__items { display: grid; gap: 12px; padding: 0 20px 22px; }
-.pcn-proof-dialog__item { display: flex; justify-content: center; min-width: 0; }
+.pcn-proof-dialog__hint { margin: 0 0 12px; font-size: 13px; }
+/* Hàng cao bằng nhau; nút QC / pháp lý giãn đầy ô (--hithean-proof-fill đi
+   xuyên shadow DOM, skin bên trong dùng cho width/height của nút). */
+.pcn-proof-dialog__items { display: grid; grid-auto-rows: 1fr; gap: 8px; }
+.pcn-proof-dialog__item { display: flex; min-width: 0; --hithean-proof-fill: 100%; }
 .pcn-proof-dialog__item[hidden] { display: none; }
-/* Badge IVAR nằm trong shadow DOM (max-width: 100%): giới hạn qua host.
-   !important vì qc-embed.js đặt max-width inline cho host. */
-.pcn-proof-dialog .ivar-qc-widget-host { max-width: min(400px, 100%) !important; }
+/* !important: host mang style inline (display/max-width) của bản render sẵn và qc-embed.js. */
+.pcn-proof-dialog__item > .ivar-qc-widget-host,
+.pcn-proof-dialog__item > .ivar-legal-host {
+    display: block !important;
+    width: 100%;
+    max-width: 100% !important;
+}
 
 /* ---------- Popover "Chi tiết SP" (mobile) ----------
    Cơ chế định vị: popover position:absolute neo bên trong .pcn-mobile__cluster
@@ -474,10 +495,22 @@
 .pcn-popover__list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    /* Mọi hàng cao bằng hàng cao nhất: nút 1 dòng chữ và nút xuống 2 dòng
+       ("Hướng dẫn sử dụng") không lệch nhau. */
+    grid-auto-rows: 1fr;
     gap: 8px;
     margin: 0;
     padding: 0;
     list-style: none;
+}
+
+.pcn-popover__list > li {
+    display: flex;
+    min-width: 0;
+}
+
+.pcn-popover__list > li[hidden] {
+    display: none;
 }
 
 .pcn-popover__item {
@@ -485,7 +518,9 @@
     align-items: center;
     gap: 8px;
     width: 100%;
+    height: 100%;
     min-height: 44px;
+    line-height: 1.25;
     padding: 10px 12px;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
