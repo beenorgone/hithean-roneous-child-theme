@@ -41,6 +41,8 @@ $general_includes = [
     'custom-functions/shortcodes/shortcode-certifications.php',
     'custom-functions/woocommerce/products/product-tab-post-type.php',
     'custom-functions/woocommerce/products/product-navigation-settings.php',
+    // Widget QC / Hồ sơ pháp lý của IVAR: cache HTML phía server, in sẵn vào trang.
+    'custom-functions/woocommerce/products/proof-embed-cache.php',
     'custom-functions/core/company-info-settings.php',
     'custom-functions/admin/blogpost-metabox.php',
     'custom-functions/woocommerce/products/product-metabox.php',

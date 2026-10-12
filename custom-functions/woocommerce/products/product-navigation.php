@@ -260,7 +260,7 @@ function hithean_pcn_render()
     }
 
     $proof_scripts = hithean_pcn_can_view_proof_embeds()
-        ? hithean_pcn_proof_embed_scripts($product->get_id())
+        ? hithean_proof_cache_markup($product->get_id())
         : [];
 
     // is_purchasable() alone may still be true for an out-of-stock simple

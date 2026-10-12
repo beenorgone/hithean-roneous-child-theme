@@ -739,7 +739,7 @@ function hithean_render_product_trust_ctas(bool $with_nutrition): void
     global $product;
 
     $product_id = $product instanceof WC_Product ? $product->get_id() : (int) get_queried_object_id();
-    $proof_scripts = hithean_pcn_can_view_proof_embeds() ? hithean_pcn_proof_embed_scripts($product_id) : [];
+    $proof_scripts = hithean_pcn_can_view_proof_embeds() ? hithean_proof_cache_markup($product_id) : [];
 
     if (!$proof_scripts) {
         if ($with_nutrition) {
@@ -750,7 +750,7 @@ function hithean_render_product_trust_ctas(bool $with_nutrition): void
     ?>
     <div class="product-trust-ctas">
         <?php foreach (['qc', 'legal'] as $kind) : if (empty($proof_scripts[$kind])) continue; ?>
-            <div class="product-trust-ctas__embed product-trust-ctas__embed--<?php echo esc_attr($kind); ?>"><?php echo $proof_scripts[$kind]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rebuilt from allowlisted IVAR URLs. ?></div>
+            <div class="product-trust-ctas__embed product-trust-ctas__embed--<?php echo esc_attr($kind); ?>"><?php echo $proof_scripts[$kind]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- IVAR HTML fetched from the allowlisted host, or the rebuilt script. ?></div>
         <?php endforeach; ?>
         <?php if ($with_nutrition) hithean_render_product_nutrition_label(); ?>
     </div>
