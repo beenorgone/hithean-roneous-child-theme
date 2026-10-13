@@ -98,12 +98,12 @@ function hithean_product_additional_info_metabox($meta_boxes)
 add_filter('rwmb_meta_boxes', 'hithean_product_additional_info_metabox');
 
 // Meta Box lọc field wysiwyg bằng wp_kses_post, làm mất thẻ <script> của mã nhúng
-// IVAR. Giữ lại đúng đoạn script đã qua allowlist (hithean_pcn_proof_embed_script),
+// IVAR. Giữ lại đúng đoạn script đã qua allowlist (hithean_pcn_proof_embed_snippet),
 // mọi nội dung khác vẫn lọc như mặc định.
 function hithean_product_proof_embed_sanitize($value, $field)
 {
     $kind = ($field['id'] ?? '') === 'product_info_kiem_nghiem' ? 'qc' : 'legal';
-    $script = hithean_pcn_proof_embed_script(wp_unslash((string) $value), $kind);
+    $script = hithean_pcn_proof_embed_snippet(wp_unslash((string) $value), $kind);
 
     return $script !== '' ? $script : wp_kses_post($value);
 }

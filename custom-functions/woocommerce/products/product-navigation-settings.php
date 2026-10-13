@@ -217,7 +217,7 @@ function hithean_pcn_parse_proof_embed($raw, string $kind): ?array
     $raw = trim(html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
     $attribute = $kind === 'qc' ? 'data-qc-widget' : 'data-sku';
     $pattern = '~^\s*(?:<p>\s*)?<script\s+src="([^"]+)"\s+' . $attribute
-        . '="([^"]+)"\s+async\s*>\s*</script>\s*(?:</p>)?\s*$~i';
+        . '="([^"]+)"\s+(?:data-no-minify="1"\s+)?async\s*>\s*</script>\s*(?:</p>)?\s*$~i';
     if (!preg_match($pattern, $raw, $match)) {
         return null;
     }
@@ -280,12 +280,24 @@ function hithean_pcn_parse_proof_embed($raw, string $kind): ?array
  */
 function hithean_pcn_proof_embed_script($raw, string $kind): string
 {
+    $snippet = hithean_pcn_proof_embed_snippet($raw, $kind);
+
+    return $snippet === '' ? '' : str_replace(' async>', ' data-no-minify="1" async>', $snippet);
+}
+
+/**
+ * The snippet exactly as IVAR generates it — what the product field stores.
+ * The field must never store the data-no-minify variant: the parser above is the
+ * reader too (an older build saved that variant, so the parser still accepts it).
+ */
+function hithean_pcn_proof_embed_snippet($raw, string $kind): string
+{
     $embed = hithean_pcn_parse_proof_embed($raw, $kind);
     if (!$embed) {
         return '';
     }
     $attribute = $kind === 'qc' ? 'data-qc-widget' : 'data-sku';
 
-    return '<script src="' . esc_url($embed['src']) . '" ' . $attribute . '="' . esc_attr($embed['value']) . '" data-no-minify="1" async></script>';
+    return '<script src="' . esc_url($embed['src']) . '" ' . $attribute . '="' . esc_attr($embed['value']) . '" async></script>';
 }
 
