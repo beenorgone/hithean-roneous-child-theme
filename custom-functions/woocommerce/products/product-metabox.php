@@ -78,6 +78,11 @@ function hithean_product_additional_info_metabox($meta_boxes)
                 'name' => esc_html__('Kiểm nghiệm sản phẩm (mã nhúng IVAR)', 'hithean-product-metabox'),
                 'desc' => esc_html__('Dán mã script nhúng Kiểm nghiệm do IVAR tạo ở chế độ Văn bản. Nút hiện trên nút Xem bảng dinh dưỡng và trong mục Hồ sơ & kiểm nghiệm của thanh điều hướng; mã thiếu hoặc sai định dạng sẽ không hiển thị.', 'hithean-product-metabox'),
             ],
+            [
+                'id'       => 'product_proof_cache_refresh',
+                'type'     => 'custom_html',
+                'callback' => 'hithean_proof_cache_metabox_html',
+            ],
 
             [
                 'id' => $prefix . 'faq',

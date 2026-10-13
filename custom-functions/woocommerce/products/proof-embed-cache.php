@@ -381,15 +381,60 @@ add_action('init', static function (): void {
 
 /* ---------- Manual refresh (admin) ---------- */
 
+function hithean_proof_cache_refresh_url(int $product_id): string
+{
+    return wp_nonce_url(admin_url('admin-post.php?action=hithean_proof_cache_refresh&product_id=' . $product_id), 'hithean_proof_cache_refresh_' . $product_id);
+}
+
+/** "Kiểm nghiệm: đã cập nhật · Hồ sơ pháp lý: …" — '' when nothing is cached. */
+function hithean_proof_cache_status_text(int $product_id): string
+{
+    $parts = [];
+    foreach (hithean_proof_cache_get($product_id) as $kind => $entry) {
+        $label   = $kind === 'qc' ? 'Kiểm nghiệm' : 'Hồ sơ pháp lý';
+        $state   = !empty($entry['failed']) ? 'lỗi kết nối, giữ bản cũ' : (($entry['status'] ?? '') === 'ok' ? 'đã cập nhật' : 'không có nội dung công khai');
+        $parts[] = $label . ': ' . $state;
+    }
+
+    return implode(' · ', $parts);
+}
+
 add_filter('post_row_actions', static function (array $actions, WP_Post $post): array {
     if ($post->post_type !== 'product' || !current_user_can('edit_post', $post->ID) || !hithean_proof_cache_sources($post->ID)) {
         return $actions;
     }
-    $url = wp_nonce_url(admin_url('admin-post.php?action=hithean_proof_cache_refresh&product_id=' . $post->ID), 'hithean_proof_cache_refresh_' . $post->ID);
-    $actions['hithean_proof_cache'] = '<a href="' . esc_url($url) . '">Làm mới QC/pháp lý</a>';
+    $actions['hithean_proof_cache'] = '<a href="' . esc_url(hithean_proof_cache_refresh_url($post->ID)) . '">Làm mới QC/pháp lý</a>';
 
     return $actions;
 }, 10, 2);
+
+/**
+ * Meta Box custom_html callback, under the 2 snippet fields (product-metabox.php).
+ * A link, not a button: a button would submit the post form. It refreshes from
+ * the SAVED snippets, so unsaved edits there are not used (and are lost on leave).
+ */
+function hithean_proof_cache_metabox_html(): string
+{
+    $product_id = (int) get_the_ID();
+    if (!$product_id || !current_user_can('edit_post', $product_id)) {
+        return '';
+    }
+    if (!hithean_proof_cache_sources($product_id)) {
+        return '<p class="description">Nút <strong>Làm mới QC/pháp lý</strong> hiện sau khi lưu sản phẩm với mã nhúng IVAR hợp lệ ở 2 ô trên.</p>';
+    }
+
+    $status = hithean_proof_cache_status_text($product_id);
+    $times  = array_filter(array_map(static function (array $entry): int {
+        return (int) ($entry['checked_at'] ?? 0);
+    }, hithean_proof_cache_get($product_id)));
+    if ($times) {
+        $status .= ($status !== '' ? ' — ' : '') . 'lần lấy gần nhất ' . wp_date('H:i d/m/Y', max($times));
+    }
+
+    return '<p><a class="button" href="' . esc_url(hithean_proof_cache_refresh_url($product_id)) . '">Làm mới QC/pháp lý</a> '
+        . '<span class="description">' . esc_html($status !== '' ? $status : 'Chưa có bản lưu sẵn, trang đang dùng mã nhúng.') . '</span></p>'
+        . '<p class="description">Lấy lại nội dung từ ivarvietnam.com theo mã nhúng <strong>đã lưu</strong>. Sửa mã thì bấm Cập nhật trước.</p>';
+}
 
 add_action('admin_post_hithean_proof_cache_refresh', static function (): void {
     $product_id = absint($_GET['product_id'] ?? 0);
@@ -407,12 +452,6 @@ add_action('admin_notices', static function (): void {
     if (!$product_id) {
         return;
     }
-    $parts = [];
-    foreach (hithean_proof_cache_get($product_id) as $kind => $entry) {
-        $label   = $kind === 'qc' ? 'Kiểm nghiệm' : 'Hồ sơ pháp lý';
-        $state   = !empty($entry['failed']) ? 'lỗi kết nối, giữ bản cũ' : (($entry['status'] ?? '') === 'ok' ? 'đã cập nhật' : 'không có nội dung công khai');
-        $parts[] = $label . ': ' . $state;
-    }
-    $message = $parts ? implode(' · ', $parts) : 'Không lấy được dữ liệu từ ivarvietnam.com.';
+    $message = hithean_proof_cache_status_text($product_id) ?: 'Không lấy được dữ liệu từ ivarvietnam.com.';
     echo '<div class="notice notice-info is-dismissible"><p>' . esc_html(get_the_title($product_id) . ' — ' . $message) . '</p></div>';
 });
