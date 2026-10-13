@@ -130,6 +130,13 @@
 .ivar-legal__panel {
     max-height: inherit;
 }
+/* Thân là grid có chiều cao cố định: hàng auto bị bóp, và bảng hồ sơ
+   (overflow: hidden → min-height 0) bị cắt thay vì để thân cuộn. */
+.ivar-legal__body {
+    grid-auto-rows: max-content;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
 .ivar-legal__foot {
     padding: 10px 18px;
 }
