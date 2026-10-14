@@ -941,8 +941,8 @@ add_action('wp_ajax_order_creator_save_customer_addresses', function () {
  */
 function order_creator_custom_shipping_title(array $payload): string
 {
-    if (!isset($payload['shipping_cost']) || $payload['shipping_cost'] === '' || !is_numeric($payload['shipping_cost'])) {
-        return '';
+    if (isset($payload['shipping_cost']) && $payload['shipping_cost'] !== '' && is_numeric($payload['shipping_cost']) && (float) $payload['shipping_cost'] === 0.0) {
+        return 'Miễn phí vận chuyển';
     }
     return sanitize_text_field((string) ($payload['shipping_title'] ?? ''));
 }
@@ -1039,9 +1039,10 @@ function order_creator_sync_order_from_cart(WC_Order $order, array $payload): vo
 
     $chosen = WC()->session ? (array) WC()->session->get('chosen_shipping_methods') : [];
     $custom_shipping_title = order_creator_custom_shipping_title($payload);
+    $has_manual_shipping = isset($payload['shipping_cost']) && $payload['shipping_cost'] !== '' && is_numeric($payload['shipping_cost']);
     foreach (WC()->shipping()->get_packages() as $package_key => $package) {
         $rate_id = $chosen[$package_key] ?? '';
-        if ($rate_id !== '' && (isset($package['rates'][$rate_id]) || $custom_shipping_title !== '')) {
+        if ($rate_id !== '' && (isset($package['rates'][$rate_id]) || ($has_manual_shipping && $custom_shipping_title !== ''))) {
             $rate = $package['rates'][$rate_id] ?? null;
             $method = $rate ? ['method_id' => $rate->get_method_id(), 'instance_id' => $rate->get_instance_id()] : order_creator_shipping_method_parts($rate_id);
             $item = new WC_Order_Item_Shipping();
@@ -2855,8 +2856,14 @@ function order_creator_render_page(): void
                     <input type="number" id="oc-shipping-cost" min="0" step="1000" placeholder="Để trống để dùng phí WooCommerce">
                 </div>
                 <div class="oc-field">
-                    <label>Tên phương thức vận chuyển</label>
-                    <input type="text" id="oc-shipping-title" placeholder="Bật khi nhập phí ship điều chỉnh" disabled>
+                    <label for="oc-shipping-title-choice">Tên phương thức vận chuyển</label>
+                    <select id="oc-shipping-title-choice">
+                        <option value="">— Theo WooCommerce / tên tùy chỉnh —</option>
+                        <option value="Miễn phí vận chuyển">Miễn phí vận chuyển</option>
+                        <option value="Giao nhanh Ahamove/Grab">Giao nhanh Ahamove/Grab</option>
+                    </select>
+                    <label for="oc-shipping-title" style="margin-top:8px;">Hoặc nhập tên tùy chỉnh</label>
+                    <input type="text" id="oc-shipping-title" placeholder="Tên hiển thị trên đơn hàng">
                 </div>
             </section>
 

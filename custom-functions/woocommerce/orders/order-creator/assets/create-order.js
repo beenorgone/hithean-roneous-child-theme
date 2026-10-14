@@ -75,7 +75,7 @@
             fees: state.fees.slice(),
             shipping_method: state.shipping_method,
             shipping_cost: $('#oc-shipping-cost').value.trim(),
-            shipping_title: $('#oc-shipping-cost').value.trim() ? $('#oc-shipping-title').value.trim() : '',
+            shipping_title: $('#oc-shipping-title-choice').value || $('#oc-shipping-title').value.trim(),
             // Address defaults are persisted only by the explicit confirmation action.
             save_customer_addresses: false,
             order_meta: collectOrderMeta(),
@@ -979,7 +979,10 @@
             state.fees = (o.fees || []).slice();
             state.shipping_method = o.shipping_method || '';
             $('#oc-shipping-cost').value = o.shipping_cost || '';
-            $('#oc-shipping-title').value = o.shipping_title || '';
+            var title = o.shipping_title || '';
+            var choice = $('#oc-shipping-title-choice');
+            choice.value = Array.from(choice.options).some(function (option) { return option.value === title; }) ? title : '';
+            $('#oc-shipping-title').value = choice.value ? '' : title;
             syncShippingTitleField();
 
             // fields đơn
@@ -1061,6 +1064,7 @@
         state.fees = [];
         state.shipping_method = '';
         $('#oc-shipping-cost').value = '';
+        $('#oc-shipping-title-choice').value = '';
         $('#oc-shipping-title').value = '';
         syncShippingTitleField();
         $('#oc-shipping-method').innerHTML = '<option value="">— Tính lại để xem —</option>';
@@ -1489,25 +1493,18 @@
         syncShippingTitleField();
     }
 
-    function selectedShippingTitle() {
-        var opt = $('#oc-shipping-method').selectedOptions[0];
-        if (!opt || !opt.value) { return ''; }
-        return opt.textContent.replace(/\s+—\s+.*$/, '').trim();
-    }
-
-    function syncShippingTitleField(fillWhenEmpty) {
+    function syncShippingTitleField() {
         var input = $('#oc-shipping-title');
-        var hasCustomFee = !!$('#oc-shipping-cost').value.trim();
-        input.disabled = !hasCustomFee;
-        if (!hasCustomFee) {
+        var choice = $('#oc-shipping-title-choice');
+        var shippingCost = $('#oc-shipping-cost').value.trim();
+        if (shippingCost !== '' && Number(shippingCost) === 0) {
+            choice.value = 'Miễn phí vận chuyển';
             input.value = '';
-            input.placeholder = 'Bật khi nhập phí ship điều chỉnh';
+            input.disabled = true;
             return;
         }
-        input.placeholder = selectedShippingTitle() || 'Nhập tên hiển thị trên đơn';
-        if ((fillWhenEmpty || !input.value.trim()) && selectedShippingTitle()) {
-            input.value = selectedShippingTitle();
-        }
+        if (choice.value === 'Miễn phí vận chuyển') { choice.value = ''; }
+        input.disabled = false;
     }
 
     // ---------- create order ----------
@@ -1861,8 +1858,22 @@
         $('#oc-coupon-input').addEventListener('blur', function () { setTimeout(hideCouponSuggestions, 160); });
         $('#oc-coupon-add').addEventListener('click', function () { addCoupon($('#oc-coupon-input').value); $('#oc-coupon-input').value = ''; hideCouponSuggestions(); });
         $('#oc-fee-add').addEventListener('click', addFee);
-        $('#oc-shipping-method').addEventListener('change', function () { state.shipping_method = this.value; syncShippingTitleField(true); recalc(); });
-        $('#oc-shipping-cost').addEventListener('change', function () { syncShippingTitleField(true); recalc(); });
+        $('#oc-shipping-method').addEventListener('change', function () { state.shipping_method = this.value; recalc(); });
+        $('#oc-shipping-title-choice').addEventListener('change', function () {
+            if (this.value === 'Miễn phí vận chuyển') {
+                $('#oc-shipping-cost').value = '0';
+            } else if ($('#oc-shipping-cost').value.trim() !== '' && Number($('#oc-shipping-cost').value) === 0) {
+                $('#oc-shipping-cost').value = '';
+            }
+            if (this.value) { $('#oc-shipping-title').value = ''; }
+            syncShippingTitleField();
+            recalc();
+        });
+        $('#oc-shipping-title').addEventListener('input', function () {
+            if (this.value.trim()) { $('#oc-shipping-title-choice').value = ''; }
+        });
+        $('#oc-shipping-cost').addEventListener('input', syncShippingTitleField);
+        $('#oc-shipping-cost').addEventListener('change', function () { syncShippingTitleField(); recalc(); });
         $('#oc-ship-diff').addEventListener('change', function () {
             $('#oc-ship-fields').hidden = !this.checked;
             if (this.checked) { copyBillingToShipping(); }
