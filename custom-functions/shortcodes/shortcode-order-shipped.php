@@ -31,9 +31,15 @@ function ost_format_ship_code_for_display($ship_code) {
     $ship_code = trim((string) $ship_code);
     if ($ship_code === '') return '';
 
-    $parts = explode('.', $ship_code);
-    $last = trim((string) end($parts));
-    return $last !== '' ? $last : $ship_code;
+    // Field có thể chứa nhiều mã (", ") khi mã được tự lưu từ ảnh xuất kho.
+    $short = [];
+    foreach (preg_split('/[\s,;|]+/u', $ship_code) ?: [] as $code) {
+        if ($code === '') continue;
+        $parts = explode('.', $code);
+        $last = trim((string) end($parts));
+        $short[] = $last !== '' ? $last : $code;
+    }
+    return $short ? implode(', ', array_unique($short)) : $ship_code;
 }
 
 // Xử lý link ảnh từ meta data
@@ -1351,7 +1357,7 @@ function ost_ajax_confirm_export_image() {
     update_post_meta($order_id, 'export_confirmed_by', $user->ID);
     $order->add_order_note('Đã xác nhận ảnh xuất kho bởi ' . $user->display_name);
     do_action('hithean_warehouse_export_confirmed', $order);
-    wp_send_json_success('Đã xác nhận ảnh xuất kho #' . $order_id);
+    wp_send_json_success('Đã xác nhận ảnh xuất kho #' . $order_id . (function_exists('hithean_export_ship_codes_toast_suffix') ? hithean_export_ship_codes_toast_suffix($order_id) : ''));
 }
 
 add_action('wp_ajax_ost_set_order_shipper', 'ost_ajax_set_order_shipper');
