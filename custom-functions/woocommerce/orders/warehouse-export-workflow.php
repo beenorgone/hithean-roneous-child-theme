@@ -85,7 +85,9 @@ function hithean_export_ship_codes_sanitize($codes, WC_Order $order): array
             if (!preg_match('/^[A-Z0-9][A-Z0-9._-]{5,39}$/', $token) || $digits === '') continue; // GHN có mã chỉ 1 chữ số (vd GA4RQKLQ)
             if (preg_match('/^(0|84)\d{9,10}$/', $token)) continue; // số điện thoại
             if ($digits === $token && strpos($token, (string) $order->get_id()) === 0) continue; // mã đơn HiThean (kể cả suffix)
-            $clean[] = $token;
+            // Chỉ lưu mã dạng ngắn: segment sau dấu chấm cuối (S22788.SG01-K25.1811382021 → 1811382021).
+            $short = hithean_export_ship_code_key($token);
+            if (strlen($short) >= 6 && preg_match('/\d/', $short)) $clean[] = $short;
         }
     }
     return array_slice(array_values(array_unique($clean)), 0, 10);
