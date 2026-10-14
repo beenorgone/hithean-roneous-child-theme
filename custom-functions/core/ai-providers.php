@@ -672,7 +672,7 @@ function theme_ai_qwen_endpoint(): string
 /** Model đọc ảnh — model text (qwen-plus...) không nhận ảnh. */
 function theme_ai_qwen_vision_model(): string
 {
-    return defined('QWEN_VISION_MODEL') && QWEN_VISION_MODEL ? (string) QWEN_VISION_MODEL : 'qwen-vl-plus';
+    return defined('QWEN_VISION_MODEL') && QWEN_VISION_MODEL ? (string) QWEN_VISION_MODEL : 'qwen3-vl-plus'; // qwen-vl-plus báo "Model not exist" với key vùng quốc tế (10/2026)
 }
 
 /**
