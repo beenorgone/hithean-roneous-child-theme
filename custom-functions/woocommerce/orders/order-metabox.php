@@ -41,12 +41,19 @@ function thean_register_order_meta_boxes($meta_boxes)
 		'viettel' => 'Viettel Post',
     ];
 
+    // Mọi user quản lý đơn (cùng quyền upload ảnh xuất kho) → người upload tự điền
+    // vào "Xuất kho bởi" luôn có trong options. Giữ các tài khoản cũ để giá trị đã lưu không mất.
     $export_users = [
         'ctv3kiennguyen' => 'ctv3kiennguyen',
         '6ducha'         => '6ducha',
         '1ngocbui'       => '1ngocbui',
         '2tuanha'        => '2tuanha',
     ];
+    foreach (get_users(['capability' => 'manage_woocommerce', 'fields' => ['user_login', 'display_name'], 'orderby' => 'login']) as $user) {
+        $export_users[$user->user_login] = $user->display_name && $user->display_name !== $user->user_login
+            ? $user->display_name . ' (' . $user->user_login . ')'
+            : $user->user_login;
+    }
 
     // Đăng ký Meta Box
     $meta_boxes[] = [
