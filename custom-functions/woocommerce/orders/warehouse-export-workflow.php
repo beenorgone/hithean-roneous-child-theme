@@ -146,6 +146,44 @@ function hithean_export_save_ai_ship_codes(int $order_id, string $trigger): arra
     return $codes ? hithean_export_append_ship_codes($order_id, $codes, $trigger) : [];
 }
 
+/** Ghi nhận tài khoản đã upload ảnh xuất kho (nhiều người → giữ đủ, bỏ trùng). */
+function hithean_export_record_uploader(int $order_id, int $user_id): void
+{
+    if (!$order_id || !$user_id) return;
+    $ids = array_map('absint', (array) get_post_meta($order_id, 'warehouse_export_uploaded_by', true));
+    if (in_array($user_id, $ids, true)) return;
+    $ids[] = $user_id;
+    update_post_meta($order_id, 'warehouse_export_uploaded_by', array_values(array_filter($ids)));
+}
+
+/**
+ * Người upload ảnh → "Xuất kho bởi" (order_export_by). Meta Box select
+ * multiple lưu mỗi user_login một meta row → add_post_meta từng người còn thiếu.
+ */
+function hithean_export_save_uploaders_as_exporters(int $order_id, string $trigger): array
+{
+    $order = $order_id && function_exists('wc_get_order') ? wc_get_order($order_id) : false;
+    if (!$order) return [];
+
+    $existing = [];
+    foreach ((array) get_post_meta($order_id, 'order_export_by', false) as $row) {
+        $existing = array_merge($existing, array_map('strval', (array) $row));
+    }
+    $added = [];
+    foreach ((array) get_post_meta($order_id, 'warehouse_export_uploaded_by', true) as $user_id) {
+        $user = get_userdata(absint($user_id));
+        if (!$user || in_array($user->user_login, $existing, true)) continue;
+        add_post_meta($order_id, 'order_export_by', $user->user_login);
+        $existing[] = $user->user_login;
+        $added[]    = $user->user_login;
+    }
+    if ($added) {
+        $labels = ['ai_pass' => 'AI xác nhận ảnh khớp đơn', 'export_confirmed' => 'xác nhận xuất kho'];
+        $order->add_order_note('👷 Tự động điền "Xuất kho bởi" theo người upload ảnh (' . ($labels[$trigger] ?? $trigger) . '): ' . implode(', ', $added));
+    }
+    return $added;
+}
+
 function hithean_export_lark_settings(): array
 {
     $saved = get_option('hithean_export_lark_settings', []);
@@ -233,6 +271,7 @@ add_action('hithean_export_lark_notify_async', function ($order_id, $attempt = 0
 add_action('hithean_warehouse_export_confirmed', function ($order): void {
     if ($order instanceof WC_Order) {
         hithean_export_save_ai_ship_codes($order->get_id(), 'export_confirmed');
+        hithean_export_save_uploaders_as_exporters($order->get_id(), 'export_confirmed');
         hithean_export_lark_queue_notification($order->get_id());
     }
 }, 5);
@@ -243,8 +282,10 @@ add_action('hithean_export_ai_check_completed', function ($order, $result = []):
     // AI khớp → lưu ngay; AI chạy xong sau khi đã xác nhận xuất kho → lưu theo xác nhận.
     if (is_array($result) && ($result['overall'] ?? '') === 'pass') {
         hithean_export_save_ai_ship_codes($order->get_id(), 'ai_pass');
+        hithean_export_save_uploaders_as_exporters($order->get_id(), 'ai_pass');
     } elseif ($confirmed) {
         hithean_export_save_ai_ship_codes($order->get_id(), 'export_confirmed');
+        hithean_export_save_uploaders_as_exporters($order->get_id(), 'export_confirmed');
     }
     if ($confirmed) {
         hithean_export_lark_queue_notification($order->get_id());

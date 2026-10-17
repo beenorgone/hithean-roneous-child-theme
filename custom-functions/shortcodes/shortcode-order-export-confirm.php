@@ -655,6 +655,7 @@ add_action('wp_ajax_ajax_upload_images', function () {
         $existing = get_post_meta($order_id, 'warehouse_export_images', true);
         $all = array_filter(array_merge(explode("\n", $existing), $uploaded_urls));
         update_post_meta($order_id, 'warehouse_export_images', implode("\n", $all));
+        hithean_export_record_uploader($order_id, get_current_user_id());
         delete_post_meta($order_id, 'warehouse_export_ai_check');
         delete_post_meta($order_id, 'warehouse_export_ai_review_status');
         $message = '✅ Đã upload thành công ' . count($uploaded_urls) . ' ảnh';
