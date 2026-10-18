@@ -126,6 +126,15 @@ body {
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
+/*
+ * Ẩn khi có modal/popup đang mở để không che nút đóng "x" góc trên-phải của
+ * modal (JS gắn class này — xem watchModals() trong js/language-switcher.js).
+ * 2 class để thắng các rule `display: inline-flex !important` ở trên.
+ */
+.hithean-lang-switch.hithean-lang-switch--modal-hidden {
+	display: none !important;
+}
+
 /* Non-blocking Material-style acknowledgement while Google Translate loads. */
 .hithean-translation-status {
 	position: fixed;

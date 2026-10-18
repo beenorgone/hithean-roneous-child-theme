@@ -158,7 +158,83 @@
 		}
 	}
 
+	/**
+	 * Bản fixed góc trên-phải (z-index tối đa) đè lên nút đóng "x" của các
+	 * modal/popup. Thay vì thêm rule riêng cho từng modal (mỗi modal 1 kiểu
+	 * class/body class khác nhau, kể cả modal của plugin), ẩn toggle khi trên
+	 * trang có bất kỳ lớp phủ fixed nào đang mở chiếm phần lớn màn hình.
+	 */
+	var MODAL_SELECTOR = [
+		'dialog[open]',
+		'[role="dialog"]',
+		'[aria-modal="true"]',
+		'[class*="modal"]',
+		'[class*="popup"]',
+		'[class*="lightbox"]',
+		'.mfp-wrap',
+		'.fancybox-container',
+		'.pswp--open'
+	].join(',');
+
+	function isOpenOverlay(el) {
+		if (el.closest('.hithean-lang-switch')) {
+			return false;
+		}
+		var style = window.getComputedStyle(el);
+		if (style.position !== 'fixed' || style.display === 'none' || style.visibility === 'hidden' ||
+			style.pointerEvents === 'none' || parseFloat(style.opacity) === 0) {
+			return false;
+		}
+		var rect = el.getBoundingClientRect();
+		return rect.width >= window.innerWidth * 0.5 && rect.height >= window.innerHeight * 0.5;
+	}
+
+	function isModalOpen() {
+		var candidates = document.querySelectorAll(MODAL_SELECTOR);
+		for (var i = 0; i < candidates.length; i++) {
+			if (isOpenOverlay(candidates[i])) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	var modalCheckQueued = false;
+
+	function syncModalState() {
+		modalCheckQueued = false;
+		var hidden = isModalOpen();
+		document.querySelectorAll('.hithean-lang-switch').forEach(function (group) {
+			group.classList.toggle('hithean-lang-switch--modal-hidden', hidden);
+		});
+	}
+
+	function queueModalCheck() {
+		if (modalCheckQueued) {
+			return;
+		}
+		modalCheckQueued = true;
+		window.requestAnimationFrame(syncModalState);
+	}
+
+	function watchModals() {
+		new MutationObserver(queueModalCheck).observe(document.body, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ['class', 'style', 'hidden', 'open', 'aria-hidden']
+		});
+		// Modal mở bằng transition opacity: lúc class đổi opacity còn 0, cần
+		// kiểm tra lại khi transition/animation kết thúc.
+		document.addEventListener('transitionend', queueModalCheck, true);
+		document.addEventListener('animationend', queueModalCheck, true);
+		window.addEventListener('resize', queueModalCheck);
+		queueModalCheck();
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
+		watchModals();
+
 		if (isEnglishActive()) {
 			loadGoogleTranslateScript(function (combo) {
 				combo.value = 'en';

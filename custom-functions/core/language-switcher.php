@@ -28,14 +28,14 @@ function hithean_language_switcher_enqueue(): void
         'hithean-language-switcher',
         get_stylesheet_directory_uri() . '/css/language-switcher.css',
         array(),
-        '1.0.1'
+        '1.0.2'
     );
 
     wp_enqueue_script(
         'hithean-language-switcher',
         get_stylesheet_directory_uri() . '/js/language-switcher.js',
         array(),
-        '1.0.0',
+        '1.0.1',
         true
     );
 }

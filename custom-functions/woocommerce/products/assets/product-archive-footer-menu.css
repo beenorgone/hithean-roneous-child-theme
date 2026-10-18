@@ -574,11 +574,6 @@ body.apfm-modal-open {
     overflow: hidden;
 }
 
-/* Nút Vi/En cố định góc trên (z-index tối đa) đè lên nút đóng của modal trên mobile. */
-body.apfm-modal-open .hithean-lang-switch--mobile-fixed {
-    display: none !important;
-}
-
 @media (max-width: 767px) {
     .apfm-modal {
         align-items: flex-end;
