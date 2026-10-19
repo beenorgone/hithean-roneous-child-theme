@@ -1014,14 +1014,16 @@ body.anc-modal-locked {
 
 .anc-pf-proof {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 14px;
     margin-top: 14px;
 }
 
 .anc-pf-proof__widget {
+    display: flex;
+    justify-content: center;
     max-width: 100%;
     min-width: 0;
 }
@@ -1045,7 +1047,7 @@ body.anc-modal-locked {
     margin-top: 14px;
 }
 
-.anc-pf-controls .product-nutrition-label {
+.anc-pf-visual .anc-pf-controls .product-nutrition-label {
     margin: 0 !important;
     min-width: 0;
 }

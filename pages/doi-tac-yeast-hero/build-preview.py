@@ -97,6 +97,16 @@ try:
 except Exception as error:
     print(f"Using simple product preview: {error}")
 
+eyebrow = re.search(r'\[anc_product_switcher[^\n]*? eyebrow="([^"]+)"', source)
+if eyebrow:
+    preview_slide = BeautifulSoup(product_html, "html.parser")
+    heading_container = preview_slide.select_one('.anc-pf-switcher, .yh-shell')
+    if heading_container:
+        label = preview_slide.new_tag('p', attrs={'class': 'anc-section-eyebrow'})
+        label.string = eyebrow.group(1)
+        heading_container.insert(0, label)
+        product_html = str(preview_slide)
+
 source, count = re.subn(
     r'\[anc_product_switcher[^\n]*\][\s\S]*?\[/anc_product_switcher\]',
     lambda _: product_html,

@@ -187,6 +187,7 @@ function hithean_anc_product_switcher_shortcode($atts, $content = ''): string
 {
     $atts = shortcode_atts([
         'id'           => '',
+        'eyebrow'      => '',
         'title'        => '',
         'subtitle'     => '',
         'story'        => '',
@@ -202,6 +203,9 @@ function hithean_anc_product_switcher_shortcode($atts, $content = ''): string
     ?>
     <section<?php echo $atts['id'] !== '' ? ' id="' . esc_attr(sanitize_html_class((string) $atts['id'])) . '"' : ''; ?>>
         <div class="<?php echo esc_attr($switcher_classes); ?>" data-product-switcher>
+            <?php if ($atts['eyebrow'] !== '') : ?>
+                <p class="anc-section-eyebrow"><?php echo esc_html($atts['eyebrow']); ?></p>
+            <?php endif; ?>
             <?php if ($atts['title'] !== '') : ?>
                 <h2 class="anc-section-title"><?php echo esc_html($atts['title']); ?></h2>
             <?php endif; ?>

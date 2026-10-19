@@ -28,7 +28,7 @@
 .yh-section-head h2 { margin: 10px 0 18px; color: inherit; font-size: clamp(34px, 4.4vw, 58px); line-height: 1.12; font-weight: 500; text-transform: uppercase; }
 .yh-section-head p:last-child { color: var(--yh-muted); font-size: 16px; line-height: 1.8; margin: 0; }
 .yh-section--dark .yh-section-head p:last-child, .yh-contact .yh-section-head p:last-child { color: #c2d7d9; }
-.yh-eyebrow, .yh-kicker { margin: 0; font-family: 'Oswald', sans-serif; font-size: 13px !important; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--yh-teal); }
+.yh-eyebrow, .yh-kicker, .yh-partner .anc-section-eyebrow { margin: 0; font-family: 'Oswald', sans-serif; font-size: 13px !important; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--yh-teal); }
 .yh-grid { display: grid; gap: 18px; }
 .yh-grid--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .yh-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -85,8 +85,8 @@
 .yh-value-list h3 { margin: 0 0 6px; font-size: 25px; font-weight: 500; text-transform: uppercase; }
 .yh-value-list p { margin: 0; color: var(--yh-muted); }
 
-.yh-product-intro { padding: 72px 0 0; text-align: center; }
-.yh-partner #anc-products { scroll-margin-top: 30px; padding-top: 22px; }
+.yh-partner #anc-products { scroll-margin-top: 30px; padding-top: 72px; }
+.yh-partner #anc-products .anc-section-eyebrow { margin-bottom: 20px; }
 .yh-partner #anc-products .anc-pf-panel { border-radius: 10px; }
 .yh-partner #anc-products .anc-pf-name a { color: var(--yh-ink); }
 .yh-partner #anc-products .anc-b2b-product-cta { min-height: 44px; }
@@ -197,7 +197,7 @@
   .yh-split { gap: 32px; }
   .yh-card { padding: 25px 23px; }
   .yh-card-number { margin-bottom: 16px; }
-  .yh-product-intro { padding: 70px 0 0; }
+  .yh-partner #anc-products { padding-top: 68px; }
   .yh-roadmap { grid-template-columns: 1fr; }
   .yh-roadmap-card { min-height: 0; }
   .yh-roadmap-card h3 { margin-top: 12px; }
