@@ -309,12 +309,19 @@ function theme_erp_settings_render_page(): void
             ]);
             $saved = true;
         }
+
+        if ($active_tab === 'luot-ban') {
+            hithean_sc_require_admin();
+            hithean_sc_save_from_post();
+            $saved = true;
+        }
     }
 
     $tabs = [
         'ai'           => 'AI',
         'xu-ly-don'    => 'Xử lý đơn',
         'nut-ecom'     => 'Nút Shopee/TikTok',
+        'luot-ban'     => 'Lượt bán',
         'woocommerce'  => 'WooCommerce',
         'company-info' => 'Thông tin doanh nghiệp',
     ];
@@ -513,6 +520,11 @@ function theme_erp_settings_render_page(): void
                 </table>
                 <?php submit_button('Lưu cài đặt'); ?>
             </form>
+        <?php endif; ?>
+
+        <?php if ($active_tab === 'luot-ban'): ?>
+            <?php hithean_sc_require_admin(); ?>
+            <?php hithean_sc_render_settings_tab(); ?>
         <?php endif; ?>
 
         <?php if ($active_tab === 'woocommerce'): ?>

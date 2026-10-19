@@ -654,6 +654,7 @@ function hithean_render_ecom_buy_button()
 
     <button type="button" class="button--shopee-buy ecom-buy-trigger" data-ecom-modal="#<?php echo esc_attr($modal_id); ?>">
         <?php esc_html_e('Mua tại Shopee', 'hithean.com'); ?>
+        <?php do_action('hithean_ecom_buy_button_inner', $product_id); ?>
     </button>
 
     <div id="<?php echo esc_attr($modal_id); ?>" class="ecom-buy-modal" hidden>
@@ -668,6 +669,7 @@ function hithean_render_ecom_buy_button()
             }
             ?>
             <p class="ecom-buy-modal__desc"><?php echo esc_html($modal_desc); ?></p>
+            <?php do_action('hithean_ecom_modal_after_desc', $product_id); ?>
             <?php foreach ($channels as $channel):
                 $platform = in_array($channel['platform'] ?? '', ['shopee', 'tiktok'], true) ? $channel['platform'] : 'shopee';
                 ?>
@@ -677,6 +679,7 @@ function hithean_render_ecom_buy_button()
                         <?php if (!empty($channel['short_desc'])): ?>
                             <p class="ecom-buy-card__desc"><?php echo esc_html($channel['short_desc']); ?></p>
                         <?php endif; ?>
+                        <?php do_action('hithean_ecom_card_after_info', $channel, $product_id); ?>
                     </div>
                     <a href="<?php echo esc_url($channel['link']); ?>" target="_blank" rel="noopener" class="ecom-buy-card__cta ecom-buy-card__cta--<?php echo esc_attr($platform); ?>">
                         <?php esc_html_e('Mua ngay', 'hithean.com'); ?>

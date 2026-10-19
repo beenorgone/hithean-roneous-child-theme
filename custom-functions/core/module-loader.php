@@ -46,6 +46,9 @@ $general_includes = [
     'custom-functions/core/company-info-settings.php',
     'custom-functions/admin/blogpost-metabox.php',
     'custom-functions/woocommerce/products/product-metabox.php',
+    // Lượt bán theo nhãn hiệu (Shopee + website): nút Shopee, modal, dưới giá, thẻ SP, [hithean_sales_count].
+    // Admin + AJAX bóc tách ở sales-count-admin.php, chỉ nạp khi cần.
+    'custom-functions/woocommerce/products/sales-count.php',
 
     /* I18N */
     // Nút "Eng"/"Vi" toàn site, dịch bằng Google Website Translator (client-side).
