@@ -1012,6 +1012,29 @@ body.anc-modal-locked {
     margin: 0;
 }
 
+.anc-pf-proof {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.anc-pf-proof__widget {
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* The IVAR script removes its host when no public record exists. */
+.anc-pf-proof__widget--auto:not(:has(.ivar-qc-widget-host, .ivar-legal-host)) {
+    display: none;
+}
+
+.anc-pf-proof__widget .ivar-qc-widget-host {
+    max-width: min(400px, 100%) !important;
+}
+
 /* Hàng điều khiển card: nút "Xem bảng dinh dưỡng" ở giữa, ‹ › overlay 2 mép cùng hàng */
 .anc-pf-controls {
     position: relative;

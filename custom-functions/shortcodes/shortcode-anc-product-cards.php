@@ -7,6 +7,8 @@ if (!defined('ABSPATH')) exit;
  * [anc_product_switcher] renders the section + switcher shell and generates
  * the sticky product-image menu from nested [anc_product_card] shortcodes.
  * [anc_product_card] renders one .anc-pf-panel compatible with an-new-chapter.js.
+ * qc_widget / legal_widget default to auto. Set either to off, or to
+ * shortcode:registered_tag for a product-aware registered shortcode override.
  */
 
 add_shortcode('anc_product_switcher', 'hithean_anc_product_switcher_shortcode');
@@ -256,6 +258,51 @@ function hithean_anc_product_price_html(WC_Product $product): string
     return '<span class="anc-price-sale">' . wp_kses_post(wc_price((float) $product->get_price())) . '</span>';
 }
 
+/**
+ * Per-card proof options: auto (product's IVAR meta/cache), off, or
+ * shortcode:registered_tag. Custom shortcodes receive product_id and sku.
+ * The site's existing proof visibility setting remains the outer access gate.
+ */
+function hithean_anc_product_proof_markup(WC_Product $product, array $atts): array
+{
+    if (!function_exists('hithean_pcn_can_view_proof_embeds')
+        || !hithean_pcn_can_view_proof_embeds()) {
+        return [];
+    }
+
+    $modes = [];
+    $needs_auto = false;
+    foreach (['qc', 'legal'] as $kind) {
+        $value = trim((string) ($atts[$kind . '_widget'] ?? 'auto'));
+        $modes[$kind] = $value === '' ? 'auto' : $value;
+        $needs_auto = $needs_auto || $modes[$kind] === 'auto';
+    }
+
+    $auto = $needs_auto && function_exists('hithean_proof_cache_markup')
+        ? hithean_proof_cache_markup($product->get_id())
+        : [];
+    $out = [];
+    foreach ($modes as $kind => $mode) {
+        if ($mode === 'auto') {
+            $markup = $auto[$kind] ?? '';
+        } elseif (preg_match('/^shortcode:([A-Za-z][A-Za-z0-9_-]{0,63})$/', $mode, $match)
+            && shortcode_exists($match[1])) {
+            $shortcode = '[' . $match[1]
+                . ' product_id="' . $product->get_id() . '"'
+                . ' sku="' . esc_attr($product->get_sku()) . '"]';
+            $markup = do_shortcode($shortcode);
+        } else {
+            // "off" and invalid values both fail closed.
+            $markup = '';
+        }
+        if (is_string($markup) && trim($markup) !== '') {
+            $out[$kind] = $markup;
+        }
+    }
+
+    return $out;
+}
+
 function hithean_anc_product_gallery_html(WC_Product $product): string
 {
     if (function_exists('child_theme_wc_product_field_gallery_html')) {
@@ -293,6 +340,8 @@ function hithean_anc_product_card_shortcode($atts): string
         'stock_status'    => 'auto',
         'show_gallery'    => '1',
         'show_nutrition'  => '1',
+        'qc_widget'       => 'auto',
+        'legal_widget'    => 'auto',
         'show_price'      => '1',
         'show_calc'       => '0',
         'calc_text'       => 'Chọn sản phẩm protein/đạm phù hợp chế độ ăn - tập luyện của bạn',
@@ -326,6 +375,7 @@ function hithean_anc_product_card_shortcode($atts): string
     $highlights = hithean_anc_parse_list($atts['highlights'] !== '' ? $atts['highlights'] : $atts['highlights_json']);
     $accent = hithean_anc_sanitize_css_color($atts['accent']);
     $style = $accent !== '' ? '--card-accent: ' . $accent . ';' : '';
+    $proof_widgets = hithean_anc_product_proof_markup($product, $atts);
 
     ob_start();
     ?>
@@ -333,6 +383,15 @@ function hithean_anc_product_card_shortcode($atts): string
         <div class="anc-pf-visual">
             <?php if (hithean_anc_bool($atts['show_gallery'], true)) : ?>
                 <?php echo hithean_anc_product_gallery_html($product); ?>
+            <?php endif; ?>
+            <?php if ($proof_widgets) : ?>
+                <div class="anc-pf-proof" role="group" aria-label="Kiểm nghiệm và hồ sơ pháp lý sản phẩm">
+                    <?php foreach (['qc', 'legal'] as $kind) : ?>
+                        <?php if (!empty($proof_widgets[$kind])) : ?>
+                            <div class="anc-pf-proof__widget anc-pf-proof__widget--<?php echo esc_attr($kind); ?><?php echo trim((string) $atts[$kind . '_widget']) === 'auto' || trim((string) $atts[$kind . '_widget']) === '' ? ' anc-pf-proof__widget--auto' : ''; ?>"><?php echo $proof_widgets[$kind]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- allowlisted IVAR cache or a registered shortcode. ?></div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
             <?php endif; ?>
             <?php if (hithean_anc_bool($atts['show_nutrition'], true)) : ?>
                 <div class="anc-pf-controls">

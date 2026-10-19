@@ -272,6 +272,7 @@ function tpc_loader_path_groups()
             '/an-new-chapter-b2b',
             '/an-new-chapter-b2b-organic',
             '/an-new-chapter-affiliate',
+            '/doi-tac-yeast-hero',
         ],
     ]);
 }

@@ -26,7 +26,7 @@ if (!function_exists('roneous_child_enqueue_styles')) {
             filemtime(get_stylesheet_directory() . '/css/custom.css')
         );
 
-        if (is_front_page() || is_page(['an-new-chapter', 'anc-huu-co', 'anc-phan-phoi', 'an-new-chapter-b2b', 'an-new-chapter-b2b-organic', 'an-new-chapter-affiliate'])) {
+        if (is_front_page() || is_page(['an-new-chapter', 'anc-huu-co', 'anc-phan-phoi', 'an-new-chapter-b2b', 'an-new-chapter-b2b-organic', 'an-new-chapter-affiliate', 'doi-tac-yeast-hero'])) {
             wp_enqueue_style(
                 'hithean-an-new-chapter-style',
                 get_stylesheet_directory_uri() . '/pages/an-new-chapter/an-new-chapter.css',
@@ -41,12 +41,28 @@ if (!function_exists('roneous_child_enqueue_styles')) {
                 true
             );
 
-            if (is_page(['an-new-chapter-b2b', 'an-new-chapter-b2b-organic'])) {
+            if (is_page(['an-new-chapter-b2b', 'an-new-chapter-b2b-organic', 'doi-tac-yeast-hero'])) {
                 wp_enqueue_style(
                     'hithean-an-new-chapter-b2b-style',
                     get_stylesheet_directory_uri() . '/pages/an-new-chapter/an-new-chapter-b2b.css',
                     array('hithean-an-new-chapter-style'),
                     filemtime(get_stylesheet_directory() . '/pages/an-new-chapter/an-new-chapter-b2b.css')
+                );
+            }
+
+            if (is_page('doi-tac-yeast-hero')) {
+                wp_enqueue_style(
+                    'hithean-yeast-hero-partner-style',
+                    get_stylesheet_directory_uri() . '/pages/doi-tac-yeast-hero/doi-tac-yeast-hero.css',
+                    array('hithean-an-new-chapter-b2b-style'),
+                    filemtime(get_stylesheet_directory() . '/pages/doi-tac-yeast-hero/doi-tac-yeast-hero.css')
+                );
+                wp_enqueue_script(
+                    'hithean-yeast-hero-partner-script',
+                    get_stylesheet_directory_uri() . '/pages/doi-tac-yeast-hero/doi-tac-yeast-hero.js',
+                    array(),
+                    filemtime(get_stylesheet_directory() . '/pages/doi-tac-yeast-hero/doi-tac-yeast-hero.js'),
+                    true
                 );
             }
 

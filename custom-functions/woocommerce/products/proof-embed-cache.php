@@ -14,7 +14,7 @@
  * - A failed fetch keeps the last good copy (post meta, not a transient).
  * - Snippet edited in admin → its hash changes → the old copy is ignored.
  * - Cached pages never re-render, so a sweep refreshes stale copies on cron and
- *   purges the product page in WP Rocket when the HTML changed.
+ *   purges the product page and affected ANC landing pages when HTML changes.
  *
  * Snippet parsing / allowlist: hithean_pcn_parse_proof_embed() in
  * product-navigation-settings.php.
@@ -135,6 +135,27 @@ function hithean_proof_cache_fetch(string $kind, array $embed): ?array
     ];
 }
 
+/** Purge landing pages whose HTML source contains a card for this product. */
+function hithean_proof_cache_purge_landings(int $product_id): void
+{
+    if (!function_exists('rocket_clean_post')) {
+        return;
+    }
+
+    foreach (glob(get_stylesheet_directory() . '/pages/*/*.html') ?: [] as $file) {
+        $source = file_get_contents($file);
+        if (!is_string($source)
+            || strpos($source, '[anc_product_card id="' . $product_id . '"') === false) {
+            continue;
+        }
+
+        $page = get_page_by_path(basename($file, '.html'));
+        if ($page instanceof WP_Post) {
+            rocket_clean_post($page->ID);
+        }
+    }
+}
+
 /** Re-fetch every widget of a product; purge its page cache if the HTML changed. */
 function hithean_proof_cache_refresh(int $product_id): void
 {
@@ -174,8 +195,11 @@ function hithean_proof_cache_refresh(int $product_id): void
 
         return implode('|', $parts);
     };
-    if ($signature($old) !== $signature($new) && function_exists('rocket_clean_post')) {
-        rocket_clean_post($product_id);
+    if ($signature($old) !== $signature($new)) {
+        if (function_exists('rocket_clean_post')) {
+            rocket_clean_post($product_id);
+        }
+        hithean_proof_cache_purge_landings($product_id);
     }
 }
 add_action(HITHEAN_PROOF_CACHE_REFRESH, static function ($product_id): void {
