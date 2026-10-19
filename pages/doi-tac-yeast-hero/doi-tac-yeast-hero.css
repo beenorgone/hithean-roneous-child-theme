@@ -51,7 +51,7 @@
 .yh-hero-copy { max-width: 660px; }
 .yh-hero .yh-kicker { color: #9ce6d8; }
 .yh-hero h1 { margin: 14px 0 24px; color: #fff; font-size: clamp(44px, 5vw, 68px); font-weight: 500; line-height: 1.3; text-transform: uppercase; }
-.yh-hero h1 em { color: #a7e7d6; font-style: normal; }
+.yh-hero h1 em { display: block; color: #a7e7d6; font-style: normal; font-size: clamp(36px, 3.8vw, 52px); }
 .yh-hero-lead { max-width: 580px; margin: 0 0 30px; color: #e2eef0; font-size: clamp(16px, 1.4vw, 19px) !important; line-height: 1.75; }
 .yh-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .yh-button { display: inline-flex; justify-content: center; align-items: center; gap: 12px; min-height: 50px; border-radius: 5px; padding: 12px 20px; font-size: 14px; font-weight: 700; line-height: 1.35; text-align: center; transition: transform .2s ease, background .2s ease, box-shadow .2s ease; }
@@ -102,12 +102,6 @@
 .yh-proof-card p { margin: 0; color: #d3e2e4; font-size: 13px; }
 .yh-proof-note { max-width: 780px; margin: 23px auto 27px; color: #b8ced0; font-size: 12px !important; text-align: center; }
 .yh-section--dark > .yh-shell > .yh-button { display: flex; width: fit-content; margin: 0 auto; }
-.yh-process { counter-reset: process; list-style: none; margin: 0; padding: 0 0 0 24px; border-left: 2px solid #b9d7ce; }
-.yh-process li { position: relative; display: grid; gap: 2px; padding: 0 0 26px 30px; }
-.yh-process li:last-child { padding-bottom: 0; }
-.yh-process li::before { content: ''; position: absolute; top: 7px; left: -33px; width: 16px; height: 16px; border-radius: 50%; background: var(--yh-teal); border: 4px solid var(--yh-cream); box-shadow: 0 0 0 1px var(--yh-teal); }
-.yh-process strong { color: var(--yh-ink); font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 500; text-transform: uppercase; }
-.yh-process span { color: var(--yh-muted); }
 
 .yh-model-card { display: flex; flex-direction: column; }
 .yh-model-primary { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: center; gap: 18px 35px; border-color: rgba(15, 118, 110, .35); box-shadow: 0 18px 40px rgba(15, 118, 110, .13); }
@@ -176,6 +170,7 @@
   .yh-topbar-links { display: none; }
   .yh-hero-layout { grid-template-columns: 1fr 1fr; gap: 25px; }
   .yh-hero h1 { font-size: clamp(38px, 4.7vw, 56px); }
+  .yh-hero h1 em { font-size: clamp(32px, 3.8vw, 42px); }
   .yh-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .yh-roadmap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .yh-faq-layout { gap: 35px; }
@@ -191,6 +186,7 @@
   .yh-hero { min-height: 0; }
   .yh-hero-layout { grid-template-columns: 1fr; padding-top: 57px; padding-bottom: 85px; gap: 35px; }
   .yh-hero h1 { font-size: clamp(38px, 10vw, 52px); }
+  .yh-hero h1 em { font-size: clamp(30px, 8.2vw, 40px); }
   .yh-hero-visual { min-height: 0; height: 315px; }
   .yh-hero-badge { left: 10px; bottom: -12px; }
   .yh-grid--two, .yh-grid--three, .yh-grid--four, .yh-split, .yh-faq-layout, .yh-contact-layout, .yh-model-primary { grid-template-columns: 1fr; }
