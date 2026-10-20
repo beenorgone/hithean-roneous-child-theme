@@ -161,6 +161,16 @@ function hithean_export_ai_is_expected_masked_reference(string $reference, WC_Or
     return is_string($reference) && preg_match('/^#?' . preg_quote((string) $order->get_id(), '/') . '\*\*$/', $reference) === 1;
 }
 
+/**
+ * One order may ship in several parcels; each shipping code is the order ID
+ * plus a ".N" parcel index (10276.1, 10276.2 … all belong to order 10276).
+ */
+function hithean_export_ai_is_shipment_reference(string $reference, WC_Order $order): bool
+{
+    $reference = preg_replace('/\s+/', '', $reference);
+    return is_string($reference) && preg_match('/^#?' . preg_quote((string) $order->get_id(), '/') . '\.\d{1,3}$/', $reference) === 1;
+}
+
 function hithean_export_ai_result_pill(string $label, string $value, string $tone): string
 {
     $tones = [
@@ -180,7 +190,7 @@ function hithean_export_ai_order_note(array $result): string
     $lines = [
         '🤖 AI review ảnh xuất kho',
         'Kết quả: ' . (($result['overall'] ?? '') === 'pass' ? 'Khớp — vẫn cần nhân viên xác nhận.' : 'Cần kiểm tra thủ công.'),
-        'Mã đơn/phiếu: ' . ($labels[$result['order_match'] ?? 'unclear'] ?? 'Chưa đủ bằng chứng') . (!empty($result['masked_order_match']) ? ' (khớp theo mã che chuẩn)' : ''),
+        'Mã đơn/phiếu: ' . ($labels[$result['order_match'] ?? 'unclear'] ?? 'Chưa đủ bằng chứng') . (!empty($result['masked_order_match']) ? ' (khớp theo mã che chuẩn)' : (!empty($result['shipment_order_match']) ? ' (khớp theo mã giao vận của đơn)' : '')),
         'Sản phẩm và số lượng: ' . ($labels[$result['items_match'] ?? 'unclear'] ?? 'Chưa đủ bằng chứng'),
         'Độ tin cậy: ' . ($result['confidence'] ?? 'low'),
     ];
@@ -239,15 +249,17 @@ function hithean_export_ai_check_order(WC_Order $order, int $requested_by = 0)
         require_once get_stylesheet_directory() . '/custom-functions/core/ai-providers.php';
         $system = 'Bạn là trợ lý kiểm tra ảnh lấy hàng cho kho của HiThean. Chỉ đánh giá bằng những gì nhìn thấy rõ trong ảnh; không suy đoán khi nhãn, số lượng, mã đơn hoặc sản phẩm bị che/mờ. Đây là kết quả hỗ trợ nhân viên, không phải quyết định xuất kho. '
             . 'Trả về DUY NHẤT một JSON object hợp lệ, không markdown, đúng các khóa: overall (pass|review), order_match (match|mismatch|unclear), items_match (match|mismatch|unclear), confidence (high|medium|low), visible_order_reference (string), reason (string), missing_or_suspected_missing (array string), unexpected_or_suspected_extra (array string), shipping_codes (array string). '
-            . 'shipping_codes: liệt kê nguyên văn MỌI mã vận đơn của đơn vị vận chuyển (GHTK, GHN, Viettel Post, J&T, SPX, Ninja Van, VNPost, Ahamove…) đọc được rõ trên tem/nhãn vận chuyển trong ảnh, giữ đủ ký tự kể cả dấu chấm/gạch (vd S22788.SG01-K25.1811382021). Không đưa mã đơn HiThean, số điện thoại, mã sản phẩm/lô hay mã vạch không phải mã vận đơn; mã bị che/mờ/đọc không chắc thì bỏ qua; không thấy thì trả []. '
+            . 'shipping_codes: liệt kê nguyên văn MỌI mã vận đơn của đơn vị vận chuyển (GHTK, GHN, Viettel Post, J&T, SPX, Ninja Van, VNPost, Ahamove…) đọc được rõ trên tem/nhãn vận chuyển trong ảnh, giữ đủ ký tự kể cả dấu chấm/gạch (vd S22788.SG01-K25.1811382021). Không đưa mã đơn HiThean (kể cả dạng ID.N như 10276.1), số điện thoại, mã sản phẩm/lô hay mã vạch không phải mã vận đơn; mã bị che/mờ/đọc không chắc thì bỏ qua; không thấy thì trả []. '
             . 'QUY TẮC MÃ PHIẾU HITHEAN: phiếu xuất kho cố ý che đúng hai chữ số suffix ở cuối bằng **. Nếu ảnh đọc được đúng mẫu mã che chuẩn được cung cấp, hãy trả order_match=match; đây là bằng chứng đủ về mã đơn. '
+            . 'QUY TẮC MÃ GIAO VẬN HITHEAN: một đơn có thể tách thành nhiều kiện, mỗi kiện có mã dạng ID gốc + "." + số thứ tự kiện (VD 10276.1, 10276.2 đều thuộc đơn 10276). Mã dạng này với đúng ID gốc là order_match=match; ghi nguyên văn mã đọc được (gồm cả ".N") vào visible_order_reference. '
             . 'overall=pass CHỈ khi mã/phiếu của đơn và toàn bộ sản phẩm cùng số lượng đều nhìn thấy đủ, rõ và khớp. Mọi trường hợp còn lại là review.';
         $prompt = "Đối chiếu ảnh đính kèm với dữ liệu đơn hàng sau.\n" . wp_json_encode([
             'order_id_goc' => (string) $order->get_id(),
             'ma_don_hien_thi_day_du' => (string) $order->get_order_number(),
             'ma_phieu_da_che_chuan' => hithean_export_ai_masked_order_reference($order),
+            'mau_ma_giao_van' => $order->get_id() . '.1, ' . $order->get_id() . '.2, ...',
             'expected_items' => $expected_items,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\nChỉ mẫu ma_phieu_da_che_chuan (ID gốc + đúng hai dấu *) được xem là mã che hợp lệ. Mã khác hoặc che kiểu khác phải dùng mismatch/unclear.";
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\nChỉ mẫu ma_phieu_da_che_chuan (ID gốc + đúng hai dấu *) hoặc mau_ma_giao_van (ID gốc + \".\" + số kiện) được xem là mã hợp lệ. Mã khác hoặc che kiểu khác phải dùng mismatch/unclear.";
         $cfg = hithean_export_ai_config();
         $raw = theme_ai_feature_call($cfg, static function (string $provider, string $model, string $api_key) use ($system, $prompt, $documents) {
             return theme_ai_call_provider_with_documents($provider, $system, $prompt, $documents, 1100, 120, $model, ['api_key' => $api_key]);
@@ -265,7 +277,8 @@ function hithean_export_ai_check_order(WC_Order $order, int $requested_by = 0)
         if ($result['order_match'] !== 'match' || $result['items_match'] !== 'match') $result['overall'] = 'review';
         $result['visible_order_reference'] = hithean_export_ai_clean_text($data['visible_order_reference'] ?? '', 120);
         $result['masked_order_match'] = hithean_export_ai_is_expected_masked_reference($result['visible_order_reference'], $order);
-        if ($result['masked_order_match']) {
+        $result['shipment_order_match'] = !$result['masked_order_match'] && hithean_export_ai_is_shipment_reference($result['visible_order_reference'], $order);
+        if ($result['masked_order_match'] || $result['shipment_order_match']) {
             $result['order_match'] = 'match';
             if ($result['items_match'] === 'match') $result['overall'] = 'pass';
         }
@@ -306,6 +319,7 @@ function hithean_render_export_ai_check(int $order_id): string
         $item_tone = $item_state === 'match' ? 'success' : ($item_state === 'mismatch' ? 'danger' : 'warning');
         $order_value = $labels[$order_state] ?? 'Chưa đủ bằng chứng';
         if (!empty($result['masked_order_match'])) $order_value .= ' theo mã che';
+        elseif (!empty($result['shipment_order_match'])) $order_value .= ' theo mã giao vận';
         $confidence_labels = ['high' => 'Cao', 'medium' => 'Trung bình', 'low' => 'Thấp'];
         $html .= '<div style="margin-top:10px;font-size:13px;line-height:1.55;"><div style="display:flex;flex-wrap:wrap;gap:6px;">';
         $html .= hithean_export_ai_result_pill('Kết quả', $is_pass ? 'Khớp ảnh với đơn' : 'Cần kiểm tra thủ công', $is_pass ? 'success' : 'warning');
@@ -316,12 +330,41 @@ function hithean_render_export_ai_check(int $order_id): string
         if (!empty($result['visible_order_reference'])) $html .= '<br>AI đọc được: ' . esc_html($result['visible_order_reference']) . '.';
         if (!empty($result['reason'])) $html .= '<br>' . esc_html($result['reason']);
         $issues = array_merge((array) ($result['missing_or_suspected_missing'] ?? []), (array) ($result['unexpected_or_suspected_extra'] ?? []));
-        if (!empty($result['shipping_codes'])) $html .= '<br>Mã vận đơn đọc được: <code>' . esc_html(implode(', ', (array) $result['shipping_codes'])) . '</code>';
         if ($issues) { $html .= '<ul style="margin:6px 0 0 18px;">'; foreach ($issues as $issue) $html .= '<li>' . esc_html($issue) . '</li>'; $html .= '</ul>'; }
+        $html .= hithean_render_export_ai_ship_codes_status($order_id, (array) ($result['shipping_codes'] ?? []));
         $html .= '<small style="display:block;margin-top:7px;color:#64748b;">Lần kiểm tra: ' . esc_html($result['checked_at'] ?? '') . '</small></div>';
     }
     $html .= hithean_render_export_ship_codes_notice($order_id);
     return $html . '</section>';
+}
+
+/**
+ * Mã vận đơn AI bóc từ ảnh — luôn hiện đủ, kể cả mã đã có sẵn trong "Mã giao vận",
+ * kèm trạng thái từng mã so với trường đó và giá trị hiện tại của trường.
+ */
+function hithean_render_export_ai_ship_codes_status(int $order_id, array $codes): string
+{
+    $html = '<div class="uexe-ai-ship-codes" style="margin-top:8px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;">🚚 <strong>Mã vận đơn bóc từ ảnh</strong>';
+    if (!$codes) {
+        return $html . '<br><span style="color:#64748b;">AI không đọc được mã vận đơn nào.</span></div>';
+    }
+
+    $field = (string) get_post_meta($order_id, 'order_ship_code', true);
+    $keys  = array_map('hithean_export_ship_code_key', hithean_export_ship_codes_split($field));
+    $html .= '<ul style="margin:4px 0 0 18px;">';
+    foreach ($codes as $code) {
+        $saved = in_array(hithean_export_ship_code_key((string) $code), $keys, true);
+        $html .= '<li><code>' . esc_html($code) . '</code> — '
+            . ($saved
+                ? '<span style="color:#166534;">✅ Đã có trong Mã giao vận</span>'
+                : '<span style="color:#92400e;">⏳ Chưa có — tự lưu khi AI khớp đơn hoặc xác nhận xuất kho</span>')
+            . '</li>';
+    }
+    $html .= '</ul>';
+    $html .= '<small style="display:block;margin-top:4px;color:#475569;">Mã giao vận hiện tại: '
+        . ($field !== '' ? '<code>' . esc_html($field) . '</code>' : '<em>(trống)</em>') . '</small>';
+
+    return $html . '</div>';
 }
 
 /** Thông báo trên card: mã vận đơn đã tự lưu vào "Mã giao vận" từ ảnh. */
@@ -353,7 +396,7 @@ function hithean_export_ai_is_confirmable(int $order_id): bool
 function hithean_render_export_ai_bulk_controls(string $scope): string
 {
     $scope = sanitize_key($scope);
-    return '<div class="uexe-ai-bulk" data-uexe-ai-bulk data-uexe-bulk-target="' . esc_attr($scope) . '" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:0 0 14px;padding:14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;"><label style="display:grid;gap:5px;min-width:min(100%,320px);font-size:13px;font-weight:600;color:#334155;">Ngoại trừ mã đơn<input type="text" data-uexe-bulk-exclude placeholder="#89339**, 8933991" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-weight:400;"></label><button type="button" class="button button-primary" data-uexe-bulk-check>AI check tất cả</button><button type="button" class="button" data-uexe-bulk-confirm disabled>Xác nhận tất cả đơn AI khớp (0)</button><span data-uexe-bulk-status role="status" aria-live="polite" style="font-size:13px;color:#475569;"></span><small style="flex-basis:100%;color:#64748b;">Áp dụng cho các đơn đang hiển thị, trừ mã đã nhập. Chỉ xác nhận đơn AI khớp và chưa xác nhận.</small></div>';
+    return '<div class="uexe-ai-bulk" data-uexe-ai-bulk data-uexe-bulk-target="' . esc_attr($scope) . '" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:0 0 14px;padding:14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;"><label style="display:grid;gap:5px;min-width:min(100%,320px);font-size:13px;font-weight:600;color:#334155;">Ngoại trừ mã đơn<input type="text" data-uexe-bulk-exclude placeholder="#89339**, 8933991, 89339.1" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-weight:400;"></label><button type="button" class="button button-primary" data-uexe-bulk-check>AI check tất cả</button><button type="button" class="button" data-uexe-bulk-confirm disabled>Xác nhận tất cả đơn AI khớp (0)</button><span data-uexe-bulk-status role="status" aria-live="polite" style="font-size:13px;color:#475569;"></span><small style="flex-basis:100%;color:#64748b;">Áp dụng cho các đơn đang hiển thị, trừ mã đã nhập. Chỉ xác nhận đơn AI khớp và chưa xác nhận.</small></div>';
 }
 
 // ===== Shortcode Upload Ảnh =====
@@ -1064,7 +1107,8 @@ add_action('wp_footer', function () {
                 if (holder && result.html) holder.outerHTML = result.html;
                 refreshBulkConfirmButtons();
             }
-            function normalizedOrderCode(value) { return String(value || '').replace(/\D/g, ''); }
+            // 10276.1 là mã giao vận của đơn 10276 → bỏ hậu tố ".N" trước khi lấy số.
+            function normalizedOrderCode(value) { return String(value || '').trim().replace(/\.\d+$/, '').replace(/\D/g, ''); }
             function bulkEligibleCards(controls) {
                 const grid = document.querySelector('[data-uexe-bulk-grid="' + controls.getAttribute('data-uexe-bulk-target') + '"]');
                 if (!grid) return [];

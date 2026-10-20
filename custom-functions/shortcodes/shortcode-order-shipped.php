@@ -229,6 +229,13 @@ function ost_resolve_search_to_order_ids($search) {
         ]) ?: [];
     }
 
+    // Mã giao vận "ID.N" (VD 10276.1) — 1 đơn nhiều kiện, phần ".N" là số kiện,
+    // không được ghép vào ID (10276.1 ≠ đơn 102761).
+    if (preg_match('/^#?(\d+)\.\d{1,3}$/', $token, $m)) {
+        $order = wc_get_order((int) $m[1]);
+        return $order ? [$order->get_id()] : [];
+    }
+
     $digits = preg_replace('/\D/', '', $token);
 
     // Phone (9+ digits) — thử trước khi vào order ID
