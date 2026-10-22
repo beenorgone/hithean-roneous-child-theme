@@ -1145,57 +1145,11 @@ function thean_lw_claim_coupon_ids(array $identities, int $limit = 1, array $dat
 {
     static $cache = [];
 
-    $meta_query = [
-        'relation' => 'OR',
-    ];
+    global $wpdb;
 
-    foreach ($identities as $identity) {
-        $meta_query[] = [
-            'key' => '_thean_lw_identity_hash',
-            'value' => (string) $identity['hash'],
-        ];
-
-        if ($identity['type'] === 'user') {
-            $meta_query[] = [
-                'key' => '_thean_lw_user_id',
-                'value' => (string) $identity['value'],
-            ];
-        } elseif (in_array($identity['type'], ['email', 'phone'], true)) {
-            $meta_query[] = [
-                'relation' => 'AND',
-                [
-                    'key' => '_thean_lw_contact_type',
-                    'value' => (string) $identity['type'],
-                ],
-                [
-                    'key' => '_thean_lw_contact_value',
-                    'value' => (string) $identity['value'],
-                ],
-            ];
-        }
-    }
-
-    $args = [
-        'post_type' => 'shop_coupon',
-        'post_status' => 'any',
-        'fields' => 'ids',
-        'posts_per_page' => max(1, $limit),
-        'orderby' => 'date',
-        'order' => 'DESC',
-        'meta_query' => [
-            'relation' => 'AND',
-            [
-                'key' => '_thean_lw_reward_id',
-                'compare' => 'EXISTS',
-            ],
-            $meta_query,
-        ],
-        'no_found_rows' => true,
-        'suppress_filters' => true,
-    ];
-
-    if ($date_query) {
-        $args['date_query'] = $date_query;
+    // An empty identity list must never match every Lucky Wheel coupon.
+    if (!$identities) {
+        return [];
     }
 
     $cache_key = md5(wp_json_encode([
@@ -1214,7 +1168,70 @@ function thean_lw_claim_coupon_ids(array $identities, int $limit = 1, array $dat
         return $cache[$cache_key];
     }
 
-    $cache[$cache_key] = array_map('intval', get_posts($args));
+    // WP_Meta_Query expands the nested OR/AND identity clauses into many
+    // postmeta joins. Repeated identity rows then multiply across those joins,
+    // even when LIMIT is 1. EXISTS keeps each coupon to one candidate row.
+    $matches = [];
+    foreach ($identities as $identity) {
+        if (!empty($identity['hash'])) {
+            $matches[] = $wpdb->prepare(
+                "(identity_meta.meta_key = '_thean_lw_identity_hash' AND identity_meta.meta_value = %s)",
+                (string) $identity['hash']
+            );
+        }
+
+        $type = (string) ($identity['type'] ?? '');
+        $value = (string) ($identity['value'] ?? '');
+        if ($value === '') {
+            continue;
+        }
+
+        if ($type === 'user') {
+            $matches[] = $wpdb->prepare(
+                "(identity_meta.meta_key = '_thean_lw_user_id' AND identity_meta.meta_value = %s)",
+                $value
+            );
+        } elseif (in_array($type, ['email', 'phone'], true)) {
+            // Retain typed legacy contact matching for coupons without hashes.
+            $matches[] = $wpdb->prepare(
+                "(identity_meta.meta_key = '_thean_lw_contact_value' AND identity_meta.meta_value = %s
+                  AND EXISTS (SELECT 1 FROM {$wpdb->postmeta} AS contact_meta
+                      WHERE contact_meta.post_id = identity_meta.post_id
+                        AND contact_meta.meta_key = '_thean_lw_contact_type'
+                        AND contact_meta.meta_value = %s))",
+                $value,
+                $type
+            );
+        }
+    }
+
+    if (!$matches) {
+        return [];
+    }
+
+    // Match WP_Query's post_status=any exclusions, including plugin statuses.
+    $status_sql = '';
+    foreach (get_post_stati(['exclude_from_search' => true]) as $status) {
+        $status_sql .= $wpdb->prepare(" AND {$wpdb->posts}.post_status <> %s", $status);
+    }
+    $date_sql = $date_query ? (new WP_Date_Query($date_query))->get_sql() : '';
+    $identity_sql = implode(' OR ', $matches);
+    $sql = $wpdb->prepare(
+        "SELECT {$wpdb->posts}.ID FROM {$wpdb->posts}
+         WHERE {$wpdb->posts}.post_type = 'shop_coupon'
+           {$status_sql} {$date_sql}
+           AND EXISTS (SELECT 1 FROM {$wpdb->postmeta} AS reward_meta
+               WHERE reward_meta.post_id = {$wpdb->posts}.ID
+                 AND reward_meta.meta_key = '_thean_lw_reward_id')
+           AND EXISTS (SELECT 1 FROM {$wpdb->postmeta} AS identity_meta
+               WHERE identity_meta.post_id = {$wpdb->posts}.ID
+                 AND ({$identity_sql}))
+         ORDER BY {$wpdb->posts}.post_date DESC, {$wpdb->posts}.ID DESC
+         LIMIT %d",
+        max(1, $limit)
+    );
+
+    $cache[$cache_key] = array_map('intval', $wpdb->get_col($sql));
     return $cache[$cache_key];
 }
 
