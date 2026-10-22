@@ -393,7 +393,7 @@
     post('thean_lw_status').then(function (state) {
         renderState(state);
         setInteractiveReady(true);
-        if (!openedAutomatically && !dismissed && !state.coupon_code && TheanLuckyWheel.context !== 'cart') {
+        if (TheanLuckyWheel.autoOpen !== false && !openedAutomatically && !dismissed && !state.coupon_code && TheanLuckyWheel.context !== 'cart') {
             window.sessionStorage.setItem('thean_lw_auto_opened', '1');
             openedAutomatically = true;
             window.setTimeout(openModal, TheanLuckyWheel.context === 'offer' ? 900 : 2200);

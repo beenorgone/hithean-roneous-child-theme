@@ -87,6 +87,7 @@ function thean_lw_enqueue_assets(): void
         'ajaxUrl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce(THEAN_LW_NONCE_ACTION),
         'context' => thean_lw_page_context(),
+        'autoOpen' => !is_page('uu-dai'),
         'maxSpins' => THEAN_LW_MAX_SPINS,
         'couponHoldHours' => thean_lw_coupon_hold_hours(),
         'isCart' => function_exists('is_cart') && is_cart(),

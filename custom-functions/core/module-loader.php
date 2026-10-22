@@ -57,6 +57,7 @@ $general_includes = [
 
     /* WOO UI */
     'custom-functions/marketing/lucky-wheel.php',
+    'custom-functions/marketing/offers.php',
     // Weekly GA4/WooCommerce landing-page CRO analysis. Registers only hooks;
     // expensive collection runs from its scheduled action, never on front-end requests.
     'custom-functions/marketing/cro-landing-agent.php',
