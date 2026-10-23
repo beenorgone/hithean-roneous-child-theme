@@ -24,16 +24,15 @@ function child_theme_landing_page_content( string $html_path ): string {
 
     $raw = file_get_contents( $html_path );
 
-    $body_open = strpos( $raw, '<body' );
-    if ( $body_open === false ) {
-        return $raw;
+    $content   = $raw;
+    $body_open = stripos( $raw, '<body' );
+    if ( $body_open !== false ) {
+        $body_start = strpos( $raw, '>', $body_open ) + 1;
+        $body_end   = strripos( $raw, '</body>' );
+        $content    = ( $body_end !== false )
+            ? substr( $raw, $body_start, $body_end - $body_start )
+            : substr( $raw, $body_start );
     }
-
-    $body_start = strpos( $raw, '>', $body_open ) + 1;
-    $body_end   = strrpos( $raw, '</body>' );
-    $content    = ( $body_end !== false )
-        ? substr( $raw, $body_start, $body_end - $body_start )
-        : substr( $raw, $body_start );
 
     // Bỏ <script> local-preview (JS được enqueue qua wp_footer)
     $content = preg_replace( '/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $content );
