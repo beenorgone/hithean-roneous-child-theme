@@ -24,7 +24,7 @@
                 if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) { dialog.close(); }
             });
         });
-        const cards = Array.from(root.querySelectorAll('[data-ho-card]'));
+        const cards = Array.from(root.querySelectorAll('[data-ho-panel="programs"] [data-ho-card]'));
         const filters = root.querySelectorAll('[data-ho-filter]');
         const search = root.querySelector('[data-ho-search-input]');
         const result = root.querySelector('[data-ho-result]');
@@ -56,7 +56,15 @@
             if (mode === 'products' && productGrid) {
                 let shown = 0;
                 Array.from(productGrid.children).forEach(function (item) {
-                    const match = normalize(item.dataset.hoName || '').includes(query);
+                    // Expired rules drop out individually; a card with none left is hidden.
+                    let live = 0;
+                    item.querySelectorAll('[data-ho-rule]').forEach(function (rule) {
+                        rule.hidden = now >= Number(rule.dataset.hoUntil);
+                        if (!rule.hidden) { live++; }
+                    });
+                    const badge = item.querySelector('.ho-badge');
+                    if (badge && live > 1) { badge.textContent = live + ' ưu đãi'; }
+                    const match = live > 0 && normalize(item.querySelector('h3')?.textContent || '').includes(query);
                     item.hidden = !match;
                     if (match) { shown++; }
                 });
@@ -80,31 +88,6 @@
             });
         });
         if (search) { search.addEventListener('input', update); }
-        // Product mode: each tile is replaced by that product's full card, fetched on first click.
-        if (productGrid) {
-            productGrid.addEventListener('click', function (event) {
-                const tile = event.target.closest('[data-ho-product]');
-                if (!tile || tile.getAttribute('aria-busy') === 'true') { return; }
-                const status = tile.querySelector('[data-ho-tile-status]');
-                tile.setAttribute('aria-busy', 'true');
-                status.textContent = 'Đang tải…';
-                const url = root.dataset.hoAjax + '?action=hithean_offers_product&product_id=' + encodeURIComponent(tile.dataset.hoProduct);
-                fetch(url, {credentials: 'same-origin'}).then(function (response) { return response.json(); }).then(function (data) {
-                    if (!data || !data.success) { throw new Error(data && data.data ? data.data.message : ''); }
-                    const template = document.createElement('template');
-                    template.innerHTML = data.data.html.trim();
-                    const card = template.content.firstElementChild;
-                    card.dataset.hoName = tile.dataset.hoName;
-                    card.classList.add('ho-product-card');
-                    tile.replaceWith(card);
-                    const link = card.querySelector('h3 a');
-                    if (link) { link.focus(); }
-                }).catch(function (error) {
-                    tile.removeAttribute('aria-busy');
-                    status.textContent = error.message || 'Chưa tải được, bấm để thử lại';
-                });
-            });
-        }
         if (modebar) {
             const buttons = modebar.querySelectorAll('[data-ho-mode]');
             const section = root.querySelector('#ho-offers');
