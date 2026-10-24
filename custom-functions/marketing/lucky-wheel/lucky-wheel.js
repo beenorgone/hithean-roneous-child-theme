@@ -393,7 +393,8 @@
     post('thean_lw_status').then(function (state) {
         renderState(state);
         setInteractiveReady(true);
-        if (TheanLuckyWheel.autoOpen !== false && !openedAutomatically && !dismissed && !state.coupon_code && TheanLuckyWheel.context !== 'cart') {
+        // wp_localize_script sends false as "", so test truthiness rather than strict false.
+        if (TheanLuckyWheel.autoOpen && !openedAutomatically && !dismissed && !state.coupon_code && TheanLuckyWheel.context !== 'cart') {
             window.sessionStorage.setItem('thean_lw_auto_opened', '1');
             openedAutomatically = true;
             window.setTimeout(openModal, TheanLuckyWheel.context === 'offer' ? 900 : 2200);
