@@ -1,6 +1,10 @@
 (function () {
     'use strict';
     document.querySelectorAll('[data-ho-page]').forEach(function (root) {
+        // This page has no theme header, so the language switcher would float over the cart link; dock it in the nav.
+        const lang = document.querySelector('.hithean-lang-switch--mobile-fixed');
+        const navLinks = root.querySelector('.ho-nav > div');
+        if (lang && navLinks) { navLinks.appendChild(lang); }
         root.querySelectorAll('[data-ho-wheel-open]').forEach(function (link) {
             link.addEventListener('click', function (event) {
                 const trigger = document.querySelector('#thean-lw-root .thean-lw-trigger');

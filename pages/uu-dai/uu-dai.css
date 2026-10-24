@@ -93,6 +93,12 @@
     font-size: 14px;
     font-weight: 600;
 }
+.ho-nav .hithean-lang-switch {
+    position: static !important;
+    display: inline-flex !important;
+    margin-left: 0;
+    box-shadow: none;
+}
 .ho-nav-cart {
     border: 1px solid #3b222230;
     border-radius: 0;
