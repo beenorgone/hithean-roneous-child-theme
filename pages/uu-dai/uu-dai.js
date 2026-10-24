@@ -29,7 +29,11 @@
         const search = root.querySelector('[data-ho-search-input]');
         const result = root.querySelector('[data-ho-result]');
         const empty = root.querySelector('[data-ho-empty]');
+        const productGrid = root.querySelector('.ho-product-grid');
+        const productsEmpty = root.querySelector('[data-ho-products-empty]');
+        const modebar = root.querySelector('[data-ho-modebar]');
         let active = 'all';
+        let mode = 'programs';
         let expiryTimer;
         function normalize(text) { return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase(); }
         function update() {
@@ -48,7 +52,17 @@
                 if (card.hidden === visible) { card.hidden = !visible; }
                 if (visible) { count++; }
             });
-            const status = count + ' sản phẩm / chương trình phù hợp';
+            let status = count + ' sản phẩm / chương trình phù hợp';
+            if (mode === 'products' && productGrid) {
+                let shown = 0;
+                Array.from(productGrid.children).forEach(function (item) {
+                    const match = normalize(item.dataset.hoName || '').includes(query);
+                    item.hidden = !match;
+                    if (match) { shown++; }
+                });
+                if (productsEmpty) { productsEmpty.hidden = shown > 0; }
+                status = shown + ' sản phẩm có ưu đãi';
+            }
             if (result && result.textContent !== status) { result.textContent = status; }
             if (empty) { empty.hidden = count > 0; }
             const orderGroup = root.querySelector('.ho-order-group');
@@ -66,6 +80,46 @@
             });
         });
         if (search) { search.addEventListener('input', update); }
+        // Product mode: each tile is replaced by that product's full card, fetched on first click.
+        if (productGrid) {
+            productGrid.addEventListener('click', function (event) {
+                const tile = event.target.closest('[data-ho-product]');
+                if (!tile || tile.getAttribute('aria-busy') === 'true') { return; }
+                const status = tile.querySelector('[data-ho-tile-status]');
+                tile.setAttribute('aria-busy', 'true');
+                status.textContent = 'Đang tải…';
+                const url = root.dataset.hoAjax + '?action=hithean_offers_product&product_id=' + encodeURIComponent(tile.dataset.hoProduct);
+                fetch(url, {credentials: 'same-origin'}).then(function (response) { return response.json(); }).then(function (data) {
+                    if (!data || !data.success) { throw new Error(data && data.data ? data.data.message : ''); }
+                    const template = document.createElement('template');
+                    template.innerHTML = data.data.html.trim();
+                    const card = template.content.firstElementChild;
+                    card.dataset.hoName = tile.dataset.hoName;
+                    card.classList.add('ho-product-card');
+                    tile.replaceWith(card);
+                    const link = card.querySelector('h3 a');
+                    if (link) { link.focus(); }
+                }).catch(function (error) {
+                    tile.removeAttribute('aria-busy');
+                    status.textContent = error.message || 'Chưa tải được, bấm để thử lại';
+                });
+            });
+        }
+        if (modebar) {
+            const buttons = modebar.querySelectorAll('[data-ho-mode]');
+            const section = root.querySelector('#ho-offers');
+            modebar.hidden = false;
+            buttons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    mode = button.dataset.hoMode;
+                    root.dataset.hoMode = mode;
+                    buttons.forEach(function (item) { item.setAttribute('aria-pressed', String(item === button)); });
+                    root.querySelectorAll('[data-ho-panel]').forEach(function (panel) { panel.hidden = panel.dataset.hoPanel !== mode; });
+                    update();
+                    if (section) { section.scrollIntoView({block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}); }
+                });
+            });
+        }
         document.addEventListener('visibilitychange', function () { if (!document.hidden) { update(); } });
         if (cards.length) { update(); }
     });
