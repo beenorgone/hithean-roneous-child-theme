@@ -65,7 +65,7 @@ function hithean_offers_card(array $row): string {
     ob_start(); ?>
     <?php $group = $row['group'] ?? []; $site_wide = !empty($row['site_wide']); $dialog = $group && !$site_wide ? 'ho-group-' . substr(md5((string) $row['source_id']), 0, 10) : ''; ?>
     <article class="ho-card<?php echo $group ? ' ho-card-group' : ''; ?>" data-ho-card<?php echo $group ? ' data-ho-names="' . esc_attr(implode(' ', wp_list_pluck($group, 'product_name'))) . '"' : ''; ?> data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-until="<?php echo (int) $until; ?>" data-ho-search="<?php echo esc_attr($row['product_name'] . ' ' . $row['title']); ?>">
-        <a class="ho-card-visual" href="<?php echo esc_url($row['url']); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($offers) > 1 ? count($offers) . ' ưu đãi' : esc_html($kinds[$row['kind']] ?? 'Ưu đãi'); ?></span><?php if (!empty($row['program']) || $site_wide) : ?><span class="ho-wheel-art">✳<span><?php echo $row['kind'] === 'shipping' ? '0₫' : '%'; ?></span></span><?php elseif ($group) : ?><span class="ho-group-art"><?php foreach (array_slice($group, 0, 3) as $item) : ?><img src="<?php echo esc_url($item['image']); ?>" alt="" width="240" height="240" loading="lazy" decoding="async"><?php endforeach; ?></span><?php else : ?><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"><?php endif; ?></a>
+        <a class="ho-card-visual" href="<?php echo esc_url($row['url']); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($offers) > 1 ? count($offers) . ' ưu đãi' : esc_html($kinds[$row['kind']] ?? 'Ưu đãi'); ?></span><?php if (!empty($row['program']) || $site_wide) : ?><span class="ho-wheel-art">✳<span><?php echo $row['kind'] === 'shipping' ? '0₫' : '%'; ?></span></span><?php elseif ($group) : ?><span class="ho-group-art" data-count="<?php echo min(3, count($group)); ?>"><?php foreach (array_slice($group, 0, 3) as $item) : ?><img src="<?php echo esc_url($item['image']); ?>" alt="" width="240" height="240" loading="lazy" decoding="async"><?php endforeach; ?></span><?php else : ?><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"><?php endif; ?></a>
         <div class="ho-card-body"><h3><a href="<?php echo esc_url($row['url']); ?>"><?php echo esc_html($row['product_name']); ?></a></h3><ul class="ho-benefits"><?php foreach ($offers as $offer) : $offer_until = min($offer['end'] ? $offer['end'] + 1 : PHP_INT_MAX, $offer['verified_at'] + HITHEAN_OFFERS_FRESHNESS); ?>
         <li data-ho-rule data-ho-kind="<?php echo esc_attr($offer['kind']); ?>" data-ho-until="<?php echo (int) $offer_until; ?>"><p class="ho-benefit"><?php echo esc_html($offer['title']); ?></p>
         <?php if (!empty($offer['condition_note'])) : ?><p class="ho-date"><?php echo esc_html($offer['condition_note']); ?></p><?php endif; ?>
@@ -87,6 +87,15 @@ function hithean_offers_visible_items(): array {
 function hithean_offers_shortcode(): string {
     $preview = hithean_offers_settings()['preview'];
     $items = hithean_offers_visible_items();
+    // Snapshot stock is only as fresh as the last sync; read it live and move sold-out products last (usort is stable).
+    $stock = [];
+    foreach ($items as &$row) {
+        $id = (int) $row['product_id'];
+        if (!isset($stock[$id])) { $product = $id ? wc_get_product($id) : null; $stock[$id] = $product ? $product->is_in_stock() : !empty($row['in_stock']); }
+        $row['in_stock'] = $stock[$id];
+    }
+    unset($row);
+    usort($items, static fn($a, $b) => $b['in_stock'] <=> $a['in_stock']);
     // Product mode shows one card per product with every rule that applies to it, shared programs included.
     $catalog = [];
     foreach ($items as $row) {
@@ -141,7 +150,7 @@ function hithean_offers_shortcode(): string {
         <?php if ($preview && current_user_can('manage_woocommerce')) : ?><p class="ho-preview" role="status">Bản xem trước dành cho quản trị viên. Bật hiển thị công khai trong WooCommerce → Ưu đãi sản phẩm khi đã kiểm tra nguồn.</p><?php endif; ?>
         <main>
         <section class="ho-hero" aria-labelledby="ho-heading"><div class="ho-hero-copy"><p class="ho-eyebrow"><span></span> ĐIỀU LÀNH, THÊM MỘT CHÚT</p><h1 id="ho-heading">Chọn điều lành.<br><em>Nhận thêm niềm vui.</em></h1><p class="ho-lead">Khám phá những ưu đãi dành cho sản phẩm bạn yêu thích — quà tặng, giá tốt và những lựa chọn đáng để ghé xem.</p><a class="ho-button ho-button-dark ho-hero-cta" href="#ho-offers">Khám phá ưu đãi <span aria-hidden="true">↓</span></a><p class="ho-hero-note">Dành cho khách mua tại website The An</p></div>
-        <div class="ho-scene" aria-hidden="true"><span class="ho-orbit"></span><span class="ho-scene-caption">Một lựa chọn tốt.<br>Thêm một niềm vui.</span><?php if ($images) : $index = 0; foreach ($images as $row) : ?><div class="ho-scene-product ho-scene-product-<?php echo ++$index; ?>"><img src="<?php echo esc_url($row['image']); ?>" width="400" height="400" alt="" <?php echo $index === 1 ? 'fetchpriority="high"' : 'loading="lazy"'; ?>></div><?php endforeach; else : ?><span class="ho-scene-flower">✳</span><?php endif; ?><span class="ho-scene-seal">A LITTLE<br><strong>MORE JOY</strong><br>THE AN ORGANICS</span></div></section>
+        <div class="ho-scene" aria-hidden="true"><span class="ho-orbit"></span><span class="ho-scene-caption">Một lựa chọn tốt.<br>Thêm một niềm vui.</span><?php if ($images) : $index = 0; foreach ($images as $row) : ?><div class="ho-scene-product ho-scene-product-<?php echo ++$index; ?>"><img src="<?php echo esc_url($row['image']); ?>" width="400" height="400" alt="" <?php echo $index === 1 ? 'fetchpriority="high"' : 'loading="lazy"'; ?>></div><?php endforeach; else : ?><span class="ho-scene-flower">✳</span><?php endif; ?><span class="ho-scene-seal"><span>A LITTLE</span><strong>MORE JOY</strong><span>THE AN ORGANICS</span></span></div></section>
         <div class="ho-ribbon"><span>Chọn sản phẩm yêu thích</span><i aria-hidden="true">✳</i><span>Xem rõ điều kiện</span><i aria-hidden="true">✳</i><span>Nhận ưu đãi khi mua</span></div>
         <section class="ho-offers-section" id="ho-offers" aria-labelledby="ho-offers-heading"><div class="ho-section-head"><div><p class="ho-eyebrow">DÀNH CHO LẦN GHÉ NÀY</p><h2 id="ho-offers-heading">Ưu đãi đang áp dụng<span class="ho-heading-dot">.</span></h2></div><p>Chọn điều bạn thích.<br>Điều kiện được ghi ngay trên từng ưu đãi.</p></div>
         <?php if ($count) : ?>

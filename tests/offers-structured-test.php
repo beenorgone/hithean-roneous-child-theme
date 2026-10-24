@@ -60,6 +60,8 @@ function product_panel($html) { $start = strpos($html, 'data-ho-panel="products"
 function product_card($html, $name) { foreach (explode('<article', product_panel($html)) as $card) { if (str_contains($card, '>' . $name . '</a>')) { return $card; } } return ''; }
 $panel = product_panel($html);
 ok(substr_count($panel, 'data-ho-card') === 2 && substr_count($panel, 'data-ho-rule ') === 2 && str_contains($panel, '>Test product 11</a>') && !str_contains($panel, 'ho-card-group') && substr_count($html, 'data-ho-mode="') === 3 && str_contains($html, '>Sản phẩm ưu đãi</button>'), 'Product mode renders one full card per product and the sticky bar switches modes');
+$GLOBALS['products'][11]->stock = false; $stock_html = hithean_offers_shortcode(); $GLOBALS['products'][11]->stock = true;
+ok(strpos(product_panel($stock_html), '>Test product 12</a>') < strpos(product_panel($stock_html), '>Test product 11</a>') && str_contains(product_card($stock_html, 'Test product 11'), 'Tạm hết hàng') && str_contains($stock_html, 'class="ho-group-stock is-out">Tạm hết'), 'Live stock moves sold-out products last, even before the next sync');
 ok(!str_contains($html, 'ho-logo'), 'Landing falls back to the text wordmark without a site logo');
 $GLOBALS['theme_mods']['custom_logo'] = 7;
 ok(substr_count(hithean_offers_shortcode(), '<img src="https://hithean.test/image.png" alt="The An">') === 1, 'Landing navigation uses the site logo');
