@@ -56,7 +56,7 @@ function hithean_offers_save(array $data): int {
     return (int) $id;
 }
 function hithean_offers_audit(int $id, string $action): void {
-    $log = (array) get_post_meta($id, '_ho_audit', true);
+    $log = array_values(array_filter((array) get_post_meta($id, '_ho_audit', true), 'is_array'));
     $log[] = ['at' => time(), 'user' => get_current_user_id(), 'action' => $action];
     update_post_meta($id, '_ho_audit', array_slice($log, -30));
 }
@@ -86,7 +86,7 @@ function hithean_offers_reconcile(int $product_id, array $candidates, string $so
             // A rejection/approval applies only to the exact original source terms.
             $status = $candidate['safe'] ? 'active' : 'review';
             if (!empty($previous['decision']) && ($previous['status'] ?? '') !== 'removed') {
-                $status = $previous['decision'] === 'approve' ? 'active' : 'rejected';
+                $status = (['approve' => 'active', 'reject' => 'rejected', 'review' => 'review'][$previous['decision']] ?? 'review');
                 foreach (['start', 'end', 'scope', 'kind'] as $field) { $candidate[$field] = $previous[$field] ?? $candidate[$field]; }
             }
             $data = array_merge($previous, $candidate, [
@@ -190,7 +190,7 @@ function hithean_offers_upsert_source(array $source, string $run_id): int {
             $data['pinned'] = !empty($previous['pinned']);
             if (!empty($previous['decision'])) {
                 $data['decision'] = $previous['decision'];
-                $data['status'] = $previous['decision'] === 'approve' ? 'active' : 'rejected';
+                $data['status'] = (['approve' => 'active', 'reject' => 'rejected', 'review' => 'review'][$previous['decision']] ?? 'review');
                 if ($previous['decision'] === 'approve') {
                     foreach (['title', 'kind', 'scope'] as $field) { $data[$field] = $previous[$field]; }
                     if (!empty($data['editable_dates'])) { foreach (['start', 'end'] as $field) { $data[$field] = $previous[$field]; } }
@@ -263,6 +263,10 @@ function hithean_offers_review(int $id, string $key, string $action, array $fiel
             if ($title === '' || mb_strlen($title) > 3000) { throw new RuntimeException('Nội dung công khai cần từ 1 đến 3000 ký tự.'); }
             $row['title'] = $title; $row['status'] = 'active'; $row['decision'] = 'approve'; $row['reason'] = '';
         } elseif ($action === 'reject') { $row['status'] = 'rejected'; $row['decision'] = 'reject'; }
+        elseif ($action === 'restore') {
+            if ($row['status'] !== 'rejected') { throw new RuntimeException('Chỉ khôi phục được card Đã loại. Vui lòng tải lại danh sách.'); }
+            $row['status'] = 'review'; $row['decision'] = 'review';
+        }
         elseif (in_array($action, ['pin', 'unpin'], true)) { $row['pinned'] = $action === 'pin'; }
         else { throw new RuntimeException('Thao tác không hợp lệ.'); }
         hithean_offers_save($row); hithean_offers_audit($id, $action);

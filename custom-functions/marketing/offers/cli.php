@@ -21,7 +21,7 @@ class Hithean_Offers_CLI {
     /** Show current run, last successful scan and next scheduled run. */
     public function status(): void {
         $run = (array) get_option(HITHEAN_OFFERS_RUN, []); unset($run['ids'], $run['catalog_ids'], $run['product_success']);
-        WP_CLI::line(wp_json_encode(['run' => $run, 'last_success' => get_option('hithean_offers_last_success', 0), 'next_run' => wp_next_scheduled('hithean_offers_daily'), 'scheduler_error' => get_option('hithean_offers_scheduler_error', ''), 'settings' => hithean_offers_settings()], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        WP_CLI::line(wp_json_encode(['run' => $run, 'last_success' => get_option('hithean_offers_last_success', 0), 'next_run' => wp_next_scheduled('hithean_offers_weekly'), 'scheduler_error' => get_option('hithean_offers_scheduler_error', ''), 'settings' => hithean_offers_settings()], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     }
 }
 WP_CLI::add_command('hithean offers', 'Hithean_Offers_CLI');

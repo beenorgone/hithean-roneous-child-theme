@@ -62,6 +62,7 @@ function wp_remote_retrieve_response_code($response) { return $response['status'
 function wp_remote_retrieve_header($response, $key) { return $response['headers'][$key] ?? ''; }
 function wp_remote_retrieve_body($response) { return $response['body'] ?? ''; }
 function wp_next_scheduled($hook) { return $GLOBALS['events'][$hook] ?? false; }
+function wp_schedule_event($at, $recurrence, $hook) { $GLOBALS['recurrences'][$hook] = $recurrence; $GLOBALS['events'][$hook] = $at; }
 function wp_schedule_single_event($at, $hook) { $GLOBALS['events'][$hook] = $at; }
 function wp_clear_scheduled_hook($hook) { unset($GLOBALS['events'][$hook]); }
 function wp_get_attachment_image_url(...$args) { return 'https://hithean.test/image.png'; }
@@ -138,7 +139,7 @@ $html = hithean_offers_shortcode(); check(!str_contains($html, 'MUA 1 Matcha'), 
 update_option('hithean_offers_settings', ['preview' => false, 'ai_enabled' => false, 'source' => 'frontend']);
 $html = hithean_offers_shortcode(); check(str_contains($html, 'MUA 1 Matcha') && !str_contains($html, '600.000'), 'Only eligible public gift appears');
 $stale = $row; $stale['verified_at'] = time() - HITHEAN_OFFERS_FRESHNESS;
-check(hithean_offers_status($stale) === 'stale', '48-hour freshness boundary');
+check(hithean_offers_status($stale) === 'stale', 'Freshness boundary');
 $expired = $row; $expired['end'] = time() - 1; check(hithean_offers_status($expired) === 'expired', 'Expiry overrides freshness');
 $scheduled = $row; $scheduled['start'] = time() + 600; check(hithean_offers_status($scheduled) === 'scheduled', 'Future start not public');
 $run = hithean_offers_start(123); $duplicate = hithean_offers_start(); check($run['id'] === $duplicate['id'], 'Manual/cron starts share one queue');

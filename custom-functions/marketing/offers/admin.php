@@ -40,7 +40,7 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             $next = ['enabled' => !empty($_POST['enabled']), 'ai_enabled' => !empty($_POST['ai_enabled']), 'provider' => $provider,
                 'model' => sanitize_text_field(wp_unslash($_POST['model'] ?? '')), 'preview' => empty($_POST['public'])];
             update_option('hithean_offers_settings', $next, false);
-            if (!$next['enabled']) { wp_clear_scheduled_hook('hithean_offers_daily'); }
+            hithean_offers_sync_schedule();
             if ($old['preview'] !== $next['preview']) { hithean_offers_purge(); }
         } elseif ($action === 'page') {
             if (get_page_by_path('uu-dai')) { throw new RuntimeException('Trang /uu-dai/ đã tồn tại. Hãy kiểm tra nội dung và chọn template Landing Page trong trình sửa trang.'); }
@@ -48,13 +48,14 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             if (is_wp_error($id)) { throw new RuntimeException($id->get_error_message()); }
             update_post_meta($id, '_wp_page_template', 'templates/template-landing-page.php');
             $notice = 'Đã tạo trang nháp /uu-dai/. Mở trình sửa trang để xem trước và xuất bản.';
-        } elseif (in_array($action, ['approve', 'reject', 'pin', 'unpin'], true)) {
+        } elseif (in_array($action, ['approve', 'reject', 'restore', 'pin', 'unpin'], true)) {
             $fields = [];
             foreach (['start', 'end', 'kind', 'scope', 'verified', 'no_end', 'title'] as $field) {
                 if (isset($_POST[$field]) && is_scalar($_POST[$field])) { $fields[$field] = wp_unslash((string) $_POST[$field]); }
             }
             hithean_offers_review(absint($_POST['offer_id'] ?? 0), sanitize_text_field(wp_unslash($_POST['source_key'] ?? '')), $action, $fields);
             hithean_offers_publish();
+            if ($action === 'restore') { $notice = 'Đã khôi phục card. Kiểm tra nguồn và duyệt lại trước khi đăng.'; }
         } elseif ($action === 'rollback') {
             $run = (array) get_option(HITHEAN_OFFERS_RUN, []);
             if (in_array($run['status'] ?? '', ['queued', 'running'], true)) { throw new RuntimeException('Dừng lượt quét trước khi khôi phục snapshot.'); }
@@ -87,15 +88,15 @@ function hithean_offers_admin(): void {
     hithean_offers_form_start('scan'); echo '<label>ID sản phẩm <input name="product_id" type="number" min="1" required style="width:100px"></label> <button class="button">Đồng bộ sản phẩm</button></form>';
     hithean_offers_form_start('stop'); echo '<button class="button">Dừng sau sản phẩm hiện tại</button></form>';
     hithean_offers_form_start('rollback'); echo '<button class="button">Khôi phục snapshot trước</button></form></div>';
-    $last = (int) get_option('hithean_offers_last_success', 0); $next = wp_next_scheduled('hithean_offers_daily');
+    $last = (int) get_option('hithean_offers_last_success', 0); $next = wp_next_scheduled('hithean_offers_weekly');
     echo '<p>Thành công gần nhất: ' . esc_html($last ? wp_date('d/m/Y H:i', $last) : 'Chưa có') . ' · Lịch tiếp theo: ' . esc_html($next ? wp_date('d/m/Y H:i', $next) : 'Chưa bật') . '</p>';
-    echo '<p>Đọc cấu hình Discount Rules, Product Addon, giá sale WooCommerce và vòng quay. Server cron gọi tác vụ WordPress mỗi 5 phút để lịch không phụ thuộc lượt truy cập.</p>';
+    echo '<p>Đọc cấu hình Discount Rules, Product Addon, giá sale WooCommerce và vòng quay. Đồng bộ tự động mỗi tuần một lần khi bật lịch, hoặc khi bấm “Đồng bộ ngay”. Cron server mỗi 5 phút chỉ xử lý tác vụ đến hạn.</p>';
     $scheduler_error = get_option('hithean_offers_scheduler_error', '');
     if ($scheduler_error) { echo '<p class="ho-error">Lịch quét: ' . esc_html($scheduler_error) . '</p>'; }
     foreach ($run['errors'] ?? [] as $error) { echo '<p class="ho-error">SP #' . absint($error['product_id']) . ': ' . esc_html($error['message']) . '</p>'; }
     echo '</section><details class="ho-panel"><summary>Cấu hình & xuất bản</summary>';
     hithean_offers_form_start('settings');
-    echo '<p><label><input type="checkbox" name="enabled" ' . checked($s['enabled'], true, false) . '> Tự đồng bộ mỗi 24 giờ</label></p><p><label><input type="checkbox" name="public" ' . checked(!$s['preview'], true, false) . '> Hiển thị snapshot trên trang công khai</label></p><p>Dữ liệu cấu trúc được đọc trực tiếp từ cấu hình. Nội dung và điều kiện chưa rõ sẽ chờ duyệt.</p><p><button class="button button-primary">Lưu cấu hình</button></p></form>';
+    echo '<p><label><input type="checkbox" name="enabled" ' . checked($s['enabled'], true, false) . '> Tự đồng bộ mỗi tuần một lần</label></p><p><label><input type="checkbox" name="public" ' . checked(!$s['preview'], true, false) . '> Hiển thị snapshot trên trang công khai</label></p><p>Dữ liệu cấu trúc được đọc trực tiếp từ cấu hình. Nội dung và điều kiện chưa rõ sẽ chờ duyệt.</p><p><button class="button button-primary">Lưu cấu hình</button></p></form>';
     $page = get_page_by_path('uu-dai');
     if ($page) { echo '<p><a class="button" href="' . esc_url(get_edit_post_link($page->ID)) . '">Kiểm tra / sửa trang Ưu đãi</a> <a class="button" href="' . esc_url(get_permalink($page->ID)) . '">Xem trang</a></p>'; }
     else { hithean_offers_form_start('page'); echo '<button class="button">Tạo trang nháp /uu-dai/</button></form>'; }
@@ -119,9 +120,13 @@ function hithean_offers_admin(): void {
             echo '<details><summary>Xem bằng chứng & lịch sử</summary><blockquote>' . esc_html($row['evidence']) . '</blockquote><a href="' . esc_url($row['source']) . '" target="_blank" rel="noopener noreferrer">Mở nguồn cấu hình</a><p>Kiểm tra: ' . esc_html(wp_date('d/m/Y H:i', $row['verified_at'])) . '</p>';
             if (!empty($row['source_config'])) { echo '<pre>' . esc_html(wp_json_encode($row['source_config'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>'; }
             if (!empty($row['source_constraints'])) { echo '<p>Điều kiện cấu trúc tại nguồn:</p><pre>' . esc_html(wp_json_encode($row['source_constraints'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>'; }
-            foreach ((array) get_post_meta($id, '_ho_audit', true) as $audit) { echo '<p>' . esc_html(wp_date('d/m H:i', $audit['at']) . ' · #' . $audit['user'] . ' · ' . $audit['action']) . '</p>'; }
+            foreach (array_filter((array) get_post_meta($id, '_ho_audit', true), 'is_array') as $audit) { echo '<p>' . esc_html(wp_date('d/m H:i', $audit['at']) . ' · #' . $audit['user'] . ' · ' . $audit['action']) . '</p>'; }
             echo '</details>';
-            if (in_array($status, ['review', 'active', 'scheduled', 'rejected'], true) && empty($row['blocked'])) {
+            if ($status === 'rejected') {
+                hithean_offers_form_start('restore', ['offer_id' => $id, 'source_key' => $row['key']]);
+                echo '<p><button class="button">Khôi phục để duyệt lại</button></p><p class="ho-muted">Khôi phục cả rule và các sản phẩm liên kết; cần duyệt lại trước khi đăng.</p></form>';
+            }
+            if (in_array($status, ['review', 'active', 'scheduled'], true) && empty($row['blocked'])) {
                 echo '<details><summary>Duyệt / xác nhận điều kiện</summary>';
                 hithean_offers_form_start('approve', ['offer_id' => $id, 'source_key' => $row['key']]);
                 echo '<p><label>Nội dung công khai (bao gồm đủ điều kiện)<textarea name="title" rows="5" required maxlength="3000" class="widefat">' . esc_textarea($row['title']) . '</textarea></label></p>';

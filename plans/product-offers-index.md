@@ -1,11 +1,11 @@
 # Product offers index and /uu-dai/
 
-The index reads structured promotion definitions from Discount Rules, Product Addon, WooCommerce sale prices and the existing lucky wheel. It keeps the daily/manual workflow, evidence review and Hithean landing page. Public HTML crawling is no longer the default collector.
+The index reads structured promotion definitions from Discount Rules, Product Addon, WooCommerce sale prices and the existing lucky wheel. It keeps the weekly/manual workflow, evidence review and Hithean landing page. Public HTML crawling is no longer the default collector.
 
 ## Shared source rules
 
 - Each source rule has one private `hithean_offer` record and stable source identity (`wdr:<id>`, `addon:<product>:<choice>`, `sale:<product-or-variation>`, `wheel:<reward>`). Multiple indexed `_ho_product` associations link a shared rule to its eligible products.
-- The admin Kanban/table shows one card per rule, its configuration evidence and its full product list. Approve/reject/pin operates on that canonical record. A single approval covers all matching products, including newly eligible products on a later sync.
+- The admin Kanban/table shows one card per rule, its configuration evidence and its full product list. Approve/reject/pin operates on that canonical record. Rejected cards can be restored to pending review with an audited action; restoration never publishes or refreshes source verification, and the pending decision survives an unchanged sync, including automatic sale sources. Removed source records cannot be restored this way. A single approval covers all matching products, including newly eligible products on a later sync.
 - Approval is tied to the complete configuration hash. Changes to eligibility, rates, conditions, schedule, limits, priority or exclusivity require review again. Ordinary usage-counter increments do not invalidate approval; an exhausted limit withdraws the rule. Matching text never merges distinct source rule IDs.
 - Source timestamps are authoritative. WDR stores wall-clock timestamps; the adapter converts them with the WordPress timezone before expiry comparisons. Reviewers cannot extend a plugin rule's schedule. Public labels retain exact cutoff times rather than assuming an end-of-day deadline.
 - Restricted customer/role rules and unknown product filters are blocked from generic retail publication. Other conditional rules remain review-first, with editable public copy and the full source configuration visible only to authorized managers. No assigned/private customer coupon is collected or generated.
@@ -23,7 +23,7 @@ A new default database run has shared-rule tasks plus product tasks. Manual per-
 
 Source families and individual products are marked complete independently. Only a successful complete source read may withdraw an absent/disabled rule. Failed families preserve existing data; completed scopes reconcile safely. After a product's first successful database sync, its legacy frontend-derived records are marked removed without carrying unverified text-based decisions into the new rule identities.
 
-Public snapshots are committed atomically after a run. Boundary events preserve the last committed snapshot while collection is in progress. A source rule projects onto all associated products, and each product card combines its approved rules. Client filters and expiry checks operate on each individual rule so one expired benefit does not hide other valid benefits on the same product. A 48-hour freshness limit applies when sources cannot be verified.
+Public snapshots are committed atomically after a run. Boundary events preserve the last committed snapshot while collection is in progress. A source rule projects onto all associated products, and each product card combines its approved rules. Client filters and expiry checks operate on each individual rule so one expired benefit does not hide other valid benefits on the same product. A 8-day freshness limit applies when sources cannot be verified.
 
 The snapshot is cached in non-autoload options. `/uu-dai/` HTML bypasses full-page caching to enforce freshness/expiry even when cron is delayed. Theme changes clear the feature's scheduled hooks. Other site pages retain their cache behavior. CTA, cart and filter buttons use Hithean's square corners; decorative badges and card surfaces retain their own styling.
 
@@ -37,7 +37,7 @@ wp hithean offers scan --product-id=123
 wp hithean offers status
 ```
 
-`scan` queues work and returns an actual run ID; it does not claim synchronous completion. The 24-hour schedule and public visibility are separate switches and remain off by default. Existing saved switches are preserved. An existing `/uu-dai/` page is never overwritten; use `templates/template-landing-page.php` and the existing `pages/uu-dai/uu-dai.html` shortcode source.
+`scan` queues work and returns an actual run ID; it does not claim synchronous completion. The weekly schedule and public visibility are separate switches and remain off by default. Existing saved switches are preserved. An existing `/uu-dai/` page is never overwritten; use `templates/template-landing-page.php` and the existing `pages/uu-dai/uu-dai.html` shortcode source.
 
 Use the existing WordPress server runner, or configure one with the real WordPress root:
 
@@ -45,7 +45,7 @@ Use the existing WordPress server runner, or configure one with the real WordPre
 */5 * * * * cd /absolute/path/to/wordpress && /usr/local/bin/wp cron event run --due-now --quiet
 ```
 
-Do not install a duplicate runner. A manual run does not move the daily schedule. Disable the daily switch for future jobs and use Stop for a current run. Snapshot rollback is available when no run is active; expired/stale offers remain hidden, and a later publication recalculates from source records. Run history is retained for 30 days, up to 100 entries.
+The five-minute runner only dispatches due WordPress jobs; offer collection runs weekly when enabled or on manual request. Existing daily offer events migrate to the weekly hook. The 8-day freshness limit allows one weekly interval plus a one-day retry margin; explicit offer expiry remains immediate. Do not install a duplicate runner. A manual run does not move the weekly schedule. Disable the weekly switch for future jobs and use Stop for a current run. Snapshot rollback is available when no run is active; expired/stale offers remain hidden, and a later publication recalculates from source records. Run history is retained for 30 days, up to 100 entries.
 
 ## Validation
 

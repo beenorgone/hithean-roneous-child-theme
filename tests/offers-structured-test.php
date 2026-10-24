@@ -67,6 +67,20 @@ ok(count(hithean_offers_records()) === 2 && hithean_offers_records()[1]['status'
 hithean_offers_review($id, $row['key'], 'reject', []); hithean_offers_publish();
 ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 0, 'One rejection removes the rule from every product');
 hithean_offers_upsert_source($next, 'r3'); ok(hithean_offers_records()[0]['status'] === 'rejected', 'Rejection survives unchanged configuration');
+$rejected = get_post_meta($id, '_ho_data', true);
+$GLOBALS['can_manage'] = false;
+denied(fn() => hithean_offers_review($id, $row['key'], 'restore', []), 'Unauthenticated caller cannot restore a rejected rule');
+$GLOBALS['can_manage'] = true;
+denied(fn() => hithean_offers_review($id, 'outdated-key', 'restore', []), 'Stale restore form cannot modify source terms');
+hithean_offers_review($id, $row['key'], 'restore', []); hithean_offers_publish();
+$restored = get_post_meta($id, '_ho_data', true);
+ok($restored['status'] === 'review' && $restored['decision'] === 'review' && !get_option(HITHEAN_OFFERS_SNAPSHOT)['items'], 'Restore returns the shared rule to review without publishing');
+ok($restored['verified_at'] === $rejected['verified_at'] && $restored['product_ids'] === $rejected['product_ids'], 'Restore preserves verification time and all product associations');
+$audit = get_post_meta($id, '_ho_audit', true);
+ok(end($audit)['action'] === 'restore', 'Restore records the manager action in the audit history');
+hithean_offers_upsert_source($next, 'restored-sync');
+ok(get_post_meta($id, '_ho_data', true)['status'] === 'review', 'Pending restoration survives an unchanged source sync');
+denied(fn() => hithean_offers_review($id, $row['key'], 'restore', []), 'Only rejected cards can be restored');
 hithean_offers_review($id, $row['key'], 'approve', $fields);
 $changed = $raw; $changed['priority'] = 99;
 hithean_offers_upsert_source(hithean_offers_wdr_sources([$changed], $GLOBALS['products'])[0], 'r4');
@@ -100,6 +114,7 @@ hithean_offers_finish_structured(['id' => 'failed', 'source_success' => [], 'pro
 ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === $before, 'Failed source reads do not withdraw old rules');
 hithean_offers_finish_structured(['id' => 'empty-success', 'source_success' => ['wdr'], 'product_success' => []]); hithean_offers_publish();
 ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 0, 'Successful absence/disablement removes a shared rule for all products');
+denied(fn() => hithean_offers_review($id, $new_row['key'], 'restore', []), 'Removed or disabled source cannot be restored');
 hithean_offers_upsert_source($next, 'returned');
 ok(empty(hithean_offers_records()[0]['decision']), 'A removed then returned source requires a new decision');
 // Wheel eligibility is an opportunity to claim, never an assigned or automatic coupon.
@@ -155,10 +170,50 @@ hithean_offers_review($message_id, $message_row['key'], 'approve', $confirmed);
 $confirmed_end = get_post_meta($message_id, '_ho_data', true)['end'];
 hithean_offers_upsert_source($message_source, 'message-again');
 ok(get_post_meta($message_id, '_ho_data', true)['end'] === $confirmed_end, 'Confirmed prose dates survive an unchanged-source refresh');
+// Even otherwise automatic sale sources must wait for approval after restoration.
+$automatic = hithean_offers_source('sale:restore-test', 'sale', [], [11], 'Sale test', 'discount');
+$automatic['safe'] = true;
+$automatic_id = hithean_offers_upsert_source($automatic, 'auto');
+$automatic_row = get_post_meta($automatic_id, '_ho_data', true);
+hithean_offers_review($automatic_id, $automatic_row['key'], 'reject', []);
+hithean_offers_review($automatic_id, $automatic_row['key'], 'restore', []);
+hithean_offers_upsert_source($automatic, 'auto-again');
+ok(get_post_meta($automatic_id, '_ho_data', true)['status'] === 'review', 'An automatic sale cannot bypass restored pending review');
+// Weekly scheduling migrates existing daily events, preserves switches and never duplicates jobs.
+$GLOBALS['events']['hithean_offers_daily'] = time() + 60;
+$GLOBALS['options']['hithean_offers_settings']['enabled'] = true;
+hithean_offers_sync_schedule();
+$weekly_at = wp_next_scheduled('hithean_offers_weekly');
+ok(!wp_next_scheduled('hithean_offers_daily') && $GLOBALS['recurrences']['hithean_offers_weekly'] === 'weekly' && abs($weekly_at - time() - 7 * DAY_IN_SECONDS) < 3, 'Existing daily event migrates to one weekly event');
+hithean_offers_sync_schedule();
+ok(wp_next_scheduled('hithean_offers_weekly') === $weekly_at, 'Repeated initialization does not move the weekly schedule');
+$GLOBALS['options']['hithean_offers_settings']['enabled'] = false;
+hithean_offers_sync_schedule();
+ok(!wp_next_scheduled('hithean_offers_weekly'), 'Manual-only mode clears automatic events');
+$fresh = get_post_meta($automatic_id, '_ho_data', true); $fresh['status'] = 'active';
+ok(hithean_offers_status($fresh, $fresh['verified_at'] + 7 * DAY_IN_SECONDS) === 'active', 'Sources remain fresh throughout the weekly interval');
+ok(hithean_offers_status($fresh, $fresh['verified_at'] + 8 * DAY_IN_SECONDS) === 'stale', 'Unverified sources hide at the eight-day freshness boundary');
+$fresh['end'] = time() + 60;
+ok(hithean_offers_status($fresh, time() + 61) === 'expired', 'Explicit source expiry still takes priority over weekly freshness');
 $css = file_get_contents(dirname(__DIR__) . '/pages/uu-dai/uu-dai.css');
 foreach (['.ho-button', '.ho-nav-cart', '.ho-filters button'] as $selector) {
     preg_match('/' . preg_quote($selector, '/') . '\s*\{([^}]+)\}/', $css, $match);
     ok(str_contains($match[1], 'border-radius: 0;'), 'Hithean square-corner button rule for ' . $selector);
 }
+// Render the actual admin board: rejected cards expose restoration, not direct approval.
+function get_transient($key) { return false; }
+function wp_nonce_field($action) { echo '<input type="hidden" name="_wpnonce" value="fixture-only">'; }
+function checked($a, $b, $echo = true) { return $a == $b ? 'checked' : ''; }
+function selected($a, $b, $echo = true) { return $a == $b ? 'selected' : ''; }
+function esc_textarea($value) { return esc_html($value); }
+function absint($value) { return abs((int) $value); }
+require HITHEAN_THEME_DIR . '/custom-functions/marketing/offers/admin.php';
+hithean_offers_review($automatic_id, $automatic_row['key'], 'reject', []);
+ob_start(); hithean_offers_admin(); $admin_html = ob_get_clean();
+// Match the canonical card to avoid depending on how many unrelated fixture cards exist.
+preg_match('/<article class="ho-offer">(?:(?!<article).)*Sale test(?:(?!<article).)*<\/article>/sU', $admin_html, $rejected_card);
+ok(!empty($rejected_card[0]) && str_contains($rejected_card[0], 'value="restore"') && !str_contains($rejected_card[0], 'value="approve"'), 'Rejected admin card provides restore before approval');
+ok(str_contains($admin_html, 'Tự đồng bộ mỗi tuần một lần') && !str_contains($admin_html, 'mỗi 24 giờ'), 'Admin configuration describes the weekly schedule');
+if (getenv('HITHEAN_OFFERS_ADMIN_PREVIEW')) { file_put_contents(getenv('HITHEAN_OFFERS_ADMIN_PREVIEW'), $admin_html); }
 echo "PASS: $count structured-offer assertions\n";
 }
