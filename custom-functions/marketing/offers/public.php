@@ -175,7 +175,7 @@ function hithean_offers_shortcode(): string {
         </section>
         <section class="ho-how" aria-labelledby="ho-how-heading"><div><p class="ho-eyebrow">TỪ LỰA CHỌN ĐẾN NIỀM VUI</p><h2 id="ho-how-heading">Nhận ưu đãi,<br>thật nhẹ nhàng.</h2></div><ol><li><span>01</span><div><h3>Chọn sản phẩm</h3><p>Tìm món bạn yêu thích trong các chương trình đang áp dụng.</p></div></li><li><span>02</span><div><h3>Xem điều kiện</h3><p>Kiểm tra số lượng, phân loại, giá trị đơn và thời hạn tại trang sản phẩm.</p></div></li><li><span>03</span><div><h3>Kiểm tra giỏ hàng</h3><p>Xác nhận ưu đãi thực tế trước khi hoàn tất đặt hàng.</p></div></li></ol></section>
         <p class="ho-terms">Mỗi chương trình có điều kiện áp dụng riêng. Khả năng kết hợp ưu đãi và giá trị cuối cùng được xác nhận trong giỏ hàng. Ưu đãi trên website có thể khác các kênh mua hàng khác.</p>
-        </main><footer class="ho-footer"><?php echo hithean_offers_logo(); ?><p>Thêm điều lành cho mỗi ngày.</p><a href="#ho-heading">Về đầu trang ↑</a></footer>
+        </main>
         <?php if ($count) : ?><nav class="ho-modebar" data-ho-modebar aria-label="Chế độ xem ưu đãi" hidden><button type="button" data-ho-mode="programs" aria-pressed="true">Xem chương trình</button><button type="button" data-ho-mode="products" aria-pressed="false">Sản phẩm ưu đãi</button></nav><?php endif; ?>
     </div>
     <?php return (string) ob_get_clean();

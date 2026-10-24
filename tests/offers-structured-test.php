@@ -60,7 +60,7 @@ $product_card = hithean_offers_product_card(11);
 ok(str_contains($product_card, '>Test product 11</a>') && substr_count($product_card, 'data-ho-rule ') === 1 && !str_contains($product_card, 'ho-card-group') && hithean_offers_product_card(999) === '', 'Product card shows the shared rule on that product alone');
 ok(!str_contains($html, 'ho-logo'), 'Landing falls back to the text wordmark without a site logo');
 $GLOBALS['theme_mods']['custom_logo'] = 7;
-ok(substr_count(hithean_offers_shortcode(), '<img src="https://hithean.test/image.png" alt="The An">') === 2, 'Landing nav and footer use the site logo');
+ok(substr_count(hithean_offers_shortcode(), '<img src="https://hithean.test/image.png" alt="The An">') === 1, 'Landing navigation uses the site logo');
 unset($GLOBALS['theme_mods']);
 $raw['used_limits'] = 2;
 $next = hithean_offers_wdr_sources([$raw], $GLOBALS['products'])[0];

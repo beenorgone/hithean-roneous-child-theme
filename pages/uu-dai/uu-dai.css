@@ -769,6 +769,9 @@
     line-height: 1.7;
     max-width: 390px;
 }
+.ho-page .ho-terms {
+    margin-inline: auto;
+}
 .ho-terms {
     font-size: 11px;
     opacity: 0.7;
