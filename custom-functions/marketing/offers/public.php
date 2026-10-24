@@ -59,7 +59,7 @@ function hithean_offers_group_dialog(array $row, string $id): string {
     <?php return (string) ob_get_clean();
 }
 function hithean_offers_card(array $row): string {
-    $kinds = ['gift' => 'Quà tặng', 'discount' => 'Giá ưu đãi', 'shipping' => 'Vận chuyển', 'quantity' => 'Mua nhiều giảm giá', 'other' => 'Ưu đãi'];
+    $kinds = ['gift' => 'Quà tặng', 'discount' => 'Giá ưu đãi', 'shipping' => 'Ưu đãi vận chuyển', 'quantity' => 'Mua nhiều giảm giá', 'other' => 'Ưu đãi'];
     $offers = $row['offers'] ?? [$row];
     $until = max(array_map(static fn($offer) => min($offer['end'] ? $offer['end'] + 1 : PHP_INT_MAX, $offer['verified_at'] + HITHEAN_OFFERS_FRESHNESS), $offers));
     ob_start(); ?>
@@ -154,7 +154,7 @@ function hithean_offers_shortcode(): string {
         <div class="ho-ribbon"><span>Chọn sản phẩm yêu thích</span><i aria-hidden="true">✳</i><span>Xem rõ điều kiện</span><i aria-hidden="true">✳</i><span>Nhận ưu đãi khi mua</span></div>
         <section class="ho-offers-section" id="ho-offers" aria-labelledby="ho-offers-heading"><div class="ho-section-head"><div><p class="ho-eyebrow">DÀNH CHO LẦN GHÉ NÀY</p><h2 id="ho-offers-heading">Ưu đãi đang áp dụng<span class="ho-heading-dot">.</span></h2></div><p>Chọn điều bạn thích.<br>Điều kiện được ghi ngay trên từng ưu đãi.</p></div>
         <?php if ($count) : ?>
-        <div class="ho-toolbar"><div class="ho-filters" role="group" aria-label="Lọc loại ưu đãi"><?php foreach (['all' => 'Tất cả', 'discount' => 'Giảm giá', 'gift' => 'Quà tặng', 'quantity' => 'Mua nhiều giảm giá', 'shipping' => 'Vận chuyển'] as $key => $label) : ?><button type="button" data-ho-filter="<?php echo esc_attr($key); ?>" aria-pressed="<?php echo $key === 'all' ? 'true' : 'false'; ?>"><?php echo esc_html($label); ?></button><?php endforeach; ?></div><label class="ho-search"><span class="screen-reader-text">Tìm sản phẩm</span><input type="search" data-ho-search-input placeholder="Tìm sản phẩm…" autocomplete="off"></label></div>
+        <div class="ho-toolbar"><div class="ho-filters" role="group" aria-label="Lọc loại ưu đãi"><?php foreach (['all' => 'Tất cả', 'discount' => 'Giảm giá', 'gift' => 'Quà tặng', 'quantity' => 'Mua nhiều giảm giá', 'shipping' => 'Ưu đãi vận chuyển'] as $key => $label) : ?><button type="button" data-ho-filter="<?php echo esc_attr($key); ?>" aria-pressed="<?php echo $key === 'all' ? 'true' : 'false'; ?>"><?php echo esc_html($label); ?></button><?php endforeach; ?></div><label class="ho-search"><span class="screen-reader-text">Tìm sản phẩm</span><input type="search" data-ho-search-input placeholder="Tìm sản phẩm…" autocomplete="off"></label></div>
         <p class="ho-result" data-ho-result role="status" aria-live="polite"><?php echo (int) $count; ?> sản phẩm / chương trình có ưu đãi</p>
         <div data-ho-panel="programs"><div class="ho-grid"><?php foreach ($products as $row) { echo hithean_offers_card($row); } ?></div>
         <p class="ho-empty" data-ho-empty hidden>Chưa có ưu đãi phù hợp. Thử tên sản phẩm khác hoặc chọn “Tất cả”.</p></div>
