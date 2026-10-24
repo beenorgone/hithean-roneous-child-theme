@@ -945,12 +945,7 @@
 .ho-benefits { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
 .ho-benefits > li + li { border-top: 1px solid #3b22221c; padding-top: 14px; }
 .ho-benefits .ho-date { margin-top: 5px; }
-/* Keep the wheel trigger clear of the 55px mode switcher. */
-body:has(.ho-modebar:not([hidden])) .thean-lw[data-vertical="bottom"] .thean-lw-trigger {
-    bottom: max(var(--lw-t-bottom, 63px), calc(67px + env(safe-area-inset-bottom)));
-}
-@media (max-width: 720px) {
-    body:has(.ho-modebar:not([hidden])) .thean-lw .thean-lw-trigger {
-        bottom: max(var(--lw-t-bottom-m, 60px), calc(67px + env(safe-area-inset-bottom)));
-    }
+/* The wheel's floating "Nhận ưu đãi" trigger is hidden here; the program card opens the wheel by clicking it programmatically. */
+.thean-lw .thean-lw-trigger {
+    display: none !important;
 }
