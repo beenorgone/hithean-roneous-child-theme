@@ -51,14 +51,14 @@
 }
 .ho-offer {
     background: #fff;
-    padding: 16px;
+    padding: 0;
     border-radius: 10px;
     margin: 12px 0;
     box-shadow: 0 2px 6px #26323810;
     overflow-wrap: anywhere;
 }
 .ho-offer h3 {
-    margin-top: 0;
+    margin: 0;
 }
 .ho-offer details {
     margin: 12px 0;
@@ -82,19 +82,10 @@
     max-height: none;
     margin-bottom: 15px;
 }
-.ho-board.is-table .ho-offer {
-    display: grid;
-    grid-template-columns: minmax(160px, 1fr) minmax(220px, 2fr) minmax(180px, 1fr);
-    gap: 10px;
-    align-items: start;
-}
 .ho-offer input[type="date"] {
     max-width: 100%;
 }
 @media (max-width: 782px) {
-    .ho-board.is-table .ho-offer {
-        display: block;
-    }
     .ho-column {
         flex-basis: 85vw;
     }
@@ -103,3 +94,53 @@
 .ho-admin .button { border-radius: 0; }
 .ho-offer pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; font-size: 11px; }
 .ho-offer textarea { width: 100%; }
+
+.ho-offer-title {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    line-height: 1.5;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+.ho-offer-title:hover { background: #f6f8fa; }
+.ho-offer-title:focus-visible { outline: 2px solid #2271b1; outline-offset: -2px; }
+body.ho-modal-open { overflow: hidden; }
+.ho-offer-dialog {
+    width: min(760px, calc(100vw - 32px));
+    max-width: none;
+    max-height: calc(100vh - 64px);
+    max-height: calc(100dvh - 64px);
+    padding: 0;
+    border: 1px solid #e2e7eb;
+    border-radius: 14px;
+    background: #fff;
+    color: #263238;
+    box-sizing: border-box;
+    box-shadow: 0 16px 64px #0004;
+}
+.ho-offer-dialog[open] { display: flex; flex-direction: column; }
+.ho-offer-dialog::backdrop { background: #14232bb3; }
+.ho-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e7eb;
+    flex-shrink: 0;
+}
+.ho-dialog-header h2 { margin: 0 0 6px; font-size: 20px; line-height: 1.4; overflow-wrap: anywhere; }
+.ho-dialog-header p { margin: 0; }
+.ho-dialog-close { flex-shrink: 0; }
+.ho-dialog-body { padding: 20px 24px; overflow-y: auto; min-height: 0; }
+@media (max-width: 782px) {
+    .ho-offer-dialog { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); }
+    .ho-dialog-header, .ho-dialog-body { padding: 16px; }
+}

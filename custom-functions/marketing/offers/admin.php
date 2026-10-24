@@ -114,7 +114,10 @@ function hithean_offers_admin(): void {
             $id = (int) $row['id']; $product = wc_get_product($row['product_id']);
             $shared = isset($row['source_id']);
             $heading = $shared ? ($row['source_title'] ?? $row['source_id']) : ($product ? $product->get_name() : '#' . $row['product_id']);
-            echo '<article class="ho-offer"><h3>' . esc_html($heading) . '</h3><p>' . esc_html($row['title']) . '</p><p class="ho-error">' . esc_html($row['reason']) . '</p>';
+            $dialog_id = 'ho-offer-dialog-' . $id;
+            $title_id = $dialog_id . '-title';
+            echo '<article class="ho-offer"><h3><button type="button" class="ho-offer-title" data-ho-open="' . esc_attr($dialog_id) . '" aria-haspopup="dialog" aria-controls="' . esc_attr($dialog_id) . '">' . esc_html($heading) . '</button></h3>';
+            echo '<dialog class="ho-offer-dialog" id="' . esc_attr($dialog_id) . '" aria-labelledby="' . esc_attr($title_id) . '"><header class="ho-dialog-header"><div><h2 id="' . esc_attr($title_id) . '">' . esc_html($heading) . '</h2><p class="ho-muted">' . esc_html($label) . '</p></div><button type="button" class="button ho-dialog-close" data-ho-close aria-label="Đóng cửa sổ chỉnh sửa" autofocus>Đóng ×</button></header><div class="ho-dialog-body"><p>' . esc_html($row['title']) . '</p><p class="ho-error">' . esc_html($row['reason']) . '</p>';
             if ($shared) {
                 echo '<details><summary>Áp dụng cho ' . count($row['product_ids']) . ' sản phẩm · Duyệt một lần cho cả rule</summary><ul>';
                 foreach ($row['product_ids'] as $product_id) {
@@ -133,7 +136,7 @@ function hithean_offers_admin(): void {
                 echo '<p><button class="button">Khôi phục để duyệt lại</button></p><p class="ho-muted">Khôi phục cả rule và các sản phẩm liên kết; cần duyệt lại trước khi đăng.</p></form>';
             }
             if (in_array($status, ['review', 'active', 'scheduled'], true) && empty($row['blocked'])) {
-                echo '<details><summary>Duyệt / xác nhận điều kiện</summary>';
+                echo '<details open><summary>Duyệt / xác nhận điều kiện</summary>';
                 hithean_offers_form_start('approve', ['offer_id' => $id, 'source_key' => $row['key']]);
                 echo '<p><label>Nội dung công khai (bao gồm đủ điều kiện)<textarea name="title" rows="5" required maxlength="3000" class="widefat">' . esc_textarea($row['title']) . '</textarea></label></p>';
                 if ($shared && empty($row['editable_dates'])) { echo '<p>Hiệu lực nguồn: ' . esc_html($row['start'] ? wp_date('d/m/Y H:i', $row['start']) : 'Không giới hạn bắt đầu') . ' → ' . esc_html($row['end'] ? wp_date('d/m/Y H:i', $row['end']) : 'Không công bố ngày kết thúc') . '. Ngày giờ được đồng bộ từ nguồn.</p>'; }
@@ -149,7 +152,7 @@ function hithean_offers_admin(): void {
                 }
                 echo '</div>';
             }
-            hithean_offers_form_start('scan', $shared ? [] : ['product_id' => $row['product_id']]); echo '<p><button class="button">Đồng bộ lại nguồn</button></p></form></article>';
+            hithean_offers_form_start('scan', $shared ? [] : ['product_id' => $row['product_id']]); echo '<p><button class="button">Đồng bộ lại nguồn</button></p></form></div></dialog></article>';
         }
         if (!$group) { echo '<p class="ho-muted">Chưa có ưu đãi.</p>'; }
         echo '</section>';

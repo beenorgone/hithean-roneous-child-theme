@@ -1,6 +1,36 @@
 (function () {
     'use strict';
     const board = document.querySelector('[data-ho-board]');
+    if (board) {
+        board.addEventListener('click', function (event) {
+            const opener = event.target.closest('[data-ho-open]');
+            if (opener) {
+                const dialog = document.getElementById(opener.dataset.hoOpen);
+                if (dialog && !dialog.open) {
+                    dialog.showModal();
+                    document.body.classList.add('ho-modal-open');
+                }
+            }
+            const closer = event.target.closest('[data-ho-close]');
+            if (closer) { closer.closest('dialog').close(); }
+        });
+        board.querySelectorAll('.ho-offer-dialog').forEach(function (dialog) {
+            dialog.addEventListener('keydown', function (event) {
+                if (event.key !== 'Tab') { return; }
+                const controls = Array.from(dialog.querySelectorAll('button, [href], input, select, textarea, summary, [tabindex]'))
+                    .filter(control => !control.disabled && control.tabIndex >= 0 && control.getClientRects().length);
+                const first = controls[0]; const last = controls[controls.length - 1];
+                if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+            });
+            dialog.addEventListener('close', function () { document.body.classList.remove('ho-modal-open'); });
+            dialog.addEventListener('click', function (event) {
+                if (event.target !== dialog) { return; }
+                const rect = dialog.getBoundingClientRect();
+                if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) { dialog.close(); }
+            });
+        });
+    }
     document.querySelectorAll('[data-ho-view]').forEach(function (button) {
         button.addEventListener('click', function () {
             board.classList.toggle('is-table', button.dataset.hoView === 'table');

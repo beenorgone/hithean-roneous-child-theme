@@ -53,6 +53,10 @@ hithean_offers_review($id, $row['key'], 'approve', $fields); hithean_offers_publ
 ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 2, 'One approval publishes the same rule on two products');
 $html = hithean_offers_shortcode();
 ok(substr_count($html, 'class="ho-card"') === 2, 'Landing renders both associated products');
+ok(!str_contains($html, 'ho-logo'), 'Landing falls back to the text wordmark without a site logo');
+$GLOBALS['theme_mods']['custom_logo'] = 7;
+ok(substr_count(hithean_offers_shortcode(), '<img src="https://hithean.test/image.png" alt="The An">') === 2, 'Landing nav and footer use the site logo');
+unset($GLOBALS['theme_mods']);
 $raw['used_limits'] = 2;
 $next = hithean_offers_wdr_sources([$raw], $GLOBALS['products'])[0];
 ok($next['config_hash'] === $source['config_hash'], 'Ordinary usage-counter increments do not invalidate approval');
@@ -221,6 +225,8 @@ ok(hithean_offers_status($fresh, $fresh['verified_at'] + 8 * DAY_IN_SECONDS) ===
 $fresh['end'] = time() + 60;
 ok(hithean_offers_status($fresh, time() + 61) === 'expired', 'Explicit source expiry still takes priority over weekly freshness');
 $css = file_get_contents(dirname(__DIR__) . '/pages/uu-dai/uu-dai.css');
+preg_match('/\.ho-button-dark\s*\{([^}]+)\}/', $css, $match);
+ok(str_contains($match[1], 'var(--default-color-dark-blue'), 'Landing CTA uses the Add to cart button colour');
 foreach (['.ho-button', '.ho-nav-cart', '.ho-filters button'] as $selector) {
     preg_match('/' . preg_quote($selector, '/') . '\s*\{([^}]+)\}/', $css, $match);
     ok(str_contains($match[1], 'border-radius: 0;'), 'Hithean square-corner button rule for ' . $selector);
@@ -238,8 +244,11 @@ ob_start(); hithean_offers_admin(); $admin_html = ob_get_clean();
 // Match the canonical card to avoid depending on how many unrelated fixture cards exist.
 preg_match('/<article class="ho-offer">(?:(?!<article).)*Sale test(?:(?!<article).)*<\/article>/sU', $admin_html, $rejected_card);
 ok(!empty($rejected_card[0]) && str_contains($rejected_card[0], 'value="restore"') && !str_contains($rejected_card[0], 'value="approve"'), 'Rejected admin card provides restore before approval');
-ok(!str_contains($admin_html, 'Legacy prize') && !str_contains($admin_html, 'Private prize label') && substr_count($admin_html, '<h3>Vòng quay may mắn</h3>') === 1, 'Admin shows one program card and hides superseded prize cards and raw reward detail');
+ok(!str_contains($admin_html, 'Legacy prize') && !str_contains($admin_html, 'Private prize label') && substr_count($admin_html, '>Vòng quay may mắn</button>') === 1, 'Admin shows one program card and hides superseded prize cards and raw reward detail');
 ok(str_contains($admin_html, 'Tự đồng bộ mỗi tuần một lần') && !str_contains($admin_html, 'mỗi 24 giờ'), 'Admin configuration describes the weekly schedule');
+preg_match_all('/<article class="ho-offer">.*?<\/article>/s', $admin_html, $cards);
+$compact_cards = preg_replace('/<dialog\b.*?<\/dialog>/s', '', $cards[0]);
+ok(count($compact_cards) > 0 && !preg_grep('/<(form|details|p)\b/', $compact_cards), 'Board cards expose only a title; all details and actions live inside dialogs');
 if (getenv('HITHEAN_OFFERS_ADMIN_PREVIEW')) { file_put_contents(getenv('HITHEAN_OFFERS_ADMIN_PREVIEW'), $admin_html); }
 echo "PASS: $count structured-offer assertions\n";
 }
