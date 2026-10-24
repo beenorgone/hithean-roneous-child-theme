@@ -16,6 +16,10 @@
 .ho-page [hidden] {
     display: none !important;
 }
+/* The parent theme hides every <br> below 768px; this page relies on them for its line breaks. */
+.ho-page br {
+    display: inline;
+}
 .ho-page a {
     color: inherit;
     text-decoration: none;
@@ -123,9 +127,13 @@
     line-height: 1.12;
     letter-spacing: -0.055em;
 }
+/* Oswald is condensed and has no italic; the subtitle reads better in the wider body font. */
 .ho-page h1 em {
+    font-family: "Be Vietnam", sans-serif;
+    font-size: 0.86em;
     font-weight: 400;
     font-style: italic;
+    letter-spacing: -0.03em;
     color: var(--ho-green);
 }
 .ho-lead {
