@@ -27,6 +27,14 @@ function hithean_offers_date_label(array $row): string {
     }
     return '';
 }
+function hithean_offers_logo(): string {
+    // Same source as the theme header; the custom logo covers sites without the parent helper.
+    $logo = function_exists('roneous_get_logo') ? (roneous_get_logo()['logo'] ?? '') : '';
+    if (!$logo && ($id = (int) get_theme_mod('custom_logo'))) { $logo = (string) wp_get_attachment_image_url($id, 'full'); }
+    $name = get_bloginfo('name');
+    $inner = $logo ? '<img src="' . esc_url($logo) . '" alt="' . esc_attr($name) . '">' : 'the an<span>ORGANICS</span>';
+    return '<a class="ho-wordmark' . ($logo ? ' ho-logo' : '') . '" href="' . esc_url(home_url('/')) . '" aria-label="' . esc_attr($name . ' — Trang chủ') . '">' . $inner . '</a>';
+}
 function hithean_offers_card(array $row): string {
     $kinds = ['gift' => 'Quà tặng', 'discount' => 'Giá ưu đãi', 'shipping' => 'Vận chuyển', 'quantity' => 'Mua nhiều', 'other' => 'Ưu đãi'];
     $offers = $row['offers'] ?? [$row];
@@ -73,7 +81,7 @@ function hithean_offers_shortcode(): string {
     $count = count($products);
     ob_start(); ?>
     <div class="ho-page" data-ho-page>
-        <nav class="ho-nav" aria-label="Điều hướng ưu đãi"><a class="ho-wordmark" href="<?php echo esc_url(home_url('/')); ?>" aria-label="The An — Trang chủ">the an<span>ORGANICS</span></a><div><a href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/')); ?>">Khám phá sản phẩm</a><a class="ho-nav-cart" href="<?php echo esc_url(wc_get_cart_url()); ?>">Giỏ hàng <span aria-hidden="true">↗</span></a></div></nav>
+        <nav class="ho-nav" aria-label="Điều hướng ưu đãi"><?php echo hithean_offers_logo(); ?><div><a href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/')); ?>">Khám phá sản phẩm</a><a class="ho-nav-cart" href="<?php echo esc_url(wc_get_cart_url()); ?>">Giỏ hàng <span aria-hidden="true">↗</span></a></div></nav>
         <?php if ($preview && current_user_can('manage_woocommerce')) : ?><p class="ho-preview" role="status">Bản xem trước dành cho quản trị viên. Bật hiển thị công khai trong WooCommerce → Ưu đãi sản phẩm khi đã kiểm tra nguồn.</p><?php endif; ?>
         <main>
         <section class="ho-hero" aria-labelledby="ho-heading"><div class="ho-hero-copy"><p class="ho-eyebrow"><span></span> ĐIỀU LÀNH, THÊM MỘT CHÚT</p><h1 id="ho-heading">Chọn điều lành.<br><em>Nhận thêm niềm vui.</em></h1><p class="ho-lead">Khám phá những ưu đãi dành cho sản phẩm bạn yêu thích — quà tặng, giá tốt và những lựa chọn đáng để ghé xem.</p><a class="ho-button ho-button-dark ho-hero-cta" href="#ho-offers">Khám phá ưu đãi <span aria-hidden="true">↓</span></a><p class="ho-hero-note">Dành cho khách mua tại website The An</p></div>
@@ -89,7 +97,7 @@ function hithean_offers_shortcode(): string {
         </section>
         <section class="ho-how" aria-labelledby="ho-how-heading"><div><p class="ho-eyebrow">TỪ LỰA CHỌN ĐẾN NIỀM VUI</p><h2 id="ho-how-heading">Nhận ưu đãi,<br>thật nhẹ nhàng.</h2></div><ol><li><span>01</span><div><h3>Chọn sản phẩm</h3><p>Tìm món bạn yêu thích trong các chương trình đang áp dụng.</p></div></li><li><span>02</span><div><h3>Xem điều kiện</h3><p>Kiểm tra số lượng, phân loại, giá trị đơn và thời hạn tại trang sản phẩm.</p></div></li><li><span>03</span><div><h3>Kiểm tra giỏ hàng</h3><p>Xác nhận ưu đãi thực tế trước khi hoàn tất đặt hàng.</p></div></li></ol></section>
         <p class="ho-terms">Mỗi chương trình có điều kiện áp dụng riêng. Khả năng kết hợp ưu đãi và giá trị cuối cùng được xác nhận trong giỏ hàng. Ưu đãi trên website có thể khác các kênh mua hàng khác.</p>
-        </main><footer class="ho-footer"><a class="ho-wordmark" href="<?php echo esc_url(home_url('/')); ?>">the an<span>ORGANICS</span></a><p>Thêm điều lành cho mỗi ngày.</p><a href="#ho-heading">Về đầu trang ↑</a></footer>
+        </main><footer class="ho-footer"><?php echo hithean_offers_logo(); ?><p>Thêm điều lành cho mỗi ngày.</p><a href="#ho-heading">Về đầu trang ↑</a></footer>
     </div>
     <?php return (string) ob_get_clean();
 }

@@ -70,6 +70,11 @@
     display: inline-flex;
     flex-direction: column;
 }
+.ho-logo img {
+    display: block;
+    height: 48px;
+    width: auto;
+}
 .ho-wordmark span {
     font-size: 8px;
     line-height: 1.5;
@@ -149,9 +154,16 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 18px #214f3c20;
 }
+/* Matches the site's Add to cart button. */
 .ho-button-dark {
-    background: var(--ho-green);
-    color: #fff !important;
+    background: var(--default-color-dark-blue, #0047ba);
+    border: 2px solid var(--default-color-dark-blue, #0047ba);
+    color: var(--default-color-white, #fff) !important;
+}
+.ho-button-dark:hover {
+    background: var(--default-color-light-blue, #b0dded);
+    border-color: var(--default-color-light-blue, #b0dded);
+    color: var(--default-color-dark-blue, #0047ba) !important;
 }
 .ho-button-quiet {
     border: 1px solid #3b22223a;
@@ -632,6 +644,9 @@
     }
     .ho-wordmark {
         font-size: 33px;
+    }
+    .ho-logo img {
+        height: 40px;
     }
     .ho-nav > div {
         font-size: 11px;

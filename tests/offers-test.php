@@ -72,6 +72,7 @@ function esc_html($text) { return htmlspecialchars((string) $text, ENT_QUOTES, '
 function esc_attr($text) { return esc_html($text); } function esc_url($text) { return esc_html($text); }
 function wp_date($format, $date, $tz = null) { return (new DateTimeImmutable('@' . $date))->setTimezone($tz ?: new DateTimeZone('Asia/Ho_Chi_Minh'))->format($format); }
 function wc_get_cart_url() { return home_url('/cart'); } function wc_get_page_permalink($page) { return home_url('/shop'); }
+function get_theme_mod($name, $default = false) { return $GLOBALS["theme_mods"][$name] ?? $default; } function get_bloginfo($show = "") { return "The An"; }
 $GLOBALS['products'] = [];
 class OfferTestProduct {
     public function __construct(public $id, public $name, public $stock = true, public $status = 'publish', public $visibility = 'visible') {}
