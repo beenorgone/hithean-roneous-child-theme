@@ -380,6 +380,26 @@
 .ho-card:nth-child(3n + 3) .ho-card-visual {
     background: #e6ebe7;
 }
+.ho-wheel-art {
+    position: relative;
+    display: grid;
+    place-items: center;
+    color: var(--ho-green);
+    font-size: clamp(160px, 20vw, 250px);
+    line-height: 1;
+}
+.ho-wheel-art > span {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: var(--ho-yellow);
+    color: var(--ho-ink);
+    font-size: 32px;
+    font-weight: 700;
+}
 .ho-card-visual img {
     width: 100%;
     height: 100%;

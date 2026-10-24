@@ -1,6 +1,12 @@
 (function () {
     'use strict';
     document.querySelectorAll('[data-ho-page]').forEach(function (root) {
+        root.querySelectorAll('[data-ho-wheel-open]').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                const trigger = document.querySelector('#thean-lw-root .thean-lw-trigger');
+                if (trigger) { event.preventDefault(); trigger.click(); }
+            });
+        });
         const cards = Array.from(root.querySelectorAll('[data-ho-card]'));
         const filters = root.querySelectorAll('[data-ho-filter]');
         const search = root.querySelector('[data-ho-search-input]');
@@ -25,7 +31,7 @@
                 if (card.hidden === visible) { card.hidden = !visible; }
                 if (visible) { count++; }
             });
-            const status = count + ' sản phẩm phù hợp';
+            const status = count + ' sản phẩm / chương trình phù hợp';
             if (result && result.textContent !== status) { result.textContent = status; }
             if (empty) { empty.hidden = count > 0; }
             const orderGroup = root.querySelector('.ho-order-group');

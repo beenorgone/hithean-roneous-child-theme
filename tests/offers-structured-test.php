@@ -122,6 +122,31 @@ $GLOBALS['wheel_enabled'] = true;
 $GLOBALS['rewards'] = [['id' => 'reward5', 'label' => 'Internal label', 'type' => 'percent', 'amount' => 5, 'frequency' => 1, 'min_cart' => 500000, 'active' => true]];
 $wheel = hithean_offers_wheel_sources($GLOBALS['products']);
 ok(count($wheel) === 1 && count($wheel[0]['product_ids']) === 4 && str_contains($wheel[0]['title'], 'Cần quay') && !$wheel[0]['safe'], 'Wheel reward is a shared review-first claim opportunity');
+$GLOBALS['rewards'][] = ['id' => 'reward20k', 'label' => 'Private prize label', 'type' => 'fixed_cart', 'amount' => 20000, 'frequency' => 2, 'min_cart' => 300000, 'active' => true];
+$wheel = hithean_offers_wheel_sources($GLOBALS['products']);
+ok(count($wheel) === 1 && $wheel[0]['source_id'] === 'wheel:program' && count($wheel[0]['source_config']['rewards']) === 2, 'Multiple prizes form one canonical program while retaining private source evidence');
+ok(!str_contains($wheel[0]['title'], '5%') && !str_contains($wheel[0]['title'], '20.000') && !str_contains($wheel[0]['title'], 'Private prize label'), 'Wheel summary does not enumerate reward values or internal labels');
+$GLOBALS['rewards'] = array_reverse($GLOBALS['rewards']);
+ok(hithean_offers_wheel_sources($GLOBALS['products'])[0]['config_hash'] === $wheel[0]['config_hash'], 'Reordering the same prizes does not invalidate a program approval');
+$legacy_wheel = hithean_offers_source('wheel:reward5', 'wheel', ['amount' => 5], [11, 12], 'Legacy prize', 'other', 'order');
+$legacy_id = hithean_offers_upsert_source($legacy_wheel, 'legacy-wheel');
+$legacy_row = get_post_meta($legacy_id, '_ho_data', true);
+hithean_offers_review($legacy_id, $legacy_row['key'], 'approve', $fields);
+$program_id = hithean_offers_upsert_source($wheel[0], 'grouped-wheel');
+$program_row = get_post_meta($program_id, '_ho_data', true);
+ok($program_row['status'] === 'review' && empty($program_row['decision']), 'Program approval is not inherited from an individual prize');
+hithean_offers_finish_structured(['id' => 'grouped-wheel', 'source_success' => ['wheel'], 'product_success' => []]);
+ok(get_post_meta($legacy_id, '_ho_data', true)['status'] === 'removed', 'Successful wheel sync retires old per-prize cards');
+$program_fields = $fields; $program_fields['title'] = $wheel[0]['title'];
+hithean_offers_review($program_id, $program_row['key'], 'approve', $program_fields); hithean_offers_publish();
+$program_html = hithean_offers_shortcode();
+if (getenv('HITHEAN_OFFERS_PUBLIC_PREVIEW')) { file_put_contents(getenv('HITHEAN_OFFERS_PUBLIC_PREVIEW'), $program_html); }
+ok(substr_count($program_html, 'class="ho-card"') === 1 && substr_count($program_html, 'data-ho-rule ') === 1 && str_contains($program_html, 'data-ho-wheel-open'), 'Landing renders one wheel program across all eligible products with a wheel CTA');
+ok(str_contains($program_html, 'Vòng quay may mắn') && !str_contains($program_html, 'Legacy prize') && !str_contains($program_html, 'Private prize label'), 'Public wheel card shows only a program summary');
+$GLOBALS['rewards'][0]['amount'] = 30000;
+$changed_wheel = hithean_offers_wheel_sources($GLOBALS['products'])[0];
+hithean_offers_upsert_source($changed_wheel, 'changed-wheel');
+ok(get_post_meta($program_id, '_ho_data', true)['status'] === 'review', 'Any changed prize terms require one new program review');
 // New database worker never issues HTTP requests, including per-product invocation.
 $GLOBALS['wheel_enabled'] = false; $GLOBALS['requests'] = []; $GLOBALS['options'][HITHEAN_OFFERS_RUN] = [];
 $run = hithean_offers_start(11); hithean_offers_work();
@@ -213,6 +238,7 @@ ob_start(); hithean_offers_admin(); $admin_html = ob_get_clean();
 // Match the canonical card to avoid depending on how many unrelated fixture cards exist.
 preg_match('/<article class="ho-offer">(?:(?!<article).)*Sale test(?:(?!<article).)*<\/article>/sU', $admin_html, $rejected_card);
 ok(!empty($rejected_card[0]) && str_contains($rejected_card[0], 'value="restore"') && !str_contains($rejected_card[0], 'value="approve"'), 'Rejected admin card provides restore before approval');
+ok(!str_contains($admin_html, 'Legacy prize') && !str_contains($admin_html, 'Private prize label') && substr_count($admin_html, '<h3>Vòng quay may mắn</h3>') === 1, 'Admin shows one program card and hides superseded prize cards and raw reward detail');
 ok(str_contains($admin_html, 'Tự đồng bộ mỗi tuần một lần') && !str_contains($admin_html, 'mỗi 24 giờ'), 'Admin configuration describes the weekly schedule');
 if (getenv('HITHEAN_OFFERS_ADMIN_PREVIEW')) { file_put_contents(getenv('HITHEAN_OFFERS_ADMIN_PREVIEW'), $admin_html); }
 echo "PASS: $count structured-offer assertions\n";

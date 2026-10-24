@@ -189,32 +189,27 @@ function hithean_offers_product_sources($product): array {
     }
     return $sources;
 }
+function hithean_offers_wheel_summary(): string {
+    return 'Tham gia vòng quay may mắn để có cơ hội nhận mã ưu đãi. Cần quay và nhận mã trước khi dùng; phần thưởng và điều kiện áp dụng được xác nhận trong vòng quay.';
+}
 function hithean_offers_wheel_sources(array $products): array {
     if (!function_exists('thean_lw_active_rewards') || empty(thean_lw_get_settings()['enabled'])) { return []; }
-    $sources = [];
+    $rewards = []; $ids = [];
     foreach (thean_lw_active_rewards() as $reward) {
-        $ids = []; $type = $reward['type'];
+        $rewards[(string) $reward['id']] = $reward;
         foreach ($products as $id => $product) {
-            if ($type === 'buy_x_get_y' && !in_array($id, $reward['buy_product_ids'] ?? [], true)) { continue; }
-            if ($type === 'taxonomy_quantity_discount' && !has_term($reward['term_slugs'], $reward['taxonomy'], $id)) { continue; }
-            $ids[] = $id;
+            if ($reward['type'] === 'buy_x_get_y' && !in_array($id, $reward['buy_product_ids'] ?? [], true)) { continue; }
+            if ($reward['type'] === 'taxonomy_quantity_discount' && !has_term($reward['term_slugs'], $reward['taxonomy'], $id)) { continue; }
+            $ids[$id] = $id;
         }
-        $benefit = (string) $reward['label'];
-        if ($type === 'percent') { $benefit = 'Giảm ' . (float) $reward['amount'] . '%'; }
-        elseif ($type === 'fixed_cart') { $benefit = 'Giảm ' . hithean_offers_money($reward['amount']); }
-        elseif ($type === 'free_shipping') { $benefit = 'Miễn phí vận chuyển'; }
-        elseif ($type === 'shipping_cap') { $benefit = 'Hỗ trợ phí vận chuyển tối đa ' . hithean_offers_money($reward['amount']); }
-        $title = 'Vòng quay: cơ hội nhận ' . $benefit;
-        if (!empty($reward['min_cart'])) { $title .= '. Đơn hàng từ ' . hithean_offers_money($reward['min_cart']); }
-        if (!empty($reward['max_value'])) { $title .= '. Giá trị ưu đãi tối đa ' . hithean_offers_money($reward['max_value']); }
-        if (!empty($reward['min_qty'])) { $title .= '. Số lượng tối thiểu ' . (int) $reward['min_qty']; }
-        $title .= '. Cần quay và nhận mã trước khi dùng, không phải ưu đãi tự động';
-        $config = $reward; $config['hold_hours'] = thean_lw_coupon_hold_hours();
-        $row = hithean_offers_source('wheel:' . $reward['id'], 'wheel', $config, $ids, $title, in_array($type, ['free_shipping', 'shipping_cap'], true) ? 'shipping' : 'other', 'order');
-        $row['source'] = admin_url('admin.php?page=thean-lucky-wheel');
-        $sources[] = $row;
     }
-    return $sources;
+    if (!$rewards || !$ids) { return []; }
+    ksort($rewards);
+    $config = ['rewards' => $rewards, 'hold_hours' => thean_lw_coupon_hold_hours()];
+    $row = hithean_offers_source('wheel:program', 'wheel', $config, array_values($ids), hithean_offers_wheel_summary(), 'other', 'order');
+    $row['source_title'] = 'Vòng quay may mắn';
+    $row['source'] = admin_url('admin.php?page=thean-lucky-wheel');
+    return [$row];
 }
 
 function hithean_offers_sync_task($task, array $run): array {

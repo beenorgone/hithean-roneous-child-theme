@@ -80,7 +80,13 @@ function hithean_offers_admin(): void {
     if (!current_user_can('manage_woocommerce')) { return; }
     $s = hithean_offers_settings(); $run = (array) get_option(HITHEAN_OFFERS_RUN, []);
     $labels = ['review' => 'Cần duyệt', 'active' => 'Đang áp dụng', 'scheduled' => 'Sắp áp dụng', 'blocked' => 'Không công khai', 'expired' => 'Hết hạn', 'removed' => 'Đã gỡ', 'rejected' => 'Đã loại', 'stale' => 'Cần đồng bộ lại'];
-    $rows = hithean_offers_records(); $notice = get_transient('hithean_offers_notice_' . get_current_user_id());
+    $rows = hithean_offers_records();
+    $has_wheel_program = (bool) array_filter($rows, static fn($row) => ($row['source_id'] ?? '') === 'wheel:program');
+    if ($has_wheel_program) {
+        // Keep superseded prize records for audit, without duplicating the program on the board.
+        $rows = array_filter($rows, static fn($row) => !(($row['family'] ?? '') === 'wheel' && ($row['source_id'] ?? '') !== 'wheel:program' && $row['status'] === 'removed'));
+    }
+    $notice = get_transient('hithean_offers_notice_' . get_current_user_id());
     echo '<div class="wrap ho-admin"><h1>Ưu đãi sản phẩm</h1><p>Đồng bộ cấu hình → Duyệt rule chung → Áp dụng cho sản phẩm → Theo dõi hiệu lực</p>';
     if ($notice) { echo '<div class="notice notice-info"><p>' . esc_html($notice) . '</p></div>'; delete_transient('hithean_offers_notice_' . get_current_user_id()); }
     echo '<section class="ho-panel"><h2>Đồng bộ danh sách</h2><p data-ho-progress aria-live="polite">' . esc_html(hithean_offers_progress($run)) . '</p><div class="ho-actions">';
@@ -118,7 +124,7 @@ function hithean_offers_admin(): void {
                 echo '</ul></details>';
             }
             echo '<details><summary>Xem bằng chứng & lịch sử</summary><blockquote>' . esc_html($row['evidence']) . '</blockquote><a href="' . esc_url($row['source']) . '" target="_blank" rel="noopener noreferrer">Mở nguồn cấu hình</a><p>Kiểm tra: ' . esc_html(wp_date('d/m/Y H:i', $row['verified_at'])) . '</p>';
-            if (!empty($row['source_config'])) { echo '<pre>' . esc_html(wp_json_encode($row['source_config'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>'; }
+            if (($row['family'] ?? '') !== 'wheel' && !empty($row['source_config'])) { echo '<pre>' . esc_html(wp_json_encode($row['source_config'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>'; }
             if (!empty($row['source_constraints'])) { echo '<p>Điều kiện cấu trúc tại nguồn:</p><pre>' . esc_html(wp_json_encode($row['source_constraints'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>'; }
             foreach (array_filter((array) get_post_meta($id, '_ho_audit', true), 'is_array') as $audit) { echo '<p>' . esc_html(wp_date('d/m H:i', $audit['at']) . ' · #' . $audit['user'] . ' · ' . $audit['action']) . '</p>'; }
             echo '</details>';
