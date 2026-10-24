@@ -21,7 +21,7 @@
             let count = 0;
             cards.forEach(function (card) {
                 const rules = Array.from(card.querySelectorAll('[data-ho-rule]'));
-                const nameMatches = normalize(card.querySelector('h3')?.textContent || '').includes(query);
+                const nameMatches = normalize((card.querySelector('h3')?.textContent || '') + ' ' + (card.dataset.hoNames || '')).includes(query);
                 rules.forEach(function (rule) {
                     rule.hidden = now >= Number(rule.dataset.hoUntil) || (active !== 'all' && active !== rule.dataset.hoKind) || (!nameMatches && !normalize(rule.textContent).includes(query));
                 });
@@ -43,6 +43,7 @@
         filters.forEach(function (button) {
             button.addEventListener('click', function () {
                 active = button.dataset.hoFilter;
+                root.dataset.hoActive = active;
                 filters.forEach(function (item) { item.setAttribute('aria-pressed', String(item === button)); });
                 update();
             });

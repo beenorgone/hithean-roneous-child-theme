@@ -52,7 +52,8 @@ $GLOBALS['can_manage'] = true;
 hithean_offers_review($id, $row['key'], 'approve', $fields); hithean_offers_publish();
 ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 2, 'One approval publishes the same rule on two products');
 $html = hithean_offers_shortcode();
-ok(substr_count($html, 'class="ho-card"') === 2, 'Landing renders both associated products');
+ok(substr_count($html, 'data-ho-card') === 1 && substr_count($html, 'ho-card-group') === 1 && substr_count($html, 'data-ho-rule ') === 1, 'A quantity rule shared by several products renders one group card');
+ok(str_contains($html, 'Mua nhiều: Trà thảo mộc') && str_contains($html, 'https://hithean.test/danh-muc/160') && str_contains($html, 'Áp dụng cho 2 sản phẩm: Test product 11, Test product 12') && str_contains($html, 'data-ho-names="Test product 11 Test product 12"'), 'Group card names its category, links to it and lists searchable products');
 ok(!str_contains($html, 'ho-logo'), 'Landing falls back to the text wordmark without a site logo');
 $GLOBALS['theme_mods']['custom_logo'] = 7;
 ok(substr_count(hithean_offers_shortcode(), '<img src="https://hithean.test/image.png" alt="The An">') === 2, 'Landing nav and footer use the site logo');
@@ -109,8 +110,9 @@ $past_row = get_post_meta($past_id, '_ho_data', true);
 ok(hithean_offers_status($past_row) === 'expired', 'Expired structured rules are shown as expired even before review');
 denied(fn() => hithean_offers_review($past_id, $past_row['key'], 'approve', $fields + ['end' => '2099-01-01']), 'Approval cannot extend an expired plugin rule date');
 // Add a second independently approved rule to the same products.
-hithean_offers_review($id, $new_row['key'], 'approve', $fields);
-$second = hithean_offers_records()[1]; hithean_offers_review($second['id'], $second['key'], 'approve', $fields);
+// Non-quantity kinds keep per-product cards, so this checks combining rules on one card.
+hithean_offers_review($id, $new_row['key'], 'approve', ['kind' => 'discount'] + $fields);
+$second = hithean_offers_records()[1]; hithean_offers_review($second['id'], $second['key'], 'approve', ['kind' => 'discount'] + $fields);
 hithean_offers_publish(); $html = hithean_offers_shortcode();
 ok(substr_count($html, 'class="ho-card"') === 3 && substr_count($html, 'data-ho-rule ') === 6, 'A product card combines multiple approved rules without duplicate product cards');
 $before = count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']);
@@ -225,6 +227,7 @@ ok(hithean_offers_status($fresh, $fresh['verified_at'] + 8 * DAY_IN_SECONDS) ===
 $fresh['end'] = time() + 60;
 ok(hithean_offers_status($fresh, time() + 61) === 'expired', 'Explicit source expiry still takes priority over weekly freshness');
 $css = file_get_contents(dirname(__DIR__) . '/pages/uu-dai/uu-dai.css');
+ok(str_contains($css, '[data-ho-active="quantity"] .ho-card-group {') && str_contains(file_get_contents(dirname(__DIR__) . '/pages/uu-dai/uu-dai.js'), 'root.dataset.hoActive = active;'), 'Group cards lead the quantity filter');
 preg_match('/\.ho-button-dark\s*\{([^}]+)\}/', $css, $match);
 ok(str_contains($match[1], 'var(--default-color-dark-blue'), 'Landing CTA uses the Add to cart button colour');
 foreach (['.ho-button', '.ho-nav-cart', '.ho-filters button'] as $selector) {

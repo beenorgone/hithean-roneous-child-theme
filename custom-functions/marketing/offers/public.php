@@ -35,20 +35,35 @@ function hithean_offers_logo(): string {
     $inner = $logo ? '<img src="' . esc_url($logo) . '" alt="' . esc_attr($name) . '">' : 'the an<span>ORGANICS</span>';
     return '<a class="ho-wordmark' . ($logo ? ' ho-logo' : '') . '" href="' . esc_url(home_url('/')) . '" aria-label="' . esc_attr($name . ' — Trang chủ') . '">' . $inner . '</a>';
 }
+/** Names a shared quantity rule after its category filters, or after its product count. */
+function hithean_offers_group_label(array $row, int $count): array {
+    $filters = $row['source_config']['filters'] ?? [];
+    $filters = is_array($filters) ? $filters : (json_decode((string) $filters, true) ?: []);
+    $terms = [];
+    foreach ($filters as $filter) {
+        if (($filter['type'] ?? '') !== 'product_category' || ($filter['method'] ?? 'in_list') !== 'in_list') { continue; }
+        foreach ((array) ($filter['value'] ?? []) as $term_id) { $term = get_term((int) $term_id, 'product_cat'); if ($term && !is_wp_error($term)) { $terms[] = $term; } }
+    }
+    $link = count($terms) === 1 ? get_term_link($terms[0]) : '';
+    return ['name' => $terms ? 'Mua nhiều: ' . implode(', ', wp_list_pluck($terms, 'name')) : 'Mua nhiều ' . $count . ' sản phẩm',
+        'url' => $link && !is_wp_error($link) ? $link : (function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/'))];
+}
 function hithean_offers_card(array $row): string {
     $kinds = ['gift' => 'Quà tặng', 'discount' => 'Giá ưu đãi', 'shipping' => 'Vận chuyển', 'quantity' => 'Mua nhiều', 'other' => 'Ưu đãi'];
     $offers = $row['offers'] ?? [$row];
     $until = max(array_map(static fn($offer) => min($offer['end'] ? $offer['end'] + 1 : PHP_INT_MAX, $offer['verified_at'] + HITHEAN_OFFERS_FRESHNESS), $offers));
     ob_start(); ?>
-    <article class="ho-card" data-ho-card data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-until="<?php echo (int) $until; ?>" data-ho-search="<?php echo esc_attr($row['product_name'] . ' ' . $row['title']); ?>">
-        <a class="ho-card-visual" href="<?php echo esc_url($row['url']); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($offers) > 1 ? count($offers) . ' ưu đãi' : esc_html($kinds[$row['kind']] ?? 'Ưu đãi'); ?></span><?php if (!empty($row['program'])) : ?><span class="ho-wheel-art">✳<span>%</span></span><?php else : ?><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"><?php endif; ?></a>
+    <?php $group = $row['group'] ?? []; ?>
+    <article class="ho-card<?php echo $group ? ' ho-card-group' : ''; ?>" data-ho-card<?php echo $group ? ' data-ho-names="' . esc_attr(implode(' ', wp_list_pluck($group, 'product_name'))) . '"' : ''; ?> data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-until="<?php echo (int) $until; ?>" data-ho-search="<?php echo esc_attr($row['product_name'] . ' ' . $row['title']); ?>">
+        <a class="ho-card-visual" href="<?php echo esc_url($row['url']); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($offers) > 1 ? count($offers) . ' ưu đãi' : esc_html($kinds[$row['kind']] ?? 'Ưu đãi'); ?></span><?php if (!empty($row['program'])) : ?><span class="ho-wheel-art">✳<span>%</span></span><?php elseif ($group) : ?><span class="ho-group-art"><?php foreach (array_slice($group, 0, 3) as $item) : ?><img src="<?php echo esc_url($item['image']); ?>" alt="" width="240" height="240" loading="lazy" decoding="async"><?php endforeach; ?></span><?php else : ?><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"><?php endif; ?></a>
         <div class="ho-card-body"><h3><a href="<?php echo esc_url($row['url']); ?>"><?php echo esc_html($row['product_name']); ?></a></h3><ul class="ho-benefits"><?php foreach ($offers as $offer) : $offer_until = min($offer['end'] ? $offer['end'] + 1 : PHP_INT_MAX, $offer['verified_at'] + HITHEAN_OFFERS_FRESHNESS); ?>
         <li data-ho-rule data-ho-kind="<?php echo esc_attr($offer['kind']); ?>" data-ho-until="<?php echo (int) $offer_until; ?>"><p class="ho-benefit"><?php echo esc_html($offer['title']); ?></p>
         <?php if (!empty($offer['condition_note'])) : ?><p class="ho-date"><?php echo esc_html($offer['condition_note']); ?></p><?php endif; ?>
         <?php if ($offer['end']) : ?><p class="ho-date"><?php echo esc_html(hithean_offers_date_label($offer)); ?></p><?php endif; ?></li>
         <?php endforeach; ?></ul>
+        <?php if ($group) : $names = wp_list_pluck($group, 'product_name'); ?><p class="ho-group-products">Áp dụng cho <?php echo count($names); ?> sản phẩm: <?php echo esc_html(implode(', ', array_slice($names, 0, 3)) . (count($names) > 3 ? '…' : '')); ?></p><?php endif; ?>
         <?php if (!$row['in_stock']) : ?><p class="ho-stock">Tạm hết hàng</p><?php endif; ?>
-        <a class="ho-button <?php echo $row['in_stock'] ? 'ho-button-dark' : 'ho-button-quiet'; ?>" href="<?php echo esc_url($row['url']); ?>"<?php echo !empty($row['program']) ? ' data-ho-wheel-open' : ''; ?>><?php echo !empty($row['program']) ? 'Khám phá vòng quay' : (!$row['in_stock'] ? 'Xem sản phẩm' : ($row['variable'] ? 'Chọn phân loại' : 'Xem sản phẩm & ưu đãi')); ?><span aria-hidden="true">↗</span></a></div>
+        <a class="ho-button <?php echo $row['in_stock'] ? 'ho-button-dark' : 'ho-button-quiet'; ?>" href="<?php echo esc_url($row['url']); ?>"<?php echo !empty($row['program']) ? ' data-ho-wheel-open' : ''; ?>><?php echo !empty($row['program']) ? 'Khám phá vòng quay' : ($group ? 'Xem nhóm sản phẩm' : (!$row['in_stock'] ? 'Xem sản phẩm' : ($row['variable'] ? 'Chọn phân loại' : 'Xem sản phẩm & ưu đãi'))); ?><span aria-hidden="true">↗</span></a></div>
     </article>
     <?php return (string) ob_get_clean();
 }
@@ -57,10 +72,24 @@ function hithean_offers_shortcode(): string {
     $preview = $settings['preview'];
     $snapshot = (array) get_option(HITHEAN_OFFERS_SNAPSHOT, []);
     $items = (!$preview || current_user_can('manage_woocommerce')) ? array_values(array_filter($snapshot['items'] ?? [], static fn($row) => hithean_offers_status($row) === 'active')) : [];
+    // A quantity rule shared by several products is one group card, not a benefit repeated per product.
+    $members = [];
+    foreach ($items as $row) { if ($row['kind'] === 'quantity' && ($row['family'] ?? '') === 'wdr') { $members[$row['source_id']][$row['product_id']] = $row; } }
+    $members = array_filter($members, static fn($group) => count($group) > 1);
     $grouped = [];
     foreach ($items as $row) {
         $wheel = ($row['family'] ?? '') === 'wheel';
-        $id = $wheel ? 'wheel:program' : $row['product_id'];
+        $group = $members[$row['source_id'] ?? ''] ?? [];
+        $id = $wheel ? 'wheel:program' : ($group ? 'group:' . $row['source_id'] : $row['product_id']);
+        if ($group) {
+            if (isset($grouped[$id])) { continue; }
+            $label = hithean_offers_group_label($row, count($group));
+            $row['group'] = array_values($group);
+            $row['product_name'] = $label['name']; $row['url'] = $label['url'];
+            // Partial-variation notes are per product; the shop pages carry those details.
+            $row['condition_note'] = '';
+            $row['in_stock'] = (bool) array_filter($group, static fn($item) => $item['in_stock']); $row['variable'] = false;
+        }
         if ($wheel) {
             // The wheel is one site-wide opportunity, not one benefit per prize/product.
             if (isset($grouped[$id])) { continue; }

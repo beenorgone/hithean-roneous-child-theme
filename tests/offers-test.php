@@ -72,7 +72,7 @@ function esc_html($text) { return htmlspecialchars((string) $text, ENT_QUOTES, '
 function esc_attr($text) { return esc_html($text); } function esc_url($text) { return esc_html($text); }
 function wp_date($format, $date, $tz = null) { return (new DateTimeImmutable('@' . $date))->setTimezone($tz ?: new DateTimeZone('Asia/Ho_Chi_Minh'))->format($format); }
 function wc_get_cart_url() { return home_url('/cart'); } function wc_get_page_permalink($page) { return home_url('/shop'); }
-function get_theme_mod($name, $default = false) { return $GLOBALS["theme_mods"][$name] ?? $default; } function get_bloginfo($show = "") { return "The An"; }
+function get_theme_mod($name, $default = false) { return $GLOBALS["theme_mods"][$name] ?? $default; } function get_bloginfo($show = "") { return "The An"; } function get_term($id, $taxonomy = '') { return $id === 160 ? (object) ['term_id' => 160, 'name' => 'Trà thảo mộc'] : null; } function get_term_link($term) { return home_url('/danh-muc/' . $term->term_id); } function wp_list_pluck($list, $field) { return array_map(static fn($item) => is_object($item) ? $item->$field : $item[$field], $list); }
 $GLOBALS['products'] = [];
 class OfferTestProduct {
     public function __construct(public $id, public $name, public $stock = true, public $status = 'publish', public $visibility = 'visible') {}
