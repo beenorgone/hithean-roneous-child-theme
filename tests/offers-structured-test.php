@@ -156,11 +156,16 @@ $shipping_id = hithean_offers_upsert_source(hithean_offers_wdr_sources([$shippin
 $shipping_row = get_post_meta($shipping_id, '_ho_data', true);
 hithean_offers_review($shipping_id, $shipping_row['key'], 'approve', ['kind' => 'shipping', 'scope' => 'order', 'title' => $shipping_row['title']] + $fields); hithean_offers_publish();
 $shipping_html = hithean_offers_shortcode();
+$shipping_row = get_post_meta($shipping_id, '_ho_data', true); hithean_offers_review($shipping_id, $shipping_row['key'], 'pin', []); hithean_offers_publish();
+$pinned_html = hithean_offers_shortcode();
+ok(get_option(HITHEAN_OFFERS_SNAPSHOT)['items'][0]['family'] === 'wdr' && strpos($pinned_html, 'Vòng quay may mắn') < strpos($pinned_html, '>Miễn phí vận chuyển<'), 'An approved wheel program leads the grid even ahead of pinned rules');
 ok(substr_count($shipping_html, 'data-ho-kind="shipping" data-ho-until') === 2 && substr_count($shipping_html, 'data-ho-card') === 2 && str_contains($shipping_html, '>Miễn phí vận chuyển<') && str_contains($shipping_html, 'Áp dụng cho mọi sản phẩm') && str_contains($shipping_html, '>Mua sắm ngay<') && !str_contains($shipping_html, 'ho-group-dialog'), 'Site-wide free shipping renders one shop card without a product list');
 $GLOBALS['rewards'][0]['amount'] = 30000;
 $changed_wheel = hithean_offers_wheel_sources($GLOBALS['products'])[0];
 hithean_offers_upsert_source($changed_wheel, 'changed-wheel');
 ok(get_post_meta($program_id, '_ho_data', true)['status'] === 'review', 'Any changed prize terms require one new program review');
+hithean_offers_publish();
+ok(!str_contains(hithean_offers_shortcode(), 'data-ho-wheel-open'), 'The wheel card waits for the changed program to be approved again');
 // New database worker never issues HTTP requests, including per-product invocation.
 $GLOBALS['wheel_enabled'] = false; $GLOBALS['requests'] = []; $GLOBALS['options'][HITHEAN_OFFERS_RUN] = [];
 $run = hithean_offers_start(11); hithean_offers_work();

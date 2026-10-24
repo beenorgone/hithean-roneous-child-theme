@@ -115,9 +115,11 @@ function hithean_offers_shortcode(): string {
         if (!isset($grouped[$id])) { $grouped[$id] = $row; $grouped[$id]['offers'] = []; }
         $grouped[$id]['offers'][] = $row;
     }
+    // An approved wheel program leads the grid; other cards keep their snapshot order.
+    if (isset($grouped['wheel:program'])) { $grouped = ['wheel:program' => $grouped['wheel:program']] + $grouped; }
     $products = array_values($grouped);
     $images = [];
-    foreach ($products as $row) { if (!isset($images[$row['product_id']])) { $images[$row['product_id']] = $row; } if (count($images) === 3) { break; } }
+    foreach ($products as $row) { if (!empty($row['image']) && !isset($images[$row['product_id']])) { $images[$row['product_id']] = $row; } if (count($images) === 3) { break; } }
     $count = count($products);
     ob_start(); ?>
     <div class="ho-page" data-ho-page>
