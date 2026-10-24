@@ -7,6 +7,23 @@
                 if (trigger) { event.preventDefault(); trigger.click(); }
             });
         });
+        // The link stays a category/shop fallback; with JS it opens the group's product list.
+        root.querySelectorAll('[data-ho-open]').forEach(function (link) {
+            const dialog = document.getElementById(link.dataset.hoOpen);
+            if (!dialog || typeof dialog.showModal !== 'function') { return; }
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                dialog.showModal();
+                document.documentElement.classList.add('ho-modal-open');
+            });
+            dialog.addEventListener('close', function () { document.documentElement.classList.remove('ho-modal-open'); link.focus(); });
+            dialog.addEventListener('click', function (event) {
+                if (event.target.closest('[data-ho-close]')) { dialog.close(); return; }
+                if (event.target !== dialog) { return; }
+                const rect = dialog.getBoundingClientRect();
+                if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) { dialog.close(); }
+            });
+        });
         const cards = Array.from(root.querySelectorAll('[data-ho-card]'));
         const filters = root.querySelectorAll('[data-ho-filter]');
         const search = root.querySelector('[data-ho-search-input]');

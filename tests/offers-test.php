@@ -72,7 +72,7 @@ function esc_html($text) { return htmlspecialchars((string) $text, ENT_QUOTES, '
 function esc_attr($text) { return esc_html($text); } function esc_url($text) { return esc_html($text); }
 function wp_date($format, $date, $tz = null) { return (new DateTimeImmutable('@' . $date))->setTimezone($tz ?: new DateTimeZone('Asia/Ho_Chi_Minh'))->format($format); }
 function wc_get_cart_url() { return home_url('/cart'); } function wc_get_page_permalink($page) { return home_url('/shop'); }
-function get_theme_mod($name, $default = false) { return $GLOBALS["theme_mods"][$name] ?? $default; } function get_bloginfo($show = "") { return "The An"; } function get_term($id, $taxonomy = '') { return $id === 160 ? (object) ['term_id' => 160, 'name' => 'Trà thảo mộc'] : null; } function get_term_link($term) { return home_url('/danh-muc/' . $term->term_id); } function wp_list_pluck($list, $field) { return array_map(static fn($item) => is_object($item) ? $item->$field : $item[$field], $list); }
+function get_theme_mod($name, $default = false) { return $GLOBALS["theme_mods"][$name] ?? $default; } function get_bloginfo($show = "") { return "The An"; } function wp_kses_post($html) { return $html; } function get_term($id, $taxonomy = '') { return $id === 160 ? (object) ['term_id' => 160, 'name' => 'Trà thảo mộc'] : null; } function get_term_link($term) { return home_url('/danh-muc/' . $term->term_id); } function wp_list_pluck($list, $field) { return array_map(static fn($item) => is_object($item) ? $item->$field : $item[$field], $list); }
 $GLOBALS['products'] = [];
 class OfferTestProduct {
     public function __construct(public $id, public $name, public $stock = true, public $status = 'publish', public $visibility = 'visible') {}
@@ -81,7 +81,7 @@ class OfferTestProduct {
     function get_children() { return $this->children; }
     function get_sale_price(...$args) { return ''; } function get_regular_price(...$args) { return ''; }
     function get_parent_id() { return 0; } function get_catalog_visibility() { return $this->visibility; }
-    function get_image_id() { return 1; } function is_in_stock() { return $this->stock; } function is_type($type) { return $this->type === $type; }
+    function get_image_id() { return 1; } function get_price_html() { return '<span class="amount">100.000₫</span>'; } function is_in_stock() { return $this->stock; } function is_type($type) { return $this->type === $type; }
 }
 function wc_get_product($id) { return $GLOBALS['products'][$id] ?? false; }
 require HITHEAN_THEME_DIR . '/custom-functions/marketing/offers.php';

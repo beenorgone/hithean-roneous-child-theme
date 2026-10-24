@@ -53,7 +53,8 @@ hithean_offers_review($id, $row['key'], 'approve', $fields); hithean_offers_publ
 ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 2, 'One approval publishes the same rule on two products');
 $html = hithean_offers_shortcode();
 ok(substr_count($html, 'data-ho-card') === 1 && substr_count($html, 'ho-card-group') === 1 && substr_count($html, 'data-ho-rule ') === 1, 'A quantity rule shared by several products renders one group card');
-ok(str_contains($html, 'Mua nhiều: Trà thảo mộc') && str_contains($html, 'https://hithean.test/danh-muc/160') && str_contains($html, 'Áp dụng cho 2 sản phẩm: Test product 11, Test product 12') && str_contains($html, 'data-ho-names="Test product 11 Test product 12"'), 'Group card names its category, links to it and lists searchable products');
+ok(str_contains($html, '>Mua nhiều giảm giá: Trà thảo mộc<') && str_contains($html, 'https://hithean.test/danh-muc/160') && str_contains($html, 'Áp dụng cho 2 sản phẩm: Test product 11, Test product 12') && str_contains($html, 'data-ho-names="Test product 11 Test product 12"'), 'Group card names its category, links to it and lists searchable products');
+ok(preg_match('/data-ho-open="(ho-group-[0-9a-f]{10})"/', $html, $m) && str_contains($html, '<dialog class="ho-group-dialog" id="' . $m[1] . '"') && substr_count($html, '<span class="ho-group-price"><span class="amount">100.000₫</span></span>') === 2 && substr_count($html, 'Còn hàng') === 2, 'Group CTA opens a modal listing each product with price and stock');
 ok(!str_contains($html, 'ho-logo'), 'Landing falls back to the text wordmark without a site logo');
 $GLOBALS['theme_mods']['custom_logo'] = 7;
 ok(substr_count(hithean_offers_shortcode(), '<img src="https://hithean.test/image.png" alt="The An">') === 2, 'Landing nav and footer use the site logo');
@@ -149,6 +150,13 @@ $program_html = hithean_offers_shortcode();
 if (getenv('HITHEAN_OFFERS_PUBLIC_PREVIEW')) { file_put_contents(getenv('HITHEAN_OFFERS_PUBLIC_PREVIEW'), $program_html); }
 ok(substr_count($program_html, 'class="ho-card"') === 1 && substr_count($program_html, 'data-ho-rule ') === 1 && str_contains($program_html, 'data-ho-wheel-open'), 'Landing renders one wheel program across all eligible products with a wheel CTA');
 ok(str_contains($program_html, 'Vòng quay may mắn') && !str_contains($program_html, 'Legacy prize') && !str_contains($program_html, 'Private prize label'), 'Public wheel card shows only a program summary');
+// Free shipping covers the whole order, so it is one card rather than a benefit on every product.
+$shipping = $raw; $shipping['id'] = 7; $shipping['discount_type'] = 'wdr_free_shipping'; $shipping['filters'] = json_encode([['type' => 'all_products']]);
+$shipping_id = hithean_offers_upsert_source(hithean_offers_wdr_sources([$shipping], $GLOBALS['products'])[0], 'shipping');
+$shipping_row = get_post_meta($shipping_id, '_ho_data', true);
+hithean_offers_review($shipping_id, $shipping_row['key'], 'approve', ['kind' => 'shipping', 'scope' => 'order', 'title' => $shipping_row['title']] + $fields); hithean_offers_publish();
+$shipping_html = hithean_offers_shortcode();
+ok(substr_count($shipping_html, 'data-ho-kind="shipping" data-ho-until') === 2 && substr_count($shipping_html, 'data-ho-card') === 2 && str_contains($shipping_html, '>Miễn phí vận chuyển<') && str_contains($shipping_html, 'Áp dụng cho mọi sản phẩm') && str_contains($shipping_html, '>Mua sắm ngay<') && !str_contains($shipping_html, 'ho-group-dialog'), 'Site-wide free shipping renders one shop card without a product list');
 $GLOBALS['rewards'][0]['amount'] = 30000;
 $changed_wheel = hithean_offers_wheel_sources($GLOBALS['products'])[0];
 hithean_offers_upsert_source($changed_wheel, 'changed-wheel');
