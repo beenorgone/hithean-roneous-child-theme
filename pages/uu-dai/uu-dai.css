@@ -570,10 +570,14 @@
     border-radius: 0;
     background: #fff;
     color: var(--default-color-dark-blue, #0047ba);
+    /* Computed type of the live sticky add-to-cart button. */
     font-family: "Oswald", sans-serif;
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 700;
     line-height: 1.2;
+    letter-spacing: 1px;
     word-spacing: 2px;
+    text-transform: uppercase;
     white-space: nowrap;
     cursor: pointer;
 }
@@ -948,4 +952,11 @@
 /* The wheel's floating "Nhận ưu đãi" trigger is hidden here; the program card opens the wheel by clicking it programmatically. */
 .thean-lw .thean-lw-trigger {
     display: none !important;
+}
+/* Two uppercase labels overflow 16px buttons on the narrowest phones. */
+@media (max-width: 380px) {
+    .ho-modebar button {
+        font-size: 14px;
+        letter-spacing: 0.5px;
+    }
 }
