@@ -76,6 +76,17 @@ function hithean_offers_form_start(string $action, array $hidden = []): void {
     wp_nonce_field('hithean_offers_action');
     foreach ($hidden as $name => $value) { echo '<input type="hidden" name="' . esc_attr($name) . '" value="' . esc_attr($value) . '">'; }
 }
+/** Human-readable labels also cover existing addon records without re-syncing sources. */
+function hithean_offers_admin_title(array $row, $product): string {
+    if (($row['family'] ?? '') === 'addon') {
+        $name = hithean_offers_text((string) ($row['source_config']['name'] ?? $row['source_config']['text'] ?? $row['title'] ?? ''));
+        if ($name === '') { $name = 'Ưu đãi bổ sung'; }
+        if (mb_strlen($name) > 120) { $name = rtrim(mb_substr($name, 0, 120)) . '…'; }
+        $product_name = $product ? $product->get_name() : 'Sản phẩm #' . (int) $row['product_id'];
+        return $name . ' — ' . $product_name;
+    }
+    return isset($row['source_id']) ? ($row['source_title'] ?? $row['source_id']) : ($product ? $product->get_name() : '#' . $row['product_id']);
+}
 function hithean_offers_admin(): void {
     if (!current_user_can('manage_woocommerce')) { return; }
     $s = hithean_offers_settings(); $run = (array) get_option(HITHEAN_OFFERS_RUN, []);
@@ -113,7 +124,7 @@ function hithean_offers_admin(): void {
         foreach ($group as $row) {
             $id = (int) $row['id']; $product = wc_get_product($row['product_id']);
             $shared = isset($row['source_id']);
-            $heading = $shared ? ($row['source_title'] ?? $row['source_id']) : ($product ? $product->get_name() : '#' . $row['product_id']);
+            $heading = hithean_offers_admin_title($row, $product);
             $dialog_id = 'ho-offer-dialog-' . $id;
             $title_id = $dialog_id . '-title';
             echo '<article class="ho-offer"><h3><button type="button" class="ho-offer-title" data-ho-open="' . esc_attr($dialog_id) . '" aria-haspopup="dialog" aria-controls="' . esc_attr($dialog_id) . '">' . esc_html($heading) . '</button></h3>';
