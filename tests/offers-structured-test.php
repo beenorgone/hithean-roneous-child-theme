@@ -1,0 +1,164 @@
+<?php
+/** Integration-contract tests for source identity, shared review and product projection. */
+namespace Wdr\App\Helpers {
+    // Models only the product-filter contract; production matching is smoke-tested with the actual plugin.
+    class Filter {
+        public function matchFilters($product, $filters, ...$args) {
+            $status = false;
+            foreach ($filters as $filter) {
+                if ($filter->type === 'all_products') { $status = true; continue; }
+                $in = $filter->type === 'products' ? in_array($product->get_id(), $filter->value) : count(array_intersect($product->categories, $filter->value)) > 0;
+                if (($filter->method ?? 'in_list') === 'not_in_list') { if ($in) { return false; } }
+                elseif ($in) { $status = true; }
+            }
+            return $status;
+        }
+    }
+}
+namespace {
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
+define('HITHEAN_OFFERS_TEST_LIBRARY', true);
+require __DIR__ . '/offers-test.php';
+$count = 0;
+function ok($condition, $message) { global $count; $count++; if (!$condition) { throw new \RuntimeException('FAIL: ' . $message); } }
+function denied($call, $message) { try { $call(); } catch (\RuntimeException $e) { ok(true, $message); return; } ok(false, $message); }
+function simple_addon_is_product_addon_feature_enabled($id) { return $GLOBALS['addon_enabled'][$id] ?? true; }
+function simple_addon_get_product_addons($id) { return $GLOBALS['addons'][$id] ?? []; }
+function simple_addon_build_display_choices($addons) { return $addons; }
+function thean_lw_get_settings() { return ['enabled' => $GLOBALS['wheel_enabled'] ?? false]; }
+function thean_lw_active_rewards() { return $GLOBALS['rewards'] ?? []; }
+function thean_lw_coupon_hold_hours() { return 48; }
+function has_term(...$args) { return true; }
+$GLOBALS['options'] = ['hithean_offers_settings' => ['source' => 'database', 'preview' => false]];
+$GLOBALS['products'] = []; $GLOBALS['posts'] = []; $GLOBALS['meta'] = []; $GLOBALS['multi_meta'] = [];
+foreach ([11, 12, 13] as $id) {
+    $p = new \OfferTestProduct($id, 'Test product ' . $id); $p->categories = [160]; $GLOBALS['products'][$id] = $p;
+    $GLOBALS['posts'][$id] = (object) ['ID' => $id, 'post_type' => 'product', 'post_status' => 'publish'];
+}
+$raw = ['id' => 1, 'enabled' => 1, 'deleted' => 0, 'title' => 'Internal rule name', 'discount_type' => 'wdr_bulk_discount',
+    'filters' => json_encode([['type' => 'product_category', 'method' => 'in_list', 'value' => [160]], ['type' => 'products', 'method' => 'not_in_list', 'value' => [13]]]),
+    'conditions' => '[]', 'bulk_adjustments' => json_encode(['operator' => 'product_cumulative', 'ranges' => [['from' => 2, 'to' => 2, 'type' => 'percentage', 'value' => 5], ['from' => 3, 'to' => '', 'type' => 'percentage', 'value' => 10]]]),
+    'usage_limits' => 0, 'used_limits' => 1, 'date_from' => null, 'date_to' => null];
+$sources = hithean_offers_wdr_sources([$raw], $GLOBALS['products']); $source = $sources[0];
+ok($source['product_ids'] === [11, 12], 'Category match and product exclusion use the plugin filter contract');
+ok(str_contains($source['title'], '5%') && str_contains($source['title'], '10%') && str_contains($source['title'], 'cộng dồn'), 'Bulk tiers and cumulative semantics are retained');
+ok(!str_contains($source['title'], 'Internal'), 'Internal rule names are not automatically published');
+$id = hithean_offers_upsert_source($source, 'r1');
+ok(count(hithean_offers_records()) === 1 && count(hithean_offers_records(11)) === 1 && count(hithean_offers_records(12)) === 1, 'One canonical rule has indexed links to multiple products');
+$row = hithean_offers_records()[0];
+$fields = ['verified' => 1, 'no_end' => 1, 'kind' => 'quantity', 'scope' => 'product', 'title' => $source['title']];
+denied(fn() => hithean_offers_review($id, $row['key'], 'approve', $fields), 'Unauthenticated caller cannot approve a shared rule');
+$GLOBALS['can_manage'] = true;
+hithean_offers_review($id, $row['key'], 'approve', $fields); hithean_offers_publish();
+ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 2, 'One approval publishes the same rule on two products');
+$html = hithean_offers_shortcode();
+ok(substr_count($html, 'class="ho-card"') === 2, 'Landing renders both associated products');
+$raw['used_limits'] = 2;
+$next = hithean_offers_wdr_sources([$raw], $GLOBALS['products'])[0];
+ok($next['config_hash'] === $source['config_hash'], 'Ordinary usage-counter increments do not invalidate approval');
+$p = new \OfferTestProduct(14, 'New matching product'); $p->categories = [160]; $GLOBALS['products'][14] = $p;
+$next = hithean_offers_wdr_sources([$raw], $GLOBALS['products'])[0];
+hithean_offers_upsert_source($next, 'r2'); hithean_offers_publish();
+ok(hithean_offers_records()[0]['decision'] === 'approve' && count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 3, 'Approved rule automatically covers newly matching products');
+ok(count(hithean_offers_records(14)) === 1, 'New product association is indexed');
+$raw2 = $raw; $raw2['id'] = 2;
+hithean_offers_upsert_source(hithean_offers_wdr_sources([$raw2], $GLOBALS['products'])[0], 'r2');
+ok(count(hithean_offers_records()) === 2 && hithean_offers_records()[1]['status'] === 'review', 'Different rule IDs never inherit approval merely because their text matches');
+hithean_offers_review($id, $row['key'], 'reject', []); hithean_offers_publish();
+ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 0, 'One rejection removes the rule from every product');
+hithean_offers_upsert_source($next, 'r3'); ok(hithean_offers_records()[0]['status'] === 'rejected', 'Rejection survives unchanged configuration');
+hithean_offers_review($id, $row['key'], 'approve', $fields);
+$changed = $raw; $changed['priority'] = 99;
+hithean_offers_upsert_source(hithean_offers_wdr_sources([$changed], $GLOBALS['products'])[0], 'r4');
+$new_row = hithean_offers_records()[0];
+ok($new_row['status'] === 'review' && empty($new_row['decision']), 'Changed source priority/conditions require one fresh rule approval');
+denied(fn() => hithean_offers_review($id, $row['key'], 'approve', $fields), 'Stale approval form cannot approve changed source terms');
+$blocked = $raw; $blocked['id'] = 3; $blocked['conditions'] = json_encode([['type' => 'user_list', 'options' => ['value' => [42]]]]);
+$blocked_source = hithean_offers_wdr_sources([$blocked], $GLOBALS['products'])[0];
+$blocked_id = hithean_offers_upsert_source($blocked_source, 'r4'); $blocked_row = get_post_meta($blocked_id, '_ho_data', true);
+ok($blocked_row['blocked'], 'Private customer rule is blocked from general retail publication');
+denied(fn() => hithean_offers_review($blocked_id, $blocked_row['key'], 'approve', $fields), 'A private rule cannot be published through the generic approval action');
+$unsupported = $raw; $unsupported['id'] = 4; $unsupported['filters'] = json_encode([['type' => 'unknown_custom_filter']]);
+$unknown = hithean_offers_wdr_sources([$unsupported], $GLOBALS['products'])[0];
+ok($unknown['blocked'] && !$unknown['product_ids'], 'Unknown product filters fail closed instead of applying to the catalog');
+$exhausted = $raw; $exhausted['usage_limits'] = 2; $exhausted['used_limits'] = 2;
+ok(hithean_offers_wdr_sources([$exhausted], $GLOBALS['products']) === [], 'Exhausted usage limit is excluded');
+$wall = gmmktime(23, 59, 0, 12, 1, 2030);
+ok(wp_date('Y-m-d H:i', hithean_offers_wdr_date($wall)) === '2030-12-01 23:59', 'WDR wall-clock timestamps are converted with the site timezone');
+$past = $raw; $past['id'] = 5; $past['date_to'] = time() - 86400;
+$past_id = hithean_offers_upsert_source(hithean_offers_wdr_sources([$past], $GLOBALS['products'])[0], 'r4');
+$past_row = get_post_meta($past_id, '_ho_data', true);
+ok(hithean_offers_status($past_row) === 'expired', 'Expired structured rules are shown as expired even before review');
+denied(fn() => hithean_offers_review($past_id, $past_row['key'], 'approve', $fields + ['end' => '2099-01-01']), 'Approval cannot extend an expired plugin rule date');
+// Add a second independently approved rule to the same products.
+hithean_offers_review($id, $new_row['key'], 'approve', $fields);
+$second = hithean_offers_records()[1]; hithean_offers_review($second['id'], $second['key'], 'approve', $fields);
+hithean_offers_publish(); $html = hithean_offers_shortcode();
+ok(substr_count($html, 'class="ho-card"') === 3 && substr_count($html, 'data-ho-rule ') === 6, 'A product card combines multiple approved rules without duplicate product cards');
+$before = count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']);
+hithean_offers_finish_structured(['id' => 'failed', 'source_success' => [], 'product_success' => []]); hithean_offers_publish();
+ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === $before, 'Failed source reads do not withdraw old rules');
+hithean_offers_finish_structured(['id' => 'empty-success', 'source_success' => ['wdr'], 'product_success' => []]); hithean_offers_publish();
+ok(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 0, 'Successful absence/disablement removes a shared rule for all products');
+hithean_offers_upsert_source($next, 'returned');
+ok(empty(hithean_offers_records()[0]['decision']), 'A removed then returned source requires a new decision');
+// Wheel eligibility is an opportunity to claim, never an assigned or automatic coupon.
+$GLOBALS['wheel_enabled'] = true;
+$GLOBALS['rewards'] = [['id' => 'reward5', 'label' => 'Internal label', 'type' => 'percent', 'amount' => 5, 'frequency' => 1, 'min_cart' => 500000, 'active' => true]];
+$wheel = hithean_offers_wheel_sources($GLOBALS['products']);
+ok(count($wheel) === 1 && count($wheel[0]['product_ids']) === 4 && str_contains($wheel[0]['title'], 'Cần quay') && !$wheel[0]['safe'], 'Wheel reward is a shared review-first claim opportunity');
+// New database worker never issues HTTP requests, including per-product invocation.
+$GLOBALS['wheel_enabled'] = false; $GLOBALS['requests'] = []; $GLOBALS['options'][HITHEAN_OFFERS_RUN] = [];
+$run = hithean_offers_start(11); hithean_offers_work();
+ok($run['mode'] === 'database' && $GLOBALS['requests'] === [], 'Manual database sync does not fetch any frontend URL');
+ok(get_option(HITHEAN_OFFERS_RUN)['status'] === 'complete', 'Database queue finishes through the same cron/manual worker');
+// A variation-specific rule attaches only with an explicit partial-variation qualifier.
+class VariantOfferProduct extends \OfferTestProduct {
+    public function get_parent_id() { return 21; }
+}
+$parent = new \OfferTestProduct(21, 'Variable test product'); $parent->type = 'variable'; $parent->children = [211, 212];
+$GLOBALS['products'][21] = $parent;
+$GLOBALS['products'][211] = new VariantOfferProduct(211, 'Variation one');
+$GLOBALS['products'][212] = new VariantOfferProduct(212, 'Variation two');
+$variant_raw = $raw; $variant_raw['id'] = 9;
+$variant_raw['filters'] = json_encode([['type' => 'products', 'method' => 'in_list', 'value' => [211]]]);
+$variant_source = hithean_offers_wdr_sources([$variant_raw], [21 => $parent])[0];
+ok($variant_source['product_ids'] === [21] && $variant_source['matches'][21]['variation_ids'] === [211] && $variant_source['matches'][21]['partial'], 'Variation-only eligibility is projected to the parent without claiming every variation');
+$variant_id = hithean_offers_upsert_source($variant_source, 'variants');
+$variant_row = get_post_meta($variant_id, '_ho_data', true);
+hithean_offers_review($variant_id, $variant_row['key'], 'approve', $fields); hithean_offers_publish();
+$variant_items = array_values(array_filter(get_option(HITHEAN_OFFERS_SNAPSHOT)['items'], static fn($r) => $r['product_id'] === 21));
+ok(count($variant_items) === 1 && !empty($variant_items[0]['condition_note']), 'Public snapshot carries the partial-variation qualifier');
+$GLOBALS['addons'][11] = [['value' => 'gift', 'name' => 'Test gift', 'mode' => 'auto', 'ranges' => [['min' => 2, 'max' => 5]], 'addons' => [['type' => 'product', 'status' => 'ON', 'target' => 13]]]];
+$addon_sources = hithean_offers_product_sources($GLOBALS['products'][11]);
+ok(count($addon_sources) === 1 && str_contains($addon_sources[0]['title'], 'từ 2 đến 5') && !$addon_sources[0]['safe'], 'Addon quantity ranges stay explicit and review-first');
+$GLOBALS['addon_enabled'][11] = false; update_post_meta(11, 'product_addon_sale_message', 'Test stale message');
+ok(hithean_offers_product_sources($GLOBALS['products'][11]) === [], 'Disabled addon suppresses both choices and leftover sale messages');
+class SaleOfferProduct extends \OfferTestProduct {
+    public function get_sale_price(...$args) { return '0'; }
+    public function get_regular_price(...$args) { return '50000'; }
+    public function get_date_on_sale_from(...$args) { return null; }
+    public function get_date_on_sale_to(...$args) { return null; }
+}
+$free_sale = hithean_offers_product_sources(new SaleOfferProduct(31, 'Free sale test'));
+ok(count($free_sale) === 1 && $free_sale[0]['safe'] && str_contains($free_sale[0]['title'], '0 ₫'), 'A stored zero sale price is distinct from an unset sale field');
+$midnight = (new \DateTimeImmutable('2030-12-01 00:00:00', wp_timezone()))->getTimestamp();
+ok(hithean_offers_date_label(['end' => $midnight]) === 'Đến 00:00 01/12/2030', 'Midnight cutoff is not advertised as valid through the whole date');
+$GLOBALS['addon_enabled'][11] = true; $GLOBALS['addons'][11] = [];
+update_post_meta(11, 'product_addon_sale_message', 'Ưu đãi kết thúc đến hết 31/10');
+$message_source = hithean_offers_product_sources($GLOBALS['products'][11])[0];
+$message_id = hithean_offers_upsert_source($message_source, 'message');
+$message_row = get_post_meta($message_id, '_ho_data', true);
+denied(fn() => hithean_offers_review($message_id, $message_row['key'], 'approve', $fields), 'Missing-year prose requires explicit date confirmation');
+$confirmed = $fields; $confirmed['end'] = '2030-10-31';
+hithean_offers_review($message_id, $message_row['key'], 'approve', $confirmed);
+$confirmed_end = get_post_meta($message_id, '_ho_data', true)['end'];
+hithean_offers_upsert_source($message_source, 'message-again');
+ok(get_post_meta($message_id, '_ho_data', true)['end'] === $confirmed_end, 'Confirmed prose dates survive an unchanged-source refresh');
+$css = file_get_contents(dirname(__DIR__) . '/pages/uu-dai/uu-dai.css');
+foreach (['.ho-button', '.ho-nav-cart', '.ho-filters button'] as $selector) {
+    preg_match('/' . preg_quote($selector, '/') . '\s*\{([^}]+)\}/', $css, $match);
+    ok(str_contains($match[1], 'border-radius: 0;'), 'Hithean square-corner button rule for ' . $selector);
+}
+echo "PASS: $count structured-offer assertions\n";
+}

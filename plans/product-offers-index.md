@@ -1,36 +1,35 @@
 # Product offers index and /uu-dai/
 
-Approved scope: public Hithean product pages only, retail customers, rule-based extraction plus the existing theme AI provider, controlled automatic publication, manual admin and WP-CLI entry points. No discount rules or prices are created or changed by this index.
+The index reads structured promotion definitions from Discount Rules, Product Addon, WooCommerce sale prices and the existing lucky wheel. It keeps the daily/manual workflow, evidence review and Hithean landing page. Public HTML crawling is no longer the default collector.
 
-## Components
+## Shared source rules
 
-- `custom-functions/marketing/offers.php` registers a private offer CPT, daily scheduler, resumable worker, shortcodes, admin and CLI modules. Settings and public snapshots are non-autoload options. Records and source decisions are stored in post meta.
-- Product URLs come from published WooCommerce parent products. Public HTML is fetched without login/session cookies. Each redirect must retain the configured home origin; the WordPress safe HTTP client also checks destinations. HTTP timeout: 20 seconds; maximum HTML: 2 MiB; two retries at 60/120 seconds. Requests are sequential, in batches of up to ten with a twenty-second budget checked between products. A single AI call can extend a batch; a ten-minute worker lock and delayed watchdog protect continuation.
-- Structured automatic gifts and unambiguous simple-product sale prices can be accepted automatically. Quantity tables, choices, role restrictions, variable prices, unstructured prose and incomplete dates require review. AI selects exact source evidence; every AI proposal remains review-first and keeps the whole source snippet.
-- Full date ranges use Asia/Ho_Chi_Minh. Never infer a missing year. An explicit source offer without a deadline can remain active while freshly verified. Offers become stale after 48 hours without a successful read. A failed fetch does not constitute removal.
-- The worker records its cursor after each product. One active run covers both cron and manual calls. A boundary event cannot expose an in-progress collection. A completed or stopped run commits a snapshot, keeping fresh data for any failed/unprocessed products.
-- `/uu-dai/` renders `[hithean_offers]` through the existing Landing Page template. The snapshot is cached in the database; this page's HTML is deliberately excluded from full-page caching so expiry and freshness remain correct when cron is late. Client-side checks also hide offers that expire while the page stays open. Other pages retain their existing cache behavior.
-- The lucky wheel stays manually accessible on `/uu-dai/` and no longer opens automatically there. Both source and minified wheel JavaScript include the change.
+- Each source rule has one private `hithean_offer` record and stable source identity (`wdr:<id>`, `addon:<product>:<choice>`, `sale:<product-or-variation>`, `wheel:<reward>`). Multiple indexed `_ho_product` associations link a shared rule to its eligible products.
+- The admin Kanban/table shows one card per rule, its configuration evidence and its full product list. Approve/reject/pin operates on that canonical record. A single approval covers all matching products, including newly eligible products on a later sync.
+- Approval is tied to the complete configuration hash. Changes to eligibility, rates, conditions, schedule, limits, priority or exclusivity require review again. Ordinary usage-counter increments do not invalidate approval; an exhausted limit withdraws the rule. Matching text never merges distinct source rule IDs.
+- Source timestamps are authoritative. WDR stores wall-clock timestamps; the adapter converts them with the WordPress timezone before expiry comparisons. Reviewers cannot extend a plugin rule's schedule. Public labels retain exact cutoff times rather than assuming an end-of-day deadline.
+- Restricted customer/role rules and unknown product filters are blocked from generic retail publication. Other conditional rules remain review-first, with editable public copy and the full source configuration visible only to authorized managers. No assigned/private customer coupon is collected or generated.
 
-## Initial rollout
+## Source adapters
 
-The code ships with automatic scans **off** and public snapshot visibility **off**. Manual collection is available before either switch is enabled.
+- **Discount Rules:** read enabled, non-deleted definitions from its rules table, including future schedules. The frontend model omits future rules, so the adapter uses a read-only definition query and the actual plugin `Filter::matchFilters()` for product/category/tag/SKU/attribute/sale eligibility. Variation matches attach to their parent with a qualification when only some variations qualify. Cart/customer conditions are not simulated by altering sessions or carts. Bulk tiers, cumulative quantities, simple discounts, shipping thresholds, priorities and limits remain part of the evidence.
+- **Product Addon:** reuse its enabled-state, parsed addon and display-choice functions. Grouped choices retain their complete quantity ranges and need explicit review. Free-text sale messages are separate review proposals. Independently configured per-product addons remain separate sources even when wording matches.
+- **WooCommerce:** use stored sale/regular prices and schedules via `edit` context, avoiding a second application of dynamic price filters. Variation sales retain their own price and schedule. Clear sale prices can be accepted automatically.
+- **Lucky wheel:** read enabled reward definitions only. Rewards are described as an opportunity to spin/claim a coupon, never as a guaranteed automatic benefit. Each reward is reviewed once and linked to eligible products; generated customer coupons and contact data are excluded.
 
-1. Deploy the theme files using the normal deployment procedure. Confirm WooCommerce and PHP DOM are available in the WordPress PHP runtime. CLI PHP may have a different extension configuration.
-2. Open **WooCommerce → Ưu đãi sản phẩm** and run **Quét ngay**. Inspect progress, warnings, source evidence, structural quantity constraints and the review board.
-3. If `/uu-dai/` does not exist, use **Tạo trang nháp /uu-dai/**. This action creates a draft with `templates/template-landing-page.php`; it never replaces an existing page. For an existing page, back up its post content/template first, then choose Landing Page in the page editor. The file-based landing content comes from `pages/uu-dai/uu-dai.html`.
-4. Review proposals, confirming retail eligibility, complete conditions, scope and dates. Confirm the first scan against current public product pages. A reviewer may set a verified end date or explicitly confirm that the source publishes no deadline.
-5. Enable public snapshot visibility, publish the page, and inspect its actual desktop/mobile appearance with the real parent theme/plugins. Enable the 24-hour schedule when the server runner is confirmed.
+## Worker, migration and publication
 
-Example server cron, with the real WordPress root supplied by the operator:
+A new default database run has shared-rule tasks plus product tasks. Manual per-product sync refreshes that product's local sources and recomputes shared-rule catalog membership. The worker preserves its lock, cursor, retries, watchdog, stop control and single active queue. It never requests product HTML in database mode.
 
-```cron
-*/5 * * * * cd /absolute/path/to/wordpress && /usr/local/bin/wp cron event run --due-now --quiet
-```
+Source families and individual products are marked complete independently. Only a successful complete source read may withdraw an absent/disabled rule. Failed families preserve existing data; completed scopes reconcile safely. After a product's first successful database sync, its legacy frontend-derived records are marked removed without carrying unverified text-based decisions into the new rule identities.
 
-Use the existing server runner if one is present. Do not add a duplicate cron. The event interval is 24 hours from activation; a manual scan does not move that schedule. The five-minute runner bounds dispatch delay, while total scan time depends on catalog size, network and AI response time.
+Public snapshots are committed atomically after a run. Boundary events preserve the last committed snapshot while collection is in progress. A source rule projects onto all associated products, and each product card combines its approved rules. Client filters and expiry checks operate on each individual rule so one expired benefit does not hide other valid benefits on the same product. A 48-hour freshness limit applies when sources cannot be verified.
 
-## Manual invocation and operations
+The snapshot is cached in non-autoload options. `/uu-dai/` HTML bypasses full-page caching to enforce freshness/expiry even when cron is delayed. Theme changes clear the feature's scheduled hooks. Other site pages retain their cache behavior. CTA, cart and filter buttons use Hithean's square corners; decorative badges and card surfaces retain their own styling.
+
+## Operations
+
+Open **WooCommerce → Ưu đãi sản phẩm**, choose **Đồng bộ ngay**, then inspect and approve source rules. Each rule displays its product list and a **Duyệt rule cho N sản phẩm** action. Use the public-copy field to confirm complete customer-facing conditions without exposing internal titles or private codes.
 
 ```bash
 wp hithean offers scan
@@ -38,22 +37,24 @@ wp hithean offers scan --product-id=123
 wp hithean offers status
 ```
 
-`scan` enqueues work and returns a run ID; it does not claim synchronous completion. `status` reports the actual cursor, result, last successful scan, warnings and next scheduled event. The normal WordPress cron runner processes queued work.
+`scan` queues work and returns an actual run ID; it does not claim synchronous completion. The 24-hour schedule and public visibility are separate switches and remain off by default. Existing saved switches are preserved. An existing `/uu-dai/` page is never overwritten; use `templates/template-landing-page.php` and the existing `pages/uu-dai/uu-dai.html` shortcode source.
 
-The admin screen provides Kanban/table views, per-product collection, stop-after-current-product, source evidence, approve/reject, pinning, progress polling and 30-day run history. Admin mutations require `manage_woocommerce` plus a nonce. Scan requests are throttled per user and globally coalesced into the active run. Public visitors cannot start scans or read internal logs.
+Use the existing WordPress server runner, or configure one with the real WordPress root:
 
-A rejection or approval survives only unchanged source text and structural conditions. An offer removed then reintroduced receives a new decision. Public order-wide offers are deduplicated by exact text and list only source products where they were observed; the index does not claim they apply to the entire catalog. Product cards do not add or sum independent discount values.
+```cron
+*/5 * * * * cd /absolute/path/to/wordpress && /usr/local/bin/wp cron event run --due-now --quiet
+```
 
-Disable the daily switch to stop future scheduled collections. Use the stop button for the current run. Snapshot rollback is available after the run stops; a later scan/publication recalculates from stored offers. Expired/stale offers remain hidden even after rollback. Retain the page content/template backup for a complete page rollback. Theme switching clears this feature's scheduled hooks.
+Do not install a duplicate runner. A manual run does not move the daily schedule. Disable the daily switch for future jobs and use Stop for a current run. Snapshot rollback is available when no run is active; expired/stale offers remain hidden, and a later publication recalculates from source records. Run history is retained for 30 days, up to 100 entries.
 
 ## Validation
 
-Standalone regression harness (PHP DOM required):
-
 ```bash
-php tests/offers-test.php
+php tests/offers-structured-test.php
+php tests/landing-template-test.php
+php tests/offers-test.php # PHP DOM required for the retained HTML extractor regression tests
 ```
 
-Covers real-shaped gift/shipping markup, date ambiguity, price/variation handling, source scoping, redirects, locks, reconciliation, decisions, stale/expired/future offers, public preview gating, queue coalescing, retries and snapshot commits. No production writes, HTTP or AI calls are made by the harness.
+The structured harness checks one-rule/multiple-product approval, exclusions, new matching products, distinct source IDs, stale forms, source changes, private/unknown rules, dates, limits, failed-source retention, per-product grouping, database-only execution and button corners. The legacy extractor remains tested independently. The landing-template harness exercises the real file-based template to prevent literal shortcode output.
 
-Implementation validation also includes PHP/JavaScript syntax checks, a read-only extraction against current Matcha product HTML, and browser checks on a clearly labeled local fixture preview. A local preview cannot establish production cron execution, live admin authorization, AI provider availability or appearance with all production assets; those must be confirmed after deployment.
+Before publishing real offers, verify the actual installed plugin's filter results and PHP compatibility, inspect a full database sync, and review real source evidence. Browser checks must cover mobile/desktop filtering, multiple rules on one product, independent expiry and square CTA corners. A local fixture preview does not establish live admin authentication, server cron execution or customer checkout discount outcomes.

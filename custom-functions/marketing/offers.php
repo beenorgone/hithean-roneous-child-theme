@@ -8,13 +8,14 @@ const HITHEAN_OFFERS_FRESHNESS = 48 * HOUR_IN_SECONDS;
 
 require_once __DIR__ . '/offers/store.php';
 require_once __DIR__ . '/offers/extract.php';
+require_once __DIR__ . '/offers/structured.php';
 require_once __DIR__ . '/offers/worker.php';
 require_once __DIR__ . '/offers/public.php';
 if (is_admin()) { require_once __DIR__ . '/offers/admin.php'; }
 if (defined('WP_CLI') && WP_CLI) { require_once __DIR__ . '/offers/cli.php'; }
 
 function hithean_offers_settings(): array {
-    return array_merge(['enabled' => false, 'ai_enabled' => true, 'provider' => 'auto', 'model' => '', 'preview' => true], (array) get_option('hithean_offers_settings', []));
+    return array_merge(['enabled' => false, 'ai_enabled' => true, 'provider' => 'auto', 'model' => '', 'preview' => true, 'source' => 'database'], (array) get_option('hithean_offers_settings', []));
 }
 
 add_action('init', static function (): void {

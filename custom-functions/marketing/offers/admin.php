@@ -15,21 +15,14 @@ add_action('wp_ajax_hithean_offers_status', static function (): void {
     if (!current_user_can('manage_woocommerce')) { wp_send_json_error(null, 403); }
     check_ajax_referer('hithean_offers_status', 'nonce');
     $run = (array) get_option(HITHEAN_OFFERS_RUN, []);
-    unset($run['ids']);
+    unset($run['ids'], $run['catalog_ids'], $run['product_success']);
     wp_send_json_success($run);
 });
-function hithean_offers_admin_date(string $value, bool $end): int {
-    if ($value === '') { return 0; }
-    $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value, new DateTimeZone('Asia/Ho_Chi_Minh'));
-    if (!$date || $date->format('Y-m-d') !== $value) { throw new RuntimeException('Ngày xác nhận không hợp lệ.'); }
-    return ($end ? $date->setTime(23, 59, 59) : $date)->getTimestamp();
-}
 add_action('admin_post_hithean_offers_action', static function (): void {
     if (!current_user_can('manage_woocommerce')) { wp_die('Không có quyền.', '', ['response' => 403]); }
     check_admin_referer('hithean_offers_action');
     $action = sanitize_key(wp_unslash($_POST['offer_action'] ?? ''));
     $notice = 'Đã cập nhật.';
-    $record_lock = ''; $record_product = 0;
     try {
         if ($action === 'scan') {
             if (get_transient('hithean_offers_scan_' . get_current_user_id())) { throw new RuntimeException('Vui lòng chờ vài giây trước khi yêu cầu quét tiếp.'); }
@@ -56,32 +49,11 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             update_post_meta($id, '_wp_page_template', 'templates/template-landing-page.php');
             $notice = 'Đã tạo trang nháp /uu-dai/. Mở trình sửa trang để xem trước và xuất bản.';
         } elseif (in_array($action, ['approve', 'reject', 'pin', 'unpin'], true)) {
-            $id = absint($_POST['offer_id'] ?? 0);
-            if (get_post_type($id) !== 'hithean_offer') { throw new RuntimeException('Không tìm thấy ưu đãi.'); }
-            $record_product = (int) get_post_meta($id, '_ho_product', true);
-            $record_lock = hithean_offers_lock('product_' . $record_product, 30);
-            if (!$record_lock) { throw new RuntimeException('Sản phẩm đang đồng bộ. Vui lòng tải lại trước khi duyệt.'); }
-            $row = get_post_meta($id, '_ho_data', true);
-            if (!is_array($row)) { throw new RuntimeException('Dữ liệu ưu đãi không hợp lệ.'); }
-            $row['id'] = $id;
-            if (($row['key'] ?? '') !== sanitize_text_field(wp_unslash($_POST['source_key'] ?? ''))) { throw new RuntimeException('Nguồn đã thay đổi. Vui lòng tải lại trang trước khi duyệt.'); }
-            if ($action === 'approve') {
-                if ($row['status'] === 'removed' || $row['verified_at'] + HITHEAN_OFFERS_FRESHNESS <= time()) { throw new RuntimeException('Cần quét lại nguồn trước khi duyệt.'); }
-                if (empty($_POST['verified'])) { throw new RuntimeException('Cần xác nhận đã kiểm tra điều kiện và đối tượng khách lẻ.'); }
-                $row['start'] = hithean_offers_admin_date(sanitize_text_field(wp_unslash($_POST['start'] ?? '')), false);
-                $row['end'] = hithean_offers_admin_date(sanitize_text_field(wp_unslash($_POST['end'] ?? '')), true);
-                if ($row['start'] && $row['end'] && $row['start'] > $row['end']) { throw new RuntimeException('Ngày kết thúc phải sau ngày bắt đầu.'); }
-                if (!$row['end'] && empty($_POST['no_end'])) { throw new RuntimeException('Nhập ngày kết thúc hoặc xác nhận nguồn không công bố thời hạn.'); }
-                if ($row['end'] && $row['end'] < time()) { throw new RuntimeException('Ưu đãi đã hết hạn.'); }
-                $row['scope'] = ($_POST['scope'] ?? '') === 'order' ? 'order' : 'product';
-                $kind = sanitize_key(wp_unslash($_POST['kind'] ?? 'other'));
-                if (!in_array($kind, ['gift', 'discount', 'shipping', 'quantity', 'other'], true)) { throw new RuntimeException('Loại ưu đãi không hợp lệ.'); }
-                $row['kind'] = $kind;
-                $row['status'] = 'active'; $row['decision'] = 'approve'; $row['reason'] = '';
-            } elseif ($action === 'reject') { $row['status'] = 'rejected'; $row['decision'] = 'reject'; }
-            else { $row['pinned'] = $action === 'pin'; }
-            hithean_offers_save($row); hithean_offers_audit($id, $action);
-            hithean_offers_unlock('product_' . $record_product, $record_lock); $record_lock = '';
+            $fields = [];
+            foreach (['start', 'end', 'kind', 'scope', 'verified', 'no_end', 'title'] as $field) {
+                if (isset($_POST[$field]) && is_scalar($_POST[$field])) { $fields[$field] = wp_unslash((string) $_POST[$field]); }
+            }
+            hithean_offers_review(absint($_POST['offer_id'] ?? 0), sanitize_text_field(wp_unslash($_POST['source_key'] ?? '')), $action, $fields);
             hithean_offers_publish();
         } elseif ($action === 'rollback') {
             $run = (array) get_option(HITHEAN_OFFERS_RUN, []);
@@ -95,7 +67,6 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             $notice = 'Đã khôi phục snapshot trước. Tắt lịch nếu cần giữ bản này; ưu đãi hết hạn vẫn tự ẩn.';
         }
     } catch (Throwable $error) { $notice = $error->getMessage(); }
-    finally { if ($record_lock) { hithean_offers_unlock('product_' . $record_product, $record_lock); } }
     set_transient('hithean_offers_notice_' . get_current_user_id(), $notice, 60);
     wp_safe_redirect(admin_url('admin.php?page=hithean-offers')); exit;
 });
@@ -107,26 +78,24 @@ function hithean_offers_form_start(string $action, array $hidden = []): void {
 function hithean_offers_admin(): void {
     if (!current_user_can('manage_woocommerce')) { return; }
     $s = hithean_offers_settings(); $run = (array) get_option(HITHEAN_OFFERS_RUN, []);
-    $labels = ['review' => 'Cần duyệt', 'active' => 'Đang áp dụng', 'scheduled' => 'Sắp áp dụng', 'expired' => 'Hết hạn', 'removed' => 'Đã gỡ', 'rejected' => 'Đã loại', 'stale' => 'Cần quét lại'];
+    $labels = ['review' => 'Cần duyệt', 'active' => 'Đang áp dụng', 'scheduled' => 'Sắp áp dụng', 'blocked' => 'Không công khai', 'expired' => 'Hết hạn', 'removed' => 'Đã gỡ', 'rejected' => 'Đã loại', 'stale' => 'Cần đồng bộ lại'];
     $rows = hithean_offers_records(); $notice = get_transient('hithean_offers_notice_' . get_current_user_id());
-    echo '<div class="wrap ho-admin"><h1>Ưu đãi sản phẩm</h1><p>Quét trang sản phẩm → Kiểm tra nguồn → Đăng ưu đãi → Theo dõi hiệu lực</p>';
+    echo '<div class="wrap ho-admin"><h1>Ưu đãi sản phẩm</h1><p>Đồng bộ cấu hình → Duyệt rule chung → Áp dụng cho sản phẩm → Theo dõi hiệu lực</p>';
     if ($notice) { echo '<div class="notice notice-info"><p>' . esc_html($notice) . '</p></div>'; delete_transient('hithean_offers_notice_' . get_current_user_id()); }
     echo '<section class="ho-panel"><h2>Đồng bộ danh sách</h2><p data-ho-progress aria-live="polite">' . esc_html(hithean_offers_progress($run)) . '</p><div class="ho-actions">';
-    hithean_offers_form_start('scan'); echo '<button class="button button-primary">Quét ngay</button></form>';
-    hithean_offers_form_start('scan'); echo '<label>ID sản phẩm <input name="product_id" type="number" min="1" required style="width:100px"></label> <button class="button">Quét lại sản phẩm</button></form>';
+    hithean_offers_form_start('scan'); echo '<button class="button button-primary">Đồng bộ ngay</button></form>';
+    hithean_offers_form_start('scan'); echo '<label>ID sản phẩm <input name="product_id" type="number" min="1" required style="width:100px"></label> <button class="button">Đồng bộ sản phẩm</button></form>';
     hithean_offers_form_start('stop'); echo '<button class="button">Dừng sau sản phẩm hiện tại</button></form>';
     hithean_offers_form_start('rollback'); echo '<button class="button">Khôi phục snapshot trước</button></form></div>';
     $last = (int) get_option('hithean_offers_last_success', 0); $next = wp_next_scheduled('hithean_offers_daily');
     echo '<p>Thành công gần nhất: ' . esc_html($last ? wp_date('d/m/Y H:i', $last) : 'Chưa có') . ' · Lịch tiếp theo: ' . esc_html($next ? wp_date('d/m/Y H:i', $next) : 'Chưa bật') . '</p>';
-    echo '<p>Cần PHP DOM và server cron gọi tác vụ WordPress mỗi 5 phút để lịch chạy không phụ thuộc lượt truy cập.</p>';
+    echo '<p>Đọc cấu hình Discount Rules, Product Addon, giá sale WooCommerce và vòng quay. Server cron gọi tác vụ WordPress mỗi 5 phút để lịch không phụ thuộc lượt truy cập.</p>';
     $scheduler_error = get_option('hithean_offers_scheduler_error', '');
     if ($scheduler_error) { echo '<p class="ho-error">Lịch quét: ' . esc_html($scheduler_error) . '</p>'; }
     foreach ($run['errors'] ?? [] as $error) { echo '<p class="ho-error">SP #' . absint($error['product_id']) . ': ' . esc_html($error['message']) . '</p>'; }
     echo '</section><details class="ho-panel"><summary>Cấu hình & xuất bản</summary>';
     hithean_offers_form_start('settings');
-    echo '<p><label><input type="checkbox" name="enabled" ' . checked($s['enabled'], true, false) . '> Tự quét mỗi 24 giờ</label></p><p><label><input type="checkbox" name="public" ' . checked(!$s['preview'], true, false) . '> Hiển thị snapshot trên trang công khai</label></p><p><label><input type="checkbox" name="ai_enabled" ' . checked($s['ai_enabled'], true, false) . '> AI hỗ trợ bóc tách nội dung tự do</label></p><label>Provider <select name="provider">';
-    foreach (['auto', 'openai', 'claude', 'gemini', 'gemini_billing', 'qwen'] as $provider) { echo '<option ' . selected($s['provider'], $provider, false) . '>' . esc_html($provider) . '</option>'; }
-    echo '</select></label> <label>Model <input name="model" value="' . esc_attr($s['model']) . '" placeholder="Mặc định theo provider"></label><p><button class="button button-primary">Lưu cấu hình</button></p></form>';
+    echo '<p><label><input type="checkbox" name="enabled" ' . checked($s['enabled'], true, false) . '> Tự đồng bộ mỗi 24 giờ</label></p><p><label><input type="checkbox" name="public" ' . checked(!$s['preview'], true, false) . '> Hiển thị snapshot trên trang công khai</label></p><p>Dữ liệu cấu trúc được đọc trực tiếp từ cấu hình. Nội dung và điều kiện chưa rõ sẽ chờ duyệt.</p><p><button class="button button-primary">Lưu cấu hình</button></p></form>';
     $page = get_page_by_path('uu-dai');
     if ($page) { echo '<p><a class="button" href="' . esc_url(get_edit_post_link($page->ID)) . '">Kiểm tra / sửa trang Ưu đãi</a> <a class="button" href="' . esc_url(get_permalink($page->ID)) . '">Xem trang</a></p>'; }
     else { hithean_offers_form_start('page'); echo '<button class="button">Tạo trang nháp /uu-dai/</button></form>'; }
@@ -136,26 +105,40 @@ function hithean_offers_admin(): void {
         echo '<section class="ho-column"><h2>' . esc_html($label) . ' <span>' . count($group) . '</span></h2>';
         foreach ($group as $row) {
             $id = (int) $row['id']; $product = wc_get_product($row['product_id']);
-            echo '<article class="ho-offer"><h3>' . esc_html($product ? $product->get_name() : '#' . $row['product_id']) . '</h3><p>' . esc_html($row['title']) . '</p><p class="ho-error">' . esc_html($row['reason']) . '</p><details><summary>Xem bằng chứng & lịch sử</summary><blockquote>' . esc_html($row['evidence']) . '</blockquote><a href="' . esc_url($row['source']) . '" target="_blank" rel="noopener noreferrer">Mở trang nguồn</a><p>Kiểm tra: ' . esc_html(wp_date('d/m/Y H:i', $row['verified_at'])) . '</p>';
+            $shared = isset($row['source_id']);
+            $heading = $shared ? ($row['source_title'] ?? $row['source_id']) : ($product ? $product->get_name() : '#' . $row['product_id']);
+            echo '<article class="ho-offer"><h3>' . esc_html($heading) . '</h3><p>' . esc_html($row['title']) . '</p><p class="ho-error">' . esc_html($row['reason']) . '</p>';
+            if ($shared) {
+                echo '<details><summary>Áp dụng cho ' . count($row['product_ids']) . ' sản phẩm · Duyệt một lần cho cả rule</summary><ul>';
+                foreach ($row['product_ids'] as $product_id) {
+                    $linked_product = wc_get_product($product_id);
+                    echo '<li><a href="' . esc_url(get_permalink($product_id)) . '">' . esc_html($linked_product ? $linked_product->get_name() : '#' . $product_id) . '</a></li>';
+                }
+                echo '</ul></details>';
+            }
+            echo '<details><summary>Xem bằng chứng & lịch sử</summary><blockquote>' . esc_html($row['evidence']) . '</blockquote><a href="' . esc_url($row['source']) . '" target="_blank" rel="noopener noreferrer">Mở nguồn cấu hình</a><p>Kiểm tra: ' . esc_html(wp_date('d/m/Y H:i', $row['verified_at'])) . '</p>';
+            if (!empty($row['source_config'])) { echo '<pre>' . esc_html(wp_json_encode($row['source_config'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>'; }
             if (!empty($row['source_constraints'])) { echo '<p>Điều kiện cấu trúc tại nguồn:</p><pre>' . esc_html(wp_json_encode($row['source_constraints'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>'; }
             foreach ((array) get_post_meta($id, '_ho_audit', true) as $audit) { echo '<p>' . esc_html(wp_date('d/m H:i', $audit['at']) . ' · #' . $audit['user'] . ' · ' . $audit['action']) . '</p>'; }
             echo '</details>';
-            if (in_array($status, ['review', 'active', 'scheduled', 'rejected'], true)) {
+            if (in_array($status, ['review', 'active', 'scheduled', 'rejected'], true) && empty($row['blocked'])) {
                 echo '<details><summary>Duyệt / xác nhận điều kiện</summary>';
                 hithean_offers_form_start('approve', ['offer_id' => $id, 'source_key' => $row['key']]);
+                echo '<p><label>Nội dung công khai (bao gồm đủ điều kiện)<textarea name="title" rows="5" required maxlength="3000" class="widefat">' . esc_textarea($row['title']) . '</textarea></label></p>';
+                if ($shared && empty($row['editable_dates'])) { echo '<p>Hiệu lực nguồn: ' . esc_html($row['start'] ? wp_date('d/m/Y H:i', $row['start']) : 'Không giới hạn bắt đầu') . ' → ' . esc_html($row['end'] ? wp_date('d/m/Y H:i', $row['end']) : 'Không công bố ngày kết thúc') . '. Ngày giờ được đồng bộ từ nguồn.</p>'; }
                 foreach (['start' => 'Từ ngày', 'end' => 'Đến hết ngày'] as $field => $label_date) {
-                    echo '<p><label>' . $label_date . ' <input type="date" name="' . $field . '" value="' . esc_attr($row[$field] ? wp_date('Y-m-d', $row[$field], new DateTimeZone('Asia/Ho_Chi_Minh')) : '') . '"></label></p>';
+                    echo '<p><label>' . $label_date . ' <input type="date" name="' . $field . '" value="' . esc_attr($row[$field] ? wp_date('Y-m-d', $row[$field], new DateTimeZone('Asia/Ho_Chi_Minh')) : '') . '"' . ($shared && empty($row['editable_dates']) ? ' readonly' : '') . '></label></p>';
                 }
                 echo '<p><label><input type="checkbox" name="no_end"> Nguồn không công bố ngày kết thúc</label></p><p><label>Phạm vi <select name="scope"><option value="product">Sản phẩm</option><option value="order" ' . selected($row['scope'], 'order', false) . '>Theo đơn hàng</option></select></label></p><p><label>Loại ưu đãi <select name="kind">';
                 foreach (['gift' => 'Quà tặng', 'discount' => 'Giảm giá', 'shipping' => 'Vận chuyển', 'quantity' => 'Mua nhiều', 'other' => 'Khác'] as $kind => $kind_label) { echo '<option value="' . esc_attr($kind) . '" ' . selected($row['kind'], $kind, false) . '>' . esc_html($kind_label) . '</option>'; }
-                echo '</select></label></p><p><label><input type="checkbox" required name="verified"> Đã kiểm tra đầy đủ điều kiện, hiệu lực và đối tượng khách lẻ</label></p><button class="button button-primary">Duyệt & cập nhật trang</button></form></details>';
+                echo '</select></label></p><p><label><input type="checkbox" required name="verified"> Đã kiểm tra đầy đủ điều kiện, hiệu lực và đối tượng khách lẻ</label></p><button class="button button-primary">' . ($shared ? 'Duyệt rule cho ' . count($row['product_ids']) . ' sản phẩm' : 'Duyệt & cập nhật trang') . '</button></form></details>';
                 echo '<div class="ho-actions">';
                 foreach (['reject' => 'Loại bỏ', !empty($row['pinned']) ? 'unpin' : 'pin' => !empty($row['pinned']) ? 'Bỏ ghim' : 'Ghim nổi bật'] as $action => $button) {
                     hithean_offers_form_start($action, ['offer_id' => $id, 'source_key' => $row['key']]); echo '<button class="button">' . esc_html($button) . '</button></form>';
                 }
                 echo '</div>';
             }
-            hithean_offers_form_start('scan', ['product_id' => $row['product_id']]); echo '<p><button class="button">Quét lại nguồn</button></p></form></article>';
+            hithean_offers_form_start('scan', $shared ? [] : ['product_id' => $row['product_id']]); echo '<p><button class="button">Đồng bộ lại nguồn</button></p></form></article>';
         }
         if (!$group) { echo '<p class="ho-muted">Chưa có ưu đãi.</p>'; }
         echo '</section>';
@@ -166,6 +149,6 @@ function hithean_offers_admin(): void {
 }
 function hithean_offers_progress(array $run): string {
     $labels = ['queued' => 'Chờ xử lý', 'running' => 'Đang quét', 'complete' => 'Hoàn tất', 'partial' => 'Hoàn tất một phần', 'stopped' => 'Đã dừng'];
-    if (!$run) { return 'Chưa chạy. Bấm “Quét ngay” để tạo danh sách đầu tiên.'; }
-    return ($labels[$run['status']] ?? $run['status']) . ': ' . ($run['cursor'] ?? 0) . '/' . ($run['total'] ?? 0) . ' sản phẩm · ' . ($run['failed'] ?? 0) . ' lỗi';
+    if (!$run) { return 'Chưa chạy. Bấm “Đồng bộ ngay” để tạo danh sách đầu tiên.'; }
+    return ($labels[$run['status']] ?? $run['status']) . ': ' . ($run['cursor'] ?? 0) . '/' . ($run['total'] ?? 0) . ' bước · ' . ($run['failed'] ?? 0) . ' lỗi';
 }

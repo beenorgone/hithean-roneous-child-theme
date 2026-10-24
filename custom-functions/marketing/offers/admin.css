@@ -99,3 +99,7 @@
         flex-basis: 85vw;
     }
 }
+
+.ho-admin .button { border-radius: 0; }
+.ho-offer pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; font-size: 11px; }
+.ho-offer textarea { width: 100%; }

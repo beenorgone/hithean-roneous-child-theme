@@ -19,17 +19,26 @@ add_action('template_redirect', static function (): void {
     nocache_headers();
 });
 function hithean_offers_date_label(array $row): string {
-    if (!empty($row['end'])) { return 'Đến hết ' . wp_date('d/m/Y', $row['end'], new DateTimeZone('Asia/Ho_Chi_Minh')); }
+    if (!empty($row['end'])) {
+        $tz = new DateTimeZone('Asia/Ho_Chi_Minh');
+        return wp_date('H:i:s', $row['end'], $tz) === '23:59:59'
+            ? 'Đến hết ' . wp_date('d/m/Y', $row['end'], $tz)
+            : 'Đến ' . wp_date('H:i d/m/Y', $row['end'], $tz);
+    }
     return '';
 }
 function hithean_offers_card(array $row): string {
     $kinds = ['gift' => 'Quà tặng', 'discount' => 'Giá ưu đãi', 'shipping' => 'Vận chuyển', 'quantity' => 'Mua nhiều', 'other' => 'Ưu đãi'];
-    $until = min($row['end'] ? $row['end'] + 1 : PHP_INT_MAX, $row['verified_at'] + HITHEAN_OFFERS_FRESHNESS);
+    $offers = $row['offers'] ?? [$row];
+    $until = max(array_map(static fn($offer) => min($offer['end'] ? $offer['end'] + 1 : PHP_INT_MAX, $offer['verified_at'] + HITHEAN_OFFERS_FRESHNESS), $offers));
     ob_start(); ?>
     <article class="ho-card" data-ho-card data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-until="<?php echo (int) $until; ?>" data-ho-search="<?php echo esc_attr($row['product_name'] . ' ' . $row['title']); ?>">
-        <a class="ho-card-visual" href="<?php echo esc_url($row['url']); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo esc_html($kinds[$row['kind']] ?? 'Ưu đãi'); ?></span><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"></a>
-        <div class="ho-card-body"><h3><a href="<?php echo esc_url($row['url']); ?>"><?php echo esc_html($row['product_name']); ?></a></h3><p class="ho-benefit"><?php echo esc_html($row['title']); ?></p>
-        <?php if ($row['end']) : ?><p class="ho-date"><?php echo esc_html(hithean_offers_date_label($row)); ?></p><?php endif; ?>
+        <a class="ho-card-visual" href="<?php echo esc_url($row['url']); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($offers) > 1 ? count($offers) . ' ưu đãi' : esc_html($kinds[$row['kind']] ?? 'Ưu đãi'); ?></span><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"></a>
+        <div class="ho-card-body"><h3><a href="<?php echo esc_url($row['url']); ?>"><?php echo esc_html($row['product_name']); ?></a></h3><ul class="ho-benefits"><?php foreach ($offers as $offer) : $offer_until = min($offer['end'] ? $offer['end'] + 1 : PHP_INT_MAX, $offer['verified_at'] + HITHEAN_OFFERS_FRESHNESS); ?>
+        <li data-ho-rule data-ho-kind="<?php echo esc_attr($offer['kind']); ?>" data-ho-until="<?php echo (int) $offer_until; ?>"><p class="ho-benefit"><?php echo esc_html($offer['title']); ?></p>
+        <?php if (!empty($offer['condition_note'])) : ?><p class="ho-date"><?php echo esc_html($offer['condition_note']); ?></p><?php endif; ?>
+        <?php if ($offer['end']) : ?><p class="ho-date"><?php echo esc_html(hithean_offers_date_label($offer)); ?></p><?php endif; ?></li>
+        <?php endforeach; ?></ul>
         <?php if (!$row['in_stock']) : ?><p class="ho-stock">Tạm hết hàng</p><?php endif; ?>
         <a class="ho-button <?php echo $row['in_stock'] ? 'ho-button-dark' : 'ho-button-quiet'; ?>" href="<?php echo esc_url($row['url']); ?>"><?php echo !$row['in_stock'] ? 'Xem sản phẩm' : ($row['variable'] ? 'Chọn phân loại' : 'Xem sản phẩm & ưu đãi'); ?><span aria-hidden="true">↗</span></a></div>
     </article>
@@ -40,14 +49,16 @@ function hithean_offers_shortcode(): string {
     $preview = $settings['preview'];
     $snapshot = (array) get_option(HITHEAN_OFFERS_SNAPSHOT, []);
     $items = (!$preview || current_user_can('manage_woocommerce')) ? array_values(array_filter($snapshot['items'] ?? [], static fn($row) => hithean_offers_status($row) === 'active')) : [];
-    $products = []; $orders = [];
+    $grouped = [];
     foreach ($items as $row) {
-        if ($row['scope'] === 'order') { $key = hash('sha256', wp_json_encode([$row['title'], $row['start'], $row['end']])); $orders[$key][] = $row; }
-        else { $products[] = $row; }
+        $id = $row['product_id'];
+        if (!isset($grouped[$id])) { $grouped[$id] = $row; $grouped[$id]['offers'] = []; }
+        $grouped[$id]['offers'][] = $row;
     }
+    $products = array_values($grouped);
     $images = [];
     foreach ($products as $row) { if (!isset($images[$row['product_id']])) { $images[$row['product_id']] = $row; } if (count($images) === 3) { break; } }
-    $count = count($products) + count($orders);
+    $count = count($products);
     ob_start(); ?>
     <div class="ho-page" data-ho-page>
         <nav class="ho-nav" aria-label="Điều hướng ưu đãi"><a class="ho-wordmark" href="<?php echo esc_url(home_url('/')); ?>" aria-label="The An — Trang chủ">the an<span>ORGANICS</span></a><div><a href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/')); ?>">Khám phá sản phẩm</a><a class="ho-nav-cart" href="<?php echo esc_url(wc_get_cart_url()); ?>">Giỏ hàng <span aria-hidden="true">↗</span></a></div></nav>
@@ -59,9 +70,8 @@ function hithean_offers_shortcode(): string {
         <section class="ho-offers-section" id="ho-offers" aria-labelledby="ho-offers-heading"><div class="ho-section-head"><div><p class="ho-eyebrow">DÀNH CHO LẦN GHÉ NÀY</p><h2 id="ho-offers-heading">Ưu đãi đang áp dụng<span class="ho-heading-dot">.</span></h2></div><p>Chọn điều bạn thích.<br>Điều kiện được ghi ngay trên từng ưu đãi.</p></div>
         <?php if ($count) : ?>
         <div class="ho-toolbar"><div class="ho-filters" role="group" aria-label="Lọc loại ưu đãi"><?php foreach (['all' => 'Tất cả', 'discount' => 'Giảm giá', 'gift' => 'Quà tặng', 'quantity' => 'Mua nhiều', 'shipping' => 'Vận chuyển'] as $key => $label) : ?><button type="button" data-ho-filter="<?php echo esc_attr($key); ?>" aria-pressed="<?php echo $key === 'all' ? 'true' : 'false'; ?>"><?php echo esc_html($label); ?></button><?php endforeach; ?></div><label class="ho-search"><span class="screen-reader-text">Tìm sản phẩm</span><input type="search" data-ho-search-input placeholder="Tìm sản phẩm…" autocomplete="off"></label></div>
-        <p class="ho-result" data-ho-result role="status" aria-live="polite"><?php echo (int) $count; ?> ưu đãi</p>
+        <p class="ho-result" data-ho-result role="status" aria-live="polite"><?php echo (int) $count; ?> sản phẩm có ưu đãi</p>
         <div class="ho-grid"><?php foreach ($products as $row) { echo hithean_offers_card($row); } ?></div>
-        <?php if ($orders) : ?><div class="ho-order-group"><h3>Thêm ưu đãi cho đơn hàng</h3><p>Áp dụng khi đơn hàng đáp ứng đủ điều kiện được công bố.</p><div class="ho-order-grid"><?php foreach ($orders as $group) : $row = $group[0]; $until = min(array_map(static fn($r) => min($r['end'] ? $r['end'] + 1 : PHP_INT_MAX, $r['verified_at'] + HITHEAN_OFFERS_FRESHNESS), $group)); ?><article class="ho-order-card" data-ho-card data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-search="<?php echo esc_attr($row['title'] . ' ' . implode(' ', array_column($group, 'product_name'))); ?>" data-ho-until="<?php echo (int) $until; ?>"><span class="ho-order-icon" aria-hidden="true">↗</span><h4><?php echo esc_html($row['title']); ?></h4><?php if ($row['end']) : ?><p><?php echo esc_html(hithean_offers_date_label($row)); ?></p><?php endif; ?><details><summary>Xem sản phẩm có chương trình</summary><ul><?php foreach ($group as $product) : ?><li><a href="<?php echo esc_url($product['url']); ?>"><?php echo esc_html($product['product_name']); ?></a></li><?php endforeach; ?></ul></details></article><?php endforeach; ?></div></div><?php endif; ?>
         <p class="ho-empty" data-ho-empty hidden>Chưa có ưu đãi phù hợp. Thử tên sản phẩm khác hoặc chọn “Tất cả”.</p>
         <?php else : ?><div class="ho-empty"><span aria-hidden="true">✳</span><h3>Hẹn bạn ở ưu đãi tiếp theo</h3><p>Các chương trình mới sẽ xuất hiện tại đây sau khi được cập nhật.</p><a class="ho-button ho-button-dark" href="<?php echo esc_url(wc_get_page_permalink('shop')); ?>">Khám phá sản phẩm <span aria-hidden="true">↗</span></a></div><?php endif; ?>
         </section>

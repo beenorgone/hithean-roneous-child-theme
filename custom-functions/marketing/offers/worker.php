@@ -3,7 +3,8 @@ defined('ABSPATH') || exit;
 
 function hithean_offers_start(int $product_id = 0): array {
     if (!function_exists('wc_get_product')) { throw new RuntimeException('Cần kích hoạt WooCommerce.'); }
-    if (!class_exists('DOMDocument') || !function_exists('mb_strtolower')) { throw new RuntimeException('Cần PHP DOM và mbstring để đọc trang sản phẩm an toàn.'); }
+    $mode = hithean_offers_settings()['source'];
+    if ($mode === 'frontend' && (!class_exists('DOMDocument') || !function_exists('mb_strtolower'))) { throw new RuntimeException('Cần PHP DOM và mbstring để đọc trang sản phẩm an toàn.'); }
     $token = hithean_offers_lock('queue', 30);
     if (!$token) { throw new RuntimeException('Hàng đợi đang cập nhật. Vui lòng thử lại.'); }
     try {
@@ -19,7 +20,10 @@ function hithean_offers_start(int $product_id = 0): array {
         } else {
             $ids = get_posts(['post_type' => 'product', 'post_status' => 'publish', 'numberposts' => -1, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC']);
         }
-        $run = ['id' => wp_generate_uuid4(), 'status' => 'queued', 'started_at' => time(), 'updated_at' => time(), 'ids' => array_map('intval', $ids),
+        $catalog_ids = $mode === 'database' ? get_posts(['post_type' => 'product', 'post_status' => 'publish', 'numberposts' => -1, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC']) : [];
+        $ids = $mode === 'database' ? array_merge(['wdr', 'wheel'], array_map('intval', $ids)) : array_map('intval', $ids);
+        $run = ['id' => wp_generate_uuid4(), 'mode' => $mode, 'catalog_ids' => $catalog_ids, 'source_success' => [], 'product_success' => [],
+            'status' => 'queued', 'started_at' => time(), 'updated_at' => time(), 'ids' => $ids,
             'cursor' => 0, 'total' => count($ids), 'ok' => 0, 'failed' => 0, 'attempts' => 0, 'stop' => false, 'errors' => []];
         update_option(HITHEAN_OFFERS_RUN, $run, false);
         update_option('hithean_offers_stop_requested', '', false);
@@ -95,17 +99,19 @@ function hithean_offers_work(): void {
         $started = microtime(true); $processed = 0; $retry = false;
         while ($run['cursor'] < $run['total'] && $processed < 10) {
             if (hithean_offers_stop_requested($run['id'])) { $run['stop'] = true; break; }
-            $id = (int) $run['ids'][$run['cursor']];
+            $task = $run['ids'][$run['cursor']]; $id = (int) $task;
             try {
-                $result = hithean_offers_scan_product($id);
+                $result = ($run['mode'] ?? 'frontend') === 'database' ? hithean_offers_sync_task($task, $run) : hithean_offers_scan_product($id);
                 if ($result['notice']) { $run['errors'][] = ['product_id' => $id, 'message' => $result['notice']]; }
+                if (!empty($result['family'])) { $run['source_success'][] = $result['family']; }
+                if (!empty($result['product_id'])) { $run['product_success'][] = $result['product_id']; }
                 $run['ok']++; $run['cursor']++; $run['attempts'] = 0;
             } catch (Throwable $error) {
                 $run['attempts']++;
                 if ($run['attempts'] <= 2) { $retry = true; }
                 else {
                     $run['failed']++; $run['cursor']++; $run['attempts'] = 0;
-                    $run['errors'][] = ['product_id' => $id, 'message' => sanitize_text_field($error->getMessage())];
+                    $run['errors'][] = ['product_id' => $id, 'message' => (is_string($task) ? $task . ': ' : '') . sanitize_text_field($error->getMessage())];
                 }
             }
             $run['errors'] = array_slice($run['errors'], -100);
@@ -117,11 +123,12 @@ function hithean_offers_work(): void {
             if ($retry || $run['stop'] || microtime(true) - $started >= 20) { break; }
         }
         if ($run['stop'] || $run['cursor'] >= $run['total']) {
+            if (($run['mode'] ?? '') === 'database') { hithean_offers_finish_structured($run); }
             $run['status'] = $run['stop'] ? 'stopped' : ($run['failed'] ? 'partial' : 'complete');
             $run['finished_at'] = time();
             update_option(HITHEAN_OFFERS_RUN, $run, false);
             $history = (array) get_option('hithean_offers_history', []);
-            $entry = $run; unset($entry['ids']); $history[] = $entry;
+            $entry = $run; unset($entry['ids'], $entry['catalog_ids'], $entry['product_success']); $history[] = $entry;
             update_option('hithean_offers_history', array_slice($history, -100), false);
             if (!$run['failed'] && !$run['stop']) { update_option('hithean_offers_last_success', time(), false); }
             hithean_offers_cleanup();

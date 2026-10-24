@@ -19,7 +19,7 @@
             const json = await response.json();
             if (!json.success || !json.data.status) { return; }
             const run = json.data;
-            progress.textContent = (labels[run.status] || run.status) + ': ' + run.cursor + '/' + run.total + ' sản phẩm · ' + run.failed + ' lỗi';
+            progress.textContent = (labels[run.status] || run.status) + ': ' + run.cursor + '/' + run.total + ' bước · ' + run.failed + ' lỗi';
             if (lastStatus === 'running' && !['queued', 'running'].includes(run.status)) { progress.textContent += ' · Tải lại trang để xem danh sách mới.'; }
             lastStatus = run.status;
         } catch (_) { /* Keep the existing status when offline. */ }

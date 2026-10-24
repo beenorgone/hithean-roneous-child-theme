@@ -3,7 +3,7 @@
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 define('ABSPATH', __DIR__); define('HITHEAN_THEME_DIR', dirname(__DIR__));
 define('HOUR_IN_SECONDS', 3600); define('DAY_IN_SECONDS', 86400); define('MB_IN_BYTES', 1048576);
-$GLOBALS['options'] = []; $GLOBALS['posts'] = []; $GLOBALS['meta'] = []; $GLOBALS['events'] = []; $GLOBALS['http'] = []; $GLOBALS['requests'] = [];
+$GLOBALS['options'] = ['hithean_offers_settings' => ['source' => 'frontend']]; $GLOBALS['posts'] = []; $GLOBALS['meta'] = []; $GLOBALS['events'] = []; $GLOBALS['http'] = []; $GLOBALS['requests'] = [];
 function add_action(...$args) {} function add_shortcode(...$args) {} function is_admin() { return false; }
 function get_option($key, $default = false) { return $GLOBALS['options'][$key] ?? $default; }
 function update_option($key, $value, ...$args) { $GLOBALS['options'][$key] = $value; return true; }
@@ -24,13 +24,26 @@ function get_posts($args) {
     $result = [];
     foreach ($GLOBALS['posts'] as $id => $post) {
         if ($post->post_type !== $args['post_type'] || $post->post_status !== $args['post_status']) { continue; }
-        if (isset($args['meta_key']) && get_post_meta($id, $args['meta_key'], true) != $args['meta_value']) { continue; }
+        if (isset($args['meta_key']) && !in_array($args['meta_value'], get_post_meta($id, $args['meta_key'], false))) { continue; }
         $result[] = ($args['fields'] ?? '') === 'ids' ? $id : $post;
     }
     return $result;
 }
 function wp_insert_post($data, ...$args) { $id = count($GLOBALS['posts']) + 1000; $GLOBALS['posts'][$id] = (object) ($data + ['ID' => $id]); return $id; }
-function get_post_meta($id, $key, ...$args) { return $GLOBALS['meta'][$id][$key] ?? ''; }
+function get_post_meta($id, $key, $single = true) {
+    $values = $GLOBALS['multi_meta'][$id][$key] ?? (isset($GLOBALS['meta'][$id][$key]) ? [$GLOBALS['meta'][$id][$key]] : []);
+    return $single ? ($values[0] ?? '') : $values;
+}
+function add_post_meta($id, $key, $value) { $GLOBALS['multi_meta'][$id][$key][] = $value; }
+function delete_post_meta($id, $key) { unset($GLOBALS['meta'][$id][$key], $GLOBALS['multi_meta'][$id][$key]); }
+function get_post_type($id) { return $GLOBALS['posts'][$id]->post_type ?? ''; }
+function get_site_option($key, $default = []) { return $default; }
+function wp_timezone() { return new DateTimeZone('Asia/Ho_Chi_Minh'); }
+function admin_url($path) { return home_url('/wp-admin/' . $path); }
+function get_edit_post_link($id, ...$args) { return admin_url('post.php?post=' . $id . '&action=edit'); }
+function sanitize_key($value) { return preg_replace('/[^a-z0-9_\-]/', '', strtolower($value)); }
+function sanitize_textarea_field($value) { return strip_tags($value); }
+
 function update_post_meta($id, $key, $value) { $GLOBALS['meta'][$id][$key] = $value; }
 function get_current_user_id() { return 5; }
 function wp_json_encode($value, $flags = 0) { return json_encode($value, $flags); }
@@ -53,7 +66,7 @@ function wp_schedule_single_event($at, $hook) { $GLOBALS['events'][$hook] = $at;
 function wp_clear_scheduled_hook($hook) { unset($GLOBALS['events'][$hook]); }
 function wp_get_attachment_image_url(...$args) { return 'https://hithean.test/image.png'; }
 function wc_placeholder_img_src() { return 'https://hithean.test/placeholder.png'; }
-function current_user_can(...$args) { return false; }
+function current_user_can(...$args) { return !empty($GLOBALS['can_manage']); }
 function esc_html($text) { return htmlspecialchars((string) $text, ENT_QUOTES, 'UTF-8'); }
 function esc_attr($text) { return esc_html($text); } function esc_url($text) { return esc_html($text); }
 function wp_date($format, $date, $tz = null) { return (new DateTimeImmutable('@' . $date))->setTimezone($tz ?: new DateTimeZone('Asia/Ho_Chi_Minh'))->format($format); }
@@ -62,11 +75,15 @@ $GLOBALS['products'] = [];
 class OfferTestProduct {
     public function __construct(public $id, public $name, public $stock = true, public $status = 'publish', public $visibility = 'visible') {}
     function get_id() { return $this->id; } function get_name() { return $this->name; } function get_status() { return $this->status; }
+    public $type = 'simple', $children = [], $categories = [], $on_sale = false;
+    function get_children() { return $this->children; }
+    function get_sale_price(...$args) { return ''; } function get_regular_price(...$args) { return ''; }
     function get_parent_id() { return 0; } function get_catalog_visibility() { return $this->visibility; }
-    function get_image_id() { return 1; } function is_in_stock() { return $this->stock; } function is_type($type) { return false; }
+    function get_image_id() { return 1; } function is_in_stock() { return $this->stock; } function is_type($type) { return $this->type === $type; }
 }
 function wc_get_product($id) { return $GLOBALS['products'][$id] ?? false; }
 require HITHEAN_THEME_DIR . '/custom-functions/marketing/offers.php';
+if (defined('HITHEAN_OFFERS_TEST_LIBRARY')) { return; }
 $count = 0;
 function check($condition, $message) { global $count; $count++; if (!$condition) { throw new RuntimeException('FAIL: ' . $message); } }
 function throws(callable $call, string $message) { try { $call(); } catch (RuntimeException $error) { check(true, $message); return; } check(false, $message); }
@@ -118,7 +135,7 @@ hithean_offers_reconcile(123, $page['candidates'], home_url('/product/123')); ch
 $row['status'] = 'active'; $row['decision'] = 'approve'; hithean_offers_save($row);
 hithean_offers_publish(); check(count(get_option(HITHEAN_OFFERS_SNAPSHOT)['items']) === 1, 'Only approved/clear active offers in public snapshot');
 $html = hithean_offers_shortcode(); check(!str_contains($html, 'MUA 1 Matcha'), 'Preview hidden from public visitor');
-update_option('hithean_offers_settings', ['preview' => false, 'ai_enabled' => false]);
+update_option('hithean_offers_settings', ['preview' => false, 'ai_enabled' => false, 'source' => 'frontend']);
 $html = hithean_offers_shortcode(); check(str_contains($html, 'MUA 1 Matcha') && !str_contains($html, '600.000'), 'Only eligible public gift appears');
 $stale = $row; $stale['verified_at'] = time() - HITHEAN_OFFERS_FRESHNESS;
 check(hithean_offers_status($stale) === 'stale', '48-hour freshness boundary');
