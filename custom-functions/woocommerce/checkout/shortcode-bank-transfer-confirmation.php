@@ -52,10 +52,9 @@ function render_order_paid_confirmation_ui()
                 <div>
                     <label>Tài khoản nhận</label>
                     <select id="bank_account">
-                        <option value="ACB 8700507">ACB 8700507</option>
-                        <option value="Vietinbank 113600098383">Vietinbank 113600098383 / TK công ty</option>
-                        <option value="ACB 11090087">ACB 11090087</option>
-                        <option value="tiền mặt">tiền mặt</option>
+                        <?php foreach (hithean_payment_bank_accounts() as $bank_label) : ?>
+                            <option value="<?php echo esc_attr($bank_label); ?>"><?php echo esc_html($bank_label); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 

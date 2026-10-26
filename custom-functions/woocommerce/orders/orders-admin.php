@@ -43,9 +43,7 @@ function add_custom_actions($actions, $order)
     $compensate_status = $order->get_meta('compensate_status');
     $refund_status = $order->get_meta('refund_status');
 
-    $bank_account = '113600098383';
-    $bank_code = 'VietinBank';
-    $qr_url = "https://qr.sepay.vn/img?bank={$bank_code}&acc={$bank_account}&amount={$order_total}&des=P0{$order_id}&template=compact";
+    $qr_url = hithean_payment_qr_url(hithean_primary_bank_account(), (float) $order_total, hithean_payment_transfer_content($order_id));
 
     if (current_user_can('edit_shop_orders') || current_user_can('manage_woocommerce')) {
         $route = defined('ORDER_CREATOR_ROUTE') ? ORDER_CREATOR_ROUTE : 'tao-don';
@@ -103,13 +101,15 @@ function add_custom_actions($actions, $order)
         ];
     }
 
-    // Add QR code action
-    $actions['qr-code'] = [
-        'url' => $qr_url,
-        'name' => __('QR', 'woocommerce'),
-        'action' => 'qr-code',
-        'target' => '_blank'
-    ];
+    // Add QR code action (chưa khai TK ở WooCommerce → không có nút)
+    if ($qr_url !== '') {
+        $actions['qr-code'] = [
+            'url' => $qr_url,
+            'name' => __('QR', 'woocommerce'),
+            'action' => 'qr-code',
+            'target' => '_blank'
+        ];
+    }
 
     // Add GHTK action
     $actions['in-van-don-ghtk'] = [
@@ -258,6 +258,7 @@ function hithean_order_admin_render_quick_action_modal(): void
             'exportConfirm'     => wp_create_nonce('ajax_confirm_export_nonce'),
         ],
         'checklist' => hithean_order_admin_export_checklist(),
+        'bankAccounts' => hithean_payment_bank_accounts(),
     ];
     ?>
     <style>
@@ -310,6 +311,8 @@ function hithean_order_admin_render_quick_action_modal(): void
             'hithean-order-payment': 'payment', 'hithean-order-customer-confirmed': 'customer',
             'hithean-order-export-images': 'images', 'hithean-order-export-confirm': 'export'
         };
+        function escAttr(value) { return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        function bankOptions() { return (cfg.bankAccounts || []).map(function (b) { return '<option value="' + escAttr(b) + '">' + escAttr(b) + '</option>'; }).join(''); }
         function today() { return new Date().toISOString().slice(0, 10); }
         function payload(button) { var url = new URL(button.href, window.location.origin); return { id:String(parseInt(url.searchParams.get('order_id'), 10) || 0), amount:url.searchParams.get('amount') || '' }; }
         function notice(message, error) { var el = form.querySelector('[aria-live]'); el.textContent = message || ''; el.classList.toggle('is-error', !!error); el.classList.toggle('is-success', !!message && !error); }
@@ -317,7 +320,7 @@ function hithean_order_admin_render_quick_action_modal(): void
         function toast(message) { var el = document.createElement('div'); el.className = 'hithean-order-toast'; el.textContent = message; document.body.appendChild(el); window.setTimeout(function () { el.remove(); }, 5000); }
         function setLoading(loading, label) { var button = form.querySelector('[data-hithean-submit]'); if (!button.dataset.label) button.dataset.label = button.textContent; button.disabled = loading; button.textContent = loading ? label : button.dataset.label; }
         function fieldsFor(mode, data) {
-            if (mode === 'payment') return '<input type="hidden" name="order_id" value="' + data.id + '"><div class="hithean-order-modal__grid"><label class="hithean-order-modal__field">Tài khoản nhận<select name="bank_account" required><option value="ACB 8700507">ACB 8700507</option><option value="Vietinbank 113600098383">Vietinbank 113600098383 / TK công ty</option><option value="ACB 11090087">ACB 11090087</option><option value="tiền mặt">tiền mặt</option></select></label><label class="hithean-order-modal__field">Ngày nhận<input type="date" name="paid_date" value="' + today() + '" required></label><label class="hithean-order-modal__field">Số tiền nhận<input type="number" name="amount_received" min="0" step="1000" value="' + data.amount + '"></label><label class="hithean-order-modal__field">Người chuyển khoản<select name="payer"><option value="customer">Khách hàng</option><option value="shipper">Shipper TT COD</option><option value="self">Nhân viên TT COD</option></select></label><label class="hithean-order-modal__field hithean-order-modal__field--wide" data-hithean-cod-note hidden>Ghi chú COD<textarea name="cod_note"></textarea></label></div>';
+            if (mode === 'payment') return '<input type="hidden" name="order_id" value="' + data.id + '"><div class="hithean-order-modal__grid"><label class="hithean-order-modal__field">Tài khoản nhận<select name="bank_account" required>' + bankOptions() + '</select></label><label class="hithean-order-modal__field">Ngày nhận<input type="date" name="paid_date" value="' + today() + '" required></label><label class="hithean-order-modal__field">Số tiền nhận<input type="number" name="amount_received" min="0" step="1000" value="' + data.amount + '"></label><label class="hithean-order-modal__field">Người chuyển khoản<select name="payer"><option value="customer">Khách hàng</option><option value="shipper">Shipper TT COD</option><option value="self">Nhân viên TT COD</option></select></label><label class="hithean-order-modal__field hithean-order-modal__field--wide" data-hithean-cod-note hidden>Ghi chú COD<textarea name="cod_note"></textarea></label></div>';
             if (mode === 'customer') return '<input type="hidden" name="order_id" value="' + data.id + '"><p>Hệ thống sẽ ghi nhận người xác nhận và chuyển đơn theo quy tắc giao nhanh / chuẩn bị bàn giao hiện có.</p>';
             if (mode === 'images') return '<input type="hidden" name="ueif_order_id" value="' + data.id + '"><label class="hithean-order-modal__field">Ảnh xuất kho (tối đa 5 ảnh)<input type="file" name="ueif_images[]" accept="image/jpeg,image/png" multiple required></label><label class="hithean-order-modal__field hithean-order-modal__field--checkbox"><input type="checkbox" name="ueif_ai_check" value="1" checked><span><strong>Gọi AI kiểm tra ảnh sau khi upload</strong><small>Ảnh sẽ được gửi tới AI provider đã cấu hình để đối chiếu mã đơn, sản phẩm và số lượng; kết quả chỉ hỗ trợ kiểm tra, không tự xác nhận xuất kho.</small></span></label><div class="hithean-order-modal__checklist">' + cfg.checklist.map(function (item, index) { return '<label><input type="checkbox" name="checklist_' + index + '">' + item + '</label>'; }).join('') + '</div>';
             return '<input type="hidden" name="uexe_order_id" value="' + data.id + '"><p>Chỉ xác nhận khi ảnh xuất kho đã được tải lên và hàng đã bàn giao cho đơn này.</p>';

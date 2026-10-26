@@ -64,6 +64,8 @@ $general_includes = [
     'custom-functions/marketing/cro-landing-agent.php',
 
     /* ORDER */
+    // TK nhận tiền (đọc WooCommerce BACS + plugin eim) — dùng ở metabox, tạo đơn, QR, trang cảm ơn.
+    'custom-functions/woocommerce/checkout/bank-accounts.php',
     'custom-functions/woocommerce/orders/order-admin-error-solver.php',
     'custom-functions/woocommerce/orders/order-metabox.php',
     'custom-functions/woocommerce/orders/customer-note-templates.php',

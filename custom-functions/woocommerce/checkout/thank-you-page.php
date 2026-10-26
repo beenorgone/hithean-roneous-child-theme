@@ -20,14 +20,9 @@ function devvn_add_qr_to_email($order, $sent_to_admin, $plain_text, $email) {
         $order_id = $order->get_id();
         $order_total = $order->get_total();
         
-        // Tái sử dụng logic tính mã đơn hàng mới
-        $new_order_id = calculate_sepay_suffix($order_id);
-
-        $sepay_acc = "113600098383"; 
-        $sepay_bank = "VietinBank"; 
-
-        // Tạo URL QR Sepay
-        $qr_url = "https://qr.sepay.vn/img?bank={$sepay_bank}&acc={$sepay_acc}&amount={$order_total}&des=TT{$new_order_id}&template=compact";
+        // QR theo TK chính (dòng đầu ở WooCommerce → Chuyển khoản ngân hàng)
+        $qr_url = hithean_payment_qr_url(hithean_primary_bank_account(), (float) $order_total, hithean_payment_transfer_content($order_id));
+        if ($qr_url === '') return;
 
         echo '<div style="margin-top: 20px; text-align: center; font-family: Be Vietnam, sans-serif;">';
         echo '<h3 style="font-weight: 700; margin-bottom: 20px;">QR THANH TOÁN</h3>';
@@ -75,17 +70,15 @@ function devvn_bank_details($order_id = '') {
 
     // Sử dụng hàm helper dùng chung
     $new_order_id = calculate_sepay_suffix($order_id);
+    // Nội dung CK đầy đủ (tiền tố tài khoản ảo + mã đơn) — xem bank-accounts.php
+    $transfer_content = hithean_payment_transfer_content($order_id);
 
     $order_total = $order->get_total(); 
 
-    $sepay_acc = "113600098383"; 
-    $sepay_bank = "VietinBank"; 
-    $qr_code_url = "https://qr.sepay.vn/img?acc={$sepay_acc}&bank={$sepay_bank}&amount={$order_total}&des=TT{$new_order_id}&template=compact";
-
     $tracking_url = home_url('/tra-cuu/');
 
-    // Lấy thông tin tài khoản từ cài đặt WooCommerce
-    $bacs_accounts = get_option('woocommerce_bacs_accounts');
+    // Tài khoản từ cài đặt WooCommerce → Chuyển khoản ngân hàng (xem bank-accounts.php)
+    $bacs_accounts = hithean_bank_accounts();
     
     if (!empty($bacs_accounts)) {
         ob_start();
@@ -105,10 +98,11 @@ function devvn_bank_details($order_id = '') {
             </tr>
             <?php
             foreach ($bacs_accounts as $bacs_account) {
-                $bacs_account = (object) $bacs_account;
-                $bank_name = esc_html($bacs_account->bank_name);
-                $stk = esc_html($bacs_account->account_number);
-                $icon = esc_url($bacs_account->iban); // Giả định trường IBAN chứa link icon
+                $bank_name = esc_html($bacs_account['bank']);
+                $stk = esc_html($bacs_account['number']);
+                $icon = esc_url($bacs_account['icon']); // Trường IBAN ở WooCommerce chứa link icon
+                // QR riêng cho từng TK — khách quét đúng TK đang đọc
+                $qr_code_url = esc_url(hithean_payment_qr_url($bacs_account, (float) $order_total, $transfer_content));
                 ?>
                 <tr>
                     <td style="width: 200px; border: 1px solid #eaeaea; padding: 10px; text-align: center; vertical-align: middle;">
@@ -122,9 +116,9 @@ function devvn_bank_details($order_id = '') {
                         <div><strong>STK:</strong> <?php echo $stk; ?></div>
                         <div><strong>Ngân hàng:</strong> <?php echo $bank_name; ?></div>
                         <div style="margin-top: 10px; margin-bottom: 5px;"><strong>Nội dung chuyển khoản:</strong></div>
-                        <div style="font-size: 24px; font-weight: 700; color: #0047ba;"><?php echo $new_order_id; ?></div>
+                        <div style="font-size: 24px; font-weight: 700; color: #0047ba;"><?php echo esc_html($transfer_content); ?></div>
                         <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
-                        <i style="font-size: 13px; color: #666;">Giải thích: <?php echo $new_order_id; ?> là mã đơn hàng của bạn</i>
+                        <i style="font-size: 13px; color: #666;">Vui lòng ghi đúng và đủ nội dung trên. Trong đó <?php echo esc_html($new_order_id); ?> là mã đơn hàng của bạn</i>
                         <?php if ($qr_code_url): ?>
                             <div style="margin-top: 15px;">
                                 <strong>QR Thanh Toán</strong><br>

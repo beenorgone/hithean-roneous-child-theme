@@ -2547,7 +2547,7 @@ function order_creator_invoice_html(WC_Order $order): string
     }, $content);
     $customer_note = trim((string) $order->get_customer_note());
     $note_html = $customer_note === '' ? '' : '<section class="oc-invoice-note"><strong>Ghi chú đơn hàng</strong><div>' . nl2br(esc_html($customer_note)) . '</div></section>';
-    $table_css = '<style>.oc-invoice .awdr-you-saved-text{display:none!important}.oc-invoice #body_content table.td,.oc-invoice #body_content table.td td,.oc-invoice #body_content table.td th{border:0!important}.oc-invoice #body_content table.td td,.oc-invoice #body_content table.td th{padding:10px 9px!important;vertical-align:top!important}.oc-invoice #body_content table.td th{background:#eee!important;color:#17212b!important}.oc-invoice tr:last-child td{font-weight:normal!important}.oc-invoice table.td tfoot .woocommerce-Price-amount.amount{font-weight:700!important}.oc-invoice table.td tfoot tr.oc-invoice-total-row .woocommerce-Price-amount.amount{font-size:150%!important;font-weight:700!important}.oc-invoice .wc-payment-qr img,.oc-invoice img[src*="qrcode.io.vn"],.oc-invoice img[src*="qr.sepay.vn"]{width:166.667px!important;max-width:100%!important}</style>';
+    $table_css = '<style>.oc-invoice .awdr-you-saved-text{display:none!important}.oc-invoice #body_content table.td,.oc-invoice #body_content table.td td,.oc-invoice #body_content table.td th{border:0!important}.oc-invoice #body_content table.td td,.oc-invoice #body_content table.td th{padding:10px 9px!important;vertical-align:top!important}.oc-invoice #body_content table.td th{background:#eee!important;color:#17212b!important}.oc-invoice tr:last-child td{font-weight:normal!important}.oc-invoice table.td tfoot .woocommerce-Price-amount.amount{font-weight:700!important}.oc-invoice table.td tfoot tr.oc-invoice-total-row .woocommerce-Price-amount.amount{font-size:150%!important;font-weight:700!important}.oc-invoice .wc-payment-qr img,.oc-invoice img[src*="qrcode.io.vn"],.oc-invoice img[src*="qr.sepay.vn"],.oc-invoice img[src*="vietqr.app"]{width:166.667px!important;max-width:100%!important}</style>';
     $main_class = 'oc-invoice';
     if (order_creator_order_needs_compact_invoice($order)) {
         $main_class .= ' oc-invoice--trade';
@@ -2730,13 +2730,7 @@ function order_creator_js_config(): array
         'gateways'     => $gateways,
         'statuses'     => $statuses,
         'shippingMethods' => order_creator_configured_shipping_methods(),
-        'bankAccounts' => apply_filters('order_creator_bank_accounts', [
-            'Vietinbank 113600098383',
-            'ACB 11090087',
-            'Momo 0766333454',
-            'ACB 212658699',
-            'tiền mặt',
-        ]),
+        'bankAccounts' => apply_filters('order_creator_bank_accounts', hithean_payment_bank_accounts()),
         'currencySymbol' => html_entity_decode(get_woocommerce_currency_symbol()),
         'editOrderId'    => isset($_GET['order_id']) ? absint($_GET['order_id']) : 0,
     ];

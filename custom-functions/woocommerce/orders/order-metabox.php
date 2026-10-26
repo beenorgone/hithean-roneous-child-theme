@@ -23,13 +23,15 @@ function thean_register_order_meta_boxes($meta_boxes)
         'Thiếu SP'                   => 'Thiếu SP',
     ];
 
-    $bank_options = [
-        'Vietinbank 113600098383' => 'Vietinbank 113600098383',
-        'ACB 11090087'            => 'ACB 11090087',
-        'Momo 0766333454'         => 'Momo 0766333454',
-        'ACB 212658699'           => 'ACB 212658699',
-        'tiền mặt'                => 'tiền mặt',
-    ];
+    // TK nhận: WooCommerce BACS + eim (bank-accounts.php). Giữ TK đơn đang mở đã
+    // lưu để bấm Lưu đơn cũ không xoá mất TK đã bỏ khỏi cấu hình.
+    $current_bank = [];
+    $editing_id   = absint($_GET['id'] ?? $_GET['post'] ?? 0);
+    if ($editing_id && is_admin() && did_action('woocommerce_init') && ($editing = wc_get_order($editing_id))) {
+        $current_bank[] = (string) $editing->get_meta('order_bank_account_received');
+    }
+    $bank_list    = hithean_payment_bank_accounts($current_bank);
+    $bank_options = array_combine($bank_list, $bank_list);
 
     $shipper_options = [
         // 'Giao Hang Tiet Kiem' => 'Giao Hang Tiet Kiem',
