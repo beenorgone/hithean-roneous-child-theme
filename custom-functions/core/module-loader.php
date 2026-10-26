@@ -19,6 +19,7 @@ $general_includes = [
     'custom-functions/core/backend-optimize.php',
     'custom-functions/core/functional.php',
     'custom-functions/core/theme-code-cache.php',
+    'custom-functions/woocommerce/orders/payment-hub-link.php', // link sang công cụ xác nhận TT ở hub cho mọi form xác nhận
     // 'custom-functions/core/cpt-revisions.php',
     'custom-functions/core/swiper-slider.php',
 
@@ -427,7 +428,8 @@ function tpc_loader_modules()
             'id' => 'bank_transfer_confirm',
             'file' => 'custom-functions/woocommerce/checkout/shortcode-bank-transfer-confirmation.php',
             'shortcodes' => ['order_paid_confirmation'],
-            'ajax_actions' => ['confirm_order_payment', 'search_order_ajax'],
+            // oppc_confirm_payment: cổng eim btc_eim_payment_gate() nằm ở file này.
+            'ajax_actions' => ['confirm_order_payment', 'search_order_ajax', 'oppc_confirm_payment'],
         ],
         [
             'id' => 'payment_pending_confirm',

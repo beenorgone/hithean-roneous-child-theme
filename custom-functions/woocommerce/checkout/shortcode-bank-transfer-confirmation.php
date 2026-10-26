@@ -839,6 +839,16 @@ function handle_confirm_order_payment()
         wp_send_json_error(['message' => 'Chưa chọn đơn hàng.'], 400);
     }
 
+    btc_eim_payment_gate($order_ids, (string) $payer, (string) $bank_account, (string) $paid_date, (float) $amount_received, (string) $cod_note);
+
+    // Không còn "bỏ trống số tiền = thu đủ" / "1 số tiền cho cả lô".
+    if ($amount_received <= 0) {
+        wp_send_json_error(['message' => 'Nhập số tiền thực nhận.'], 400);
+    }
+    if (count($order_ids) > 1) {
+        wp_send_json_error(['message' => 'Mỗi đơn có số tiền riêng — xác nhận từng đơn một.'], 400);
+    }
+
     $confirmed = 0;
     $last_order = null;
     $updated_orders = [];
@@ -865,6 +875,81 @@ function handle_confirm_order_payment()
     wp_send_json_success([
         'message' => sprintf('Đã cập nhật %d đơn hàng. Bank: %s | Date: %s', $confirmed, esc_html($last_order->get_meta('order_bank_account_received')), esc_html($last_order->get_meta('order_paid_date'))),
         'orders'  => $updated_orders,
+    ]);
+}
+
+/**
+ * URL công cụ "Xác nhận thanh toán" của plugin eim ở hub, mã đơn điền sẵn
+ * (?pc_site=&pc_ref=). Đơn khách CK chỉ xác nhận ở hub — nơi có danh sách giao
+ * dịch Sepay để gắn (mỗi giao dịch dùng một lần).
+ */
+function btc_eim_hub_payment_url(array $order_ids): string
+{
+    if (function_exists('eim_app_base')) {
+        $base = home_url('/' . eim_app_base() . '/'); // site này chính là hub
+    } else {
+        $base = defined('IVAR_EIM_HUB_URL') ? (string) IVAR_EIM_HUB_URL : 'https://ivarvietnam.com/hoadon/';
+    }
+    $base = (string) apply_filters('child_theme_eim_hub_payment_url', $base);
+    return add_query_arg([
+        'pc_site' => function_exists('eim_site_code') ? eim_site_code() : '',
+        'pc_ref'  => implode(',', array_map('intval', $order_ids)),
+    ], $base);
+}
+
+/**
+ * Một cửa ghi: khi plugin eim bật, mọi xác nhận từ các form của theme đi qua
+ * engine eim (bắt buộc số tiền, nhật ký chỉ ghi thêm, gắn giao dịch ngân hàng).
+ *  - Khách CK → không xác nhận ở đây, trả `eim_url` để mở công cụ ở hub.
+ *  - Shipper / nhân viên nộp COD → từng đơn một, số tiền bắt buộc.
+ * Plugin eim chưa bật → trả về, chạy luồng cũ (cũng đã bắt buộc số tiền).
+ */
+function btc_eim_payment_gate(array $order_ids, string $payer, string $bank_account, string $paid_date, float $amount, string $note, ?callable $order_ok = null): void
+{
+    if (!function_exists('eim_payment_confirm_one')) {
+        return;
+    }
+    $url = btc_eim_hub_payment_url($order_ids);
+    // Chỉ shipper/nhân viên nộp COD được xác nhận ở đây; mọi giá trị khác (kể cả rỗng) = khách CK.
+    if (!in_array($payer, ['shipper', 'self'], true)) {
+        wp_send_json_error([
+            'message' => 'Đơn khách chuyển khoản xác nhận ở công cụ Xác nhận thanh toán (hub) để gắn giao dịch ngân hàng. Mở: ' . $url,
+            'eim_url' => $url,
+        ], 409);
+    }
+    if (count($order_ids) > 1) {
+        wp_send_json_error([
+            'message' => 'Mỗi đơn COD có số tiền riêng — xác nhận từng đơn, hoặc dùng công cụ Xác nhận thanh toán (hub): ' . $url,
+            'eim_url' => $url,
+        ], 400);
+    }
+    if ($amount <= 0) {
+        wp_send_json_error(['message' => 'Nhập số tiền thực nhận.'], 400);
+    }
+    $order = wc_get_order((int) $order_ids[0]);
+    if (!$order) {
+        wp_send_json_error(['message' => 'Không tìm thấy đơn hàng.'], 404);
+    }
+    if ($order_ok && ($why = $order_ok($order)) !== '') {
+        wp_send_json_error(['message' => $why], 403);
+    }
+    $res = eim_payment_confirm_one('', $order->get_id(), [
+        'payer'           => $payer,
+        'bank_account'    => $bank_account,
+        'paid_date'       => $paid_date,
+        'amount_received' => $amount,
+        'note'            => $note,
+    ]);
+    if (is_wp_error($res)) {
+        wp_send_json_error(['message' => $res->get_error_message()], 422);
+    }
+    wp_send_json_success([
+        'message' => '✓ Đã xác nhận thanh toán. ' . implode(' · ', (array) ($res['messages'] ?? [])),
+        'orders'  => [[
+            'order_id'     => $order->get_id(),
+            'status'       => (string) ($res['status'] ?? ''),
+            'status_label' => (string) ($res['status_label'] ?? ''),
+        ]],
     ]);
 }
 

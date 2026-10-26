@@ -1081,6 +1081,19 @@ function oppc_ajax_confirm_payment(): void
         wp_send_json_error(['message' => 'Vui lòng nhập tài khoản nhận và ngày nhận chuyển khoản.'], 400);
     }
 
+    // Một cửa ghi qua plugin eim (xem btc_eim_payment_gate(), shortcode-bank-transfer-confirmation.php).
+    if (function_exists('btc_eim_payment_gate')) {
+        btc_eim_payment_gate($order_ids, $payer, $bank_account, $paid_date, $amount_received, $note);
+    }
+
+    // Không còn "bỏ trống số tiền = thu đủ" / "1 số tiền cho cả lô".
+    if ($amount_received <= 0) {
+        wp_send_json_error(['message' => 'Nhập số tiền thực nhận.'], 400);
+    }
+    if (count($order_ids) > 1) {
+        wp_send_json_error(['message' => 'Mỗi đơn có số tiền riêng — xác nhận từng đơn một.'], 400);
+    }
+
     $confirmed = 0;
     foreach ($order_ids as $order_id) {
         $order = wc_get_order($order_id);
