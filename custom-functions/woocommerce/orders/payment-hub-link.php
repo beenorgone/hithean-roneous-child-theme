@@ -70,13 +70,13 @@ function child_theme_payment_hub_link_script(): void
     (function () {
         if (window.hubPay) { return; }
         var CFG = <?php echo wp_json_encode($cfg); ?>;
-        var box = null, frame = null, state = null;
+        // Ẩn/hiện bằng style.display + cờ isOpen: inline display:flex đè thuộc tính hidden.
+        var box = null, frame = null, state = null, isOpen = false;
 
         function build() {
             box = document.createElement('div');
             box.id = 'hub-pay';
-            box.hidden = true;
-            box.style.cssText = 'position:fixed;inset:0;z-index:100100;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.45)';
+            box.style.cssText = 'position:fixed;inset:0;z-index:100100;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.45)';
             box.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Xác nhận thanh toán" style="display:flex;flex-direction:column;width:100%;max-width:1100px;height:calc(100vh - 32px);background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.25);font:13px/1.5 system-ui,sans-serif">'
                 + '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #eef2f7"><strong style="flex:1;font-size:15px">🏦 Xác nhận thanh toán · Hàng đợi Sepay (hub)</strong>'
                 + '<button type="button" data-hub-pay-close style="padding:6px 12px;border:1px solid var(--erp-color-primary, #0f766e);border-radius:6px;background:var(--erp-color-primary, #0f766e);color:#fff;font-weight:600;cursor:pointer">Xong — cập nhật đơn</button></div>'
@@ -86,10 +86,12 @@ function child_theme_payment_hub_link_script(): void
                 if (e.target === box || e.target.closest('[data-hub-pay-close]')) { close(); }
             });
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && !box.hidden) { close(); }
+                if (e.key === 'Escape' && isOpen) { close(); }
             });
             window.addEventListener('message', function (e) {
                 if (!state || e.source !== frame.contentWindow || !e.data || e.data.type !== 'eim:payment-confirmed') { return; }
+                // Đơn đã xác nhận từ trước (widget chỉ báo lại) → giữ popup cho người dùng xem.
+                if (e.data.alreadyConfirmed) { return; }
                 state.confirmed = true;
                 setTimeout(close, 900);
             });
@@ -97,8 +99,9 @@ function child_theme_payment_hub_link_script(): void
         }
 
         function close() {
-            if (!box || box.hidden) { return; }
-            box.hidden = true;
+            if (!box || !isOpen) { return; }
+            isOpen = false;
+            box.style.display = 'none';
             frame.src = 'about:blank';
             document.documentElement.style.overflow = '';
             var s = state;
@@ -123,7 +126,8 @@ function child_theme_payment_hub_link_script(): void
                     }
                     state = { onDone: opts.onDone || null, confirmed: false };
                     frame.src = res.data.url;
-                    box.hidden = false;
+                    isOpen = true;
+                    box.style.display = 'flex';
                     document.documentElement.style.overflow = 'hidden';
                 });
         }
