@@ -452,6 +452,12 @@ function tpc_loader_modules()
             'ajax_actions' => ['ajax_confirm_export', 'ajax_upload_images', 'hithean_export_ai_check'],
         ],
         [
+            // Bảng điều phối đơn (trang sửa đơn — nạp qua edit-order-page.php): AJAX sửa nhanh / render lại.
+            'id' => 'order_workspace',
+            'file' => 'custom-functions/woocommerce/orders/order-workspace.php',
+            'ajax_actions' => ['thean_order_workspace'],
+        ],
+        [
             'id' => 'bulk_order_status_change',
             'file' => 'custom-functions/woocommerce/orders/shortcode-order-status-change.php',
             'shortcodes' => ['bulk_change_order_status_form'],

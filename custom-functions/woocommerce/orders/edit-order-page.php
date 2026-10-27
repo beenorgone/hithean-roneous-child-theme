@@ -82,29 +82,23 @@ if (!function_exists('wr_order_item_edit_lock_render_ui')) {
 }
 add_action('admin_print_footer_scripts', 'wr_order_item_edit_lock_render_ui');
 
-// Nút "Chỉnh đơn" -> trang Tạo đơn (/tao-don/?order_id=)
-if (!function_exists('hithean_render_order_creator_edit_button')) {
-    function hithean_render_order_creator_edit_button($order_arg)
-    {
-        $order = $order_arg instanceof WC_Order ? $order_arg : wc_get_order($order_arg);
-        if (!$order instanceof WC_Order) {
-            return;
-        }
-        if (!current_user_can('edit_shop_orders') && !current_user_can('manage_woocommerce')) {
-            return;
-        }
+// ================= Bảng điều phối đơn =================
+// Thay nút "Chỉnh đơn" cũ (đã có trong box Chứng từ & tiện ích) + ẩn metabox "Thông tin bổ sung".
+require_once __DIR__ . '/order-workspace.php';
 
-        $route = defined('ORDER_CREATOR_ROUTE') ? ORDER_CREATOR_ROUTE : 'tao-don';
-        $url = home_url('/' . $route . '/?order_id=' . $order->get_id());
-        ?>
-        <p class="form-field form-field-wide" style="margin-top:10px;">
-            <a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener"
-               class="button button-primary"
-               style="background:#08e097;border-color:#007a52;color:#002b1c;">
-                ✏️ Chỉnh đơn (trang Tạo đơn)
-            </a>
-        </p>
-        <?php
+// Legacy (post.php) và HPOS (wc-orders) — render 1 lần ở đầu form sửa đơn.
+// Legacy dùng edit_form_top (trước #poststuff): edit_form_after_title nằm trong #post-body-content mà WC ẩn với shop_order.
+add_action('edit_form_top', function ($post) {
+    if ($post instanceof WP_Post && $post->post_type === 'shop_order') {
+        thean_render_order_workspace($post->ID);
     }
-    add_action('woocommerce_admin_order_data_after_order_details', 'hithean_render_order_creator_edit_button', 70, 1);
-}
+});
+add_action('order_edit_form_top', 'thean_render_order_workspace');
+
+// File này được nạp trong admin_enqueue_scripts (core/admin.php) → enqueue luôn.
+(function () {
+    $dir = HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/assets/';
+    $uri = get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/';
+    wp_enqueue_style('thean-order-workspace', $uri . 'order-workspace.css', [], (string) @filemtime($dir . 'order-workspace.css'));
+    wp_enqueue_script('thean-order-workspace', $uri . 'order-workspace.js', [], (string) @filemtime($dir . 'order-workspace.js'), true);
+})();
