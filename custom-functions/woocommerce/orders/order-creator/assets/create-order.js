@@ -1770,12 +1770,31 @@
     }
 
     // ---------- payment modal ----------
-    // Plugin eim chạy: chỉ chọn người thanh toán rồi mở widget hub (window.hubPay — payment-hub-link.php);
-    // không thì gọi confirm_order_payment như cũ.
+    // Plugin eim chạy: bỏ qua modal này, mở thẳng widget hub (window.hubPay — payment-hub-link.php)
+    // không truyền payer → widget bắt đầu ở bước chọn người trả. Mở hub lỗi → hiện modal kèm lỗi
+    // để mở lại. Không chạy eim thì modal gọi confirm_order_payment như cũ.
     function hubPayOn() { return !!(window.hubPay && window.hubPay.enabled); }
 
     function openPayModal(o) {
         state.payTarget = o;
+        if (hubPayOn()) {
+            openHubPay(o).catch(function (e) {
+                showPayModal(o);
+                $('#oc-pay-result').textContent = '❌ ' + e.message;
+            });
+            return;
+        }
+        showPayModal(o);
+    }
+
+    function openHubPay(o, onDone) {
+        if (state.hubPayBusy) { return Promise.resolve(); }
+        state.hubPayBusy = true;
+        return window.hubPay.open({ orderId: o.order_id, onDone: onDone })
+            .then(function () { state.hubPayBusy = false; }, function (e) { state.hubPayBusy = false; throw e; });
+    }
+
+    function showPayModal(o) {
         $('#oc-pay-info').value = 'Đơn #' + o.order_number + ' | SĐT: ' + (o.phone || '') + ' | Tổng: ' + money(o.total);
         $('#oc-pay-amount').value = o.payment_total;
         $('#oc-pay-date').value = new Date().toISOString().split('T')[0];
@@ -1783,7 +1802,7 @@
         $('#oc-pay-codnote').value = '';
         $('#oc-pay-result').textContent = '';
         var hub = hubPayOn();
-        ['#oc-pay-bank', '#oc-pay-date', '#oc-pay-amount'].forEach(function (sel) { $(sel).parentNode.hidden = hub; });
+        ['#oc-pay-bank', '#oc-pay-date', '#oc-pay-amount', '#oc-pay-payer'].forEach(function (sel) { $(sel).parentNode.hidden = hub; });
         $('#oc-pay-confirm').textContent = hub ? 'Mở công cụ xác nhận (hub)' : 'Xác nhận';
         togglePayCodNote();
         openModal('#oc-pay-modal');
@@ -1796,12 +1815,8 @@
         var btn = $('#oc-pay-confirm');
         if (hubPayOn()) {
             btn.disabled = true;
-            window.hubPay.open({
-                orderId: target.order_id,
-                payer: payer,
-                onDone: function (confirmed) {
-                    $('#oc-pay-result').textContent = confirmed ? '✅ Đã xác nhận thanh toán ở hub.' : 'Chưa xác nhận — mở lại công cụ nếu cần.';
-                }
+            openHubPay(target, function (confirmed) {
+                $('#oc-pay-result').textContent = confirmed ? '✅ Đã xác nhận thanh toán ở hub.' : 'Chưa xác nhận — mở lại công cụ nếu cần.';
             }).catch(function (e) { $('#oc-pay-result').textContent = '❌ ' + e.message; })
                 .then(function () { btn.disabled = false; });
             return;

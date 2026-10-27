@@ -8,7 +8,8 @@
  *   window.hubPay.open({ orderId, payer, onDone(confirmed) })
  *
  * → AJAX `child_theme_hub_pay_url` ký URL iframe (token ngắn hạn, dùng 1 lần — tạo lúc
- * bấm, không in sẵn vào trang) → popup iframe: đơn tra sẵn, người thanh toán chọn sẵn.
+ * bấm, không in sẵn vào trang) → popup iframe: đơn tra sẵn, người thanh toán chọn sẵn
+ * (bỏ trống payer → widget mở ở bước chọn người trả).
  * Widget báo xác nhận xong (postMessage `eim:payment-confirmed`) → tự đóng, gọi onDone(true).
  *
  * window.hubPay.enabled = false khi plugin eim không chạy → màn gọi dùng form cũ.
@@ -42,8 +43,9 @@ add_action('wp_ajax_child_theme_hub_pay_url', function (): void {
         wp_send_json_error(['message' => 'Không tìm thấy đơn hàng.'], 404);
     }
     $payer = sanitize_key(wp_unslash($_POST['payer'] ?? ''));
+    // Không truyền người thanh toán → để trống, widget mở ở bước chọn người trả.
     if (!in_array($payer, ['customer', 'shipper', 'self'], true)) {
-        $payer = $order->get_payment_method() === 'cod' ? 'shipper' : 'customer';
+        $payer = '';
     }
     $url = eim_pay_embed_iframe_url('confirm', (string) $order->get_id(), $payer);
     if (is_wp_error($url)) {
