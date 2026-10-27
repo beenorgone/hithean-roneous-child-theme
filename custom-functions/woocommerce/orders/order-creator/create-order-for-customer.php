@@ -3240,7 +3240,7 @@ function order_creator_render_page(): void
     </div>
 </div>
 
-<!-- Modal xác nhận thanh toán (gọi backend confirm_order_payment có sẵn) -->
+<!-- Modal xác nhận thanh toán: eim chạy → mở widget hub (window.hubPay), không thì confirm_order_payment -->
 <div class="oc-modal" id="oc-pay-modal" hidden>
     <div class="oc-modal__backdrop" data-oc-close="1"></div>
     <div class="oc-modal__dialog" role="dialog" aria-modal="true">
