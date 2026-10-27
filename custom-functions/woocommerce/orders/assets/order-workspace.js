@@ -289,9 +289,23 @@
             };
         },
         return_receive: function (form) {
+            var close = !!val(form, 'close_failed');
             return {
+                confirm: close ? 'Ghi nhận đã nhận hàng hoàn, trả hàng về tồn kho và chuyển đơn sang Thất bại?' : '',
                 files: selectedFiles(form), fileField: 'images',
-                data: { action: 'upload_return_images', nonce: cfg.nonces.returnUpload, order_id: cfg.orderId, has_issue: val(form, 'has_issue') ? 1 : 0 }
+                data: { action: 'upload_return_images', nonce: cfg.nonces.returnUpload, order_id: cfg.orderId, has_issue: val(form, 'has_issue') ? 1 : 0 },
+                then: close ? { action: 'thean_order_workspace', nonce: cfg.nonces.workspace, order_id: cfg.orderId, task: 'return_close' } : null
+            };
+        },
+        order_flow: function (form, btn) {
+            var flow = btn.getAttribute('data-flow');
+            var reason = val(form, 'reason');
+            if (flow !== 'resume' && !reason) throw new Error('Nhập lý do trước.');
+            return {
+                confirm: btn.textContent.trim() + (flow === 'cancel' ? ' và trả hàng về tồn kho?' : '?'),
+                data: { action: 'thean_order_workspace', nonce: cfg.nonces.workspace, order_id: cfg.orderId, task: 'order_flow', flow: flow, reason: reason },
+                // Tạm giữ / tiếp tục đổi quyền sửa sản phẩm của form đơn → tải lại trang.
+                reload: flow !== 'cancel'
             };
         }
     };
@@ -316,7 +330,23 @@
             root.classList.add('is-loading');
             post(req.data, req.files, req.fileField)
                 .then(function (data) {
+                    // Thao tác nối tiếp (VD nhận hàng hoàn → trả tồn kho + Thất bại).
+                    if (!req.then) return data;
+                    var first = messageOf({ data: data }, 'Đã lưu.');
+                    return post(req.then).then(
+                        function (d2) { return { message: first + ' · ' + messageOf({ data: d2 }, 'Đã lưu.') }; },
+                        function (e) { throw new Error(first + ' — nhưng: ' + e.message); }
+                    );
+                })
+                .then(function (data) {
                     var msg = messageOf({ data: data }, 'Đã lưu.');
+                    if (req.reload) {
+                        toast(msg + ' — đang tải lại trang…');
+                        window.onbeforeunload = null;
+                        if (window.jQuery) window.jQuery(window).off('beforeunload');
+                        setTimeout(function () { window.location.reload(); }, 900);
+                        return;
+                    }
                     return refresh(prevTab, prevDone).then(
                         function () { toast(msg); },
                         function () {
