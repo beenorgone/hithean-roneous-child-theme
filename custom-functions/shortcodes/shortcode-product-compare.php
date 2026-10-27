@@ -494,7 +494,7 @@ function tpc_compare_build_product_payload($product_id, array $fields)
     if ($product->is_type('simple') && $product->is_purchasable() && $product->is_in_stock()) {
         $cart_config = [
             'url'        => esc_url_raw($product->add_to_cart_url()),
-            'label'      => 'Xem thêm / Mua',
+            'label'      => 'Xem / Mua',
             'icon'       => 'cart',
             'classes'    => 'button button-primary add_to_cart_button ajax_add_to_cart product_type_simple',
             'target'     => '',
@@ -504,7 +504,7 @@ function tpc_compare_build_product_payload($product_id, array $fields)
             'ajax'       => true,
         ];
     } elseif ($product->is_type('variable')) {
-        $cart_config['label'] = 'Xem thêm / Mua';
+        $cart_config['label'] = 'Xem / Mua';
         $cart_config['icon'] = 'cart';
     }
 
