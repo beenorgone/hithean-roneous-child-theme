@@ -2150,6 +2150,54 @@ function tpc_product_compare_shortcode($atts)
             margin-bottom: 0;
         }
 
+        /* Nội dung ô lấy từ mô tả sản phẩm, mang theo heading cỡ bài viết (Oswald 30–40px) và
+           khối bọc có padding/margin ngang → trên mobile cột chỉ còn vài chữ mỗi dòng.
+           Trong bảng so sánh: chữ gọn, heading chỉ nhỉnh hơn chữ thường, khối bọc tràn hết ô. */
+        #<?php echo esc_html($instance_id); ?> .tpc-cell-content {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-cell-content :is(p, li, span, td, th, blockquote) {
+            font-size: inherit !important;
+            line-height: inherit !important;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-cell-content :is(h1, h2, h3, h4, h5, h6) {
+            margin: 0 0 6px !important;
+            padding: 0 !important;
+            font-family: inherit !important;
+            font-size: 15px !important;
+            line-height: 1.35 !important;
+            letter-spacing: normal !important;
+            word-spacing: normal !important;
+            text-transform: none !important;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-cell-content :is(div, section, article, blockquote, figure, table) {
+            width: auto !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        #<?php echo esc_html($instance_id); ?> .tpc-cell-content :is(ul, ol) {
+            margin-left: 0 !important;
+            padding-left: 18px !important;
+        }
+
+        /* Nút theme (.button, [class^="button--"]) ép line-height 45px + font 15px !important:
+           chữ xuống dòng trong cột hẹp là mỗi dòng cao 45px → nút cao gấp ba. */
+        #<?php echo esc_html($instance_id); ?> .tpc-add-to-cart,
+        #<?php echo esc_html($instance_id); ?> .tpc-faq-toggle {
+            height: auto !important;
+            line-height: 1.2 !important;
+            letter-spacing: .3px !important;
+            word-spacing: normal !important;
+        }
+
         @media (max-width: 767px) {
             #<?php echo esc_html($instance_id); ?> .tpc-title {
                 font-size: 22px;
@@ -2165,7 +2213,15 @@ function tpc_product_compare_shortcode($atts)
 
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table td {
-                padding: 10px;
+                padding: 10px 8px;
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-cell-content {
+                font-size: 13px;
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-cell-content :is(h1, h2, h3, h4, h5, h6) {
+                font-size: 14px !important;
             }
 
             #<?php echo esc_html($instance_id); ?> .tpc-picker-wrap {
@@ -2189,9 +2245,25 @@ function tpc_product_compare_shortcode($atts)
                 width: 100%;
                 min-width: 0 !important;
                 max-width: 100%;
-                height: auto !important;
+                box-sizing: border-box;
+                min-height: 38px;
+                padding: 8px 10px !important;
+                font-size: 13px !important;
                 white-space: normal;
                 text-align: center;
+                gap: 6px;
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-faq-toggle {
+                min-height: 34px;
+                padding: 6px 14px !important;
+                font-size: 13px !important;
+            }
+
+            #<?php echo esc_html($instance_id); ?> .tpc-add-to-cart .tpc-icon,
+            #<?php echo esc_html($instance_id); ?> .tpc-faq-toggle .tpc-icon {
+                width: 16px;
+                height: 16px;
             }
 
             #<?php echo esc_html($instance_id); ?> .tpc-compare-table th,
