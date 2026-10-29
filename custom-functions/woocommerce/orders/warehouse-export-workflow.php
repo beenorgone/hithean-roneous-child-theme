@@ -292,3 +292,36 @@ add_action('hithean_export_ai_check_completed', function ($order, $result = []):
         hithean_export_lark_queue_notification($order->get_id());
     }
 }, 10, 2);
+
+/* ------------------------------------------------------------------ */
+/* Version danh sách xuất kho — live refresh chỉ render lại khi có đổi */
+/* ------------------------------------------------------------------ */
+
+function hithean_export_lists_version(): int
+{
+    return (int) get_option('hithean_export_lists_ver', 0);
+}
+
+/** Đánh dấu dữ liệu 2 danh sách xuất kho đã đổi (option không autoload, ghi tối đa 1 lần/giây). */
+function hithean_export_lists_bump(): void
+{
+    $now = time();
+    if (hithean_export_lists_version() !== $now) {
+        update_option('hithean_export_lists_ver', $now, false);
+    }
+}
+
+add_action('woocommerce_update_order', 'hithean_export_lists_bump');
+add_action('woocommerce_order_status_changed', 'hithean_export_lists_bump');
+
+// Code xuất kho ghi meta trực tiếp bằng update_post_meta (không qua $order->save()).
+function hithean_export_lists_bump_on_meta($meta_id, $object_id, $meta_key): void
+{
+    static $keys = ['warehouse_export_images', 'export_confirmed_by', 'export_date', 'order_ship_date', 'warehouse_export_ai_check', 'warehouse_export_ai_review_status'];
+    if (in_array($meta_key, $keys, true)) {
+        hithean_export_lists_bump();
+    }
+}
+add_action('added_post_meta', 'hithean_export_lists_bump_on_meta', 10, 3);
+add_action('updated_post_meta', 'hithean_export_lists_bump_on_meta', 10, 3);
+add_action('deleted_post_meta', 'hithean_export_lists_bump_on_meta', 10, 3);

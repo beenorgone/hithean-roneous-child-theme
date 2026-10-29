@@ -479,7 +479,7 @@ function tpc_loader_modules()
             'id' => 'order_export_confirm',
             'file' => 'custom-functions/shortcodes/shortcode-order-export-confirm.php',
             'shortcodes' => ['upload_export_images_form', 'list_unconfirmed_exports', 'list_uploaded_not_shipped_exports'],
-            'ajax_actions' => ['ajax_confirm_export', 'ajax_upload_images', 'hithean_export_ai_check'],
+            'ajax_actions' => ['ajax_confirm_export', 'ajax_upload_images', 'hithean_export_ai_check', 'hithean_export_bulk_upload', 'hithean_export_bulk_read', 'hithean_export_bulk_group', 'hithean_export_bulk_assign', 'hithean_export_bulk_discard', 'hithean_export_list_refresh'],
         ],
         [
             // Bảng điều phối đơn (trang sửa đơn — nạp qua edit-order-page.php): AJAX sửa nhanh / render lại.

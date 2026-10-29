@@ -81,6 +81,8 @@ if (!function_exists('hithean_upload_internal_order_image')) {
     }
 }
 
+require_once __DIR__ . '/export-bulk-web.php';
+
 function hithean_get_export_upload_checklist(): array
 {
     $default = implode("\n", [
@@ -410,7 +412,13 @@ function shortcode_upload_export_images_form()
 ?>
     <h2>Upload ảnh đơn hàng</h2>
     <form id="upload-export-form" enctype="multipart/form-data">
-        <p>
+        <p style="max-width:500px;">
+            <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
+                <input type="checkbox" id="ueif_bulk" style="margin-top:3px;">
+                <span><strong>Nhiều đơn — AI tự tách</strong> (tối đa 60 ảnh)<br><small>Chụp lần lượt từng đơn, chọn hết ảnh 1 lần. AI đọc mã đơn trên phiếu / nhãn giao vận để tự tách và gắn ảnh vào đúng đơn.</small></span>
+            </label>
+        </p>
+        <p id="ueif-web-fields">
             <label for="ueif_order_id">Đơn hàng (Order ID):</label><br>
             <input type="number" name="ueif_order_id" id="ueif_order_id" required style="width:100%;max-width:500px;border-radius:5px;border:2px solid #ccc !important;">
         </p>
@@ -428,6 +436,7 @@ function shortcode_upload_export_images_form()
         <p>
             <button type="submit" class="button button-primary">Upload ảnh xuất kho</button>
         </p>
+        <div id="ueif-web-bulk-status" style="max-width:640px;"></div>
     </form>
     <?php
     return ob_get_clean();
@@ -436,6 +445,36 @@ add_shortcode('upload_export_images_form', 'shortcode_upload_export_images_form'
 
 
 // ===== Shortcode List Đơn Chưa Xác Nhận =====
+/**
+ * Khung "live" của 2 danh sách: JS gọi hithean_export_list_refresh để thay HTML khung khi có thay đổi
+ * (upload / xác nhận / AI, và tự kiểm mỗi 45s) — không cần tải lại trang. Port từ theanmarket.
+ */
+function hithean_export_live_wrap(string $scope, string $html): string
+{
+    $ver = function_exists('hithean_export_lists_version') ? hithean_export_lists_version() : 0;
+    return '<div class="uexe-live" data-uexe-live="' . esc_attr($scope) . '" data-uexe-ver="' . esc_attr((string) $ver) . '">'
+        . '<div class="uexe-live-bar" style="display:flex;justify-content:flex-end;align-items:center;gap:8px;font-size:12px;color:#64748b;margin:0 0 6px;">'
+        . '<span data-uexe-live-time>Cập nhật ' . esc_html(current_time('H:i:s')) . '</span>'
+        . '<button type="button" class="button button-small" data-uexe-live-refresh title="Tải lại danh sách">↻</button>'
+        . '</div>' . $html . '</div>';
+}
+
+/** HTML mới của các danh sách cho AJAX refresh. @param string[] $scopes */
+function hithean_export_live_render(array $scopes): array
+{
+    $renderers = [
+        'unconfirmed' => 'shortcode_list_unconfirmed_exports',
+        'not-shipped' => 'shortcode_list_uploaded_not_shipped_exports',
+    ];
+    $out = [];
+    foreach (array_unique($scopes) as $scope) {
+        if (isset($renderers[$scope])) {
+            $out[$scope] = call_user_func($renderers[$scope]);
+        }
+    }
+    return $out;
+}
+
 function shortcode_list_unconfirmed_exports()
 {
     if (!is_user_logged_in() || !current_user_can('manage_woocommerce')) {
@@ -480,7 +519,7 @@ function shortcode_list_unconfirmed_exports()
 
     if (empty($orders)) {
         echo '<p>Không có đơn nào chờ xác nhận.</p>';
-        return ob_get_clean();
+        return hithean_export_live_wrap('unconfirmed', ob_get_clean());
     }
 
     echo hithean_render_export_ai_bulk_controls('unconfirmed');
@@ -522,7 +561,7 @@ function shortcode_list_unconfirmed_exports()
 
     echo '</div>'; // end grid
 
-    return ob_get_clean();
+    return hithean_export_live_wrap('unconfirmed', ob_get_clean());
 }
 add_shortcode('list_unconfirmed_exports', 'shortcode_list_unconfirmed_exports');
 
@@ -586,7 +625,7 @@ function shortcode_list_uploaded_not_shipped_exports()
 
     if (empty($filtered_orders)) {
         echo '<p>Không có đơn nào.</p>';
-        return ob_get_clean();
+        return hithean_export_live_wrap('not-shipped', ob_get_clean());
     }
 
     echo hithean_render_export_ai_bulk_controls('not-shipped');
@@ -634,7 +673,7 @@ function shortcode_list_uploaded_not_shipped_exports()
 
     echo '</div>'; // end grid
 
-    return ob_get_clean();
+    return hithean_export_live_wrap('not-shipped', ob_get_clean());
 }
 add_shortcode('list_uploaded_not_shipped_exports', 'shortcode_list_uploaded_not_shipped_exports');
 
@@ -733,6 +772,21 @@ add_action('wp_ajax_hithean_export_ai_check', function () {
 });
 
 // Xác nhận xuất kho
+// Làm mới danh sách (không tải lại trang)
+add_action('wp_ajax_hithean_export_list_refresh', function () {
+    check_ajax_referer('hithean_export_list_refresh', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error('Không có quyền', 403);
+    }
+    // Version chưa đổi → không render lại (polling 45s chỉ tốn 1 lần đọc option từ cache).
+    $ver = function_exists('hithean_export_lists_version') ? hithean_export_lists_version() : 0;
+    if ($ver && absint($_POST['ver'] ?? 0) === $ver && empty($_POST['force'])) {
+        wp_send_json_success(['unchanged' => true, 'ver' => $ver]);
+    }
+    $scopes = array_map('sanitize_key', (array) json_decode(wp_unslash((string) ($_POST['scopes'] ?? '[]')), true));
+    wp_send_json_success(['html' => hithean_export_live_render($scopes), 'ver' => $ver]);
+});
+
 add_action('wp_ajax_ajax_confirm_export', function () {
     check_ajax_referer('ajax_confirm_export_nonce', 'nonce');
     if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
@@ -818,8 +872,11 @@ add_action('wp_footer', function () {
             </div>
         </div>
     </div>
+    <script src="<?php echo esc_url(get_stylesheet_directory_uri() . '/custom-functions/shortcodes/assets/export-bulk.js'); ?>?ver=<?php echo esc_attr((string) @filemtime(__DIR__ . '/assets/export-bulk.js')); ?>"></script>
     <script>
         var ueifNonce = "<?php echo esc_js(wp_create_nonce('ajax_upload_images_nonce')); ?>";
+        var uexeBulkNonce = "<?php echo esc_js(wp_create_nonce('hithean_export_bulk')); ?>";
+        var uexeListNonce = "<?php echo esc_js(wp_create_nonce('hithean_export_list_refresh')); ?>";
         var uexeNonce = "<?php echo esc_js(wp_create_nonce('ajax_confirm_export_nonce')); ?>";
         var uexeAiNonce = "<?php echo esc_js(wp_create_nonce('hithean_export_ai_check_nonce')); ?>";
         var ueifChecklist = <?php echo wp_json_encode($checklist); ?>;
@@ -913,9 +970,45 @@ add_action('wp_footer', function () {
                 const noticeEl   = document.querySelector('#ueif-images-notice');
                 const errorEl    = document.querySelector('#ueif-images-error');
                 const submitBtn  = uploadForm.querySelector('button[type="submit"]');
+                const webFields    = document.querySelector('#ueif-web-fields');
+                const orderIdInput = document.querySelector('#ueif_order_id');
+                const bulkBox      = document.querySelector('#ueif_bulk');
+                const isBulk = function() { return !!(bulkBox && bulkBox.checked); };
+                const maxImages = function() { return isBulk() ? 60 : 5; };
+                const syncBulkUi = function() {
+                    // Nhiều đơn: ID đơn do AI đọc → ẩn ô Order ID.
+                    webFields.hidden = isBulk();
+                    orderIdInput.required = !isBulk();
+                    noticeEl.innerHTML = '⚠️ Chỉ được chọn tối đa <strong>' + maxImages() + ' ảnh</strong> mỗi lần upload';
+                    errorEl.textContent = '❌ Bạn đã chọn quá ' + maxImages() + ' ảnh! Vui lòng chọn lại.';
+                    imageInput.dispatchEvent(new Event('change'));
+                };
+                if (bulkBox) bulkBox.addEventListener('change', syncBulkUi);
+                const webEsc = function(v) { const d = document.createElement('div'); d.textContent = v == null ? '' : String(v); return d.innerHTML; };
+                const aiBoxChecked = function() { return uploadForm.querySelector('[name="ueif_ai_check"]:checked'); };
+                const webBulk = window.HitheanExportBulk ? window.HitheanExportBulk.mount(document.querySelector('#ueif-web-bulk-status'), {
+                    ajaxUrl: "<?php echo esc_js(admin_url('admin-ajax.php')); ?>",
+                    nonce: uexeBulkNonce,
+                    prefix: 'hithean_export_',
+                    max: 60,
+                    toast: function(msg, ok) { uexeShowToast(msg, ok); },
+                    label: function(p) {
+                        return p.order ? '<a href="' + webEsc(p.order.url) + '" target="_blank" rel="noopener">#' + webEsc(p.order.number) + '</a> ' + webEsc(p.order.customer) : webEsc(p.code);
+                    },
+                    needsAi: function(p) { return !!p.order && !!aiBoxChecked(); },
+                    // AI kiểm tra từng đơn như upload 1 đơn (so ảnh với dòng hàng của đơn).
+                    runAi: function(p) {
+                        return requestAiCheck(p.order.id).then(function(result) {
+                            uexeRefreshLists(true);
+                            return String(result.html || '').indexOf('data-uexe-ai-pass="1"') !== -1 ? 'pass' : 'review';
+                        });
+                    },
+                    fromAssign: function(d) { return d; },
+                    footnote: 'Ảnh đã gắn vào đơn, đơn hiện ở danh sách <b>Ảnh lấy hàng chờ kiểm tra</b> — kiểm rồi Xác nhận xuất kho (hoặc "Xác nhận tất cả đơn AI khớp").'
+                }) : null;
 
                 imageInput.addEventListener('change', function() {
-                    if (imageInput.files.length > 5) {
+                    if (imageInput.files.length > maxImages()) {
                         noticeEl.style.display = 'none';
                         errorEl.style.display  = 'inline-block';
                         submitBtn.disabled = true;
@@ -934,6 +1027,21 @@ add_action('wp_footer', function () {
                     const aiCheckRequested = !!uploadForm.querySelector('[name="ueif_ai_check"]:checked');
                     btn.disabled = true;
                     btn.textContent = aiCheckRequested ? "⏳ Đang upload, đưa AI vào hàng đợi..." : "⏳ Đang upload...";
+                    if (isBulk() && webBulk) {
+                        btn.textContent = "⏳ Đang tải & AI tách đơn...";
+                        webBulk.run(imageInput.files).then(function(state) {
+                            uexeShowToast('AI đã gắn ảnh cho ' + state.packages.filter(function(p) { return p.status !== 'skipped'; }).length + ' đơn', true);
+                            uploadForm.reset();
+                            syncBulkUi();
+                        }).catch(function(err) {
+                            uexeShowToast(err.message, false);
+                        }).then(function() {
+                            btn.disabled = false;
+                            btn.textContent = originalText;
+                            uexeRefreshLists(true);
+                        });
+                        return;
+                    }
 
                     const formData = new FormData(uploadForm);
                     formData.append("action", "ajax_upload_images");
@@ -949,6 +1057,7 @@ add_action('wp_footer', function () {
                         uexeShowToast(message, res.success);
                         if (res.success) {
                             uploadForm.reset();
+                            uexeRefreshLists(true);
                         }
                     })
                     .catch(() => {
@@ -963,7 +1072,7 @@ add_action('wp_footer', function () {
                 uploadForm.addEventListener("submit", function(e) {
                     e.preventDefault();
 
-                    if (imageInput.files.length > 5) {
+                    if (imageInput.files.length > maxImages()) {
                         errorEl.style.display  = 'inline-block';
                         noticeEl.style.display = 'none';
                         return;
@@ -1054,13 +1163,15 @@ add_action('wp_footer', function () {
                 }
             }
 
-            // Xác nhận xuất kho
-            document.querySelectorAll("form.export-confirm-form").forEach(form => {
-                form.addEventListener("submit", function(e) {
+            // Xác nhận xuất kho (gắn ở document: thẻ đơn được thay khi làm mới danh sách)
+            document.addEventListener("submit", function(e) {
+                    const form = e.target.closest && e.target.closest("form.export-confirm-form");
+                    if (!form) return;
                     e.preventDefault();
                     const btn = form.querySelector('button[type="submit"]');
                     const originalText = btn.textContent;
                     btn.disabled = true;
+                    btn.dataset.uexeWorking = '1';
                     btn.textContent = "⏳ Đang xử lý...";
 
                     const formData = new FormData(form);
@@ -1076,17 +1187,19 @@ add_action('wp_footer', function () {
                         if (res.success) {
                             form.outerHTML = '<p><strong style="color:green;">✅ Đã xác nhận</strong></p>';
                             refreshBulkConfirmButtons();
+                            uexeRefreshLists(true);
                         } else {
                             btn.disabled = false;
+                            delete btn.dataset.uexeWorking;
                             btn.textContent = originalText;
                         }
                     })
                     .catch(function() {
                         uexeShowToast("Lỗi kết nối. Vui lòng thử lại.", false);
                         btn.disabled = false;
+                        delete btn.dataset.uexeWorking;
                         btn.textContent = originalText;
                     });
-                });
             });
 
             function requestAiCheck(orderId) {
@@ -1128,10 +1241,84 @@ add_action('wp_footer', function () {
                     if (!controls.dataset.uexeBusy) button.disabled = count === 0;
                 });
             }
-            document.querySelectorAll('[data-uexe-bulk-exclude]').forEach(function(input) {
-                input.addEventListener('input', refreshBulkConfirmButtons);
+            document.addEventListener('input', function(event) {
+                if (event.target.matches && event.target.matches('[data-uexe-bulk-exclude]')) refreshBulkConfirmButtons();
             });
             refreshBulkConfirmButtons();
+
+            // ===== Làm mới danh sách bằng AJAX =====
+            let uexeLiveInflight = 0;
+            let uexeLivePending = false;
+            function uexeLiveBusy(ignoreInflight) {
+                if (!ignoreInflight && uexeLiveInflight > 0) return true;
+                if (document.querySelector('[data-uexe-ai-bulk][data-uexe-busy]')) return true;
+                if (galleryModal && galleryModal.classList.contains('is-open')) return true;
+                const active = document.activeElement;
+                if (active && active.closest && active.closest('.uexe-live') && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return true;
+                return !!document.querySelector('.uexe-live [data-uexe-working]');
+            }
+            // force: sau thao tác của chính người dùng → chờ hết bận rồi làm mới, luôn render lại.
+            window.uexeRefreshLists = function(force) {
+                const boxes = Array.from(document.querySelectorAll('[data-uexe-live]'));
+                if (!boxes.length) return;
+                if (uexeLiveBusy(false)) {
+                    if (force && !uexeLivePending) {
+                        uexeLivePending = true;
+                        setTimeout(function() { uexeLivePending = false; uexeRefreshLists(true); }, 1500);
+                    }
+                    return;
+                }
+                const excludes = {};
+                boxes.forEach(function(box) {
+                    const input = box.querySelector('[data-uexe-bulk-exclude]');
+                    if (input) excludes[box.getAttribute('data-uexe-live')] = input.value;
+                });
+                const fd = new FormData();
+                fd.append('action', 'hithean_export_list_refresh');
+                fd.append('nonce', uexeListNonce);
+                fd.append('scopes', JSON.stringify(boxes.map(function(b) { return b.getAttribute('data-uexe-live'); })));
+                fd.append('ver', String(Math.min.apply(null, boxes.map(function(b) { return parseInt(b.getAttribute('data-uexe-ver'), 10) || 0; }))));
+                if (force) fd.append('force', '1');
+                uexeLiveInflight++;
+                fetch("<?php echo esc_js(admin_url('admin-ajax.php')); ?>", { method: 'POST', body: fd, credentials: 'same-origin' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (!res || !res.success) return;
+                        if (res.data.unchanged) {
+                            const t = new Date().toLocaleTimeString('vi-VN');
+                            boxes.forEach(function(box) { const el = box.querySelector('[data-uexe-live-time]'); if (el) el.textContent = 'Cập nhật ' + t; });
+                            return;
+                        }
+                        // Người dùng bắt đầu thao tác trong lúc chờ → giữ nguyên, lần sau làm mới.
+                        if (uexeLiveBusy(true)) return;
+                        boxes.forEach(function(box) {
+                            const scope = box.getAttribute('data-uexe-live');
+                            const html = res.data.html[scope];
+                            if (typeof html !== 'string' || !document.body.contains(box)) return;
+                            const tmp = document.createElement('div');
+                            tmp.innerHTML = html;
+                            const fresh = tmp.querySelector('[data-uexe-live]');
+                            if (!fresh) return;
+                            const input = fresh.querySelector('[data-uexe-bulk-exclude]');
+                            if (input && excludes[scope]) input.value = excludes[scope];
+                            box.replaceWith(fresh);
+                        });
+                        refreshBulkConfirmButtons();
+                    })
+                    .catch(function() { /* mạng chập chờn: lần sau thử lại */ })
+                    .finally(function() { uexeLiveInflight--; });
+            };
+            document.addEventListener('click', function(event) {
+                if (event.target.closest('[data-uexe-live-refresh]')) uexeRefreshLists(true);
+            });
+            if (document.querySelector('[data-uexe-live]')) {
+                setInterval(function() {
+                    if (document.visibilityState === 'visible') uexeRefreshLists(false);
+                }, 45000);
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible') uexeRefreshLists(false);
+                });
+            }
 
             document.addEventListener('click', function(event) {
                 const button = event.target.closest('[data-uexe-bulk-confirm]');
@@ -1180,6 +1367,7 @@ add_action('wp_footer', function () {
                     checkButton.disabled = false;
                     excludeInput.disabled = false;
                     refreshBulkConfirmButtons();
+                    uexeRefreshLists(true);
                 }());
             });
 
@@ -1191,13 +1379,16 @@ add_action('wp_footer', function () {
                 const card = button.closest('.uexe-export-card');
                 const originalText = button.textContent;
                 button.disabled = true;
+                button.dataset.uexeWorking = '1';
                 button.textContent = '⏳ AI đang kiểm tra...';
                 requestAiCheck(orderId).then(function(result) {
+                    delete button.dataset.uexeWorking;
                     updateAiCheckCard(card, result);
                     uexeShowToast(result.message, true);
                 }).catch(function(error) {
                     uexeShowToast(error.message || 'Lỗi kết nối. Vui lòng thử lại.', false);
                     button.disabled = false;
+                    delete button.dataset.uexeWorking;
                     button.textContent = originalText;
                 });
             });
@@ -1248,6 +1439,7 @@ add_action('wp_footer', function () {
                     excludeInput.disabled = false;
                     delete controls.dataset.uexeBusy;
                     refreshBulkConfirmButtons();
+                    uexeRefreshLists(true);
                 }());
             });
         });
