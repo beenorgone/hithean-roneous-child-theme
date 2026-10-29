@@ -1,8 +1,5 @@
 <?php
 if (!defined('ABSPATH')) exit;
-define('ERP_MESH_SITE_ID', 'hithean');
-require_once dirname(__DIR__) . '/integrations/erp-mesh/mesh.php';
-
 
 /**
  * Module loader — TOÀN BỘ logic "what-loads-when":
