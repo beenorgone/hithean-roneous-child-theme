@@ -536,3 +536,45 @@ body.oc-modal-open { overflow: hidden; }
 .oc-cc-src { display: inline-block; padding: 0 6px; border-radius: 999px; background: var(--oc-surface); color: var(--oc-muted); font-size: 11px; }
 .oc-cc-row.is-ok .oc-cc-status { color: #15803d; }
 .oc-cc-row.is-fail .oc-cc-status { color: #b45309; }
+
+/* ---------- Font dễ đọc cho form AI (ghi đè style label/input của theme cha) ---------- */
+#oc-ai-order,
+#oc-cust-ai-panel {
+    --oc-ai-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+#oc-ai-order :is(label, strong, small, span, summary, pre, input, select, textarea, button, h2, h3),
+#oc-cust-ai-panel :is(label, strong, small, span, input, textarea, button) {
+    font-family: var(--oc-ai-font);
+    text-transform: none;
+    letter-spacing: normal;
+}
+#oc-ai-order label,
+#oc-cust-ai-panel label {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--oc-text);
+}
+#oc-ai-order textarea,
+#oc-cust-ai-panel textarea {
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 10px 12px;
+    color: var(--oc-text);
+}
+#oc-ai-order textarea::placeholder,
+#oc-cust-ai-panel textarea::placeholder { color: #94a3b8; font-style: normal; }
+#oc-ai-order input[type="text"],
+#oc-ai-order input[type="number"],
+#oc-ai-order select { font-size: 14px; }
+#oc-ai-order .oc-ai-convert-option,
+#oc-cust-ai-panel .oc-ai-convert-option { display: flex; align-items: flex-start; gap: 10px; font-weight: 400; }
+#oc-ai-order .oc-ai-convert-option input,
+#oc-cust-ai-panel .oc-ai-convert-option input { width: 16px !important; height: 16px; margin: 2px 0 0; display: inline-block; }
+#oc-ai-order .oc-ai-convert-option strong,
+#oc-cust-ai-panel .oc-ai-convert-option strong { font-size: 14px; font-weight: 600; color: var(--oc-text); }
+#oc-ai-order .oc-ai-convert-option small,
+#oc-cust-ai-panel .oc-ai-convert-option small { font-size: 13px; font-weight: 400; color: var(--oc-muted); }
+#oc-ai-order .oc-ai-newcust { font-weight: 600; }
+#oc-ai-order .oc-subhead { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--oc-muted); }
+#oc-ai-order .oc-cc-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
