@@ -578,3 +578,4 @@ body.oc-modal-open { overflow: hidden; }
 #oc-ai-order .oc-ai-newcust { font-weight: 600; }
 #oc-ai-order .oc-subhead { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--oc-muted); }
 #oc-ai-order .oc-cc-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+#oc-ai-order .oc-ai-guest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; background: #eff6ff; color: #1e3a8a; }

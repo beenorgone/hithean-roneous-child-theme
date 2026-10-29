@@ -2626,31 +2626,112 @@ function order_creator_ai_resolve_item(array $raw): array
     ];
 }
 
-/** Tài khoản khớp chính xác SĐT (mọi biến thể 0/84/+84) hoặc email. */
-function order_creator_ai_match_customers(string $phone, string $email): array
+/**
+ * Tìm khách cũ theo SĐT/email: tài khoản (email, billing_email, SĐT billing/shipping đã chuẩn hóa)
+ * và lịch sử đơn (đơn gắn tài khoản → tài khoản đó; đơn khách lẻ → khách cũ chưa có tài khoản).
+ * @return array{matches:array,guest:?array}
+ */
+function order_creator_find_existing_customers(string $phone, string $email): array
 {
-    $found = [];
-    if ($email !== '' && is_email($email)) {
+    global $wpdb;
+
+    $email  = strtolower(trim($email));
+    $email  = $email !== '' && is_email($email) ? $email : '';
+    $digits = preg_replace('/\D+/', '', $phone) ?: '';
+    if (strpos($digits, '84') === 0 && strlen($digits) >= 11) {
+        $digits = '0' . substr($digits, 2);
+    }
+    $tail = strlen($digits) >= 9 ? substr($digits, -9) : ''; // 9 số cuối: khớp mọi dạng 0/84/+84
+
+    $user_ids = [];
+    if ($email !== '') {
         $user = get_user_by('email', $email);
         if ($user) {
-            $found[$user->ID] = $user;
+            $user_ids[$user->ID] = true;
+        }
+        foreach ($wpdb->get_col($wpdb->prepare(
+            "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = 'billing_email' AND LOWER(meta_value) = %s LIMIT 10",
+            $email
+        )) as $id) {
+            $user_ids[(int) $id] = true;
         }
     }
-    $variants = order_creator_phone_variants($phone);
-    if ($variants && strlen(preg_replace('/\D+/', '', $phone) ?: '') >= 9) {
-        $meta_query = ['relation' => 'OR'];
-        foreach ($variants as $variant) {
-            foreach (['billing_phone', 'shipping_phone'] as $key) {
-                $meta_query[] = ['key' => $key, 'value' => $variant, 'compare' => '='];
-            }
-        }
-        foreach ((new WP_User_Query(['meta_query' => $meta_query, 'number' => 5]))->get_results() as $user) {
-            $found[$user->ID] = $user;
+    if ($tail !== '') {
+        // SĐT lưu tự do (có khoảng trắng, dấu chấm, gạch, +84...) → bỏ ký tự phân cách trước khi so 9 số cuối.
+        foreach ($wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT user_id FROM {$wpdb->usermeta}
+             WHERE meta_key IN ('billing_phone', 'shipping_phone')
+               AND RIGHT(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(meta_value, ' ', ''), '.', ''), '-', ''), '+', ''), ')', ''), 9) = %s
+             LIMIT 10",
+            $tail
+        )) as $id) {
+            $user_ids[(int) $id] = true;
         }
     }
 
-    return array_values(array_map('order_creator_format_customer', $found));
+    // Lịch sử đơn: bắt cả khách có tài khoản nhưng hồ sơ thiếu/khác SĐT, và khách lẻ chưa có tài khoản.
+    $orders = [];
+    $queries = [];
+    if ($email !== '') {
+        $queries[] = ['billing_email' => $email];
+    }
+    foreach ($tail !== '' ? order_creator_phone_variants($digits) : [] as $variant) {
+        $queries[] = ['billing_phone' => $variant];
+    }
+    foreach ($queries as $query) {
+        foreach (wc_get_orders($query + ['limit' => 10, 'orderby' => 'date', 'order' => 'DESC', 'type' => 'shop_order']) as $order) {
+            if ($order instanceof WC_Order) {
+                $orders[$order->get_id()] = $order;
+            }
+        }
+    }
+    $guest_orders = [];
+    foreach ($orders as $order) {
+        if ($order->get_customer_id() > 0) {
+            $user_ids[$order->get_customer_id()] = true;
+        } else {
+            $guest_orders[] = $order;
+        }
+    }
+
+    $matches = [];
+    foreach (array_slice(array_keys($user_ids), 0, 5) as $id) {
+        $user = get_user_by('id', $id);
+        if ($user) {
+            $matches[] = order_creator_format_customer($user);
+        }
+    }
+
+    $guest = null;
+    if (!$matches && $guest_orders) {
+        usort($guest_orders, static function (WC_Order $a, WC_Order $b) {
+            return ($b->get_date_created() ? $b->get_date_created()->getTimestamp() : 0) <=> ($a->get_date_created() ? $a->get_date_created()->getTimestamp() : 0);
+        });
+        $last    = $guest_orders[0];
+        $billing = [];
+        foreach (['first_name', 'last_name', 'address_1', 'address_2', 'city', 'state', 'phone', 'email'] as $f) {
+            $billing[$f] = (string) $last->{'get_billing_' . $f}();
+        }
+        $guest = [
+            'order_id'     => $last->get_id(),
+            'order_number' => (string) (function_exists('change_order_number') ? change_order_number($last->get_id()) : $last->get_order_number()),
+            'date'         => $last->get_date_created() ? $last->get_date_created()->date_i18n('d/m/Y') : '',
+            'count'        => count($guest_orders),
+            'billing'      => $billing,
+        ];
+    }
+
+    return ['matches' => $matches, 'guest' => $guest];
 }
+
+/** Tra khách cũ khi nhân viên sửa SĐT/email trong form AI. */
+add_action('wp_ajax_order_creator_match_customer', function () {
+    order_creator_verify_ajax();
+    wp_send_json_success(order_creator_find_existing_customers(
+        sanitize_text_field(wp_unslash($_POST['phone'] ?? '')),
+        sanitize_email(wp_unslash($_POST['email'] ?? ''))
+    ));
+});
 
 add_action('wp_ajax_order_creator_ai_extract_order', function () {
     order_creator_verify_ajax();
@@ -2725,7 +2806,7 @@ add_action('wp_ajax_order_creator_ai_extract_order', function () {
     }
 
     $customer = order_creator_ai_normalize_customer(isset($data['customer']) && is_array($data['customer']) ? $data['customer'] : []);
-    $customer['matches'] = order_creator_ai_match_customers($customer['fields']['phone'], $customer['fields']['email']);
+    $customer += order_creator_find_existing_customers($customer['fields']['phone'], $customer['fields']['email']);
 
     $items = [];
     foreach ((array) ($data['items'] ?? []) as $raw) {
@@ -3724,7 +3805,7 @@ function order_creator_render_page(): void
             <ol>
                 <li>Bấm <em>✨ AI tạo đơn</em> ở đầu trang (chế độ được nhớ cho lần sau).</li>
                 <li>Dán tin nhắn đặt hàng của khách và/hoặc dán ảnh chụp (<kbd>Ctrl+V</kbd>, tối đa 4 ảnh), bấm <em>Bóc tách &amp; lên đơn</em>.</li>
-                <li>AI đọc khách hàng, sản phẩm (SKU hoặc tên + số lượng), mã ưu đãi, hình thức thanh toán và ghi chú. SĐT/email trùng tài khoản có sẵn → tự chọn khách; khách mới → tạo tài khoản khi tạo đơn (bỏ tích nếu không cần).</li>
+                <li>AI đọc khách hàng, sản phẩm (SKU hoặc tên + số lượng), mã ưu đãi, hình thức thanh toán và ghi chú. Hệ thống tự tìm khách cũ theo SĐT/email (hồ sơ tài khoản + lịch sử đơn, SĐT ghi kiểu 0/84/+84, có dấu cách đều khớp): trùng 1 tài khoản → tự chọn; trùng nhiều → chọn tay; khách lẻ từng mua → gợi ý địa chỉ đơn gần nhất; khách mới → tạo tài khoản khi tạo đơn (bỏ tích nếu không cần). Sửa SĐT/email trong form AI cũng tự tra lại.</li>
                 <li>Dòng sản phẩm <strong>Cần xác nhận</strong> (AI không chắc sản phẩm hoặc số lượng): chọn đúng sản phẩm, sửa SL rồi bấm <em>Xác nhận</em>. Còn dòng chưa xác nhận thì chưa tạo được đơn.</li>
                 <li>Kiểm tra mã ưu đãi gợi ý, tổng tiền rồi bấm <em>Tạo đơn</em> / <em>Lưu nháp</em>. Các thao tác sau khi tạo (thanh toán, hóa đơn, phiếu xuất kho...) giống chế độ thủ công.</li>
                 <li><strong>Chỉnh đơn:</strong> bấm <em>Chỉnh sửa</em> → form AI mở lại kèm nội dung đã dùng; gõ yêu cầu (vd: "thêm 1 hộp X, bỏ Y") để AI sửa, hoặc bấm <em>Sửa trên giao diện thủ công</em>.</li>

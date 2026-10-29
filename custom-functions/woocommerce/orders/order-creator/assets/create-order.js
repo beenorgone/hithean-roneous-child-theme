@@ -22,6 +22,7 @@
         aiSource: '',          // nội dung đã dán để lên đơn bằng AI (lưu vào đơn)
         aiMatches: [],         // tài khoản trùng SĐT/email khi AI chưa chọn được 1 khách
         aiUnmatched: {},       // tỉnh/phường AI đọc được nhưng không khớp danh mục
+        aiGuest: null,         // khách cũ chưa có tài khoản: đơn gần nhất cùng SĐT/email
         aiCreateCustomer: true, // khách mới: tạo tài khoản trước khi tạo đơn
         customerCoupons: []    // mã còn hạn gắn với SĐT/email/tài khoản khách
     };
@@ -1000,6 +1001,7 @@
             state.aiPending = [];
             state.aiMatches = [];
             state.aiUnmatched = {};
+            state.aiGuest = null;
             state.aiSource = o.ai_source || '';
             state.aiCreateCustomer = !!isCopy; // sửa đơn khách lẻ: không tự tạo tài khoản
             state.items = (o.items || []).map(function (it) {
@@ -1756,12 +1758,16 @@
             html += '<div class="oc-ai-cust-head"><span>👤 <b>' + escapeHtml(state.customer.name) + '</b> (#' + state.customer.id + ') — tài khoản có sẵn</span>' +
                 '<button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-ai-act="cust-clear">Đổi khách</button></div>';
         } else if (state.aiMatches.length) {
-            html += '<div class="oc-ai-warn">Có ' + state.aiMatches.length + ' tài khoản trùng SĐT/email — chọn đúng khách:</div><div class="oc-ai-matches">' +
+            html += '<div class="oc-ai-warn">' + (state.aiMatches.length === 1 ? 'Tìm thấy tài khoản khớp SĐT/email — bấm để chọn:' : 'Có ' + state.aiMatches.length + ' tài khoản trùng SĐT/email — chọn đúng khách:') + '</div><div class="oc-ai-matches">' +
                 state.aiMatches.map(function (c, i) {
                     return '<button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-ai-match="' + i + '">' + escapeHtml(c.name + ' #' + c.id + (c.phone ? ' · ' + c.phone : '') + (c.email ? ' · ' + c.email : '')) + '</button>';
                 }).join('') + '</div>';
         } else {
-            html += '<label class="oc-ai-newcust"><input type="checkbox" data-ai-act="create-customer"' + (state.aiCreateCustomer ? ' checked' : '') + '> Khách mới — tạo tài khoản khách hàng khi tạo đơn</label>' +
+            if (state.aiGuest) {
+                html += '<div class="oc-ai-guest">🕘 Khách cũ chưa có tài khoản — ' + state.aiGuest.count + ' đơn trước, gần nhất <b>#' + escapeHtml(state.aiGuest.order_number) + '</b>' + (state.aiGuest.date ? ' (' + escapeHtml(state.aiGuest.date) + ')' : '') +
+                    ' <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-ai-act="guest-address">Dùng địa chỉ đơn này</button></div>';
+            }
+            html += '<label class="oc-ai-newcust"><input type="checkbox" data-ai-act="create-customer"' + (state.aiCreateCustomer ? ' checked' : '') + '> ' + (state.aiGuest ? 'Tạo tài khoản cho khách khi tạo đơn' : 'Khách mới — tạo tài khoản khách hàng khi tạo đơn') + '</label>' +
                 '<small class="oc-muted">Khách đã có tài khoản với SĐT khác? Chuyển sang giao diện thủ công để tìm khách.</small>';
         }
         var field = function (label, id, span) {
@@ -1815,6 +1821,7 @@
         state.aiSource = '';
         state.aiMatches = [];
         state.aiUnmatched = {};
+        state.aiGuest = null;
         state.aiCreateCustomer = true;
         if (!$('#oc-ai-order')) { return; }
         $('#oc-ai-text').value = '';
@@ -1834,6 +1841,7 @@
         state.aiSource = '';
         state.aiMatches = [];
         state.aiUnmatched = {};
+        state.aiGuest = null;
         clearSelectedCustomer();
         fillBilling({});
         setShipDiff(false);
@@ -1873,27 +1881,12 @@
         var matches = c.matches || [];
         state.aiUnmatched = c.unmatched || {};
         var billingDone;
-        if (isEdit) {
+        // Sửa đơn: chỉ tra lại khách khi AI đọc được SĐT/email mới.
+        if (isEdit && (state.customer || !(aiBilling.phone || aiBilling.email))) {
             billingDone = Object.keys(aiBilling).length ? fillBilling(Object.assign(collectBilling(), aiBilling)) : Promise.resolve();
-        } else if (matches.length === 1) {
-            var m = matches[0];
-            state.aiMatches = [];
-            selectCustomer(m, true);
-            applyCustomerPaymentDefault(m);
-            if (hasAddr) {
-                var b = Object.assign({}, m.billing || {}, aiBilling);
-                if (m.billing && m.billing.first_name) { b.first_name = m.billing.first_name; b.last_name = m.billing.last_name; }
-                billingDone = fillBilling(b);
-                setShipDiff(false);
-            } else {
-                applyAddresses(m.billing || {}, m.shipping || {});
-                billingDone = Promise.resolve();
-            }
         } else {
-            clearSelectedCustomer();
-            state.aiMatches = matches;
-            billingDone = fillBilling(aiBilling);
-            setShipDiff(false);
+            var base = isEdit ? collectBilling() : {};
+            billingDone = aiUseFoundCustomer({ matches: matches, guest: c.guest || null }, Object.assign(base, aiBilling), hasAddr);
         }
 
         (d.coupon_codes || []).forEach(function (code) {
@@ -1914,7 +1907,9 @@
 
         var msg = '✅ ' + (isEdit ? 'Đã sửa đơn' : 'Đã lên đơn') + ': ' + items.length + ' sản phẩm';
         if (pending.length) { msg += ', ' + pending.length + ' dòng cần xác nhận'; }
-        if (matches.length > 1 && !isEdit) { msg += '. Có ' + matches.length + ' tài khoản trùng SĐT/email, chọn khách'; }
+        if (state.customer && matches.length === 1) { msg += '. Khách cũ: ' + state.customer.name + ' (#' + state.customer.id + ')'; }
+        else if (state.aiMatches.length) { msg += '. Có ' + state.aiMatches.length + ' tài khoản trùng SĐT/email, chọn khách'; }
+        else if (state.aiGuest) { msg += '. Khách cũ chưa có tài khoản (' + state.aiGuest.count + ' đơn)'; }
         if ((d.unknown_coupons || []).length) { msg += '. ⚠️ Không tìm thấy mã: ' + d.unknown_coupons.join(', '); }
         if (d.web_search_enabled) { msg += ' (Google Search đã bật cho địa chỉ)'; }
         aiStatus(msg + ' — kiểm tra lại trước khi tạo đơn.');
@@ -1926,6 +1921,63 @@
             doRecalc();
             $('#oc-ai-review').scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
+    }
+
+    /**
+     * Áp kết quả tìm khách cũ: đúng 1 tài khoản → chọn (giữ địa chỉ AI đọc nếu có, không thì địa chỉ hồ sơ);
+     * nhiều → chờ nhân viên chọn; chỉ có đơn khách lẻ → điền địa chỉ đơn gần nhất cho trường AI thiếu.
+     */
+    function aiUseFoundCustomer(found, aiBilling, hasAddr) {
+        var matches = found.matches || [];
+        state.aiGuest = null;
+        if (matches.length === 1) {
+            var m = matches[0];
+            state.aiMatches = [];
+            selectCustomer(m, true);
+            applyCustomerPaymentDefault(m);
+            if (!hasAddr) {
+                applyAddresses(Object.assign({}, m.billing || {}, nonEmpty({ phone: aiBilling.phone, email: aiBilling.email })), m.shipping || {});
+                return Promise.resolve();
+            }
+            var b = Object.assign({}, m.billing || {}, aiBilling);
+            if (m.billing && m.billing.first_name) { b.first_name = m.billing.first_name; b.last_name = m.billing.last_name; }
+            setShipDiff(false);
+            return fillBilling(b);
+        }
+        clearSelectedCustomer();
+        state.aiMatches = matches;
+        state.aiGuest = matches.length ? null : (found.guest || null);
+        var billing = aiBilling;
+        if (state.aiGuest) {
+            billing = Object.assign({}, nonEmpty(state.aiGuest.billing || {}), hasAddr ? aiBilling : nonEmpty({ first_name: aiBilling.first_name, phone: aiBilling.phone, email: aiBilling.email }));
+        }
+        setShipDiff(false);
+        return fillBilling(billing);
+    }
+
+    // Nhân viên sửa SĐT/email trong form AI → tra lại khách cũ (không gọi AI).
+    var aiLookupSeq = 0;
+    function aiLookupCustomer() {
+        if (state.customer) { return; }
+        var phone = $('#oc-bill-phone').value.trim();
+        var email = $('#oc-bill-email').value.trim();
+        if ((phone.replace(/\D/g, '').length < 9) && !email) { return; }
+        var seq = ++aiLookupSeq;
+        aiStatus('🔎 Đang tìm khách cũ theo SĐT/email...');
+        post('order_creator_match_customer', { phone: phone, email: email }).then(function (res) {
+            if (seq !== aiLookupSeq || !res.success || state.customer) { return; }
+            var d = res.data || {};
+            var current = collectBilling();
+            var hasAddr = !!(current.address_1 || current.state);
+            aiUseFoundCustomer(d, nonEmpty({ first_name: current.first_name, phone: current.phone, email: current.email, address_1: current.address_1, state: current.state, city: current.city }), hasAddr).then(function () {
+                aiStatus(state.customer ? '✅ Tìm thấy khách cũ: ' + state.customer.name + ' (#' + state.customer.id + ')'
+                    : state.aiMatches.length ? 'Có ' + state.aiMatches.length + ' tài khoản trùng — chọn đúng khách.'
+                    : state.aiGuest ? 'Khách cũ chưa có tài khoản (' + state.aiGuest.count + ' đơn).'
+                    : 'Không tìm thấy khách cũ — sẽ là khách mới.');
+                aiRenderCustomer();
+                recalc();
+            });
+        }).catch(function () { aiStatus(''); });
     }
 
     function aiRun(fresh) {
@@ -2024,6 +2076,10 @@
                 aiRenderCustomer();
                 return;
             }
+            if (e.target.closest('[data-ai-act="guest-address"]') && state.aiGuest) {
+                fillBilling(Object.assign(collectBilling(), nonEmpty(state.aiGuest.billing || {}))).then(function () { aiRenderCustomer(); recalc(); });
+                return;
+            }
             if (e.target.closest('[data-ai-act="cust-clear"]')) {
                 clearSelectedCustomer();
                 state.aiCreateCustomer = false;
@@ -2033,7 +2089,10 @@
         });
         cust.addEventListener('change', function (e) {
             if (e.target.dataset.aiAct === 'create-customer') { state.aiCreateCustomer = e.target.checked; return; }
-            if (e.target.dataset.bind) { recalc(); }
+            if (e.target.dataset.bind) {
+                if (e.target.dataset.bind === 'oc-bill-phone' || e.target.dataset.bind === 'oc-bill-email') { aiLookupCustomer(); }
+                recalc();
+            }
         });
         cust.addEventListener('input', function (e) {
             var id = e.target.dataset.bind;
