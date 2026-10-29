@@ -1,6 +1,36 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+function erp_mesh_is_mcp_request(): bool {
+    $route = isset($_GET['rest_route']) && is_string($_GET['rest_route']) ? $_GET['rest_route'] : '';
+    $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    $prefix = preg_quote(trim(rest_get_url_prefix(), '/'), '~');
+    return strpos('/' . ltrim($route, '/'), '/mcp/') === 0
+        || (bool) preg_match('~/' . $prefix . '/mcp/~', $path)
+        || (defined('WP_CLI') && WP_CLI && in_array('mcp-adapter', (array) ($_SERVER['argv'] ?? []), true));
+}
+
+function erp_mesh_is_management_request(): bool {
+    if (is_admin() || erp_mesh_is_mcp_request() || (defined('DOING_CRON') && DOING_CRON) || (defined('WP_CLI') && WP_CLI)) return true;
+    if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) return true;
+    $route = isset($_GET['rest_route']) && is_string($_GET['rest_route']) ? $_GET['rest_route'] : '';
+    $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    $prefix = preg_quote(trim(rest_get_url_prefix(), '/'), '~');
+    // Application Password scope on other REST APIs; HTTP Basic storefront gates stay excluded.
+    $basic = isset($_SERVER['PHP_AUTH_USER']) || stripos((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''), 'Basic ') === 0;
+    if ($basic && ($route !== '' || preg_match('~/' . $prefix . '(?:/|$)~', $path))) return true;
+    // WC administrative REST only; Store API /wc/store is shopper traffic.
+    return (bool) preg_match('~/' . $prefix . '/wc/v[1-3](?:/|$)~', $path)
+        || (bool) preg_match('~^/wc/v[1-3](?:/|$)~', '/' . ltrim($route, '/'));
+}
+
+if (erp_mesh_is_management_request()) {
+    define('ERP_MESH_SITE_ID', 'hithean');
+    require_once dirname(__DIR__) . '/integrations/erp-mesh-loader.php';
+}
+
+
+
 /**
  * Module loader — TOÀN BỘ logic "what-loads-when":
  *  - $general_includes: nạp mọi request.
