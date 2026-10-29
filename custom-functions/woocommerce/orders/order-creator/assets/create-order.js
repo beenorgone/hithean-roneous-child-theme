@@ -16,7 +16,14 @@
         _couponNotified: {},   // { code: true } — đã hiện popup lỗi cho mã này
         fees: [],              // [{name, amount}]
         shipping_method: '',
-        lastOrder: null
+        lastOrder: null,
+        lastSnap: null,        // kết quả tính lại gần nhất (thành tiền từng dòng cho form AI)
+        aiPending: [],         // dòng AI chưa chắc: [{source, qty, reason, candidates, choice}]
+        aiSource: '',          // nội dung đã dán để lên đơn bằng AI (lưu vào đơn)
+        aiMatches: [],         // tài khoản trùng SĐT/email khi AI chưa chọn được 1 khách
+        aiUnmatched: {},       // tỉnh/phường AI đọc được nhưng không khớp danh mục
+        aiCreateCustomer: true, // khách mới: tạo tài khoản trước khi tạo đơn
+        customerCoupons: []    // mã còn hạn gắn với SĐT/email/tài khoản khách
     };
     var couponSearchTimer = 0;
     var couponSearchSeq = 0;
@@ -38,7 +45,10 @@
         fd.append('nonce', n);
         fd.append('_wpnonce', n);
         fd.append('_ajax_nonce', n);
-        Object.keys(params || {}).forEach(function (k) { fd.append(k, params[k]); });
+        Object.keys(params || {}).forEach(function (k) {
+            if (Array.isArray(params[k])) { params[k].forEach(function (v) { fd.append(k, v); }); }
+            else { fd.append(k, params[k]); }
+        });
         return fetch(CFG.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd })
             .then(function (r) {
                 return r.text().then(function (text) {
@@ -86,7 +96,8 @@
             order_date: $('#oc-order-date').value,
             customer_note: $('#oc-customer-note').value,
             internal_note: $('#oc-internal-note').value,
-            suppress_email: $('#oc-suppress-email').checked
+            suppress_email: $('#oc-suppress-email').checked,
+            ai_source: state.aiSource || ''
         };
     }
 
@@ -173,7 +184,7 @@
         $('#oc-bill-phone').value = b.phone || '';
         $('#oc-bill-email').value = b.email || '';
         $('#oc-bill-address').value = b.address_1 || '';
-        vnSetAddress($('#oc-bill-state'), $('#oc-bill-city'), b.state || '', b.city || '');
+        return vnSetAddress($('#oc-bill-state'), $('#oc-bill-city'), b.state || '', b.city || '');
     }
     function fillShipping(s) {
         s = s || {};
@@ -260,6 +271,10 @@
     function initSelects() {
         fillSelect($('#oc-status'), CFG.statuses || [], 'key', 'label', 'on-hold');
         fillSelect($('#oc-payment'), CFG.gateways || [], 'id', 'title', 'cod');
+        if ($('#oc-ai-order')) {
+            fillSelect($('#oc-ai-order-status'), CFG.statuses || [], 'key', 'label', 'on-hold');
+            fillSelect($('#oc-ai-payment'), CFG.gateways || [], 'id', 'title', 'cod');
+        }
         var bank = $('#oc-pay-bank');
         (CFG.bankAccounts || []).forEach(function (b) {
             var o = document.createElement('option'); o.value = b; o.textContent = b; bank.appendChild(o);
@@ -384,6 +399,11 @@
 
     // ---------- lines table ----------
     function renderLines(snapshot) {
+        renderManualLines(snapshot);
+        aiRenderItems();
+    }
+
+    function renderManualLines(snapshot) {
         var body = $('#oc-lines-body');
         body.innerHTML = '';
         if (!state.items.length) {
@@ -433,7 +453,14 @@
     }
 
     function renderCoupons() {
-        var listEl = $('#oc-coupon-list');
+        ['#oc-coupon-list', '#oc-ai-coupon-list'].forEach(function (sel) {
+            var listEl = $(sel);
+            if (listEl) { renderCouponList(listEl); }
+        });
+        renderCustomerCoupons();
+    }
+
+    function renderCouponList(listEl) {
         listEl.innerHTML = '';
         state.coupons.forEach(function (code, idx) {
             var st = state.couponStatus[code] || null;
@@ -970,6 +997,11 @@
             }
             state.editOrderId = isCopy ? 0 : o.order_id;
             setEditorDisabled(false);
+            state.aiPending = [];
+            state.aiMatches = [];
+            state.aiUnmatched = {};
+            state.aiSource = o.ai_source || '';
+            state.aiCreateCustomer = !!isCopy; // sửa đơn khách lẻ: không tự tạo tài khoản
             state.items = (o.items || []).map(function (it) {
                 return { product_id: it.product_id, variation_id: it.variation_id || 0, name: it.name, qty: it.qty, manual_price: '', line_discount: 0 };
             });
@@ -1007,6 +1039,7 @@
             } else {
                 markEditMode(o.order_number);
             }
+            aiRenderReview();
             doRecalc();
         });
     }
@@ -1034,7 +1067,7 @@
     }
 
     function setEditorDisabled(disabled) {
-        document.querySelectorAll('#oc-pane-create .oc-grid input, #oc-pane-create .oc-grid select, #oc-pane-create .oc-grid textarea, #oc-pane-create .oc-grid button').forEach(function (el) {
+        document.querySelectorAll('#oc-pane-create .oc-grid input, #oc-pane-create .oc-grid select, #oc-pane-create .oc-grid textarea, #oc-pane-create .oc-grid button, #oc-ai-order input, #oc-ai-order select, #oc-ai-order textarea, #oc-ai-order button').forEach(function (el) {
             if (['oc-customer-edit', 'oc-customer-history', 'oc-customer-products'].indexOf(el.id) !== -1) { return; }
             el.disabled = disabled;
         });
@@ -1084,6 +1117,8 @@
         state.fees = [];
         state.shipping_method = '';
         state.lastOrder = null;
+        state.lastSnap = null;
+        state.customerCoupons = [];
         setEditorDisabled(false);
 
         document.querySelectorAll('#oc-pane-create .oc-grid input, #oc-pane-create .oc-grid select, #oc-pane-create .oc-grid textarea').forEach(function (el) {
@@ -1109,6 +1144,7 @@
         renderFees();
         renderLines();
         updateTotals(null);
+        aiReset();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -1435,6 +1471,593 @@
         });
     }
 
+    // ---------- mã ưu đãi của khách (Lucky Wheel / gắn email / gắn SĐT) ----------
+    var custCouponSeq = 0;
+
+    function refreshCustomerCoupons() {
+        var payload = buildPayload();
+        var seq = ++custCouponSeq;
+        if (!payload.customer_id && !payload.billing.phone && !payload.billing.email) {
+            state.customerCoupons = [];
+            renderCustomerCoupons();
+            return;
+        }
+        post('order_creator_customer_coupons', { payload: JSON.stringify(payload) }).then(function (res) {
+            if (seq !== custCouponSeq || !res.success) { return; }
+            state.customerCoupons = res.data.coupons || [];
+            renderCustomerCoupons();
+        }).catch(function () { /* gợi ý phụ, bỏ qua lỗi mạng */ });
+    }
+
+    function customerCouponStatus(c) {
+        if (state.coupons.indexOf(c.code) !== -1) {
+            var st = state.couponStatus[c.code];
+            if (!st) { return { cls: '', text: 'Đã thêm vào đơn' }; }
+            return st.applied ? { cls: 'is-ok', text: '✓ Đang áp dụng' } : { cls: 'is-fail', text: '! ' + (st.message || 'Không áp dụng được') };
+        }
+        if (c.applicable === true) { return { cls: 'is-ok', text: 'Áp dụng được cho giỏ hiện tại' }; }
+        if (c.applicable === false) { return { cls: 'is-fail', text: c.message || 'Không áp dụng được cho giỏ hiện tại' }; }
+        return { cls: '', text: 'Thêm sản phẩm để kiểm tra điều kiện' };
+    }
+
+    function renderCustomerCoupons() {
+        var list = state.customerCoupons || [];
+        ['#oc-customer-coupons', '#oc-ai-customer-coupons'].forEach(function (sel) {
+            var box = $(sel);
+            if (!box) { return; }
+            box.hidden = !list.length;
+            box.innerHTML = '';
+            if (!list.length) { return; }
+            var head = document.createElement('div');
+            head.className = 'oc-customer-coupons__head';
+            head.textContent = '🎟️ Mã ưu đãi của khách (' + list.length + ')';
+            box.appendChild(head);
+            list.forEach(function (c) {
+                var inOrder = state.coupons.indexOf(c.code) !== -1;
+                var st = customerCouponStatus(c);
+                var row = document.createElement('div');
+                row.className = 'oc-cc-row ' + st.cls;
+                var meta = [c.value, c.expires ? 'HSD ' + c.expires : ''].filter(Boolean).join(' · ');
+                row.innerHTML =
+                    '<div class="oc-cc-main">' +
+                        '<div><b class="oc-cc-code">' + escapeHtml(c.code) + '</b> <span class="oc-cc-src">' + escapeHtml(c.source) + '</span></div>' +
+                        (meta ? '<small>' + escapeHtml(meta) + '</small>' : '') +
+                        (c.description ? '<small class="oc-muted">' + escapeHtml(c.description) + '</small>' : '') +
+                        '<small class="oc-cc-status">' + escapeHtml(st.text) + '</small>' +
+                    '</div>' +
+                    (inOrder ? '' : '<button type="button" class="oc-btn oc-btn--ghost oc-btn--sm">' + (c.applicable === false ? 'Thử áp dụng' : 'Áp dụng') + '</button>');
+                var btn = row.querySelector('button');
+                if (btn) { btn.addEventListener('click', function () { addCoupon(c.code); }); }
+                box.appendChild(row);
+            });
+        });
+    }
+
+    // ---------- chế độ AI tạo đơn ----------
+    var aiImages = [];
+    var aiTextLabel = '';
+
+    function storedMode() {
+        try { return window.localStorage.getItem('oc_create_mode') === 'ai' ? 'ai' : 'manual'; } catch (e) { return 'manual'; }
+    }
+
+    function currentMode() { return document.body.classList.contains('oc-mode-ai') ? 'ai' : 'manual'; }
+
+    function setMode(mode) {
+        if (!$('#oc-ai-order')) { return; }
+        mode = mode === 'ai' ? 'ai' : 'manual';
+        document.body.classList.toggle('oc-mode-ai', mode === 'ai');
+        $('#oc-ai-order').hidden = mode !== 'ai';
+        document.querySelectorAll('.oc-mode-btn').forEach(function (b) {
+            var on = b.dataset.mode === mode;
+            b.classList.toggle('is-active', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        try { window.localStorage.setItem('oc_create_mode', mode); } catch (e) { /* trình duyệt chặn storage */ }
+        if (mode === 'ai') { aiRenderReview(); }
+    }
+
+    function aiStatus(msg) { var el = $('#oc-ai-status'); if (el) { el.textContent = msg; } }
+
+    function aiAddImages(files) {
+        Array.prototype.forEach.call(files || [], function (file) {
+            if (!file || !/^image\//.test(file.type)) { return; }
+            if (aiImages.length >= 4) { aiStatus('Tối đa 4 ảnh mỗi lần bóc tách.'); return; }
+            if (file.size > 5 * 1024 * 1024) { aiStatus('❌ Ảnh "' + (file.name || '') + '" vượt quá 5MB.'); return; }
+            aiImages.push({ file: file, url: URL.createObjectURL(file) });
+        });
+        aiRenderThumbs();
+    }
+
+    function aiRenderThumbs() {
+        var box = $('#oc-ai-thumbs');
+        box.innerHTML = '';
+        box.hidden = !aiImages.length;
+        aiImages.forEach(function (img, i) {
+            var fig = document.createElement('figure');
+            fig.innerHTML = '<img alt="Ảnh ' + (i + 1) + '"><button type="button" class="oc-x" aria-label="Bỏ ảnh">&times;</button>';
+            fig.querySelector('img').src = img.url;
+            fig.querySelector('button').addEventListener('click', function () {
+                URL.revokeObjectURL(img.url);
+                aiImages.splice(i, 1);
+                aiRenderThumbs();
+            });
+            box.appendChild(fig);
+        });
+    }
+
+    function aiClearImages() {
+        aiImages.forEach(function (img) { URL.revokeObjectURL(img.url); });
+        aiImages = [];
+        $('#oc-ai-images').value = '';
+        aiRenderThumbs();
+    }
+
+    // Gộp 1 sản phẩm vào danh sách dòng (cùng SP/biến thể thì cộng SL); giữ giá sửa/giảm của dòng cũ khi AI sửa đơn.
+    function aiMergeItem(list, entry, qty, prev) {
+        var vid = entry.variation_id || 0;
+        var existing = list.find(function (it) { return it.product_id === entry.product_id && (it.variation_id || 0) === vid; });
+        if (existing) { existing.qty += qty; return; }
+        list.push({
+            product_id: entry.product_id,
+            variation_id: vid,
+            name: entry.name,
+            unit_price: Number(entry.price),
+            qty: qty,
+            manual_price: prev ? prev.manual_price : '',
+            line_discount: prev ? prev.line_discount : 0
+        });
+    }
+
+    function aiFlattenProducts(products) {
+        var out = [];
+        (products || []).forEach(function (p) {
+            if (p.type === 'variable' && p.variations && p.variations.length) {
+                p.variations.forEach(function (v) {
+                    out.push({ product_id: p.id, variation_id: v.id, name: p.name + ' — ' + v.label, sku: v.sku, price: v.price });
+                });
+            } else {
+                out.push({ product_id: p.id, variation_id: 0, name: p.name, sku: p.sku, price: p.price });
+            }
+        });
+        return out;
+    }
+
+    function aiEntryLabel(e) { return e.name + (e.sku ? ' (' + e.sku + ')' : '') + ' — ' + money(e.price); }
+
+    // Ô tìm SP dùng chung cho "Thêm sản phẩm" và "Tìm SP khác" của dòng cần xác nhận.
+    function aiBindProductSearch(input, box, onPick) {
+        var timer = 0;
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            var term = input.value.trim();
+            if (term.length < 2) { box.hidden = true; return; }
+            timer = setTimeout(function () {
+                post('order_creator_search_products', { term: term }).then(function (res) {
+                    if (!res.success) { return; }
+                    var entries = aiFlattenProducts(res.data.products);
+                    box.innerHTML = entries.length ? '' : '<div class="oc-result-empty">Không tìm thấy.</div>';
+                    entries.forEach(function (e) {
+                        var row = document.createElement('div');
+                        row.className = 'oc-result-row';
+                        row.innerHTML = '<span>' + escapeHtml(e.name + (e.sku ? ' (' + e.sku + ')' : '')) + '</span><b>' + money(e.price) + '</b>';
+                        row.addEventListener('click', function () {
+                            box.hidden = true;
+                            input.value = '';
+                            onPick(e);
+                        });
+                        box.appendChild(row);
+                    });
+                    box.hidden = false;
+                });
+            }, 300);
+        });
+        input.addEventListener('blur', function () { setTimeout(function () { box.hidden = true; }, 200); });
+    }
+
+    function aiRenderPending() {
+        var box = $('#oc-ai-pending');
+        if (!box) { return; }
+        box.innerHTML = '';
+        state.aiPending.forEach(function (p, i) {
+            var row = document.createElement('div');
+            row.className = 'oc-ai-item is-pending';
+            var options = '<option value="-1">— Chọn sản phẩm —</option>' + p.candidates.map(function (c, ci) {
+                return '<option value="' + ci + '"' + (ci === p.choice ? ' selected' : '') + '>' + escapeHtml(aiEntryLabel(c)) + '</option>';
+            }).join('');
+            row.innerHTML =
+                '<div class="oc-ai-item__main">' +
+                    '<span class="oc-ai-badge">Cần xác nhận</span> <span>AI đọc: “' + escapeHtml(p.source || '?') + '”</span>' +
+                    (p.reason ? '<small class="oc-ai-item__reason">' + escapeHtml(p.reason) + '</small>' : '') +
+                '</div>' +
+                '<div class="oc-ai-item__pick">' +
+                    '<select data-pf="choice">' + options + '</select>' +
+                    '<div class="oc-ai-item__search"><input type="text" placeholder="Hoặc tìm sản phẩm khác..."><div class="oc-search-results" hidden></div></div>' +
+                '</div>' +
+                '<label class="oc-ai-item__qty">SL <input type="number" class="oc-mini" min="1" data-pf="qty" value="' + p.qty + '"></label>' +
+                '<div class="oc-ai-item__acts">' +
+                    '<button type="button" class="oc-btn oc-btn--primary oc-btn--sm" data-pa="confirm">Xác nhận</button>' +
+                    '<button type="button" class="oc-x" data-pa="drop" aria-label="Bỏ dòng">&times;</button>' +
+                '</div>';
+            row.querySelector('[data-pf="choice"]').addEventListener('change', function () { p.choice = Number(this.value); });
+            row.querySelector('[data-pf="qty"]').addEventListener('input', function () { p.qty = Math.max(1, Math.round(Number(this.value) || 1)); });
+            aiBindProductSearch(row.querySelector('.oc-ai-item__search input'), row.querySelector('.oc-ai-item__search .oc-search-results'), function (e) {
+                p.candidates.unshift(e);
+                p.choice = 0;
+                aiRenderPending();
+            });
+            row.querySelector('[data-pa="confirm"]').addEventListener('click', function () {
+                var entry = p.candidates[p.choice];
+                if (!entry) { alert('Chọn sản phẩm cho dòng "' + (p.source || '') + '".'); return; }
+                state.aiPending.splice(i, 1);
+                aiMergeItem(state.items, entry, p.qty, null);
+                aiRenderPending();
+                renderLines();
+                recalc();
+            });
+            row.querySelector('[data-pa="drop"]').addEventListener('click', function () {
+                state.aiPending.splice(i, 1);
+                aiRenderPending();
+            });
+            box.appendChild(row);
+        });
+    }
+
+    function aiRenderItems() {
+        var box = $('#oc-ai-lines');
+        if (!box) { return; }
+        var snap = state.lastSnap;
+        box.innerHTML = '';
+        if (!state.items.length && !state.aiPending.length) {
+            box.innerHTML = '<div class="oc-muted">Chưa có sản phẩm.</div>';
+            return;
+        }
+        state.items.forEach(function (it, idx) {
+            var line = snap ? (snap.lines || []).find(function (l) { return l.product_id === it.product_id && l.variation_id === (it.variation_id || 0); }) : null;
+            var row = document.createElement('div');
+            row.className = 'oc-ai-item';
+            row.innerHTML =
+                '<div class="oc-ai-item__main"><span class="oc-ai-badge is-ok">✓</span> ' + escapeHtml(it.name) + '</div>' +
+                '<label class="oc-ai-item__qty">SL <input type="number" class="oc-mini" min="1" value="' + it.qty + '"></label>' +
+                '<b class="oc-ai-item__total">' + (line ? money(line.line_total) : '—') + '</b>' +
+                '<div class="oc-ai-item__acts"><button type="button" class="oc-x" aria-label="Bỏ sản phẩm">&times;</button></div>';
+            var qty = row.querySelector('input');
+            qty.addEventListener('input', function () { it.qty = Math.max(1, Number(qty.value) || 1); });
+            qty.addEventListener('change', function () { renderManualLines(state.lastSnap); recalc(); });
+            row.querySelector('.oc-x').addEventListener('click', function () {
+                state.items.splice(idx, 1);
+                renderLines();
+                recalc();
+            });
+            box.appendChild(row);
+        });
+    }
+
+    function selectedText(sel) {
+        return sel && sel.value && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].textContent : '';
+    }
+
+    function clearSelectedCustomer() {
+        state.customer = null;
+        $('#oc-customer-search').value = '';
+        $('#oc-customer-card').hidden = true;
+        $('#oc-customer-card').innerHTML = '';
+        $('#oc-customer-info').hidden = true;
+        $('#oc-customer-info').innerHTML = '';
+        ['#oc-customer-edit', '#oc-customer-history', '#oc-customer-products'].forEach(function (sel) { var el = $(sel); if (el) { el.hidden = true; } });
+        updateSaveAddressAction();
+    }
+
+    function aiRenderCustomer() {
+        var box = $('#oc-ai-customer');
+        if (!box) { return; }
+        var html = '';
+        if (state.customer) {
+            html += '<div class="oc-ai-cust-head"><span>👤 <b>' + escapeHtml(state.customer.name) + '</b> (#' + state.customer.id + ') — tài khoản có sẵn</span>' +
+                '<button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-ai-act="cust-clear">Đổi khách</button></div>';
+        } else if (state.aiMatches.length) {
+            html += '<div class="oc-ai-warn">Có ' + state.aiMatches.length + ' tài khoản trùng SĐT/email — chọn đúng khách:</div><div class="oc-ai-matches">' +
+                state.aiMatches.map(function (c, i) {
+                    return '<button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-ai-match="' + i + '">' + escapeHtml(c.name + ' #' + c.id + (c.phone ? ' · ' + c.phone : '') + (c.email ? ' · ' + c.email : '')) + '</button>';
+                }).join('') + '</div>';
+        } else {
+            html += '<label class="oc-ai-newcust"><input type="checkbox" data-ai-act="create-customer"' + (state.aiCreateCustomer ? ' checked' : '') + '> Khách mới — tạo tài khoản khách hàng khi tạo đơn</label>' +
+                '<small class="oc-muted">Khách đã có tài khoản với SĐT khác? Chuyển sang giao diện thủ công để tìm khách.</small>';
+        }
+        var field = function (label, id, span) {
+            return '<div' + (span ? ' class="oc-form-span"' : '') + '><label>' + label + '</label><input type="text" data-bind="' + id + '" value="' + escapeHtml($('#' + id).value) + '"></div>';
+        };
+        var area = [selectedText($('#oc-bill-city')), selectedText($('#oc-bill-state'))].filter(Boolean).join(', ');
+        var warn = [];
+        if (state.aiUnmatched.state) { warn.push('Tỉnh/Thành "' + state.aiUnmatched.state + '"'); }
+        if (state.aiUnmatched.city) { warn.push('Phường/Xã "' + state.aiUnmatched.city + '"'); }
+        html += '<div class="oc-form-grid oc-ai-cust-fields">' +
+            field('Họ tên', 'oc-bill-name') + field('SĐT', 'oc-bill-phone') +
+            field('Email', 'oc-bill-email') + field('Địa chỉ', 'oc-bill-address', true) +
+            '<div class="oc-form-span oc-ai-area">' +
+                '<span>' + (area ? '📍 ' + escapeHtml(area) : '⚠️ Chưa có Tỉnh/Thành, Phường/Xã') + '</span>' +
+                ($('#oc-ship-diff').checked ? '<small class="oc-muted">Giao đến địa chỉ khác: ' + escapeHtml([$('#oc-ship-name').value, $('#oc-ship-address').value].filter(Boolean).join(' — ')) + '</small>' : '') +
+                (warn.length ? '<small class="oc-ai-warn">⚠️ Không khớp danh mục: ' + escapeHtml(warn.join(', ')) + ' — chọn lại trên giao diện thủ công.</small>' : '') +
+                '<button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-mode-switch="manual">Sửa Tỉnh/Phường, địa chỉ giao</button>' +
+            '</div>' +
+        '</div>';
+        box.innerHTML = html;
+    }
+
+    function aiSyncFromManual() {
+        document.querySelectorAll('#oc-ai-order [data-sync]').forEach(function (el) {
+            var src = $('#' + el.dataset.sync);
+            if (src) { el.value = src.value; }
+        });
+    }
+
+    function aiRenderReview() {
+        if (!$('#oc-ai-order')) { return; }
+        var editing = !!(state.items.length || state.aiPending.length);
+        $('#oc-ai-review').hidden = !(editing || state.customer || state.aiSource || state.editOrderId);
+        $('#oc-ai-source').hidden = !state.aiSource;
+        $('#oc-ai-source-text').textContent = state.aiSource;
+        $('#oc-ai-rerun').hidden = !editing;
+        $('#oc-ai-run').textContent = editing ? 'Sửa đơn bằng AI' : 'Bóc tách & lên đơn';
+        $('#oc-ai-text-label').textContent = editing
+            ? 'Yêu cầu chỉnh sửa (vd: "thêm 1 hộp X, bỏ Y, đổi SL Z thành 3") — có thể dán thêm tin nhắn / ảnh mới'
+            : aiTextLabel;
+        $('#oc-ai-input-title').textContent = state.editOrderId ? '✨ Sửa đơn bằng AI' : '✨ AI tạo đơn';
+        aiSyncFromManual();
+        aiRenderCustomer();
+        aiRenderPending();
+        aiRenderItems();
+        renderCoupons();
+    }
+
+    function aiReset() {
+        state.aiPending = [];
+        state.aiSource = '';
+        state.aiMatches = [];
+        state.aiUnmatched = {};
+        state.aiCreateCustomer = true;
+        if (!$('#oc-ai-order')) { return; }
+        $('#oc-ai-text').value = '';
+        aiClearImages();
+        aiStatus('');
+        aiRenderReview();
+    }
+
+    // "Bóc tách lại từ đầu": bỏ dữ liệu đơn đang dựng (giữ đơn đang sửa nếu có).
+    function aiClearOrderData() {
+        state.items = [];
+        state.coupons = [];
+        state.couponStatus = {};
+        state._couponNotified = {};
+        state.fees = [];
+        state.aiPending = [];
+        state.aiSource = '';
+        state.aiMatches = [];
+        state.aiUnmatched = {};
+        clearSelectedCustomer();
+        fillBilling({});
+        setShipDiff(false);
+        $('#oc-customer-note').value = '';
+        $('#oc-internal-note').value = '';
+        renderFees();
+    }
+
+    function nonEmpty(obj) {
+        var out = {};
+        Object.keys(obj).forEach(function (k) { if (obj[k]) { out[k] = obj[k]; } });
+        return out;
+    }
+
+    function aiApplyResult(d, text, isEdit) {
+        // Sản phẩm: dòng chắc chắn vào giỏ, dòng nghi ngờ chờ xác nhận.
+        var prevItems = state.items;
+        var items = [];
+        var pending = isEdit ? state.aiPending.slice() : [];
+        (d.items || []).forEach(function (it) {
+            if (it.status === 'ok' && it.product) {
+                var prev = prevItems.find(function (p) { return p.product_id === it.product.product_id && (p.variation_id || 0) === (it.product.variation_id || 0); });
+                aiMergeItem(items, it.product, it.qty || 1, prev);
+            } else {
+                var candidates = it.candidates || [];
+                pending.push({ source: it.source, qty: it.qty || 1, reason: it.reason, candidates: candidates, choice: candidates.length ? 0 : -1 });
+            }
+        });
+        state.items = items;
+        state.aiPending = pending;
+
+        // Khách hàng: khớp đúng 1 tài khoản → chọn; nhiều → nhân viên chọn; không có → khách mới.
+        var c = d.customer || {};
+        var f = c.fields || {};
+        var aiBilling = nonEmpty({ first_name: f.first_name, last_name: f.last_name, phone: f.phone, email: f.email, address_1: f.address_1, state: f.state, city: f.city });
+        var hasAddr = !!(aiBilling.address_1 || aiBilling.state);
+        var matches = c.matches || [];
+        state.aiUnmatched = c.unmatched || {};
+        var billingDone;
+        if (isEdit) {
+            billingDone = Object.keys(aiBilling).length ? fillBilling(Object.assign(collectBilling(), aiBilling)) : Promise.resolve();
+        } else if (matches.length === 1) {
+            var m = matches[0];
+            state.aiMatches = [];
+            selectCustomer(m, true);
+            applyCustomerPaymentDefault(m);
+            if (hasAddr) {
+                var b = Object.assign({}, m.billing || {}, aiBilling);
+                if (m.billing && m.billing.first_name) { b.first_name = m.billing.first_name; b.last_name = m.billing.last_name; }
+                billingDone = fillBilling(b);
+                setShipDiff(false);
+            } else {
+                applyAddresses(m.billing || {}, m.shipping || {});
+                billingDone = Promise.resolve();
+            }
+        } else {
+            clearSelectedCustomer();
+            state.aiMatches = matches;
+            billingDone = fillBilling(aiBilling);
+            setShipDiff(false);
+        }
+
+        (d.coupon_codes || []).forEach(function (code) {
+            code = String(code).toLowerCase();
+            if (state.coupons.indexOf(code) === -1) { state.coupons.push(code); }
+        });
+        if (d.payment_method) { setPaymentMethod(d.payment_method); }
+        if (d.customer_note) { $('#oc-customer-note').value = d.customer_note; }
+        if (d.internal_note) {
+            var note = $('#oc-internal-note');
+            note.value = note.value ? note.value + '\n' + d.internal_note : d.internal_note;
+        }
+
+        var used = text || ('[' + aiImages.length + ' ảnh]');
+        state.aiSource = state.aiSource ? state.aiSource + '\n--- Chỉnh sửa ---\n' + used : used;
+        $('#oc-ai-text').value = '';
+        aiClearImages();
+
+        var msg = '✅ ' + (isEdit ? 'Đã sửa đơn' : 'Đã lên đơn') + ': ' + items.length + ' sản phẩm';
+        if (pending.length) { msg += ', ' + pending.length + ' dòng cần xác nhận'; }
+        if (matches.length > 1 && !isEdit) { msg += '. Có ' + matches.length + ' tài khoản trùng SĐT/email, chọn khách'; }
+        if ((d.unknown_coupons || []).length) { msg += '. ⚠️ Không tìm thấy mã: ' + d.unknown_coupons.join(', '); }
+        if (d.web_search_enabled) { msg += ' (Google Search đã bật cho địa chỉ)'; }
+        aiStatus(msg + ' — kiểm tra lại trước khi tạo đơn.');
+
+        renderFees();
+        renderLines();
+        billingDone.then(function () {
+            aiRenderReview();
+            doRecalc();
+            $('#oc-ai-review').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    function aiRun(fresh) {
+        var text = $('#oc-ai-text').value.trim();
+        if (!text && !aiImages.length) { aiStatus('Dán tin nhắn hoặc chọn ảnh trước.'); return; }
+        if (fresh) {
+            if (!window.confirm('Bỏ khách, sản phẩm, mã ưu đãi đang có và bóc tách lại từ đầu?')) { return; }
+            aiClearOrderData();
+            renderCoupons();
+            renderLines();
+        }
+        var isEdit = !!(state.items.length || state.aiPending.length);
+        var params = {
+            text: text,
+            convert_old_address: $('#oc-ai-convert-address').checked ? 1 : 0,
+            'images[]': aiImages.map(function (img) { return img.file; })
+        };
+        if (isEdit) {
+            params.current = JSON.stringify({
+                items: state.items.map(function (it) { return { product_id: it.product_id, variation_id: it.variation_id || 0, name: it.name, qty: it.qty }; })
+            });
+        }
+        var buttons = [$('#oc-ai-run'), $('#oc-ai-rerun')];
+        buttons.forEach(function (b) { b.disabled = true; });
+        aiStatus(isEdit ? '⏳ AI đang sửa đơn...' : '⏳ AI đang đọc đơn (khách, sản phẩm, mã ưu đãi)...');
+        post('order_creator_ai_extract_order', params).then(function (res) {
+            buttons.forEach(function (b) { b.disabled = false; });
+            if (!res.success) { aiStatus('❌ ' + ((res.data && res.data.message) || 'Bóc tách thất bại.')); return; }
+            aiApplyResult(res.data, text, isEdit);
+        }).catch(function (err) {
+            buttons.forEach(function (b) { b.disabled = false; });
+            aiStatus('❌ Không gọi được AI' + (err && err.message ? ': ' + err.message : ', thử lại sau.'));
+        });
+    }
+
+    // Khách mới ở chế độ AI: tạo tài khoản ngay trước khi tạo đơn để đơn gắn đúng khách.
+    function aiEnsureCustomer() {
+        if (currentMode() !== 'ai' || state.customer) { return Promise.resolve(); }
+        if (state.aiMatches.length) {
+            return Promise.reject(new Error('Có ' + state.aiMatches.length + ' tài khoản trùng SĐT/email — chọn đúng khách trong mục Khách hàng trước khi tạo đơn.'));
+        }
+        if (!state.aiCreateCustomer) { return Promise.resolve(); }
+        var b = collectBilling();
+        if (!b.phone && !b.email) { return Promise.resolve(); }
+        if (!b.first_name) { return Promise.reject(new Error('Thiếu họ tên khách để tạo tài khoản.')); }
+        var payload = {
+            user_id: 0, copy_to_shipping: 1, role: 'customer', username: '',
+            first_name: b.first_name, last_name: b.last_name || '', email: b.email || '', phone: b.phone || '',
+            address_1: b.address_1 || '', address_2: '', state: b.state || '', city: b.city || ''
+        };
+        return post('order_creator_create_customer', { payload: JSON.stringify(payload) }).then(function (res) {
+            if (!res.success) {
+                throw new Error('Không tạo được khách hàng mới: ' + ((res.data && res.data.message) || 'lỗi không xác định') + '\nBỏ tích "Khách mới — tạo tài khoản" để tạo đơn khách lẻ.');
+            }
+            selectCustomer(res.data.customer, true);
+            aiRenderCustomer();
+        });
+    }
+
+    function aiBind() {
+        aiTextLabel = $('#oc-ai-text-label').textContent;
+        document.querySelectorAll('.oc-mode-btn').forEach(function (b) {
+            b.addEventListener('click', function () { setMode(b.dataset.mode); });
+        });
+        // Nút "Sửa trên giao diện thủ công" (kể cả nút render động trong form AI).
+        $('#oc-ai-order').addEventListener('click', function (e) {
+            var sw = e.target.closest('[data-mode-switch]');
+            if (sw) {
+                setMode(sw.dataset.modeSwitch);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+        $('#oc-ai-run').addEventListener('click', function () { aiRun(false); });
+        $('#oc-ai-rerun').addEventListener('click', function () { aiRun(true); });
+        $('#oc-ai-images').addEventListener('change', function () { aiAddImages(this.files); this.value = ''; });
+        $('#oc-ai-text').addEventListener('paste', function (e) {
+            var items = (e.clipboardData && e.clipboardData.items) || [];
+            var files = [];
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].type && items[i].type.indexOf('image/') === 0) { files.push(items[i].getAsFile()); }
+            }
+            if (files.length) { e.preventDefault(); aiAddImages(files); }
+        });
+        $('#oc-ai-text').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); aiRun(false); }
+        });
+
+        var cust = $('#oc-ai-customer');
+        cust.addEventListener('click', function (e) {
+            var match = e.target.closest('[data-ai-match]');
+            if (match) {
+                var c = state.aiMatches[Number(match.dataset.aiMatch)];
+                state.aiMatches = [];
+                selectCustomer(c, true);
+                applyCustomerPaymentDefault(c);
+                aiRenderCustomer();
+                return;
+            }
+            if (e.target.closest('[data-ai-act="cust-clear"]')) {
+                clearSelectedCustomer();
+                state.aiCreateCustomer = false;
+                aiRenderCustomer();
+                recalc();
+            }
+        });
+        cust.addEventListener('change', function (e) {
+            if (e.target.dataset.aiAct === 'create-customer') { state.aiCreateCustomer = e.target.checked; return; }
+            if (e.target.dataset.bind) { recalc(); }
+        });
+        cust.addEventListener('input', function (e) {
+            var id = e.target.dataset.bind;
+            if (id) { $('#' + id).value = e.target.value; }
+        });
+
+        document.querySelectorAll('#oc-ai-order [data-sync]').forEach(function (el) {
+            el.addEventListener('change', function () { $('#' + el.dataset.sync).value = el.value; });
+            el.addEventListener('input', function () { $('#' + el.dataset.sync).value = el.value; });
+        });
+
+        aiBindProductSearch($('#oc-ai-product-search'), $('#oc-ai-product-results'), function (e) {
+            aiMergeItem(state.items, e, 1, null);
+            renderLines();
+            recalc();
+        });
+        var addAiCoupon = function () {
+            addCoupon($('#oc-ai-coupon-input').value);
+            $('#oc-ai-coupon-input').value = '';
+        };
+        $('#oc-ai-coupon-add').addEventListener('click', addAiCoupon);
+        $('#oc-ai-coupon-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addAiCoupon(); } });
+    }
+
     // ---------- recalc ----------
     var recalcTimer;
     function recalc() {
@@ -1443,9 +2066,12 @@
     }
 
     function doRecalc() {
-        if (!state.items.length) { renderLines(); updateTotals(null); return; }
+        if (!state.items.length) { state.lastSnap = null; renderLines(); updateTotals(null); refreshCustomerCoupons(); return; }
         post('order_creator_recalculate', { payload: JSON.stringify(buildPayload()) }).then(function (res) {
             if (!res.success) { console.warn(res.data && res.data.message); return; }
+            state.lastSnap = res.data;
+            custCouponSeq++; // bỏ kết quả gợi ý mã (giỏ trống) về muộn
+            state.customerCoupons = res.data.customer_coupons || [];
             renderLines(res.data);
             updateTotals(res.data);
             updateShippingOptions(res.data);
@@ -1456,8 +2082,7 @@
     function updateTotals(snap) {
         var keys = ['subtotal', 'discount_total', 'fee_total', 'shipping_total', 'tax_total', 'total'];
         keys.forEach(function (k) {
-            var el = $('#oc-totals [data-total="' + k + '"]');
-            if (el) el.textContent = money(snap ? snap[k] : 0);
+            document.querySelectorAll('[data-total="' + k + '"]').forEach(function (el) { el.textContent = money(snap ? snap[k] : 0); });
         });
     }
 
@@ -1509,7 +2134,25 @@
 
     // ---------- create order ----------
     function createOrder(isDraft) {
+        if (state.aiPending.length) {
+            alert('Còn ' + state.aiPending.length + ' dòng sản phẩm AI cần xác nhận.');
+            setMode('ai');
+            $('#oc-ai-items').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
         if (!state.items.length) { alert('Chưa có sản phẩm.'); return; }
+        var btn = isDraft ? $('#oc-draft') : $('#oc-create');
+        btn.disabled = true;
+        aiEnsureCustomer().then(function () {
+            btn.disabled = false;
+            submitOrder(isDraft);
+        }).catch(function (err) {
+            btn.disabled = false;
+            alert((err && err.message) || 'Không chuẩn bị được khách hàng cho đơn.');
+        });
+    }
+
+    function submitOrder(isDraft) {
         flushPendingFee();
         var payload = buildPayload();
         payload.draft = !!isDraft;
@@ -1915,7 +2558,7 @@
             recalc();
         });
         $('#oc-ship-load-btn').addEventListener('click', loadShippingFromOrder);
-        ['oc-bill-state', 'oc-bill-city', 'oc-bill-address', 'oc-ship-state', 'oc-ship-city', 'oc-ship-address'].forEach(function (id) {
+        ['oc-bill-state', 'oc-bill-city', 'oc-bill-address', 'oc-bill-phone', 'oc-bill-email', 'oc-ship-state', 'oc-ship-city', 'oc-ship-address'].forEach(function (id) {
             var el = $('#' + id); if (el) { el.addEventListener('change', recalc); }
         });
         $('#oc-customer-new-toggle').addEventListener('click', function () { openCustomerModal('new'); });
@@ -1954,6 +2597,7 @@
                 }
             });
         }
+        if ($('#oc-ai-order')) { aiBind(); }
         document.querySelectorAll('.oc-tab[data-tab]').forEach(function (b) { b.addEventListener('click', function () { switchTab(b.dataset.tab); }); });
         $('#oc-invoice-jpg').addEventListener('click', invoiceToJpg);
         $('#oc-invoice-copy').addEventListener('click', invoiceCopy);
@@ -1991,5 +2635,6 @@
     document.body.classList.toggle('oc-hide-line-discount', !!SET.hide_line_discount);
     initSelects();
     bind();
+    if ($('#oc-ai-order')) { setMode(storedMode()); }
     if (state.editOrderId) { loadOrder(state.editOrderId); }
 })();

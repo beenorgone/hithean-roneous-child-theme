@@ -1166,6 +1166,10 @@ function order_creator_apply_status_and_notes(WC_Order $order, array $payload, b
     if (!empty($payload['internal_note'])) {
         $order->add_order_note(sanitize_textarea_field($payload['internal_note']), false);
     }
+    // Nội dung gốc đã dán khi tạo/sửa bằng AI → mở lại form AI khi chỉnh đơn.
+    if (isset($payload['ai_source']) && trim((string) $payload['ai_source']) !== '') {
+        $order->update_meta_data('_order_creator_ai_source', sanitize_textarea_field((string) $payload['ai_source']));
+    }
     if ($is_draft) {
         $order->add_order_note('Đơn được lưu dạng nháp.', false);
     }
@@ -1569,6 +1573,192 @@ add_action('wp_ajax_order_creator_search_coupons', function () {
     }
 
     wp_send_json_success(['coupons' => $coupons]);
+});
+
+// ================================================================
+// MÃ ƯU ĐÃI CỦA KHÁCH (gợi ý theo SĐT / email / tài khoản)
+// ================================================================
+
+/** SĐT (dạng 0xxxxxxxxx), email và user id của khách trong payload để dò mã gắn riêng. */
+function order_creator_customer_contacts(array $payload): array
+{
+    $user_id = absint($payload['customer_id'] ?? 0);
+    $phones  = [];
+    $emails  = [];
+    foreach (['billing', 'shipping'] as $type) {
+        $addr = isset($payload[$type]) && is_array($payload[$type]) ? $payload[$type] : [];
+        $phones[] = (string) ($addr['phone'] ?? '');
+        $emails[] = (string) ($addr['email'] ?? '');
+    }
+    if ($user_id > 0) {
+        $user = get_user_by('id', $user_id);
+        if ($user) {
+            $emails[] = $user->user_email;
+            $emails[] = (string) get_user_meta($user_id, 'billing_email', true);
+            $phones[] = (string) get_user_meta($user_id, 'billing_phone', true);
+        }
+    }
+
+    $norm_phones = [];
+    foreach ($phones as $phone) {
+        $digits = preg_replace('/\D+/', '', $phone) ?: '';
+        if (strpos($digits, '84') === 0) {
+            $digits = '0' . substr($digits, 2);
+        }
+        if (preg_match('/^0\d{9,10}$/', $digits)) {
+            $norm_phones[$digits] = true;
+        }
+    }
+    $norm_emails = [];
+    foreach ($emails as $email) {
+        $email = strtolower(trim($email));
+        if ($email !== '' && is_email($email)) {
+            $norm_emails[$email] = true;
+        }
+    }
+
+    return ['phones' => array_keys($norm_phones), 'emails' => array_keys($norm_emails), 'user_id' => $user_id];
+}
+
+/**
+ * Coupon gắn với khách: tạo từ Lucky Wheel (SĐT/email/tài khoản lúc quay) hoặc gắn trực tiếp
+ * (giới hạn email trong coupon, hoặc SĐT ghi trong mô tả coupon).
+ * @return array<int,string> coupon_id => nguồn (lucky_wheel | email | phone)
+ */
+function order_creator_customer_coupon_ids(array $contacts): array
+{
+    global $wpdb;
+
+    $found = [];
+    $add = static function (array $ids, string $source) use (&$found): void {
+        foreach ($ids as $id) {
+            $id = (int) $id;
+            if ($id > 0 && !isset($found[$id])) {
+                $found[$id] = $source;
+            }
+        }
+    };
+
+    $lw_values = array_merge($contacts['phones'], $contacts['emails']);
+    if ($lw_values) {
+        $in = implode(',', array_fill(0, count($lw_values), '%s'));
+        $add($wpdb->get_col($wpdb->prepare(
+            "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_thean_lw_contact_value' AND meta_value IN ($in)",
+            $lw_values
+        )), 'lucky_wheel');
+    }
+    if ($contacts['user_id'] > 0) {
+        $add($wpdb->get_col($wpdb->prepare(
+            "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_thean_lw_user_id' AND meta_value = %s",
+            (string) $contacts['user_id']
+        )), 'lucky_wheel');
+    }
+    foreach ($contacts['emails'] as $email) {
+        // customer_email lưu dạng mảng serialize: khớp nguyên chuỗi trong dấu nháy.
+        $add($wpdb->get_col($wpdb->prepare(
+            "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = 'customer_email' AND meta_value LIKE %s",
+            '%"' . $wpdb->esc_like($email) . '"%'
+        )), 'email');
+    }
+    foreach ($contacts['phones'] as $phone) {
+        $add($wpdb->get_col($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'shop_coupon' AND post_excerpt LIKE %s",
+            '%' . $wpdb->esc_like($phone) . '%'
+        )), 'phone');
+    }
+
+    krsort($found); // mã mới tạo trước
+    return array_slice($found, 0, 30, true);
+}
+
+function order_creator_coupon_value_text(WC_Coupon $coupon): string
+{
+    $amount = (float) $coupon->get_amount();
+    $parts  = [];
+    if ($amount > 0) {
+        $parts[] = in_array($coupon->get_discount_type(), ['percent', 'percent_product'], true)
+            ? 'Giảm ' . wc_format_decimal($amount, false, true) . '%'
+            : 'Giảm ' . wp_strip_all_tags(wc_price($amount));
+    }
+    if ($coupon->get_free_shipping()) {
+        $parts[] = 'Miễn phí ship';
+    }
+    if ((float) $coupon->get_minimum_amount() > 0) {
+        $parts[] = 'đơn từ ' . wp_strip_all_tags(wc_price($coupon->get_minimum_amount()));
+    }
+
+    return implode(' · ', $parts);
+}
+
+/**
+ * Danh sách mã của khách còn hạn/còn lượt. $check_cart = true khi đang ở trong
+ * order_creator_with_customer_context() với giỏ đã nạp: kiểm tra luôn mã có áp được cho giỏ không.
+ */
+function order_creator_customer_coupons(array $payload, bool $check_cart): array
+{
+    $contacts = order_creator_customer_contacts($payload);
+    if (!$contacts['phones'] && !$contacts['emails'] && !$contacts['user_id']) {
+        return [];
+    }
+
+    $in_order = [];
+    foreach ((array) ($payload['coupons'] ?? []) as $code) {
+        $in_order[wc_format_coupon_code((string) $code)] = true;
+    }
+    $source_labels = ['lucky_wheel' => 'Vòng quay may mắn', 'email' => 'Gắn theo email', 'phone' => 'Gắn theo SĐT'];
+    $cart_ready    = $check_cart && WC()->cart && !WC()->cart->is_empty();
+
+    $out = [];
+    foreach (order_creator_customer_coupon_ids($contacts) as $id => $source) {
+        if (get_post_status($id) !== 'publish') {
+            continue;
+        }
+        $coupon = new WC_Coupon($id);
+        $code   = wc_format_coupon_code($coupon->get_code());
+        if (!$coupon->get_id() || $code === '') {
+            continue;
+        }
+        // Mã đã nằm trong đơn đang sửa luôn hiện (lượt dùng gồm chính đơn này).
+        if (!isset($in_order[$code])) {
+            $expiry = $coupon->get_date_expires();
+            if ($expiry && $expiry->getTimestamp() < time()) {
+                continue;
+            }
+            if ((int) $coupon->get_usage_limit() > 0 && (int) $coupon->get_usage_count() >= (int) $coupon->get_usage_limit()) {
+                continue;
+            }
+        }
+
+        $applied    = $cart_ready && WC()->cart->has_discount($code);
+        $applicable = null; // null = chưa kiểm tra (giỏ trống)
+        $message    = '';
+        if ($cart_ready && !$applied) {
+            $valid      = (new WC_Discounts(WC()->cart))->is_coupon_valid($coupon);
+            $applicable = $valid === true;
+            $message    = is_wp_error($valid) ? wp_strip_all_tags($valid->get_error_message()) : '';
+        }
+
+        $expiry = $coupon->get_date_expires();
+        $out[] = [
+            'code'        => $code,
+            'source'      => $source_labels[$source] ?? $source,
+            'value'       => order_creator_coupon_value_text($coupon),
+            'description' => wp_trim_words(order_creator_coupon_description($coupon), 18, '...'),
+            'expires'     => $expiry ? $expiry->date_i18n('d/m/Y') : '',
+            'in_order'    => isset($in_order[$code]),
+            'applied'     => $cart_ready ? $applied : isset($in_order[$code]),
+            'applicable'  => $applied ? true : $applicable,
+            'message'     => $message,
+        ];
+    }
+
+    return $out;
+}
+
+/** Gợi ý mã khi giỏ còn trống (chưa kiểm tra áp dụng). Có giỏ thì recalc trả kèm `customer_coupons`. */
+add_action('wp_ajax_order_creator_customer_coupons', function () {
+    order_creator_verify_ajax();
+    wp_send_json_success(['coupons' => order_creator_customer_coupons(order_creator_get_payload(), false)]);
 });
 
 add_action('wp_ajax_order_creator_save_settings', function () {
@@ -2071,30 +2261,140 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     }
 
     $text = sanitize_textarea_field(wp_unslash($_POST['text'] ?? ''));
-    $convert_value = isset($_POST['convert_old_address']) ? wp_unslash($_POST['convert_old_address']) : '1';
-    $convert_old_address = is_scalar($convert_value)
-        && !in_array(strtolower(trim((string) $convert_value)), ['0', 'false', 'no', 'off'], true);
+    $convert_old_address = order_creator_ai_convert_flag();
 
-    $image = null;
-    if (!empty($_FILES['image']['tmp_name']) && is_uploaded_file($_FILES['image']['tmp_name'])) {
-        if (!empty($_FILES['image']['error'])) {
-            wp_send_json_error(['message' => 'Tải ảnh lên thất bại.']);
-        }
-        if ((int) $_FILES['image']['size'] > 5 * MB_IN_BYTES) {
-            wp_send_json_error(['message' => 'Ảnh vượt quá 5MB.']);
-        }
-        $mime = function_exists('mime_content_type') ? (string) mime_content_type($_FILES['image']['tmp_name']) : '';
-        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
-            wp_send_json_error(['message' => 'Chỉ hỗ trợ ảnh JPG/PNG/WebP/GIF.']);
-        }
-        $image = ['path' => (string) $_FILES['image']['tmp_name'], 'mime_type' => $mime];
+    $images = order_creator_ai_uploaded_images('image', 1);
+    if (is_wp_error($images)) {
+        wp_send_json_error(['message' => $images->get_error_message()]);
     }
+    $image = $images[0] ?? null;
 
     if ($text === '' && !$image) {
         wp_send_json_error(['message' => 'Dán dữ liệu hoặc chọn ảnh trước khi bóc tách.']);
     }
 
     require_once get_stylesheet_directory() . '/custom-functions/core/ai-providers.php';
+    require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php';
+
+    [$address_rules, $search_rules] = order_creator_ai_address_rules($convert_old_address);
+    $system_head = 'Bạn là công cụ bóc tách thông tin khách hàng cho cửa hàng online Việt Nam. '
+        . 'Từ dữ liệu được cung cấp (tin nhắn, comment, ảnh chụp màn hình chat, phiếu ship...), trích xuất thông tin khách và trả về DUY NHẤT một JSON object với đúng các khóa: '
+        . 'first_name, last_name, email, phone, address_1, address_2, city, state. '
+        . $address_rules;
+    $system_tail = order_creator_ai_customer_rules()
+        . 'Trường không tìm thấy → chuỗi rỗng. Không markdown, không giải thích, chỉ trả về JSON.';
+
+    $prompt = $text !== '' ? "Dữ liệu khách hàng:\n" . $text : 'Bóc tách thông tin khách hàng từ ảnh đính kèm.';
+    if ($image && $text !== '') {
+        $prompt .= "\n(Kết hợp thêm thông tin trong ảnh đính kèm nếu có.)";
+    }
+
+    $used = null;
+    $data = order_creator_ai_run($system_head, $search_rules, $system_tail, $prompt, $images, 1024, $convert_old_address, $used);
+    if (is_wp_error($data)) {
+        wp_send_json_error(['message' => $data->get_error_message()]);
+    }
+
+    $normalized = order_creator_ai_normalize_customer($data);
+
+    wp_send_json_success([
+        'fields'             => $normalized['fields'],
+        'unmatched'          => $normalized['unmatched'],
+        'web_search_enabled' => order_creator_ai_search_enabled((string) ($used['provider'] ?? ''), $convert_old_address),
+        'ai_provider'        => (string) ($used['provider'] ?? ''),
+    ]);
+});
+
+/** Checkbox "Chuyển địa chỉ cũ sang 2026" (mặc định bật). */
+function order_creator_ai_convert_flag(): bool
+{
+    $value = isset($_POST['convert_old_address']) ? wp_unslash($_POST['convert_old_address']) : '1';
+    return is_scalar($value)
+        && !in_array(strtolower(trim((string) $value)), ['0', 'false', 'no', 'off'], true);
+}
+
+/**
+ * Ảnh upload cho AI: nhận cả field đơn (`image`) lẫn mảng (`images[]`).
+ * @return array<int,array{path:string,mime_type:string}>|WP_Error
+ */
+function order_creator_ai_uploaded_images(string $field, int $max)
+{
+    if (empty($_FILES[$field]['tmp_name'])) {
+        return [];
+    }
+    $files = $_FILES[$field];
+    $count = is_array($files['tmp_name']) ? count($files['tmp_name']) : 1;
+    if ($count > $max) {
+        return new WP_Error('oc_ai_too_many_images', sprintf('Tối đa %d ảnh mỗi lần bóc tách.', $max));
+    }
+
+    $images = [];
+    for ($i = 0; $i < $count; $i++) {
+        $tmp   = is_array($files['tmp_name']) ? (string) $files['tmp_name'][$i] : (string) $files['tmp_name'];
+        $error = is_array($files['error']) ? (int) $files['error'][$i] : (int) $files['error'];
+        $size  = is_array($files['size']) ? (int) $files['size'][$i] : (int) $files['size'];
+        if ($tmp === '' || !is_uploaded_file($tmp)) {
+            continue;
+        }
+        if ($error) {
+            return new WP_Error('oc_ai_upload', 'Tải ảnh lên thất bại.');
+        }
+        if ($size > 5 * MB_IN_BYTES) {
+            return new WP_Error('oc_ai_upload', 'Ảnh vượt quá 5MB.');
+        }
+        $mime = function_exists('mime_content_type') ? (string) mime_content_type($tmp) : '';
+        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
+            return new WP_Error('oc_ai_upload', 'Chỉ hỗ trợ ảnh JPG/PNG/WebP/GIF.');
+        }
+        $images[] = ['path' => $tmp, 'mime_type' => $mime];
+    }
+
+    return $images;
+}
+
+/** Google Search chỉ bật với Gemini và khi cần quy đổi địa chỉ cũ. */
+function order_creator_ai_search_enabled(string $provider, bool $convert_old_address): bool
+{
+    return $convert_old_address && in_array($provider, ['gemini', 'gemini_billing'], true);
+}
+
+/**
+ * Gọi AI theo cấu hình feature, tự chuyển key/provider khi bị limit. System prompt dựng lại theo
+ * provider thực tế của từng lượt thử vì quy tắc Google Search chỉ áp cho Gemini.
+ * @return array|WP_Error JSON object đã parse
+ */
+function order_creator_ai_run(string $system_head, string $search_rules, string $system_tail, string $prompt, array $images, int $max_tokens, bool $convert_old_address, ?array &$used = null)
+{
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-providers.php';
+
+    $raw = theme_ai_feature_call(order_creator_ai_config(), static function (string $provider, string $model, string $api_key) use ($system_head, $search_rules, $system_tail, $prompt, $images, $max_tokens, $convert_old_address) {
+        $search  = order_creator_ai_search_enabled($provider, $convert_old_address);
+        $system  = $system_head . ($search ? $search_rules : '') . $system_tail;
+        $options = ['api_key' => $api_key, 'google_search' => $search];
+
+        return $images
+            ? theme_ai_call_provider_with_documents($provider, $system, $prompt, $images, $max_tokens, 90, $model, $options)
+            : theme_ai_call_provider($provider, $system, [['role' => 'user', 'content' => $prompt]], $max_tokens, $model, $options);
+    }, $used);
+
+    if (is_wp_error($raw)) {
+        return $raw;
+    }
+
+    return theme_ai_parse_json_object($raw);
+}
+
+/** Quy tắc tên/SĐT/địa chỉ dùng chung cho mọi prompt bóc tách khách. */
+function order_creator_ai_customer_rules(): string
+{
+    return 'Quy tắc khác: first_name = đầy đủ họ tên khách hàng theo thứ tự tự nhiên (VD "Nguyễn Thị Hằng"); last_name = chuỗi rỗng, chỉ dùng khi dữ liệu nguồn bắt buộc tách riêng họ. '
+        . 'phone = SĐT Việt Nam, giữ số 0 đầu, chỉ gồm chữ số; '
+        . 'address_1 = full địa chỉ giao hàng theo quy tắc chuyển đổi ở trên; address_2 = thông tin bổ sung riêng như tòa nhà, tầng, căn hộ, cổng, ghi chú đường vào nếu có. ';
+}
+
+/** @return array{0:string,1:string} [quy tắc địa chỉ, quy tắc Google Search] */
+function order_creator_ai_address_rules(bool $convert_old_address): array
+{
     require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php';
 
     $address_rules = $convert_old_address
@@ -2106,45 +2406,17 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
         : 'Không quy đổi địa chỉ hành chính. Giữ nguyên đầy đủ địa chỉ nguồn trong address_1, bao gồm phường/xã, quận/huyện và tỉnh/thành cũ nếu có; city/state ghi đúng tên xuất hiện trong dữ liệu nguồn và không suy đoán tên mới. ';
     $search_rules = 'Khi địa chỉ dùng đơn vị cũ, bắt buộc dùng Google Search để tra cứu ánh xạ hành chính cũ → mới và ưu tiên nguồn cơ quan nhà nước. '
         . 'Câu tìm kiếm chỉ được chứa tên phường/xã, quận/huyện và tỉnh/thành; tuyệt đối không đưa họ tên, số điện thoại, email, số nhà hoặc tên đường của khách vào câu tìm kiếm. ';
-    $system_head = 'Bạn là công cụ bóc tách thông tin khách hàng cho cửa hàng online Việt Nam. '
-        . 'Từ dữ liệu được cung cấp (tin nhắn, comment, ảnh chụp màn hình chat, phiếu ship...), trích xuất thông tin khách và trả về DUY NHẤT một JSON object với đúng các khóa: '
-        . 'first_name, last_name, email, phone, address_1, address_2, city, state. '
-        . $address_rules;
-    $system_tail = 'Quy tắc khác: first_name = đầy đủ họ tên khách hàng theo thứ tự tự nhiên (VD "Nguyễn Thị Hằng"); last_name = chuỗi rỗng, chỉ dùng khi dữ liệu nguồn bắt buộc tách riêng họ. '
-        . 'phone = SĐT Việt Nam, giữ số 0 đầu, chỉ gồm chữ số; '
-        . 'address_1 = full địa chỉ giao hàng theo quy tắc chuyển đổi ở trên; address_2 = thông tin bổ sung riêng như tòa nhà, tầng, căn hộ, cổng, ghi chú đường vào nếu có. '
-        . 'Trường không tìm thấy → chuỗi rỗng. Không markdown, không giải thích, chỉ trả về JSON.';
 
-    $prompt = $text !== '' ? "Dữ liệu khách hàng:\n" . $text : 'Bóc tách thông tin khách hàng từ ảnh đính kèm.';
-    if ($image && $text !== '') {
-        $prompt .= "\n(Kết hợp thêm thông tin trong ảnh đính kèm nếu có.)";
-    }
+    return [$address_rules, $search_rules];
+}
 
-    // Key/provider bị limit → tự chuyển sang key/provider kế tiếp. Google Search chỉ bật với Gemini,
-    // nên system prompt dựng lại theo provider thực tế của từng lượt thử.
-    $cfg        = order_creator_ai_config();
-    $search_for = static function (string $provider) use ($convert_old_address): bool {
-        return $convert_old_address && in_array($provider, ['gemini', 'gemini_billing'], true);
-    };
-    $used = null;
-    $raw  = theme_ai_feature_call($cfg, static function (string $provider, string $model, string $api_key) use ($search_for, $system_head, $search_rules, $system_tail, $prompt, $image) {
-        $search  = $search_for($provider);
-        $system  = $system_head . ($search ? $search_rules : '') . $system_tail;
-        $options = ['api_key' => $api_key, 'google_search' => $search];
-
-        return $image
-            ? theme_ai_call_provider_with_documents($provider, $system, $prompt, [$image], 1024, 90, $model, $options)
-            : theme_ai_call_provider($provider, $system, [['role' => 'user', 'content' => $prompt]], 1024, $model, $options);
-    }, $used);
-
-    if (is_wp_error($raw)) {
-        wp_send_json_error(['message' => $raw->get_error_message()]);
-    }
-
-    $data = theme_ai_parse_json_object($raw);
-    if (is_wp_error($data)) {
-        wp_send_json_error(['message' => $data->get_error_message()]);
-    }
+/**
+ * Chuẩn hóa object khách AI trả về: gộp full địa chỉ vào address_1, quy state/city về mã danh mục.
+ * @return array{fields:array<string,string>,unmatched:array<string,string>}
+ */
+function order_creator_ai_normalize_customer(array $data): array
+{
+    require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php';
 
     $fields = [];
     foreach (['first_name', 'last_name', 'email', 'phone', 'address_1', 'address_2', 'city', 'state'] as $key) {
@@ -2190,13 +2462,8 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     }
     $fields['city'] = $ward['code'] ?? ''; // field lưu MÃ phường/xã, dropdown hiển thị tên
 
-    wp_send_json_success([
-        'fields'             => $fields,
-        'unmatched'          => $unmatched,
-        'web_search_enabled' => $search_for((string) ($used['provider'] ?? '')),
-        'ai_provider'        => (string) ($used['provider'] ?? ''),
-    ]);
-});
+    return ['fields' => $fields, 'unmatched' => $unmatched];
+}
 
 /** Danh sách phường/xã theo tỉnh cho dropdown cascade trong popup khách hàng. */
 add_action('wp_ajax_order_creator_vn_wards', function () {
@@ -2214,6 +2481,290 @@ add_action('wp_ajax_order_creator_vn_wards', function () {
 });
 
 // ================================================================
+// AJAX — AI TẠO ĐƠN (bóc tách khách + sản phẩm + mã ưu đãi từ text/ảnh)
+// ================================================================
+
+/** Dòng catalog gửi AI: "id|sku|tên", biến thể tách dòng riêng. Cache 30 phút, xoá khi sửa SP. */
+function order_creator_ai_catalog_lines(): array
+{
+    $cached = get_transient('order_creator_ai_catalog');
+    if (is_array($cached)) {
+        return $cached;
+    }
+
+    $ids = wc_get_products([
+        'status'  => ['publish', 'private'],
+        'limit'   => (int) apply_filters('order_creator_ai_catalog_limit', 600),
+        'orderby' => 'date',
+        'order'   => 'DESC',
+        'return'  => 'ids',
+    ]);
+
+    $lines = [];
+    foreach ($ids as $id) {
+        $product = wc_get_product($id);
+        if (!$product instanceof WC_Product) {
+            continue;
+        }
+        if ($product->is_type('variable')) {
+            foreach ($product->get_children() as $variation_id) {
+                $variation = wc_get_product($variation_id);
+                if ($variation instanceof WC_Product_Variation) {
+                    $lines[] = $variation->get_id() . '|' . $variation->get_sku() . '|' . $variation->get_name();
+                }
+            }
+            continue;
+        }
+        $lines[] = $product->get_id() . '|' . $product->get_sku() . '|' . $product->get_name();
+    }
+
+    set_transient('order_creator_ai_catalog', $lines, 30 * MINUTE_IN_SECONDS);
+    return $lines;
+}
+
+foreach (['woocommerce_new_product', 'woocommerce_update_product', 'woocommerce_update_product_variation', 'woocommerce_delete_product', 'woocommerce_trash_product'] as $order_creator_catalog_hook) {
+    add_action($order_creator_catalog_hook, static function () {
+        delete_transient('order_creator_ai_catalog');
+    });
+}
+unset($order_creator_catalog_hook);
+
+/** 1 sản phẩm bán được (simple/variation) dạng dòng giỏ. Variable cha → null (phải chọn biến thể). */
+function order_creator_ai_product_entry(int $id): ?array
+{
+    $product = $id > 0 ? wc_get_product($id) : null;
+    if (!$product instanceof WC_Product || $product->is_type('variable')) {
+        return null;
+    }
+    $is_variation = $product instanceof WC_Product_Variation;
+
+    return [
+        'product_id'   => $is_variation ? $product->get_parent_id() : $product->get_id(),
+        'variation_id' => $is_variation ? $product->get_id() : 0,
+        'name'         => $product->get_name(),
+        'sku'          => $product->get_sku(),
+        'price'        => order_creator_product_price($product),
+    ];
+}
+
+/** Ứng viên cho 1 id: variable cha → mọi biến thể; còn lại → chính nó. */
+function order_creator_ai_entries_for(int $id): array
+{
+    $product = $id > 0 ? wc_get_product($id) : null;
+    if (!$product instanceof WC_Product) {
+        return [];
+    }
+    $ids = $product->is_type('variable') ? $product->get_children() : [$id];
+
+    return array_values(array_filter(array_map('order_creator_ai_product_entry', array_map('intval', $ids))));
+}
+
+/**
+ * Khớp từng dòng AI đọc được với sản phẩm thật. Dòng chỉ "ok" khi xác định đúng 1 SP bán được,
+ * AI chắc chắn và SL là số nguyên dương; còn lại "confirm" kèm ứng viên để nhân viên chọn.
+ */
+function order_creator_ai_resolve_item(array $raw): array
+{
+    $source    = sanitize_text_field((string) ($raw['name'] ?? ''));
+    $sku       = sanitize_text_field((string) ($raw['sku'] ?? ''));
+    $qty_raw   = $raw['qty'] ?? null;
+    $qty       = is_numeric($qty_raw) ? (float) $qty_raw : 0;
+    $confident = !empty($raw['confident']);
+    $note      = sanitize_text_field((string) ($raw['note'] ?? ''));
+
+    $entry      = null;
+    $candidates = [];
+    $sku_id     = $sku !== '' ? (int) wc_get_product_id_by_sku($sku) : 0;
+    foreach (array_filter([$sku_id, absint($raw['product_id'] ?? 0)]) as $id) {
+        $entries = order_creator_ai_entries_for($id);
+        if (count($entries) === 1) {
+            $entry = $entries[0];
+            break;
+        }
+        $candidates = array_merge($candidates, $entries);
+    }
+    foreach ((array) ($raw['candidate_ids'] ?? []) as $id) {
+        $candidates = array_merge($candidates, order_creator_ai_entries_for(absint($id)));
+    }
+    if (!$entry && !$candidates && ($source !== '' || $sku !== '')) {
+        $ids = wc_get_products(['status' => ['publish', 'private'], 'limit' => 5, 's' => $source !== '' ? $source : $sku, 'return' => 'ids']);
+        foreach ($ids as $id) {
+            $candidates = array_merge($candidates, order_creator_ai_entries_for((int) $id));
+        }
+    }
+    if ($entry) {
+        array_unshift($candidates, $entry);
+    }
+    $unique = [];
+    foreach ($candidates as $candidate) {
+        $unique[$candidate['product_id'] . ':' . $candidate['variation_id']] = $candidate;
+    }
+    $candidates = array_slice(array_values($unique), 0, 8);
+
+    $reasons = [];
+    if (!$entry) {
+        $reasons[] = $candidates ? 'Có nhiều sản phẩm phù hợp, chọn đúng sản phẩm' : 'Không tìm thấy sản phẩm khớp';
+    } elseif (!$confident) {
+        $reasons[] = 'AI chưa chắc chắn sản phẩm/số lượng';
+    }
+    if ($qty <= 0 || floor($qty) !== $qty) {
+        $reasons[] = 'Chưa rõ số lượng';
+        $qty = max(1, (int) round($qty));
+    }
+    if ($note !== '') {
+        $reasons[] = $note;
+    }
+
+    return [
+        'source'     => $source !== '' ? $source : $sku,
+        'sku'        => $sku,
+        'qty'        => (int) $qty,
+        'status'     => $entry && $confident && count($reasons) === 0 ? 'ok' : 'confirm',
+        'reason'     => implode(' · ', $reasons),
+        'product'    => $entry,
+        'candidates' => $candidates,
+    ];
+}
+
+/** Tài khoản khớp chính xác SĐT (mọi biến thể 0/84/+84) hoặc email. */
+function order_creator_ai_match_customers(string $phone, string $email): array
+{
+    $found = [];
+    if ($email !== '' && is_email($email)) {
+        $user = get_user_by('email', $email);
+        if ($user) {
+            $found[$user->ID] = $user;
+        }
+    }
+    $variants = order_creator_phone_variants($phone);
+    if ($variants && strlen(preg_replace('/\D+/', '', $phone) ?: '') >= 9) {
+        $meta_query = ['relation' => 'OR'];
+        foreach ($variants as $variant) {
+            foreach (['billing_phone', 'shipping_phone'] as $key) {
+                $meta_query[] = ['key' => $key, 'value' => $variant, 'compare' => '='];
+            }
+        }
+        foreach ((new WP_User_Query(['meta_query' => $meta_query, 'number' => 5]))->get_results() as $user) {
+            $found[$user->ID] = $user;
+        }
+    }
+
+    return array_values(array_map('order_creator_format_customer', $found));
+}
+
+add_action('wp_ajax_order_creator_ai_extract_order', function () {
+    order_creator_verify_ajax();
+
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
+    if (!theme_ai_feature_enabled('order_creator_ai_create_order')) {
+        wp_send_json_error(['message' => 'Tính năng AI tạo đơn đang tắt trong Cài đặt ERP.'], 403);
+    }
+
+    $text = sanitize_textarea_field(wp_unslash($_POST['text'] ?? ''));
+    $convert_old_address = order_creator_ai_convert_flag();
+    $images = order_creator_ai_uploaded_images('images', 4);
+    if (is_wp_error($images)) {
+        wp_send_json_error(['message' => $images->get_error_message()]);
+    }
+    if ($text === '' && !$images) {
+        wp_send_json_error(['message' => 'Dán tin nhắn hoặc chọn ảnh trước khi bóc tách.']);
+    }
+
+    // Đang sửa đơn: AI nhận đơn hiện tại + yêu cầu chỉnh, trả về đơn đầy đủ sau khi sửa.
+    $current = json_decode(wp_unslash((string) ($_POST['current'] ?? '')), true);
+    $current_items = [];
+    if (is_array($current)) {
+        foreach ((array) ($current['items'] ?? []) as $item) {
+            $id = absint($item['variation_id'] ?? 0) ?: absint($item['product_id'] ?? 0);
+            if ($id > 0) {
+                $current_items[] = ['product_id' => $id, 'name' => sanitize_text_field((string) ($item['name'] ?? '')), 'qty' => (float) ($item['qty'] ?? 1)];
+            }
+        }
+    }
+
+    $gateways = [];
+    if (WC()->payment_gateways()) {
+        foreach (WC()->payment_gateways()->payment_gateways() as $id => $gateway) {
+            if ($gateway->enabled === 'yes') {
+                $gateways[$id] = wp_strip_all_tags($gateway->get_title());
+            }
+        }
+    }
+
+    [$address_rules, $search_rules] = order_creator_ai_address_rules($convert_old_address);
+    $system_head = 'Bạn là trợ lý lên đơn cho cửa hàng online Việt Nam. Từ dữ liệu (tin nhắn, comment, ảnh chụp chat, ảnh phiếu/ghi chú...) hãy bóc tách đơn hàng và trả về DUY NHẤT một JSON object dạng: '
+        . '{"customer":{"first_name":"","last_name":"","email":"","phone":"","address_1":"","address_2":"","city":"","state":""},'
+        . '"items":[{"product_id":0,"sku":"","name":"","qty":1,"confident":true,"candidate_ids":[],"note":""}],'
+        . '"coupon_codes":[],"payment_method":"","customer_note":"","internal_note":""}. '
+        . 'Phần customer: ' . $address_rules;
+    $system_tail = order_creator_ai_customer_rules()
+        . 'Phần items: mỗi sản phẩm khách đặt là 1 dòng. Đối chiếu với DANH MỤC SẢN PHẨM (mỗi dòng "id|sku|tên"); '
+        . 'product_id = id trong danh mục khi xác định được, sku = SKU khách ghi (nếu có), name = tên/cách gọi sản phẩm đúng như khách viết, qty = số lượng (số nguyên). '
+        . 'confident = false nếu có BẤT KỲ nghi ngờ nào về sản phẩm (tên viết tắt mơ hồ, nhiều sản phẩm/biến thể/dung tích gần giống) hoặc số lượng (không ghi rõ, "vài", "1 thùng"...); khi đó điền candidate_ids = các id có khả năng (tối đa 5) và note = lý do ngắn gọn. '
+        . 'Không tự bịa sản phẩm ngoài danh mục: không khớp thì product_id = 0, confident = false. '
+        . 'coupon_codes = mã ưu đãi/coupon khách nêu rõ (giữ nguyên ký tự), không tự đặt mã. '
+        . 'payment_method = một trong các id: ' . ($gateways ? implode(', ', array_map(static function ($id, $title) { return $id . ' (' . $title . ')'; }, array_keys($gateways), $gateways)) : 'cod') . '; chỉ điền khi dữ liệu nói rõ (chuyển khoản / COD...), không rõ → chuỗi rỗng. '
+        . 'customer_note = lời dặn của khách liên quan giao hàng/đơn (giờ nhận, gọi trước...); internal_note = thông tin cần lưu ý cho nhân viên mà không nên in lên đơn. '
+        . 'Trường không tìm thấy → chuỗi rỗng / mảng rỗng. Không markdown, không giải thích, chỉ trả về JSON.';
+
+    $prompt = "DANH MỤC SẢN PHẨM:\n" . implode("\n", order_creator_ai_catalog_lines()) . "\n\n";
+    if ($current_items) {
+        $prompt .= "ĐƠN HIỆN TẠI (product_id, tên, SL):\n" . wp_json_encode($current_items, JSON_UNESCAPED_UNICODE) . "\n"
+            . "Dữ liệu bên dưới là YÊU CẦU CHỈNH SỬA/BỔ SUNG đơn hiện tại. Trả về items là danh sách ĐẦY ĐỦ sau khi chỉnh (giữ nguyên các dòng không bị đổi, confident = true cho các dòng giữ nguyên). "
+            . "customer chỉ điền các trường được nêu mới trong dữ liệu.\n\n";
+    }
+    $prompt .= $text !== '' ? "DỮ LIỆU ĐƠN HÀNG:\n" . $text : 'Bóc tách đơn hàng từ ảnh đính kèm.';
+    if ($images && $text !== '') {
+        $prompt .= "\n(Kết hợp thêm thông tin trong ảnh đính kèm.)";
+    }
+
+    $used = null;
+    $data = order_creator_ai_run($system_head, $search_rules, $system_tail, $prompt, $images, 4096, $convert_old_address, $used);
+    if (is_wp_error($data)) {
+        wp_send_json_error(['message' => $data->get_error_message()]);
+    }
+
+    $customer = order_creator_ai_normalize_customer(isset($data['customer']) && is_array($data['customer']) ? $data['customer'] : []);
+    $customer['matches'] = order_creator_ai_match_customers($customer['fields']['phone'], $customer['fields']['email']);
+
+    $items = [];
+    foreach ((array) ($data['items'] ?? []) as $raw) {
+        if (is_array($raw)) {
+            $items[] = order_creator_ai_resolve_item($raw);
+        }
+    }
+
+    $coupon_codes = [];
+    $unknown_coupons = [];
+    foreach ((array) ($data['coupon_codes'] ?? []) as $code) {
+        $code = wc_format_coupon_code(wc_clean((string) $code));
+        if ($code === '') {
+            continue;
+        }
+        if (wc_get_coupon_id_by_code($code)) {
+            $coupon_codes[] = $code;
+        } else {
+            $unknown_coupons[] = $code;
+        }
+    }
+
+    $payment_method = sanitize_key((string) ($data['payment_method'] ?? ''));
+
+    wp_send_json_success([
+        'customer'           => $customer,
+        'items'              => $items,
+        'coupon_codes'       => array_values(array_unique($coupon_codes)),
+        'unknown_coupons'    => array_values(array_unique($unknown_coupons)),
+        'payment_method'     => isset($gateways[$payment_method]) ? $payment_method : '',
+        'customer_note'      => sanitize_textarea_field((string) ($data['customer_note'] ?? '')),
+        'internal_note'      => sanitize_textarea_field((string) ($data['internal_note'] ?? '')),
+        'is_edit'            => (bool) $current_items,
+        'web_search_enabled' => order_creator_ai_search_enabled((string) ($used['provider'] ?? ''), $convert_old_address),
+        'ai_provider'        => (string) ($used['provider'] ?? ''),
+    ]);
+});
+
+// ================================================================
 // AJAX — TÍNH LẠI (PREVIEW) & TẠO ĐƠN
 // ================================================================
 
@@ -2225,7 +2776,9 @@ add_action('wp_ajax_order_creator_recalculate', function () {
         $result = order_creator_with_customer_context(absint($payload['customer_id'] ?? 0), function () use ($payload) {
             order_creator_populate_cart($payload);
             order_creator_calculate_cart_totals();
-            return order_creator_snapshot_cart();
+            $snapshot = order_creator_snapshot_cart();
+            $snapshot['customer_coupons'] = order_creator_customer_coupons($payload, true);
+            return $snapshot;
         });
         wp_send_json_success($result);
     } catch (Throwable $e) {
@@ -2384,6 +2937,7 @@ add_action('wp_ajax_order_creator_load_order', function () {
         ], admin_url('admin-ajax.php')),
         'payment_total'   => wc_format_decimal($order->get_total(), 0),
         'phone'           => $order->get_billing_phone(),
+        'ai_source'       => (string) $order->get_meta('_order_creator_ai_source', true),
     ]);
 });
 
@@ -2677,6 +3231,8 @@ function order_creator_configured_shipping_methods(): array
 /** Cấu hình truyền sang JS. */
 function order_creator_js_config(): array
 {
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
+
     $gateways = [];
     if (WC()->payment_gateways()) {
         foreach (WC()->payment_gateways()->payment_gateways() as $id => $gateway) {
@@ -2733,6 +3289,7 @@ function order_creator_js_config(): array
         'bankAccounts' => apply_filters('order_creator_bank_accounts', hithean_payment_bank_accounts()),
         'currencySymbol' => html_entity_decode(get_woocommerce_currency_symbol()),
         'editOrderId'    => isset($_GET['order_id']) ? absint($_GET['order_id']) : 0,
+        'aiOrderEnabled' => theme_ai_feature_enabled('order_creator_ai_create_order'),
     ];
 }
 
@@ -2777,6 +3334,84 @@ function order_creator_render_page(): void
     </header>
 
     <div class="oc-pane" id="oc-pane-create">
+    <?php
+    require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
+    $oc_ai_order = theme_ai_feature_enabled('order_creator_ai_create_order');
+    ?>
+    <?php if ($oc_ai_order) : ?>
+    <div class="oc-mode-switch" id="oc-mode-switch" role="group" aria-label="Chế độ tạo đơn">
+        <button type="button" class="oc-mode-btn is-active" data-mode="manual" aria-pressed="true">Thủ công</button>
+        <button type="button" class="oc-mode-btn" data-mode="ai" aria-pressed="false">✨ AI tạo đơn</button>
+    </div>
+
+    <section class="oc-ai-order" id="oc-ai-order" hidden>
+        <div class="oc-card oc-ai-input">
+            <div class="oc-card-head">
+                <h2 id="oc-ai-input-title">✨ AI tạo đơn</h2>
+                <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-mode-switch="manual">Sửa trên giao diện thủ công</button>
+            </div>
+            <details class="oc-ai-source" id="oc-ai-source" hidden>
+                <summary>Nội dung đã dùng để lên đơn</summary>
+                <pre id="oc-ai-source-text"></pre>
+            </details>
+            <label for="oc-ai-text" id="oc-ai-text-label">Dán tin nhắn / comment đặt hàng của khách — hoặc dán (Ctrl+V) / chọn ảnh chụp màn hình (tối đa 4 ảnh)</label>
+            <textarea id="oc-ai-text" rows="6" placeholder="VD: Chị Hằng 0912345678, 25 Lê Lợi, P. Bến Nghé, TP.HCM. Lấy 2 hộp SKU ABC-01 + 1 chai dầu gội 500ml, có mã LW-XXXX, chuyển khoản."></textarea>
+            <div class="oc-ai-thumbs" id="oc-ai-thumbs" hidden></div>
+            <label class="oc-ai-convert-option" for="oc-ai-convert-address">
+                <input type="checkbox" id="oc-ai-convert-address" checked>
+                <span>
+                    <strong>Chuyển địa chỉ cũ sang địa chỉ hành chính 2026</strong>
+                    <small>Quy đổi địa chỉ trước sáp nhập năm 2025 sang Tỉnh/Thành → Phường/Xã hiện hành (Gemini dùng Google Search hỗ trợ).</small>
+                </span>
+            </label>
+            <div class="oc-inline">
+                <input type="file" id="oc-ai-images" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+                <button type="button" class="oc-btn oc-btn--ghost" id="oc-ai-rerun" hidden>Bóc tách lại từ đầu</button>
+                <button type="button" class="oc-btn oc-btn--primary" id="oc-ai-run">Bóc tách &amp; lên đơn</button>
+            </div>
+            <div class="oc-muted" id="oc-ai-status" aria-live="polite"></div>
+        </div>
+
+        <div class="oc-card oc-ai-review" id="oc-ai-review" hidden>
+            <h2>Kiểm tra đơn trước khi tạo</h2>
+            <div class="oc-ai-block">
+                <h3 class="oc-subhead">Khách hàng</h3>
+                <div id="oc-ai-customer"></div>
+            </div>
+            <div class="oc-ai-block">
+                <h3 class="oc-subhead">Sản phẩm</h3>
+                <div id="oc-ai-items"><div id="oc-ai-pending"></div><div id="oc-ai-lines"></div></div>
+                <div class="oc-field oc-ai-add">
+                    <input type="text" id="oc-ai-product-search" placeholder="Thêm sản phẩm: tên hoặc SKU...">
+                    <div class="oc-search-results" id="oc-ai-product-results" hidden></div>
+                </div>
+            </div>
+            <div class="oc-ai-block">
+                <h3 class="oc-subhead">Mã ưu đãi</h3>
+                <ul class="oc-chips" id="oc-ai-coupon-list"></ul>
+                <div class="oc-inline">
+                    <input type="text" id="oc-ai-coupon-input" placeholder="Nhập mã ưu đãi...">
+                    <button type="button" class="oc-btn oc-btn--ghost" id="oc-ai-coupon-add">Áp dụng</button>
+                </div>
+                <div class="oc-customer-coupons" id="oc-ai-customer-coupons" hidden></div>
+            </div>
+            <div class="oc-ai-block oc-form-grid">
+                <div><label for="oc-ai-payment">Thanh toán</label><select id="oc-ai-payment" data-sync="oc-payment"></select></div>
+                <div><label for="oc-ai-order-status">Trạng thái</label><select id="oc-ai-order-status" data-sync="oc-status"></select></div>
+                <div class="oc-form-span"><label for="oc-ai-customer-note">Ghi chú khách (hiện trên đơn)</label><textarea id="oc-ai-customer-note" rows="2" data-sync="oc-customer-note"></textarea></div>
+                <div class="oc-form-span"><label for="oc-ai-internal-note">Ghi chú nội bộ</label><textarea id="oc-ai-internal-note" rows="2" data-sync="oc-internal-note"></textarea></div>
+            </div>
+            <div class="oc-ai-totals">
+                <div class="oc-total-row"><span>Tạm tính</span><b data-total="subtotal">0</b></div>
+                <div class="oc-total-row"><span>Giảm giá</span><b data-total="discount_total">0</b></div>
+                <div class="oc-total-row"><span>Phí</span><b data-total="fee_total">0</b></div>
+                <div class="oc-total-row"><span>Vận chuyển</span><b data-total="shipping_total">0</b></div>
+                <div class="oc-total-row oc-total-row--grand"><span>Tổng đơn</span><b data-total="total">0</b></div>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
     <nav class="oc-section-nav" id="oc-section-nav">
         <?php if ($oc_logo_url) : ?><img class="oc-section-nav__logo" src="<?php echo esc_url($oc_logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php endif; ?>
         <a href="#oc-section-cart" data-jump="oc-section-cart" class="is-active">Chỉnh giỏ hàng</a>
@@ -2829,6 +3464,7 @@ function order_creator_render_page(): void
                     </div>
                     <p class="oc-muted">Gõ ít nhất 2 ký tự để tìm theo mã hoặc mô tả coupon. Chọn mã trong danh sách gợi ý, sau đó bấm <em>Áp dụng</em>; nếu không thấy kết quả vẫn có thể nhập mã thủ công.</p>
                     <ul class="oc-chips" id="oc-coupon-list"></ul>
+                    <div class="oc-customer-coupons" id="oc-customer-coupons" hidden></div>
                 </div>
 
                 <div class="oc-field" style="width: 100%;">
@@ -3080,6 +3716,26 @@ function order_creator_render_page(): void
             <ul>
                 <li>⚠️ Báo <em>"Không khớp danh mục"</em>: tên tỉnh / phường AI đọc được không trùng danh mục mới → tự chọn lại ở 2 ô Tỉnh/Thành và Phường/Xã.</li>
                 <li>Không thấy nút AI = tính năng đang tắt trong <em>Cài đặt ERP</em>, hoặc AI báo thiếu API key → báo quản trị viên.</li>
+            </ul>
+        </div>
+
+        <div class="oc-card">
+            <h2>✨ AI tạo đơn</h2>
+            <ol>
+                <li>Bấm <em>✨ AI tạo đơn</em> ở đầu trang (chế độ được nhớ cho lần sau).</li>
+                <li>Dán tin nhắn đặt hàng của khách và/hoặc dán ảnh chụp (<kbd>Ctrl+V</kbd>, tối đa 4 ảnh), bấm <em>Bóc tách &amp; lên đơn</em>.</li>
+                <li>AI đọc khách hàng, sản phẩm (SKU hoặc tên + số lượng), mã ưu đãi, hình thức thanh toán và ghi chú. SĐT/email trùng tài khoản có sẵn → tự chọn khách; khách mới → tạo tài khoản khi tạo đơn (bỏ tích nếu không cần).</li>
+                <li>Dòng sản phẩm <strong>Cần xác nhận</strong> (AI không chắc sản phẩm hoặc số lượng): chọn đúng sản phẩm, sửa SL rồi bấm <em>Xác nhận</em>. Còn dòng chưa xác nhận thì chưa tạo được đơn.</li>
+                <li>Kiểm tra mã ưu đãi gợi ý, tổng tiền rồi bấm <em>Tạo đơn</em> / <em>Lưu nháp</em>. Các thao tác sau khi tạo (thanh toán, hóa đơn, phiếu xuất kho...) giống chế độ thủ công.</li>
+                <li><strong>Chỉnh đơn:</strong> bấm <em>Chỉnh sửa</em> → form AI mở lại kèm nội dung đã dùng; gõ yêu cầu (vd: "thêm 1 hộp X, bỏ Y") để AI sửa, hoặc bấm <em>Sửa trên giao diện thủ công</em>.</li>
+            </ol>
+        </div>
+
+        <div class="oc-card">
+            <h2>🎟️ Mã ưu đãi của khách</h2>
+            <ul>
+                <li>Khi đã có SĐT/email hoặc chọn khách, mục <em>Mã ưu đãi</em> tự liệt kê mã còn hạn của khách: mã quay từ <strong>Vòng quay may mắn</strong> và mã <strong>gắn trực tiếp</strong> (giới hạn email của khách, hoặc SĐT ghi trong mô tả mã).</li>
+                <li>Có sản phẩm trong giỏ thì từng mã được kiểm tra luôn: <em>Áp dụng được</em> / lý do không áp dụng. Bấm <em>Áp dụng</em> để thêm mã vào đơn.</li>
             </ul>
         </div>
 
