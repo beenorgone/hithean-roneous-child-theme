@@ -35,6 +35,10 @@ add_action('woocommerce_order_status_packaging', 'status_change_handle_packaging
 add_action('woocommerce_order_status_shipping', 'status_change_handle_shipping_status', 10, 3);
 add_action('woocommerce_order_status_received-payment', 'status_change_handle_received_payment_status', 10, 3);
 
+// Thất bại trả tồn kho như Đã hủy (WooCommerce core chỉ trả khi Đã hủy / Chờ thanh toán).
+// wc_maybe_increase_stock_levels chỉ cộng lại khi đơn đã trừ kho, nên không cộng lặp.
+add_action('woocommerce_order_status_failed', 'wc_maybe_increase_stock_levels');
+
 /**
  * Helpers
  */

@@ -339,26 +339,25 @@ function thean_ow_order_flows(): array
     ];
 }
 
+/** Trạng thái giao / xong: tạm giữ từ đây thì tiếp tục sẽ trả về đúng trạng thái này. */
+function thean_ow_hold_restore_statuses(): array
+{
+    return ['shipping', 'local-shipping', 'partial-shipping', 'delivered', 'partial-shipped', 'completed'];
+}
+
 /**
- * Trạng thái khi tiếp tục sau tạm giữ: COD → Chuẩn bị giao VC; CK đã xác nhận → Đã CK.
+ * Trạng thái khi tiếp tục sau tạm giữ: đang giao / đã giao / đã xong → trạng thái trước khi tạm giữ;
+ * còn lại COD → Chuẩn bị giao VC, CK đã xác nhận → Đã CK.
  * Rỗng = chưa tiếp tục được (CK chưa xác nhận thanh toán).
  */
 function thean_ow_resume_status(WC_Order $order): string
 {
+    $from = (string) $order->get_meta('_thean_ow_hold_from');
+    if (in_array($from, thean_ow_hold_restore_statuses(), true) && wc_is_order_status('wc-' . $from)) return $from;
     if ($order->get_payment_method() === 'cod') $target = 'packaging';
     elseif (thean_ow_payment_state($order)['done']) $target = 'paid';
     else return '';
     return wc_is_order_status('wc-' . $target) ? $target : 'processing';
-}
-
-/** Trả hàng về tồn kho (chỉ những dòng đã trừ kho, không trừ lặp). */
-function thean_ow_restock(WC_Order $order): void
-{
-    if (function_exists('wc_maybe_increase_stock_levels')) {
-        wc_maybe_increase_stock_levels($order->get_id());
-    } elseif (function_exists('wc_increase_stock_levels')) {
-        wc_increase_stock_levels($order);
-    }
 }
 
 function thean_ow_return_next_status(string $status): string
@@ -582,6 +581,12 @@ function thean_ow_render_inner(WC_Order $order): void
     $order_no  = function_exists('change_order_number') ? change_order_number($order->get_id()) : $order->get_order_number();
     $status    = $order->get_status();
     $locked    = function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order);
+
+    // Đơn đã rời Tạm giữ (kể cả đổi ngoài bảng) → bỏ trạng thái gốc đã nhớ, tránh lần tạm giữ sau trả về nhầm.
+    if ($status !== 'on-hold' && $order->get_meta('_thean_ow_hold_from') !== '') {
+        $order->delete_meta_data('_thean_ow_hold_from');
+        $order->save_meta_data();
+    }
 
     $payment       = thean_ow_payment_state($order);
     $export_images = thean_ow_export_images($order);
@@ -1245,7 +1250,7 @@ function thean_ow_ajax(): void
             if (function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order)) {
                 wp_send_json_error(['message' => 'Đơn đã bị khóa đổi trạng thái (chỉ admin).']);
             }
-            thean_ow_restock($order);
+            // Trả tồn kho qua hook woocommerce_order_status_failed (order-auto-tasks.php).
             $order->update_status('failed', '↩️ Đã nhận hàng hoàn: hủy đơn, trả hàng về tồn kho, chuyển Thất bại.', true);
             wp_send_json_success(['message' => 'Đã trả tồn kho và chuyển đơn sang Thất bại.']);
             break;
@@ -1268,6 +1273,9 @@ function thean_ow_ajax(): void
                 if ($target === '') wp_send_json_error(['message' => 'Đơn CK chưa xác nhận thanh toán — xác nhận thanh toán trước.']);
             }
             if ($status === $target) wp_send_json_error(['message' => 'Đơn đã ở trạng thái ' . wc_get_order_status_name($target) . '.']);
+            // Nhớ trạng thái trước khi tạm giữ để tiếp tục trả về đúng chỗ (đơn đang giao / đã giao / đã xong).
+            if ($flow === 'hold') $order->update_meta_data('_thean_ow_hold_from', $status);
+            else $order->delete_meta_data('_thean_ow_hold_from');
             // WooCommerce tự trả tồn kho khi chuyển Đã hủy (wc_maybe_increase_stock_levels).
             $order->update_status($target, $label . ($reason !== '' ? ': ' . $reason : '') . '.', true);
             wp_send_json_success(['message' => 'Đã chuyển sang: ' . wc_get_order_status_name($target)]);
