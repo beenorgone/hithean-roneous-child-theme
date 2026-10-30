@@ -316,8 +316,7 @@ function theme_erp_settings_render_page(): void
 
         if ($active_tab === 'luot-ban') {
             hithean_sc_require_admin();
-            hithean_sc_save_from_post();
-            $saved = true;
+            $saved = hithean_sc_save_from_post();
         }
     }
 

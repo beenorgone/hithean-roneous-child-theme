@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) exit;
 \*---------------------------------------*/
 
 const HITHEAN_SC_OPTION        = 'hithean_sales_count';
-const HITHEAN_SC_TOTALS_CACHE  = 'hithean_sc_totals';
+const HITHEAN_SC_TOTALS_CACHE  = 'hithean_sc_totals_v2';
 const HITHEAN_SC_BRAND_TAXONOMY = 'thuong-hieu';
 
 function hithean_sc_positions(): array
@@ -40,13 +40,16 @@ function hithean_sc_default_settings(): array
     return [
         'display'   => ['button' => '1', 'modal' => '1', 'price' => '1', 'loop' => '1'],
         'templates' => [
-            'button' => 'Đã bán {count}',
-            'modal'  => '{brand} đã bán {count}',
-            'price'  => '🔥 {brand} đã bán {count}',
-            'loop'   => 'Đã bán {count}',
+            // Nút + thẻ danh mục hẹp → câu ngắn; {count} = Shopee + TikTok + website.
+            // Số sàn là cộng dồn nên ghi tháng cập nhật, không ghi "trong tháng".
+            'button' => 'Đã bán {count} trên Shopee/TikTok',
+            'modal'  => '{brand} đã bán {count} (cập nhật của tháng {thang})',
+            'price'  => '🔥 {brand} đã bán {count} (cập nhật của tháng {thang})',
+            'loop'   => 'Đã bán {count} trên Shopee/TikTok',
         ],
-        'min_count' => 0,
-        'groups'    => [],
+        'min_count'  => 0,
+        'stale_days' => 30,
+        'groups'     => [],
     ];
 }
 
@@ -190,7 +193,8 @@ function hithean_sc_group_product_ids(array $group): array
 }
 
 /**
- * Tổng từng nhóm: ['group_id' => ['shopee' => int, 'web' => int, 'total' => int]].
+ * Tổng từng nhóm: ['group_id' => ['shopee' => int, 'web' => int, 'total' => int, 'updated' => 'Y-m-d']].
+ * 'updated' = ngày cập nhật mới nhất trong các nguồn — tháng của số liệu cho {thang}/{nam}.
  * Cache transient vài giờ (total_sales đổi theo đơn); xóa khi lưu settings.
  */
 function hithean_sc_group_totals(): array
@@ -207,9 +211,11 @@ function hithean_sc_group_totals(): array
 
     $totals = [];
     foreach (hithean_sc_settings()['groups'] as $group) {
-        $ecom = ['shopee' => 0, 'tiktok' => 0];
+        $ecom    = ['shopee' => 0, 'tiktok' => 0];
+        $updated = '';
         foreach ((array) ($group['sources'] ?? []) as $source) {
             $ecom[hithean_sc_source_platform((array) $source)] += absint($source['count'] ?? 0);
+            $updated = max($updated, (string) ($source['updated'] ?? ''));
         }
 
         $web = 0;
@@ -224,7 +230,8 @@ function hithean_sc_group_totals(): array
             'tiktok' => $ecom['tiktok'],
             'ecom'   => $ecom['shopee'] + $ecom['tiktok'],
             'web'    => $web,
-            'total'  => $ecom['shopee'] + $ecom['tiktok'] + $web,
+            'total'   => $ecom['shopee'] + $ecom['tiktok'] + $web,
+            'updated' => $updated,
         ];
     }
 
@@ -265,15 +272,18 @@ function hithean_sc_group_for_product(int $product_id): ?array
 
 /**
  * HTML 1 dòng lượt bán; '' nếu không có nhóm / dưới ngưỡng.
- * Template: {count} {brand} {shopee} {tiktok} {san} (Shopee + TikTok) {web} — {count} được in đậm.
+ * Template: {count} {brand} {shopee} {tiktok} {san} (Shopee + TikTok) {web} {thang} {nam} — các biến số được in đậm.
+ * {thang}/{nam}: tháng/năm của số liệu = $date (ngày cập nhật 1 nguồn) hoặc ngày cập nhật mới nhất
+ * của nhóm; chưa có ngày thì lấy tháng hiện tại.
  */
-function hithean_sc_render_line(array $group, string $template, string $context, string $format = 'short', ?int $count = null): string
+function hithean_sc_render_line(array $group, string $template, string $context, string $format = 'short', ?int $count = null, string $date = ''): string
 {
     $totals = array_replace(
-        ['shopee' => 0, 'tiktok' => 0, 'ecom' => 0, 'web' => 0, 'total' => 0],
+        ['shopee' => 0, 'tiktok' => 0, 'ecom' => 0, 'web' => 0, 'total' => 0, 'updated' => ''],
         hithean_sc_group_totals()[(string) $group['id']] ?? []
     );
     $count  = $count ?? (int) $totals['total'];
+    $time   = strtotime($date ?: (string) $totals['updated']) ?: (int) current_time('timestamp');
 
     if ($count <= 0 || $count < absint(hithean_sc_settings()['min_count'])) {
         return '';
@@ -282,10 +292,12 @@ function hithean_sc_render_line(array $group, string $template, string $context,
     $html = strtr(esc_html($template), [
         '{count}'  => '<strong>' . esc_html(hithean_sc_format_count($count, $format)) . '</strong>',
         '{brand}'  => esc_html((string) $group['name']),
-        '{shopee}' => esc_html(hithean_sc_format_count((int) $totals['shopee'], $format)),
-        '{tiktok}' => esc_html(hithean_sc_format_count((int) $totals['tiktok'], $format)),
-        '{san}'    => esc_html(hithean_sc_format_count((int) $totals['ecom'], $format)),
-        '{web}'    => esc_html(hithean_sc_format_count((int) $totals['web'], $format)),
+        '{shopee}' => '<strong>' . esc_html(hithean_sc_format_count((int) $totals['shopee'], $format)) . '</strong>',
+        '{tiktok}' => '<strong>' . esc_html(hithean_sc_format_count((int) $totals['tiktok'], $format)) . '</strong>',
+        '{san}'    => '<strong>' . esc_html(hithean_sc_format_count((int) $totals['ecom'], $format)) . '</strong>',
+        '{web}'    => '<strong>' . esc_html(hithean_sc_format_count((int) $totals['web'], $format)) . '</strong>',
+        '{thang}'  => gmdate('n', $time),
+        '{nam}'    => gmdate('Y', $time),
     ]);
 
     hithean_sc_print_styles();
@@ -360,7 +372,8 @@ add_action('hithean_ecom_card_after_info', static function (array $channel, int 
 
     foreach ((array) ($group['sources'] ?? []) as $source) {
         if (($source['type'] ?? '') === 'link' && hithean_sc_link_key((string) ($source['ref'] ?? '')) === $key) {
-            echo hithean_sc_render_line($group, __('Đã bán {count}', 'hithean.com'), 'card', 'short', absint($source['count'] ?? 0)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            $card = hithean_sc_source_platform((array) $source) === 'tiktok' ? __('Đã bán {count} trên TikTok', 'hithean.com') : __('Đã bán {count} trên Shopee', 'hithean.com');
+            echo hithean_sc_render_line($group, $card, 'card', 'short', absint($source['count'] ?? 0), (string) ($source['updated'] ?? '')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             return;
         }
     }
@@ -433,6 +446,22 @@ add_action('wp_ajax_hithean_sc_extract', static function (): void {
     hithean_sc_ajax_extract();
 });
 
+add_action('wp_ajax_hithean_sc_preview_shortcode', static function (): void {
+    hithean_sc_require_admin();
+    hithean_sc_ajax_preview_shortcode();
+});
+
+// Bookmarklet: popup chọn nhãn hiệu (GET) + lưu (POST) qua admin-post.php.
+add_action('admin_post_hithean_sc_capture', static function (): void {
+    hithean_sc_require_admin();
+    hithean_sc_capture_page();
+});
+add_action('admin_post_nopriv_hithean_sc_capture', 'auth_redirect');
+add_action('admin_post_hithean_sc_capture_save', static function (): void {
+    hithean_sc_require_admin();
+    hithean_sc_capture_save();
+});
+
 add_filter('ivar_shortcodes_guide', static function (array $guides): array {
     $guides['hithean_sales_count'] = [
         'name'    => '[hithean_sales_count]',
@@ -440,7 +469,7 @@ add_filter('ivar_shortcodes_guide', static function (array $guides): array {
         'args'    => [
             ['group', 'Slug nhóm (cột "Slug" trong tab Lượt bán). Bỏ trống = nhóm chứa sản phẩm hiện tại / <code>product_id</code>.', 'rỗng'],
             ['product_id', 'Lấy nhóm chứa sản phẩm này.', 'sản phẩm hiện tại'],
-            ['template', 'Câu hiển thị. Biến: <code>{count}</code> (in đậm), <code>{brand}</code>, <code>{shopee}</code>, <code>{tiktok}</code>, <code>{san}</code> (Shopee + TikTok), <code>{web}</code>.', 'câu "Dưới tiêu đề/giá" của nhãn hiệu'],
+            ['template', 'Câu hiển thị. Biến: <code>{count}</code>, <code>{brand}</code>, <code>{shopee}</code>, <code>{tiktok}</code>, <code>{san}</code> (Shopee + TikTok), <code>{web}</code>, <code>{thang}</code> / <code>{nam}</code> (tháng / năm cập nhật số liệu gần nhất).', 'câu "Dưới tiêu đề/giá" của nhãn hiệu'],
             ['format', '<code>short</code> kiểu Shopee (2,3k · 1,2tr) hoặc <code>full</code> (2.345).', 'short'],
             ['source', 'Số dùng cho <code>{count}</code>: <code>total</code> (tất cả), <code>san</code> (Shopee + TikTok), <code>shopee</code>, <code>tiktok</code> hoặc <code>web</code>.', 'total'],
             ['class', 'Class thêm vào thẻ bọc ngoài.', '—'],
