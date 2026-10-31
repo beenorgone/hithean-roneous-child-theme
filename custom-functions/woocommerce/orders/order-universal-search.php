@@ -1299,6 +1299,30 @@ function thean_ous_enqueue_assets(): void
     }
 }
 
+/**
+ * Logo site ở đầu thanh tìm — như thanh ERP (/erp): logo theme → ảnh đầu email WooCommerce → biểu tượng site → tên site.
+ * Theanmarket dùng luôn thean_erp_get_nav_logo_html() nếu module ERP đã nạp.
+ */
+function thean_ous_logo_html(): string
+{
+    if (function_exists('thean_erp_get_nav_logo_html')) {
+        return thean_erp_get_nav_logo_html();
+    }
+    $name     = (string) get_bloginfo('name');
+    $logo_id  = (int) get_theme_mod('custom_logo');
+    $logo_url = $logo_id > 0 ? (string) wp_get_attachment_image_url($logo_id, 'medium') : '';
+    if ($logo_url === '') {
+        $logo_url = (string) get_option('woocommerce_email_header_image');
+    }
+    if ($logo_url === '') {
+        $logo_url = (string) get_site_icon_url(64);
+    }
+    if ($logo_url === '') {
+        return '<span>' . esc_html($name) . '</span>';
+    }
+    return '<img class="skip-lazy" data-skip-lazy="1" src="' . esc_url($logo_url) . '" alt="' . esc_attr($name) . '">';
+}
+
 add_action('admin_footer', 'thean_ous_render_ui');
 function thean_ous_render_ui(): void
 {
@@ -1308,6 +1332,7 @@ function thean_ous_render_ui(): void
     ?>
     <form class="thean-ous-bar" id="thean-ous-bar" role="search" autocomplete="off" hidden>
         <div class="thean-ous-bar__row">
+            <a class="thean-ous-bar__brand" href="<?php echo esc_url(function_exists('thean_erp_get_home_url') ? thean_erp_get_home_url() : home_url('/')); ?>" target="_blank" rel="noopener" title="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php echo thean_ous_logo_html(); ?></a>
             <span class="dashicons dashicons-search" aria-hidden="true"></span>
             <input type="search" name="q" placeholder="Tìm đơn: ID, tên, SĐT, email, địa chỉ, SP, vận đơn… — gõ / để lọc (/tt, /sdt, /id, /sp)" aria-label="Tìm đơn hàng" aria-autocomplete="list" aria-controls="thean-ous-suggest">
             <kbd>/</kbd>
