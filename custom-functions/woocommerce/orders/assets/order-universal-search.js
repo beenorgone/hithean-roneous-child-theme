@@ -646,13 +646,10 @@
     // Đơn vừa đổi (popup luồng / thao tác nhanh) → đóng popup thao tác, board tự tải lại.
     document.addEventListener('thean:order-updated', function () { if (!acts.hidden) setOpen(acts, false); });
 
-    // Bảng đơn (kết quả tìm + board): Xem nhanh / bấm dòng → modal xem nhanh.
+    // Bảng đơn (kết quả tìm + board): chỉ nút "Xem nhanh" mở modal xem nhanh (bấm vào dòng không mở — dễ bấm nhầm khi chọn chữ / thao tác).
     function tableClick(e) {
         var btn = e.target.closest('[data-thean-ous-preview]');
-        if (btn) { e.preventDefault(); openPreview(btn.getAttribute('data-thean-ous-preview')); return; }
-        if (e.target.closest('a, button, input, select, textarea')) return;
-        var row = e.target.closest('tr[data-order-id]');
-        if (row) openPreview(row.getAttribute('data-order-id'));
+        if (btn) { e.preventDefault(); openPreview(btn.getAttribute('data-thean-ous-preview')); }
     }
     function tableKey(e) {
         var row = e.target.closest('tr[data-order-id]');

@@ -90,7 +90,6 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous__c-check input { margin:0 !important; }
 .thean-ous__table tbody tr.is-selected { background:var(--ous-primary-light); }
 .thean-ous__c-next .thean-ous__hint { margin:0 0 6px; }
-.thean-ous__table tbody tr { cursor:pointer; }
 .thean-ous__table tbody tr:hover, .thean-ous__table tbody tr:focus { background:var(--ous-primary-lighter); outline:none; }
 .thean-ous__table small { display:block; margin-top:2px; color:#64748b; }
 .thean-ous__table mark:not(.order-status) { background:#fff3a3; color:inherit; padding:0 1px; }
