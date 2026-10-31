@@ -1688,6 +1688,60 @@ function hithean_return_touch_meta(WC_Order $order, string $event): void
     $order->update_meta_data('return_last_action_by', get_current_user_id());
 }
 
+/** Thêm mã vận đơn hoàn vào return_code (nối bằng ", ", bỏ trùng). Trả về true nếu có thêm mới. */
+function hithean_return_append_code(WC_Order $order, string $code): bool
+{
+    $code = trim($code);
+    if ($code === '') return false;
+    $existing = trim((string) $order->get_meta('return_code'));
+    $codes = array_filter(array_map('trim', explode(',', $existing)));
+    if (in_array($code, $codes, true)) return false;
+    $order->update_meta_data('return_code', $existing === '' ? $code : $existing . ', ' . $code);
+    return true;
+}
+
+/**
+ * Upload ảnh từ $_FILES[$field] (jpg/png, ≤ hithean_return_max_upload_files() ảnh, mỗi ảnh ≤ 5MB) vào đơn.
+ * Trả về danh sách URL, hoặc WP_Error nếu vượt giới hạn.
+ */
+function hithean_return_upload_files(string $field, int $order_id, string $prefix)
+{
+    if (empty($_FILES[$field]['name'][0])) return [];
+    if (count($_FILES[$field]['name']) > hithean_return_max_upload_files()) {
+        return new WP_Error('too_many', 'Chỉ được upload tối đa ' . hithean_return_max_upload_files() . ' ảnh mỗi lần.');
+    }
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/media.php';
+    require_once ABSPATH . 'wp-admin/includes/image.php';
+
+    $urls = [];
+    foreach ($_FILES[$field]['name'] as $i => $name) {
+        if (intval($_FILES[$field]['size'][$i] ?? 0) > hithean_return_max_upload_bytes()) {
+            return new WP_Error('too_big', 'Mỗi ảnh tối đa 5MB.');
+        }
+        $ext = strtolower(pathinfo((string) $name, PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) continue;
+        $filename = sprintf('%s-%d-%s-%d.%s', $prefix, $order_id, date('Ymd-His'), $i + 1, $ext);
+        $file = [
+            'name' => $filename,
+            'type' => $_FILES[$field]['type'][$i],
+            'tmp_name' => $_FILES[$field]['tmp_name'][$i],
+            'error' => $_FILES[$field]['error'][$i],
+            'size' => $_FILES[$field]['size'][$i],
+        ];
+        $aid = hithean_upload_internal_order_image($file, $order_id, $filename);
+        if (!is_wp_error($aid)) $urls[] = wp_get_attachment_url($aid);
+    }
+    return $urls;
+}
+
+/** Nối URL ảnh vào meta dạng mỗi dòng 1 URL (issue_report_images / issue_result_images). */
+function hithean_return_append_images(WC_Order $order, string $meta_key, array $urls): void
+{
+    if (!$urls) return;
+    $order->update_meta_data($meta_key, trim((string) $order->get_meta($meta_key) . "\n" . implode("\n", $urls)));
+}
+
 function hithean_return_order_date_value(WC_Order $order, string $meta_key): int
 {
     $raw = (string) $order->get_meta($meta_key);
@@ -2574,55 +2628,25 @@ add_action('wp_ajax_upload_return_images', function () {
 
     $order_id = intval($_POST['order_id'] ?? 0);
     $has_issue = intval($_POST['has_issue'] ?? 0);
+    $code = sanitize_text_field(wp_unslash($_POST['return_code'] ?? ''));
     if (!$order_id) wp_send_json_error('Thiếu ID đơn');
 
     $order = wc_get_order($order_id);
     if (!$order) wp_send_json_error('Không tìm thấy đơn');
 
-    require_once ABSPATH . 'wp-admin/includes/file.php';
-    require_once ABSPATH . 'wp-admin/includes/media.php';
-    require_once ABSPATH . 'wp-admin/includes/image.php';
-
-    $uploaded_urls = [];
-    if (!empty($_FILES['images']['name'][0])) {
-        $file_count = count($_FILES['images']['name']);
-        if ($file_count > hithean_return_max_upload_files()) {
-            wp_send_json_error(['message' => 'Chỉ được upload tối đa ' . hithean_return_max_upload_files() . ' ảnh mỗi lần.']);
-        }
-
-        foreach ($_FILES['images']['name'] as $i => $name) {
-            $size = intval($_FILES['images']['size'][$i] ?? 0);
-            if ($size > hithean_return_max_upload_bytes()) {
-                wp_send_json_error(['message' => 'Mỗi ảnh tối đa 5MB.']);
-            }
-
-            $ext = strtolower(pathinfo((string) $name, PATHINFO_EXTENSION));
-            if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
-                continue;
-            }
-
-            $filename = sprintf('order-return-image-%d-%s-%d.%s', $order_id, date('Ymd-His'), $i + 1, $ext);
-            $file = [
-                'name' => $filename,
-                'type' => $_FILES['images']['type'][$i],
-                'tmp_name' => $_FILES['images']['tmp_name'][$i],
-                'error' => $_FILES['images']['error'][$i],
-                'size' => $_FILES['images']['size'][$i],
-            ];
-            $upload_id = hithean_upload_internal_order_image($file, $order_id, $filename);
-            if (!is_wp_error($upload_id)) {
-                $uploaded_urls[] = wp_get_attachment_url($upload_id);
-            }
-        }
-    }
-
-    $old_val = (string) $order->get_meta('issue_result_images');
+    $uploaded_urls = hithean_return_upload_files('images', $order_id, 'order-return-image');
+    if (is_wp_error($uploaded_urls)) wp_send_json_error(['message' => $uploaded_urls->get_error_message()]);
     if (empty($uploaded_urls)) {
         wp_send_json_error(['message' => 'Không có ảnh hợp lệ để upload.']);
     }
+    // Ảnh báo sự cố (tùy chọn) — có ảnh sự cố thì coi như hàng hoàn có sự cố.
+    $issue_urls = hithean_return_upload_files('issue_images', $order_id, 'order-return-issue');
+    if (is_wp_error($issue_urls)) wp_send_json_error(['message' => $issue_urls->get_error_message()]);
+    if ($issue_urls) $has_issue = 1;
 
-    $new_val = trim($old_val . "\n" . implode("\n", $uploaded_urls));
-    $order->update_meta_data('issue_result_images', $new_val);
+    hithean_return_append_images($order, 'issue_result_images', $uploaded_urls);
+    hithean_return_append_images($order, 'issue_report_images', $issue_urls);
+    $code_added = hithean_return_append_code($order, $code);
 
     $new_status = $has_issue ? 'Đã nhận hàng hoàn (Có sự cố)' : 'Đã nhận hàng hoàn (Không sự cố)';
     $order->update_meta_data('return_status', $new_status);
@@ -2632,12 +2656,13 @@ add_action('wp_ajax_upload_return_images', function () {
         "HOÀN HÀNG đã nhận hàng hoàn: %s\nẢnh đã upload: %d",
         $new_status,
         count($uploaded_urls)
-    ), false, true);
+    ) . ($issue_urls ? "\nẢnh sự cố: " . count($issue_urls) : '')
+      . ($code_added ? "\nMã vận đơn hoàn hàng: " . $code : ''), false, true);
     $order->save();
 
     hithean_return_clear_cache();
 
-    wp_send_json_success(['urls' => $uploaded_urls, 'status' => $new_status]);
+    wp_send_json_success(['urls' => $uploaded_urls, 'issue_urls' => $issue_urls, 'status' => $new_status]);
 });
 
 

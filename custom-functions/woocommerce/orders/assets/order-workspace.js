@@ -135,7 +135,12 @@
             });
             else fd.append(k, v == null ? '' : v);
         });
-        (files || []).forEach(function (f) { fd.append(fileField + '[]', f); });
+        // files: mảng ảnh (gửi theo fileField) hoặc { field: [ảnh] } khi form có nhiều ô ảnh.
+        var groups = files || {};
+        if (Array.isArray(files)) { groups = {}; groups[fileField] = files; }
+        Object.keys(groups).forEach(function (field) {
+            groups[field].forEach(function (f) { fd.append(field + '[]', f); });
+        });
         return fetch(cfg.ajaxUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
             .then(function (r) { return r.json().catch(function () { throw new Error('Phản hồi không hợp lệ (HTTP ' + r.status + ')'); }); })
             .then(function (json) {
@@ -205,11 +210,12 @@
         return el.value.trim();
     }
 
-    function selectedFiles(form) {
-        var input = form.querySelector('.tow-file__input');
+    /** Ảnh đã chọn trong ô upload (field = data-files khi form có nhiều ô); optional = cho phép trống. */
+    function selectedFiles(form, field, optional) {
+        var input = form.querySelector(field ? '.tow-file__input[data-files="' + field + '"]' : '.tow-file__input');
         var files = input ? Array.prototype.slice.call(input.files || []) : [];
         var max = input ? parseInt(input.getAttribute('data-max'), 10) || 5 : 5;
-        if (!files.length) throw new Error('Chưa chọn ảnh.');
+        if (!files.length && !optional) throw new Error('Chưa chọn ảnh.');
         if (files.length > max) throw new Error('Tối đa ' + max + ' ảnh mỗi lần.');
         return files;
     }
@@ -283,17 +289,33 @@
             };
         },
         return_process: function (form, btn) {
+            var issue = selectedFiles(form, 'issue_images', true);
             return {
                 confirm: btn.textContent.trim() + '?',
-                data: { action: 'process_return_order', nonce: cfg.nonces.returnProcess, order_id: cfg.orderId, return_code: val(form, 'return_code'), return_note: val(form, 'return_note') }
+                data: { action: 'process_return_order', nonce: cfg.nonces.returnProcess, order_id: cfg.orderId, return_code: val(form, 'return_code'), return_note: val(form, 'return_note') },
+                // Có chọn ảnh sự cố → lưu tiếp vào đơn.
+                then: issue.length ? { action: 'thean_order_workspace', nonce: cfg.nonces.workspace, order_id: cfg.orderId, task: 'return_report' } : null,
+                thenFiles: issue, thenFileField: 'issue_images'
+            };
+        },
+        return_report: function (form) {
+            var files = selectedFiles(form, 'issue_images', true);
+            if (!files.length && !val(form, 'return_code')) throw new Error('Nhập mã vận đơn hoàn hoặc chọn ảnh sự cố.');
+            return {
+                files: files, fileField: 'issue_images',
+                data: { action: 'thean_order_workspace', nonce: cfg.nonces.workspace, order_id: cfg.orderId, task: 'return_report', return_code: val(form, 'return_code') }
             };
         },
         return_receive: function (form) {
             var close = !!val(form, 'close_failed');
+            var issue = selectedFiles(form, 'issue_images', true);
             return {
                 confirm: close ? 'Ghi nhận đã nhận hàng hoàn, trả hàng về tồn kho và chuyển đơn sang Thất bại?' : '',
-                files: selectedFiles(form), fileField: 'images',
-                data: { action: 'upload_return_images', nonce: cfg.nonces.returnUpload, order_id: cfg.orderId, has_issue: val(form, 'has_issue') ? 1 : 0 },
+                files: { images: selectedFiles(form, 'images'), issue_images: issue },
+                data: {
+                    action: 'upload_return_images', nonce: cfg.nonces.returnUpload, order_id: cfg.orderId,
+                    has_issue: val(form, 'has_issue') || issue.length ? 1 : 0, return_code: val(form, 'return_code')
+                },
                 then: close ? { action: 'thean_order_workspace', nonce: cfg.nonces.workspace, order_id: cfg.orderId, task: 'return_close' } : null
             };
         },
@@ -333,7 +355,7 @@
                     // Thao tác nối tiếp (VD nhận hàng hoàn → trả tồn kho + Thất bại).
                     if (!req.then) return data;
                     var first = messageOf({ data: data }, 'Đã lưu.');
-                    return post(req.then).then(
+                    return post(req.then, req.thenFiles, req.thenFileField).then(
                         function (d2) { return { message: first + ' · ' + messageOf({ data: d2 }, 'Đã lưu.') }; },
                         function (e) { throw new Error(first + ' — nhưng: ' + e.message); }
                     );

@@ -1067,6 +1067,20 @@ function thean_ow_box_return(WC_Order $order, string $return_status, string $ret
     echo thean_ow_row('Bồi hoàn', esc_html($compensate));
     echo thean_ow_row('Hoàn tiền', esc_html($refund));
     echo thean_ow_gallery($images);
+    $issue_images = array_values(array_filter(array_map('trim', explode("\n", (string) $order->get_meta('issue_report_images')))));
+    echo thean_ow_row('Ảnh sự cố', thean_ow_gallery($issue_images));
+    // Ô mã vận đơn hoàn + ảnh báo sự cố, dùng chung cho form xử lý / chờ hoàn.
+    $report_fields = static function (bool $with_code = true): void {
+        ?>
+        <?php if ($with_code) : ?>
+            <label class="tow-f"><span>Mã vận đơn hoàn</span><input type="text" class="tow-input" data-p="return_code" placeholder="Mã vận đơn ĐVVC đang hoàn về"></label>
+        <?php endif; ?>
+        <label class="tow-file">
+            <input type="file" class="tow-file__input" data-files="issue_images" accept="image/jpeg,image/png" capture="environment" multiple data-max="6">
+            <span>⚠️ Ảnh báo sự cố (nếu có, tối đa 6)</span>
+        </label>
+        <?php
+    };
 
     $next = thean_ow_return_next_status($return_status);
     if ($return_status === '' || $return_status === 'Hủy yêu cầu') {
@@ -1089,17 +1103,25 @@ function thean_ow_box_return(WC_Order $order, string $return_status, string $ret
                 <label class="tow-f"><span>Mã vận đơn hoàn</span><input type="text" class="tow-input" data-p="return_code"></label>
                 <label class="tow-f"><span>Ghi chú</span><input type="text" class="tow-input" data-p="return_note"></label>
             </div>
-            <button type="button" class="button button-primary tow-act" data-action="return_process">Đã xử lý → <?php echo esc_html($next); ?></button>
+            <?php $report_fields(false); ?>
+            <div class="tow-btns">
+                <button type="button" class="button button-primary tow-act" data-action="return_process">Đã xử lý → <?php echo esc_html($next); ?></button>
+                <button type="button" class="button tow-act" data-action="return_report">💾 Chỉ lưu mã / ảnh sự cố</button>
+            </div>
         </div>
         <?php
     } elseif (strpos($return_status, 'Chờ hoàn') === 0) {
         ?>
         <div class="tow-form" data-task="return_receive">
+            <?php $report_fields(); ?>
+            <div class="tow-btns">
+                <button type="button" class="button tow-act" data-action="return_report">💾 Lưu mã / ảnh sự cố (hàng đang hoàn)</button>
+            </div>
             <label class="tow-file">
-                <input type="file" class="tow-file__input" accept="image/jpeg,image/png" capture="environment" multiple data-max="6">
+                <input type="file" class="tow-file__input" data-files="images" accept="image/jpeg,image/png" capture="environment" multiple data-max="6">
                 <span>📷 Ảnh hàng hoàn về (tối đa 6)</span>
             </label>
-            <label class="tow-check"><input type="checkbox" data-p="has_issue"> Hàng hoàn có sự cố</label>
+            <label class="tow-check"><input type="checkbox" data-p="has_issue"<?php checked($issue_images || $order->get_meta('return_has_issue')); ?>> Hàng hoàn có sự cố</label>
             <?php if (!in_array($order->get_status(), thean_ow_closed_statuses(), true)) : ?>
                 <label class="tow-check"><input type="checkbox" data-p="close_failed"> Hủy đơn: trả hàng về tồn kho rồi chuyển <strong>Thất bại</strong></label>
             <?php endif; ?>
@@ -1276,6 +1298,26 @@ function thean_ow_ajax(): void
             $order->save();
             hithean_return_clear_cache();
             wp_send_json_success(['message' => 'Đã tạo yêu cầu: ' . $target]);
+            break;
+
+        case 'return_report':
+            // Ghi mã vận đơn hoàn / ảnh báo sự cố khi hàng đang hoàn — không đổi trạng thái hoàn.
+            $return_status = trim((string) $order->get_meta('return_status'));
+            if ($return_status === '' || $return_status === 'Hủy yêu cầu') wp_send_json_error(['message' => 'Đơn chưa có yêu cầu hoàn.']);
+            if (!function_exists('hithean_return_upload_files')) require_once __DIR__ . '/../../shortcodes/shortcode-order-return-manager.php';
+            $code = sanitize_text_field(wp_unslash($_POST['return_code'] ?? ''));
+            $urls = hithean_return_upload_files('issue_images', $order->get_id(), 'order-return-issue');
+            if (is_wp_error($urls)) wp_send_json_error(['message' => $urls->get_error_message()]);
+            $code_added = hithean_return_append_code($order, $code);
+            if (!$code_added && !$urls) wp_send_json_error(['message' => $code !== '' ? 'Mã vận đơn hoàn đã có.' : 'Nhập mã vận đơn hoàn hoặc chọn ảnh sự cố.']);
+            hithean_return_append_images($order, 'issue_report_images', $urls);
+            if ($urls) $order->update_meta_data('return_has_issue', '1');
+            hithean_return_touch_meta($order, 'code');
+            $done = array_filter([$code_added ? 'mã vận đơn hoàn: ' . $code : '', $urls ? count($urls) . ' ảnh sự cố' : '']);
+            $order->add_order_note('HOÀN HÀNG ghi nhận ' . implode(', ', $done), false, true);
+            $order->save();
+            hithean_return_clear_cache();
+            wp_send_json_success(['message' => 'Đã lưu ' . implode(', ', $done) . '.']);
             break;
 
         case 'return_close':
