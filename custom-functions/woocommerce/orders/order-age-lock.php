@@ -2,7 +2,9 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * 🔒 Khóa đổi trạng thái đơn tạo hơn THEAN_ORDER_STATUS_LOCK_DAYS (365) ngày.
+ * 🔒 Khóa đổi trạng thái đơn cũ: tạo trước NGÀY MỐC chọn ở Cài đặt ERP → Xử lý đơn → "Khóa đơn cũ"
+ * (option thean_order_age_lock_cutoff, Y-m-d); để trống = tạo hơn THEAN_ORDER_STATUS_LOCK_DAYS (365) ngày.
+ * Board "Tải đơn cần xử lý" dùng cùng mốc này (thean_order_lock_cutoff_ts).
  *
  * - Tiến trình tự động (cron, WP-CLI, REST — VD hub eim đối soát / đổi trạng thái, Action Scheduler, request không
  *   đăng nhập như webhook / IPN) KHÔNG BAO GIỜ được đổi, kể cả khi chạy bằng tài khoản admin.
@@ -16,6 +18,34 @@ if (!defined('ABSPATH')) exit;
 
 const THEAN_ORDER_STATUS_LOCK_DAYS = 365;
 
+/** Ngày mốc khóa chọn ở Cài đặt ERP (Y-m-d) — '' = dùng mặc định THEAN_ORDER_STATUS_LOCK_DAYS ngày. */
+function thean_order_lock_cutoff_date(): string
+{
+    $date = (string) get_option('thean_order_age_lock_cutoff', '');
+    return preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? $date : '';
+}
+
+/** Mốc khóa (timestamp): đơn tạo TRƯỚC mốc là đơn cũ. Ngày mốc tính từ 00:00 theo múi giờ site. */
+function thean_order_lock_cutoff_ts(): int
+{
+    $date = thean_order_lock_cutoff_date();
+    if ($date !== '') {
+        try {
+            return (new DateTimeImmutable($date . ' 00:00:00', function_exists('wp_timezone') ? wp_timezone() : null))->getTimestamp();
+        } catch (Exception $e) {
+            // ngày hỏng → mặc định
+        }
+    }
+    return time() - THEAN_ORDER_STATUS_LOCK_DAYS * DAY_IN_SECONDS;
+}
+
+/** Mô tả mốc cho thông báo: "tạo trước 01/01/2025" | "tạo hơn 365 ngày". */
+function thean_order_lock_label(): string
+{
+    $date = thean_order_lock_cutoff_date();
+    return $date !== '' ? 'tạo trước ' . date('d/m/Y', strtotime($date)) : 'tạo hơn ' . THEAN_ORDER_STATUS_LOCK_DAYS . ' ngày';
+}
+
 /** Khóa đang tạm nới tới bao giờ (timestamp; 0 = không nới). */
 function thean_order_age_lock_relaxed_until(): int
 {
@@ -24,14 +54,14 @@ function thean_order_age_lock_relaxed_until(): int
     return $until > time() ? $until : 0;
 }
 
-/** Đơn tạo hơn THEAN_ORDER_STATUS_LOCK_DAYS ngày? */
+/** Đơn cũ (tạo trước mốc khóa)? */
 function thean_order_is_old($order): bool
 {
     if (!$order instanceof WC_Order || !$order->get_id()) {
         return false;
     }
     $created = $order->get_date_created();
-    return $created && $created->getTimestamp() < time() - THEAN_ORDER_STATUS_LOCK_DAYS * DAY_IN_SECONDS;
+    return $created && $created->getTimestamp() < thean_order_lock_cutoff_ts();
 }
 
 /** Request hiện tại là tiến trình tự động (không phải người thao tác tay)? Trả nguồn ('' = người dùng). */
@@ -100,11 +130,11 @@ add_action('woocommerce_before_order_object_save', function ($order) {
         if (empty($noted[$order->get_id()])) {
             $noted[$order->get_id()] = true;
             $order->add_order_note(sprintf(
-                '⛔ Chặn %s đổi trạng thái %s → %s: đơn tạo hơn %d ngày, tiến trình tự động không được đổi.',
+                '⛔ Chặn %s đổi trạng thái %s → %s: đơn %s, tiến trình tự động không được đổi.',
                 $source,
                 wc_get_order_status_name($original['status']),
                 wc_get_order_status_name($changes['status']),
-                THEAN_ORDER_STATUS_LOCK_DAYS
+                thean_order_lock_label()
             ), false, false);
         }
         return;
@@ -130,9 +160,9 @@ add_action('admin_notices', function () {
     printf(
         '<div class="notice notice-error is-dismissible"><p>%s</p></div>',
         esc_html(sprintf(
-            'Không thể đổi trạng thái đơn %s: đơn đã tạo hơn %d ngày, chỉ admin được phép thay đổi.',
+            'Không thể đổi trạng thái đơn %s: đơn %s, chỉ admin được phép thay đổi.',
             '#' . implode(', #', $blocked),
-            THEAN_ORDER_STATUS_LOCK_DAYS
+            thean_order_lock_label()
         ))
     );
 });
@@ -149,6 +179,14 @@ function thean_order_age_lock_settings_section(): void
     $durations = [HOUR_IN_SECONDS => '1 giờ', 4 * HOUR_IN_SECONDS => '4 giờ', DAY_IN_SECONDS => '1 ngày', 3 * DAY_IN_SECONDS => '3 ngày'];
     $notice = '';
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['thean_age_lock_nonce'])
+        && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['thean_age_lock_nonce'])), 'thean_age_lock_save')
+        && isset($_POST['thean_age_lock_cutoff_save'])) {
+        $date = sanitize_text_field(wp_unslash($_POST['thean_age_lock_cutoff'] ?? ''));
+        if ($date === '' || preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            update_option('thean_order_age_lock_cutoff', $date, false);
+            $notice = $date === '' ? '✅ Mốc khóa: mặc định ' . THEAN_ORDER_STATUS_LOCK_DAYS . ' ngày gần nhất.' : '✅ Mốc khóa: đơn tạo trước ' . date('d/m/Y', strtotime($date)) . '.';
+        }
+    } elseif (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['thean_age_lock_nonce'])
         && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['thean_age_lock_nonce'])), 'thean_age_lock_save')) {
         $seconds = absint($_POST['thean_age_lock_relax'] ?? 0);
         if (isset($durations[$seconds])) {
@@ -165,8 +203,16 @@ function thean_order_age_lock_settings_section(): void
     <?php if ($notice) : ?><div class="notice notice-success is-dismissible"><p><?php echo esc_html($notice); ?></p></div><?php endif; ?>
     <form method="post">
         <?php wp_nonce_field('thean_age_lock_save', 'thean_age_lock_nonce'); ?>
-        <h2>Khóa đơn cũ (tạo hơn <?php echo (int) THEAN_ORDER_STATUS_LOCK_DAYS; ?> ngày)</h2>
+        <h2>Khóa đơn cũ (<?php echo esc_html(thean_order_lock_label()); ?>)</h2>
         <table class="form-table" role="presentation"><tbody><tr>
+            <th scope="row"><label for="thean-age-lock-cutoff">Ngày mốc khóa</label></th>
+            <td>
+                <input type="date" id="thean-age-lock-cutoff" name="thean_age_lock_cutoff" value="<?php echo esc_attr(thean_order_lock_cutoff_date()); ?>">
+                <button type="submit" class="button" name="thean_age_lock_cutoff_save" value="1">Lưu mốc</button>
+                <p class="description">Đơn tạo <strong>trước</strong> ngày này bị khóa đổi trạng thái và không vào board "Tải đơn cần xử lý".
+                    Để trống = <?php echo (int) THEAN_ORDER_STATUS_LOCK_DAYS; ?> ngày gần nhất (mốc trượt theo ngày).</p>
+            </td>
+        </tr><tr>
             <th scope="row">Trạng thái khóa</th>
             <td>
                 <?php if ($until) : ?>
@@ -182,7 +228,7 @@ function thean_order_age_lock_settings_section(): void
                         <?php endforeach; ?>
                     </p>
                 <?php endif; ?>
-                <p class="description">Hết hạn tự khóa lại. Board "Tải đơn cần xử lý" luôn chỉ lấy đơn tạo trong 365 ngày.</p>
+                <p class="description">Hết hạn tự khóa lại. Board "Tải đơn cần xử lý" luôn bỏ đơn cũ (theo mốc trên), kể cả khi đang nới.</p>
             </td>
         </tr></tbody></table>
     </form>

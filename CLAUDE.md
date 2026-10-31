@@ -63,10 +63,11 @@ Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_m
 
 ## Khóa đơn cũ (`woocommerce/orders/order-age-lock.php`, dùng chung theanmarket)
 
-Đơn tạo hơn 365 ngày: người dùng chỉ admin (thao tác tay) đổi được trạng thái; **mọi tiến trình tự động** (cron, WP-CLI, REST — kể cả
+Đơn cũ = tạo **trước ngày mốc** chọn ở Cài đặt ERP → Xử lý đơn → "Khóa đơn cũ" (option `thean_order_age_lock_cutoff`; trống = hơn 365 ngày —
+`thean_order_lock_cutoff_ts()`, thông báo dùng `thean_order_lock_label()`; board dùng cùng mốc). Người dùng chỉ admin (thao tác tay) đổi được trạng thái; **mọi tiến trình tự động** (cron, WP-CLI, REST — kể cả
 hub eim đổi trạng thái / đối soát, Action Scheduler, request không đăng nhập như webhook) bị chặn ở `woocommerce_before_order_object_save`
 và ghi chú vào đơn. `order-auto-tasks.php` không chạy dây chuyền trên đơn cũ. Tạm nới có thời hạn (1 giờ … 3 ngày) ở Cài đặt ERP →
-Xử lý đơn → "Khóa đơn cũ" (option `thean_order_age_lock_relax`). Board "Tải đơn cần xử lý" luôn bỏ đơn tạo >365 ngày. Test: `php tests/order-age-lock.php`.
+Xử lý đơn → "Khóa đơn cũ" (option `thean_order_age_lock_relax`). Board "Tải đơn cần xử lý" luôn bỏ đơn cũ (theo mốc). Test: `php tests/order-age-lock.php`.
 
 ## Màu
 
@@ -103,8 +104,9 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   Đang giao / Thu COD / Hoàn hàng. Bước của mỗi đơn **lưu sẵn ở meta `_thean_ops_step`** (`woocommerce/orders/order-ops-step.php`,
   nạp mọi request): tính bằng `thean_ow_flow()` (order-workspace.php — cùng logic bảng điều phối) khi đơn được lưu / meta liên quan
   bị ghi thẳng, cron 10 phút quét 50 đơn mở, và 10 đơn đang hiện trên board luôn được tính lại (tự sửa). Board chỉ đếm (GROUP BY)
-  + phân trang SQL. Mở board / Làm mới / sau thao tác: tải sẵn 5 đơn đầu của **mọi tab** trong 1 request (`all=1`, `THEAN_OUS_BOARD_FIRST`) → đổi tab
-  lấy từ bộ nhớ đệm (5 phút), không gọi server; "Xem thêm" trong tab tải tiếp 10 đơn theo `offset`. Loại khỏi luồng: Hủy / Thất bại / Hoàn tiền / Hoàn thành / Chưa ghi nhận / Đã ghi nhận
+  + phân trang SQL. Mở board / Làm mới / sau thao tác: tải sẵn 5 đơn đầu của **mọi tab** trong 1 request (`all=1`, `THEAN_OUS_BOARD_FIRST`); tab đang xem tự tải thêm cho đủ 20
+  (`THEAN_OUS_BOARD_MORE`) → đổi tab
+  lấy từ bộ nhớ đệm (5 phút), không gọi server; "Xem thêm" trong tab tải tiếp 20 đơn theo `offset` / `limit`. Loại khỏi luồng: Hủy / Thất bại / Hoàn tiền / Hoàn thành / Chưa ghi nhận / Đã ghi nhận
   (`thean_ops_excluded_statuses()`), đơn gộp Shopee, **đơn nội bộ** (email thuộc domain ở Cài đặt ERP → Xử lý đơn → "Đơn nội bộ",
   option `thean_internal_email_domains`, trống = dùng danh sách của eim; hoặc cờ `_eim_internal`) — board lọc thẳng bằng SQL
   nên đổi domain có hiệu lực ngay; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.

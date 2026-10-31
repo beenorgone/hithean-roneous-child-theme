@@ -931,7 +931,7 @@ function thean_ow_box_payment(WC_Order $order, $order_no, array $payment, bool $
     if (!$payment['done'] && !$locked) {
         thean_ow_payment_form($order, $is_cod);
     } elseif ($locked && !$payment['done']) {
-        echo '<p class="tow-muted">Đơn tạo hơn ' . (defined('THEAN_ORDER_STATUS_LOCK_DAYS') ? (int) THEAN_ORDER_STATUS_LOCK_DAYS : 365) . ' ngày — chỉ admin được xác nhận.</p>';
+        echo '<p class="tow-muted">Đơn ' . (function_exists('thean_order_lock_label') ? thean_order_lock_label() : 'tạo hơn 365 ngày') . ' — chỉ admin được xác nhận.</p>';
     }
 
     if ($order->get_payment_method() === 'bacs') thean_ow_transfer_qr($order, $order_no);

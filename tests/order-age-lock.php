@@ -58,4 +58,13 @@ check(!thean_order_status_is_locked($old) && thean_order_age_lock_relaxed_until(
 ctx(['caps' => ['manage_woocommerce'], 'options' => ['thean_order_age_lock_relax' => ['until' => time() - 5]]]);
 check(thean_order_status_is_locked($old) && thean_order_age_lock_relaxed_until() === 0, 'hết hạn nới → khóa lại');
 
+// Ngày mốc chọn ở Cài đặt ERP thay cho 365 ngày.
+$before = new WC_Order(3, strtotime('2025-12-31 12:00:00'));
+$after  = new WC_Order(4, strtotime('2026-01-02 12:00:00'));
+ctx(['caps' => ['manage_woocommerce'], 'options' => ['thean_order_age_lock_cutoff' => '2026-01-01']]);
+check(thean_order_is_old($before) && !thean_order_is_old($after), 'mốc ngày: tạo trước mốc là đơn cũ');
+check(thean_order_lock_label() === 'tạo trước 01/01/2026', 'nhãn theo ngày mốc');
+ctx(['caps' => ['manage_woocommerce'], 'options' => ['thean_order_age_lock_cutoff' => 'hỏng']]);
+check(thean_order_lock_cutoff_date() === '' && thean_order_lock_label() === 'tạo hơn 365 ngày' && thean_order_is_old($old) && !thean_order_is_old($new), 'mốc hỏng / trống → mặc định 365 ngày');
+
 echo "OK ({$checks} checks)\n";

@@ -39,7 +39,8 @@ const THEAN_OUS_RL_MAX      = 4;   // tối đa lượt tìm thật (không trú
 const THEAN_OUS_RL_WINDOW   = 30;  // … trong 30 giây; lượt thứ 5 bị chặn
 const THEAN_OUS_RL_BLOCK    = 120; // khóa 2 phút
 const THEAN_OUS_BULK_MAX = 50; // thao tác hàng loạt: tối đa 50 đơn / lần
-const THEAN_OUS_BOARD_FIRST = 5; // board: lần tải đầu (mọi tab) lấy 5 đơn / tab; "Xem thêm" tải tiếp THEAN_OUS_PER_PAGE
+const THEAN_OUS_BOARD_FIRST = 5;  // board: lần tải đầu (mọi tab) lấy 5 đơn / tab …
+const THEAN_OUS_BOARD_MORE  = 20; // … tab đang xem tự tải thêm cho đủ 20; "Xem thêm" tải 20 đơn / lần (client gửi limit ≤ 50)
 const THEAN_OUS_BOARD_BACKFILL = 20; // board: mỗi lần mở tính bù tối đa 20 đơn chưa có bước
 
 /**
@@ -1068,6 +1069,7 @@ function thean_ous_ajax_board(): void
 
     $labels = thean_ops_step_tabs();
     $offset = absint($_POST['offset'] ?? 0); // "Xem thêm": số đơn đang hiện của tab
+    $limit  = min(50, max(1, absint($_POST['limit'] ?? THEAN_OUS_BOARD_MORE)));
     $tab    = sanitize_key(wp_unslash($_POST['tab'] ?? ''));
     $counts = thean_ous_board_counts();
     if (!isset($labels[$tab])) {
@@ -1084,7 +1086,7 @@ function thean_ous_ajax_board(): void
     foreach ($load as $t) {
         $ids_by[$t] = $all
             ? thean_ous_board_page_ids($t, 0, THEAN_OUS_BOARD_FIRST)
-            : thean_ous_board_page_ids($t, $offset, THEAN_OUS_PER_PAGE);
+            : thean_ous_board_page_ids($t, $offset, $limit);
     }
 
     // Tính lại tại chỗ các đơn sẽ hiện (đọc gộp 1 lần): lệch thì ghi lại, đơn đã sang bước khác thì không hiện ở tab đó.

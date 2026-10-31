@@ -226,7 +226,8 @@
         syncBulk(modal);
         var more = body(modal).querySelector('.thean-ous__more');
         more.hidden = !data.has_more;
-        if (data.has_more) more.querySelector('button').textContent = 'Xem thêm ' + Math.min(cfg.perPage, data.total - data.shown) + ' đơn (còn ' + (data.total - data.shown) + ')';
+        var step = modal === board ? BOARD_MORE : cfg.perPage;
+        if (data.has_more) more.querySelector('button').textContent = 'Xem thêm ' + Math.min(step, data.total - data.shown) + ' đơn (còn ' + (data.total - data.shown) + ')';
     }
     function render(data, page) {
         var status = results.querySelector('.thean-ous-modal__status');
@@ -422,11 +423,16 @@
         board.querySelector('.thean-ous-modal__status').textContent = '— cập nhật ' + data.at + (data.pending ? ' · còn đơn chưa được phân bước, bấm Làm mới để tính tiếp' : '');
         if (!data.total) { notice(body(board), 'Không có đơn nào ở bước này 🎉'); return; }
         fillTable(board, data, page);
+        // Lần tải đầu chỉ 5 đơn / tab cho nhẹ — tab đang xem tự tải thêm cho đủ BOARD_MORE (20) đơn.
+        if (page === 1 && data.has_more && data.shown < BOARD_MORE) {
+            loadBoard(data.tab, 2, false, BOARD_MORE - data.shown);
+        }
     }
     // Trang 1 (mở board / Làm mới / sau thao tác): server trả luôn 5 đơn đầu của MỌI tab (all = 1) → đổi tab lấy từ
     // boardCache, không gọi lại server. "Xem thêm" trong 1 tab tải tiếp từ vị trí đang hiện (offset).
     var BOARD_TTL = 300000;
-    function loadBoard(tab, page, refresh) {
+    var BOARD_MORE = 20; // = THEAN_OUS_BOARD_MORE
+    function loadBoard(tab, page, refresh, limit) {
         var key = tab + '|' + page, hit = boardCache.get(key);
         board.hidden = false;
         if (!refresh && tab && hit && Date.now() - hit.at < BOARD_TTL) { renderBoard(hit.data, page); return; }
@@ -439,7 +445,7 @@
         else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
         var data = { tab: tab };
         if (page === 1) data.all = 1;
-        else data.offset = boardState.shown;
+        else { data.offset = boardState.shown; data.limit = limit || BOARD_MORE; }
         post('thean_order_usearch_board', data, boardCtl).then(function (res) {
             if (!res.success) {
                 if (res.data && res.data.retry_after) blockedUntil = Date.now() + res.data.retry_after * 1000;
@@ -455,6 +461,8 @@
             } else {
                 boardCache.set(d.tab + '|' + page, { at: at, data: d });
             }
+            // Đã đổi sang tab khác trong lúc tải thêm → chỉ lưu cache, không chèn vào tab đang xem.
+            if (page > 1 && d.tab !== boardState.tab) return;
             renderBoard(d, page);
         }).catch(function (err) {
             if (err.name !== 'AbortError') notice(body(board), err.message || 'Lỗi kết nối.');

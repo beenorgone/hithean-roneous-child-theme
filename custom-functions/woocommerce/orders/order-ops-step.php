@@ -32,7 +32,6 @@ const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
 const THEAN_OPS_STEP_VERSION = '4'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK; 4: cờ chứng từ cho đơn đang giao)
 const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu chứng từ XK" (đơn đang giao: kèm tab Đang giao)
-const THEAN_OPS_MAX_AGE_DAYS = 365; // luồng vận hành / board bỏ qua đơn tạo quá 365 ngày
 const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu chứng từ XK: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
 const THEAN_OPS_SWEEP     = 50;
@@ -222,7 +221,7 @@ function thean_ops_step_compute(WC_Order $order): array
         require_once __DIR__ . '/order-workspace.php';
     }
     $created = $order->get_date_created();
-    $too_old = !$created || $created->getTimestamp() < time() - THEAN_OPS_MAX_AGE_DAYS * DAY_IN_SECONDS;
+    $too_old = !$created || $created->getTimestamp() < thean_ops_age_cutoff_ts();
     if ($too_old || $order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '' || thean_order_is_internal($order)) {
         return ['step' => '', 'hint' => '', 'proof' => false];
     }
@@ -369,10 +368,16 @@ foreach (['added_post_meta', 'updated_post_meta', 'deleted_post_meta'] as $thean
 }
 unset($thean_ops_hook);
 
-/** Điều kiện SQL: đơn tạo trong THEAN_OPS_MAX_AGE_DAYS ngày (alias đơn = o). */
+/** Mốc bỏ đơn cũ của luồng vận hành = mốc khóa đơn cũ (order-age-lock.php: ngày mốc ở Cài đặt ERP, mặc định 365 ngày). */
+function thean_ops_age_cutoff_ts(): int
+{
+    return function_exists('thean_order_lock_cutoff_ts') ? thean_order_lock_cutoff_ts() : time() - 365 * DAY_IN_SECONDS;
+}
+
+/** Điều kiện SQL: đơn tạo từ mốc khóa đơn cũ trở đi (alias đơn = o). */
 function thean_ops_age_sql(array $t): string
 {
-    return "o.{$t['date']} >= '" . gmdate('Y-m-d H:i:s', time() - THEAN_OPS_MAX_AGE_DAYS * DAY_IN_SECONDS) . "'";
+    return "o.{$t['date']} >= '" . gmdate('Y-m-d H:i:s', thean_ops_age_cutoff_ts()) . "'";
 }
 
 /** Bảng / cột đơn + meta theo kiểu lưu trữ (HPOS hoặc legacy). */
@@ -388,7 +393,7 @@ function thean_ops_step_tables(): array
 
 /**
  * FROM … WHERE chung: đơn mở thuộc luồng vận hành + đơn đã giao / xong trong THEAN_OPS_PROOF_DAYS ngày (soát chứng từ XK);
- * bỏ đơn tạo quá THEAN_OPS_MAX_AGE_DAYS ngày.
+ * bỏ đơn cũ (trước mốc khóa đơn cũ).
  */
 function thean_ops_step_open_sql(array $t): string
 {
