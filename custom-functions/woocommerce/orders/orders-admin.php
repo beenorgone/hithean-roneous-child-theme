@@ -35,6 +35,9 @@ function hithean_order_admin_action_url(string $action, int $order_id, array $ar
 add_filter('woocommerce_admin_order_actions', 'add_custom_actions', 100, 2);
 function add_custom_actions($actions, $order)
 {
+    // Bỏ nút core "Đang xử lý" / "Hoàn thành": đổi trạng thái đi qua luồng điều phối đơn.
+    unset($actions['processing'], $actions['complete']);
+
     $order_id = method_exists($order, 'get_id') ? $order->get_id() : $order->id;
     $cus_id = $order->get_customer_id();
     $bill_phone = $order->get_billing_phone();
