@@ -23,6 +23,8 @@ function get_transient($k) { return $GLOBALS['__transients'][$k] ?? false; }
 function set_transient($k, $v, $ttl = 0) { $GLOBALS['__transients'][$k] = $v; return true; }
 function delete_transient($k) { unset($GLOBALS['__transients'][$k]); return true; }
 function apply_filters($tag, $value) { return $value; }
+$GLOBALS['__options'] = [];
+function get_option($k, $d = false) { return $GLOBALS['__options'][$k] ?? $d; }
 function esc_sql($s) { return addslashes($s); }
 function remove_accents($s)
 {
@@ -178,6 +180,19 @@ foreach ([true, false] as $hpos) {
     thean_ops_step_unsynced_ids(20);
     check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '1'") !== false && strpos($wpdb->queries[0], 'LIMIT 20') !== false, 'unsynced = no meta for current version ' . ($hpos ? 'HPOS' : 'legacy'));
 }
+
+// Đơn nội bộ: domain email (Cài đặt ERP) / cờ _eim_internal → không vào luồng vận hành.
+check(thean_parse_email_domains("@TheAn.com, ivar.vn;  bad  x@y\nsub.ivar.vn") === ['thean.com', 'ivar.vn', 'sub.ivar.vn'], 'parse domains');
+check(thean_email_is_internal('kho@thean.com', ['thean.com']) && thean_email_is_internal('a@hn.thean.com', ['thean.com']), 'internal email + subdomain');
+check(!thean_email_is_internal('khach@an.com', ['thean.com']) && !thean_email_is_internal('a@notthean.com', ['thean.com']) && !thean_email_is_internal('', ['thean.com']), 'no partial-domain match');
+$GLOBALS['__options']['thean_internal_email_domains'] = 'thean.com';
+foreach ([true, false] as $hpos) {
+    \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
+    $q = thean_ous_board_sql();
+    check(strpos($q, "'_eim_internal'") !== false && strpos($q, "LIKE '%@thean.com'") !== false
+        && strpos($q, $hpos ? 'COALESCE(o.billing_email' : "meta_key = '_billing_email'") !== false, 'board skips internal orders ' . ($hpos ? 'HPOS' : 'legacy'));
+}
+unset($GLOBALS['__options']['thean_internal_email_domains']);
 
 echo "OK ({$checks} checks)\n";
 }

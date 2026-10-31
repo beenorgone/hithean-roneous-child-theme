@@ -877,7 +877,7 @@ function thean_ous_preview_html(WC_Order $order): string
     return $html;
 }
 
-/** FROM … WHERE board: đơn có bước (≠ none) thuộc luồng vận hành; đơn đóng chỉ còn tab Hoàn hàng; bỏ đơn gộp Shopee. */
+/** FROM … WHERE board: đơn có bước (≠ none) thuộc luồng vận hành; đơn đóng chỉ còn tab Hoàn hàng; bỏ đơn gộp Shopee + đơn nội bộ. */
 function thean_ous_board_sql(): string
 {
     $t = thean_ops_step_tables();
@@ -887,7 +887,8 @@ function thean_ous_board_sql(): string
             WHERE o.{$t['type']} = 'shop_order'
               AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
               AND (o.{$t['status']} NOT IN ({$excluded}) OR s.meta_value = 'return')
-              AND NOT EXISTS (SELECT 1 FROM {$t['meta']} x WHERE x.{$t['fk']} = o.{$t['id']} AND x.meta_key = '_spx_date' AND x.meta_value <> '')";
+              AND NOT EXISTS (SELECT 1 FROM {$t['meta']} x WHERE x.{$t['fk']} = o.{$t['id']} AND x.meta_key = '_spx_date' AND x.meta_value <> '')
+              AND " . thean_ops_internal_sql($t); // đơn nội bộ (domain email / _eim_internal) — đổi cài đặt có hiệu lực ngay
 }
 
 /** Số đơn mỗi tab (1 truy vấn GROUP BY). */

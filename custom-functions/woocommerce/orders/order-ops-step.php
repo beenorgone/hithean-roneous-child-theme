@@ -20,6 +20,9 @@ if (!defined('ABSPATH')) exit;
  * 3. Cron 10 phút quét 50 đơn mở (ưu tiên đơn chưa từng tính) — bắt các thay đổi không qua hook
  *    (VD save_meta_data trên HPOS).
  *
+ * Đơn nội bộ (email thuộc domain nội bộ ở Cài đặt ERP → Xử lý đơn, hoặc cờ `_eim_internal`) không thuộc luồng:
+ * bước = 'none' và board lọc thẳng bằng SQL (đổi danh sách domain có hiệu lực ngay, không cần tính lại).
+ *
  * File nạp mọi request (đơn tạo ở checkout cũng cần tính). Dùng chung theanmarket + hithean.
  */
 
@@ -53,6 +56,77 @@ function thean_ops_excluded_statuses(): array
     return (array) apply_filters('thean_ops_excluded_statuses', ['cancelled', 'failed', 'refunded', 'completed', 'chua-ghi-nhan', 'da-ghi-nhan']);
 }
 
+/**
+ * Domain email nội bộ (Cài đặt ERP → Xử lý đơn, option `thean_internal_email_domains`). Trống thì dùng danh sách
+ * `internal_email_domains` của plugin eim nếu có. Chuẩn hóa: chữ thường, bỏ "@" đầu.
+ *
+ * @return string[]
+ */
+function thean_internal_email_domains(): array
+{
+    $list = thean_parse_email_domains((string) get_option('thean_internal_email_domains', ''));
+    if (!$list && function_exists('eim_internal_email_domains')) {
+        $list = thean_parse_email_domains(implode(' ', (array) eim_internal_email_domains()));
+    }
+    return $list;
+}
+
+/** Tách danh sách domain (phẩy / chấm phẩy / khoảng trắng / xuống dòng). Hàm thuần. */
+function thean_parse_email_domains(string $raw): array
+{
+    $out = [];
+    foreach (preg_split('/[\s,;]+/', strtolower(trim($raw))) ?: [] as $domain) {
+        $domain = ltrim(trim($domain), '@');
+        if ($domain !== '' && preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/', $domain)) {
+            $out[] = $domain;
+        }
+    }
+    return array_values(array_unique($out));
+}
+
+/** Email thuộc domain nội bộ? Khớp "@domain" hoặc subdomain ".domain" (không khớp nhầm thean.com với an.com). */
+function thean_email_is_internal(string $email, ?array $domains = null): bool
+{
+    $email = strtolower(trim($email));
+    if ($email === '') {
+        return false;
+    }
+    foreach ($domains ?? thean_internal_email_domains() as $domain) {
+        $at = '@' . $domain;
+        $sub = '.' . $domain;
+        if (substr($email, -strlen($at)) === $at || (strpos($email, '@') !== false && substr($email, -strlen($sub)) === $sub)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Đơn nội bộ: cờ `_eim_internal` hoặc email người mua thuộc domain nội bộ. */
+function thean_order_is_internal(WC_Order $order): bool
+{
+    return (string) $order->get_meta('_eim_internal') === '1' || thean_email_is_internal($order->get_billing_email());
+}
+
+/** Điều kiện SQL loại đơn nội bộ (alias đơn = o). */
+function thean_ops_internal_sql(array $t): string
+{
+    global $wpdb;
+    $parts = ["NOT EXISTS (SELECT 1 FROM {$t['meta']} i WHERE i.{$t['fk']} = o.{$t['id']} AND i.meta_key = '_eim_internal' AND i.meta_value = '1')"];
+    $likes = [];
+    foreach (thean_internal_email_domains() as $domain) {
+        foreach (['%@', '%.'] as $prefix) {
+            $likes[] = $wpdb->prepare('%s', $prefix . $wpdb->esc_like($domain));
+        }
+    }
+    if ($likes) {
+        $match = static fn(string $col) => '(' . implode(' OR ', array_map(static fn($l) => "{$col} LIKE {$l}", $likes)) . ')';
+        $parts[] = $t['email_col'] !== ''
+            ? 'NOT ' . $match("COALESCE(o.{$t['email_col']}, '')")
+            : "NOT EXISTS (SELECT 1 FROM {$t['meta']} e WHERE e.{$t['fk']} = o.{$t['id']} AND e.meta_key = '_billing_email' AND " . $match('e.meta_value') . ')';
+    }
+    return implode(' AND ', $parts);
+}
+
 /** Bước tiếp theo (thean_ow_flow) → tab board; '' = không cần xử lý. Hàm thuần. */
 function thean_ops_step_from_flow(array $flow, string $status = ''): string
 {
@@ -79,7 +153,7 @@ function thean_ops_step_compute(WC_Order $order): array
     if (!function_exists('thean_ow_flow')) {
         require_once __DIR__ . '/order-workspace.php';
     }
-    if ($order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '') {
+    if ($order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '' || thean_order_is_internal($order)) {
         return ['step' => '', 'hint' => ''];
     }
     $flow = thean_ow_flow($order);
@@ -155,7 +229,7 @@ function thean_ops_step_watched_meta(): array
     return [
         '_order_payment_confirmation_audit', 'paid_date', 'order_paid_date', 'bank_account_received', 'order_bank_account_received',
         'handling_status', 'order_handling_status', 'warehouse_export_images', 'export_confirmed_by', 'return_status',
-        '_payment_method', '_spx_date',
+        '_payment_method', '_spx_date', '_eim_internal', '_billing_email',
     ];
 }
 
@@ -177,8 +251,8 @@ function thean_ops_step_tables(): array
     $hpos = class_exists('\Automattic\WooCommerce\Utilities\OrderUtil')
         && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
     return $hpos
-        ? ['orders' => "{$wpdb->prefix}wc_orders", 'meta' => "{$wpdb->prefix}wc_orders_meta", 'id' => 'id', 'status' => 'status', 'type' => 'type', 'fk' => 'order_id']
-        : ['orders' => $wpdb->posts, 'meta' => $wpdb->postmeta, 'id' => 'ID', 'status' => 'post_status', 'type' => 'post_type', 'fk' => 'post_id'];
+        ? ['orders' => "{$wpdb->prefix}wc_orders", 'meta' => "{$wpdb->prefix}wc_orders_meta", 'id' => 'id', 'status' => 'status', 'type' => 'type', 'fk' => 'order_id', 'email_col' => 'billing_email']
+        : ['orders' => $wpdb->posts, 'meta' => $wpdb->postmeta, 'id' => 'ID', 'status' => 'post_status', 'type' => 'post_type', 'fk' => 'post_id', 'email_col' => ''];
 }
 
 /** FROM … WHERE chung: đơn mở thuộc luồng vận hành. */
@@ -237,3 +311,40 @@ add_action('init', function () {
 add_action(THEAN_OPS_CRON, function () {
     thean_ops_step_sync_ids(thean_ops_step_sweep_ids());
 });
+
+/**
+ * Mục "Đơn nội bộ" trong Cài đặt ERP → tab Xử lý đơn (gọi từ core/ai-settings.php của mỗi theme): lưu + hiển thị.
+ */
+function thean_internal_domains_settings_section(): void
+{
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    $saved = false;
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['thean_internal_domains_nonce'])
+        && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['thean_internal_domains_nonce'])), 'thean_internal_domains_save')) {
+        update_option('thean_internal_email_domains', implode(', ', thean_parse_email_domains(wp_unslash((string) ($_POST['thean_internal_email_domains'] ?? '')))), false);
+        $saved = true;
+    }
+    $value = (string) get_option('thean_internal_email_domains', '');
+    $eim   = function_exists('eim_internal_email_domains') ? (array) eim_internal_email_domains() : [];
+    ?>
+    <?php if ($saved) : ?><div class="notice notice-success is-dismissible"><p>✅ Đã lưu domain email nội bộ.</p></div><?php endif; ?>
+    <form method="post">
+        <?php wp_nonce_field('thean_internal_domains_save', 'thean_internal_domains_nonce'); ?>
+        <h2>Đơn nội bộ</h2>
+        <table class="form-table" role="presentation"><tbody><tr>
+            <th scope="row"><label for="thean-internal-domains">Domain email nội bộ</label></th>
+            <td>
+                <input type="text" class="large-text" style="max-width:600px" id="thean-internal-domains" name="thean_internal_email_domains" value="<?php echo esc_attr($value); ?>" placeholder="vd: theanmarket.com, ivarvietnam.com">
+                <p class="description">Đơn có email người mua thuộc các domain này (kể cả subdomain), hoặc có cờ <code>_eim_internal</code>, được coi là đơn nội bộ và
+                    <strong>không vào luồng vận hành</strong> (board "Tải đơn cần xử lý"). Ô tìm đơn vẫn tìm được. Cách nhau bằng dấu phẩy.</p>
+                <?php if ($value === '' && $eim) : ?>
+                    <p class="description">Đang để trống → dùng danh sách của plugin hóa đơn (eim): <code><?php echo esc_html(implode(', ', $eim)); ?></code>.</p>
+                <?php endif; ?>
+            </td>
+        </tr></tbody></table>
+        <?php submit_button('Lưu domain nội bộ'); ?>
+    </form>
+    <?php
+}
