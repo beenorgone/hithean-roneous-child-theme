@@ -187,7 +187,9 @@ function hithean_oac_render($order): void
         $inner = '<span aria-hidden="true">' . esc_html($meta['icon']) . '</span>';
 
         if ($slug === 'chinh-don-tao-don') {
-            $head .= '<a class="hithean-oa__btn hithean-oa__btn--icon wc-action-button-' . esc_attr($slug) . '"' . $attrs . ' aria-label="' . esc_attr($label) . '">' . $inner . '</a>';
+            // Có chữ "Sửa" (không chỉ biểu tượng) để dễ nhận ra; title giữ nhãn đầy đủ.
+            $head .= '<a class="hithean-oa__btn wc-action-button-' . esc_attr($slug) . '"' . $attrs . '>' . $inner
+                . '<span class="hithean-oa__txt">Sửa</span></a>';
         } elseif ($key === $primary) {
             $head = '<a class="hithean-oa__btn hithean-oa__btn--primary wc-action-button-' . esc_attr($slug) . '"' . $attrs . '>' . $inner
                 . '<span class="hithean-oa__txt">' . esc_html($label) . '</span></a>' . $head;
@@ -261,7 +263,6 @@ function hithean_oac_assets(): void
         .hithean-oa__btn:hover, .hithean-oa__btn:focus { border-color:#0047ba; color:#0047ba; }
         .hithean-oa__btn--primary { border-color:#0047ba; background:#0047ba; color:#fff; }
         .hithean-oa__btn--primary:hover, .hithean-oa__btn--primary:focus { background:#003a99; color:#fff; }
-        .hithean-oa__btn--icon { padding:3px 8px; }
         .hithean-oa__menu { position:absolute; top:calc(100% + 4px); right:0; z-index:100; display:grid; min-width:230px; padding:6px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; box-shadow:0 10px 30px rgba(15,23,42,.18); }
         .hithean-oa__menu[hidden] { display:none; }
         .hithean-oa__group { padding:6px 8px 2px; color:#64748b; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
