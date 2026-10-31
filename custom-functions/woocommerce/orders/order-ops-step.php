@@ -229,7 +229,7 @@ add_action('woocommerce_after_order_object_save', function ($order) {
 });
 
 /**
- * Nút đơn đặt trước ở danh sách đơn / ô tìm / board (popup: assets/order-preorder.js, xử lý: order-workspace.php):
+ * Nút đơn đặt trước ở danh sách đơn / ô tìm / board (popup: assets/order-flow-popup.js, xử lý: order-workspace.php):
  * "Chuyển sang đặt trước" và "Xác nhận giao (đặt trước)" khi đơn vừa tiếp tục từ Đặt trước.
  */
 add_filter('woocommerce_admin_order_actions', function ($actions, $order) {
@@ -256,13 +256,13 @@ add_filter('woocommerce_admin_order_actions', function ($actions, $order) {
     return $actions;
 }, 120, 2);
 
-/** Cấu hình cho assets/order-preorder.js — gọi khi enqueue (trang sửa đơn: reload = true). */
-function thean_preorder_enqueue(bool $reload): void
+/** Nạp popup thao tác luồng đơn (assets/order-flow-popup.js: Tạm giữ / Tiếp tục / Hủy / Đặt trước…). Trang sửa đơn: reload = true. */
+function thean_flow_popup_enqueue(bool $reload): void
 {
     $dir = get_stylesheet_directory() . '/custom-functions/woocommerce/orders/assets/';
     $uri = get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/';
-    wp_enqueue_script('thean-order-preorder', $uri . 'order-preorder.js', [], (string) @filemtime($dir . 'order-preorder.js'), true);
-    wp_add_inline_script('thean-order-preorder', 'window.theanPreorderCfg = ' . wp_json_encode([
+    wp_enqueue_script('thean-order-flow-popup', $uri . 'order-flow-popup.js', [], (string) @filemtime($dir . 'order-flow-popup.js'), true);
+    wp_add_inline_script('thean-order-flow-popup', 'window.theanFlowCfg = ' . wp_json_encode([
         'ajaxUrl' => admin_url('admin-ajax.php'),
         'nonce'   => wp_create_nonce('thean_order_workspace'), // THEAN_OW_NONCE
         'reload'  => $reload,

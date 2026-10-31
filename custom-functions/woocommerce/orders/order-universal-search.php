@@ -22,7 +22,11 @@ if (!defined('ABSPATH')) exit;
  * `_thean_ops_step` (order-ops-step.php, tính bằng thean_ow_flow() — cùng logic bảng điều phối) nên board chỉ
  * đếm + phân trang bằng SQL rồi đọc 10 đơn của trang; 10 đơn đó được tính lại tại chỗ (tự sửa nếu lệch).
  *
- * AJAX: thean_order_usearch, thean_order_usearch_preview, thean_order_usearch_alerts, thean_order_usearch_board.
+ * Chọn nhiều đơn (kết quả tìm + board) → thao tác hàng loạt: Tạm giữ / Tiếp tục / Đặt trước / Hủy (thean_ow_apply_flow của
+ * order-workspace.php) và Đổi trạng thái; tối đa THEAN_OUS_BULK_MAX đơn / lần.
+ *
+ * AJAX: thean_order_usearch, thean_order_usearch_preview, thean_order_usearch_alerts, thean_order_usearch_board,
+ * thean_order_usearch_bulk.
  */
 
 const THEAN_OUS_PER_PAGE  = 10;
@@ -34,6 +38,7 @@ const THEAN_OUS_PREVIEW_TTL = 120; // HTML xem nhanh trong object cache (Redis)
 const THEAN_OUS_RL_MAX      = 4;   // tối đa lượt tìm thật (không trúng cache) …
 const THEAN_OUS_RL_WINDOW   = 30;  // … trong 30 giây; lượt thứ 5 bị chặn
 const THEAN_OUS_RL_BLOCK    = 120; // khóa 2 phút
+const THEAN_OUS_BULK_MAX = 50; // thao tác hàng loạt: tối đa 50 đơn / lần
 const THEAN_OUS_BOARD_BACKFILL = 20; // board: mỗi lần mở tính bù tối đa 20 đơn chưa có bước
 
 /**
@@ -624,7 +629,7 @@ function thean_ous_action_meta(string $slug): array
 
 function thean_ous_action_groups(): array
 {
-    return ['view' => 'Xem', 'pay' => 'Thanh toán', 'kho' => 'Kho', 'hoan' => 'Hoàn', 'other' => 'Khác'];
+    return ['view' => 'Xem', 'flow' => 'Tạm giữ / Hủy', 'pay' => 'Thanh toán', 'kho' => 'Kho', 'hoan' => 'Hoàn', 'other' => 'Khác'];
 }
 
 function thean_ous_button(string $group, string $label, string $url, string $class = '', bool $blank = false): string
@@ -637,6 +642,67 @@ function thean_ous_button(string $group, string $label, string $url, string $cla
  * Nút thao tác theo nhóm. $compact = dòng kết quả: chỉ nhóm Xem + thao tác nhanh (modal);
  * xem nhanh: mọi action, có tiêu đề nhóm.
  */
+/**
+ * Nút Tạm giữ / Tiếp tục / Hủy (popup lý do — assets/order-flow-popup.js → task order_flow của order-workspace.php).
+ *
+ * @return string[]
+ */
+function thean_ous_flow_buttons(WC_Order $order): array
+{
+    $status = $order->get_status();
+    if (!current_user_can('manage_woocommerce') || in_array($status, ['cancelled', 'failed', 'refunded', 'trash'], true)
+        || (function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order))) {
+        return [];
+    }
+    $attrs = ' data-order-id="' . esc_attr($order->get_id()) . '" data-phone="' . esc_attr($order->get_billing_phone() ?: $order->get_shipping_phone()) . '"';
+    $btn   = static fn(string $kind, string $label, string $tone) => '<button type="button" class="thean-ous-btn thean-ous-btn--' . $tone . '" data-thean-flow="' . $kind . '"' . $attrs . '>' . esc_html($label) . '</button>';
+    $out   = [in_array($status, ['on-hold', 'pre-order'], true) ? $btn('resume', '▶️ Tiếp tục', 'flow') : $btn('hold', '⏸️ Tạm giữ', 'flow')];
+    $out[] = $btn('cancel', '✖️ Hủy', 'danger');
+    return $out;
+}
+
+/**
+ * Cột "Thao tác tiếp theo": nút đúng bước tiếp theo của đơn (bước tính bằng thean_ops_step_compute → thean_ow_flow,
+ * cùng logic bảng điều phối). Lấy từ các action sẵn có (woocommerce_admin_order_actions, so theo đuôi slug để chạy
+ * cả thean-order-* lẫn hithean-order-*); bước chưa có thao tác nhanh → mở trang sửa đơn đúng bước (#step-<bước>,
+ * bảng điều phối mở tab / box tương ứng).
+ */
+function thean_ous_next_actions(WC_Order $order, string $step): string
+{
+    if ($step === '') {
+        return '';
+    }
+    $map = [
+        'confirm' => ['order-customer-confirmed', 'order-preorder-confirm'],
+        'payment' => ['order-payment'],
+        'cod'     => ['order-payment'],
+        'picking' => ['order-export-images', 'in-van-don-ghtk', 'print_pxk'],
+        'export'  => ['order-export-confirm'],
+        'return'  => ['order-return-record', 'order-return-images'],
+    ];
+    $buttons = [];
+    foreach ($map[$step] ?? [] as $suffix) {
+        foreach (thean_ous_order_actions($order) as $key => $action) {
+            $slug = sanitize_html_class($action['action'] ?? $key);
+            if (empty($action['url']) || ($slug !== $suffix && substr($slug, -strlen('-' . $suffix)) !== '-' . $suffix)) {
+                continue;
+            }
+            [$group, $label] = thean_ous_action_meta($slug);
+            $label = $label !== '' ? $label : wp_strip_all_tags((string) ($action['name'] ?? $key));
+            $buttons[] = thean_ous_button($group, $label, (string) $action['url'], 'wc-action-button wc-action-button-' . $slug, !empty($action['target']));
+        }
+    }
+    if ($step === 'preorder') {
+        $buttons = array_slice(thean_ous_flow_buttons($order), 0, 1); // ▶️ Tiếp tục
+    }
+    if (!$buttons) {
+        $tab = ['cod' => 'payment', 'shipping' => 'delivery'][$step] ?? $step;
+        $labels = function_exists('thean_ops_step_tabs') ? thean_ops_step_tabs() : [];
+        $buttons[] = thean_ous_button('view', 'Mở bước ' . ($labels[$step] ?? $step) . ' ↗', $order->get_edit_order_url() . '#step-' . $tab, '', true);
+    }
+    return '<div class="thean-ous-acts__g">' . implode('', $buttons) . '</div>';
+}
+
 function thean_ous_render_actions(WC_Order $order, bool $compact): string
 {
     $id      = $order->get_id();
@@ -655,14 +721,17 @@ function thean_ous_render_actions(WC_Order $order, bool $compact): string
         if ($slug === 'chinh-don-tao-don') {
             continue; // nút "Chỉnh" riêng bên dưới
         }
-        // Thao tác nhanh của hithean + nút dùng chung 2 site (thean-order-preorder…, order-ops-step.php).
-        if ($compact && strpos($slug, 'hithean-order-') !== 0 && strpos($slug, 'thean-order-') !== 0) {
-            continue;
+        $is_flow = $slug === 'thean-order-preorder';
+        if ($compact && !$is_flow) {
+            continue; // dòng kết quả: thao tác theo bước nằm ở cột "Thao tác tiếp theo" (thean_ous_next_actions)
         }
         [$group, $label] = thean_ous_action_meta($slug);
-        $label = $label !== '' ? $label : wp_strip_all_tags((string) ($action['name'] ?? $key));
+        $group = $is_flow ? 'flow' : $group;
+        $label = $is_flow ? '📅 Đặt trước' : ($label !== '' ? $label : wp_strip_all_tags((string) ($action['name'] ?? $key)));
         $buttons[$group][] = thean_ous_button($group, $label, (string) $action['url'], 'wc-action-button wc-action-button-' . $slug, !empty($action['target']));
     }
+
+    $buttons['flow'] = array_merge(thean_ous_flow_buttons($order), $buttons['flow']);
 
     if (current_user_can('edit_shop_orders') || current_user_can('manage_woocommerce')) {
         array_splice($buttons['view'], $compact ? 1 : 0, 0, [thean_ous_button('edit', 'Chỉnh', thean_ous_creator_url($id), '', true)]);
@@ -712,19 +781,24 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): st
     ob_start();
     foreach (thean_ous_load_orders($ids) as $order) {
         $id = $order->get_id();
+        // Bước tiếp theo (board đã tính sẵn thì dùng gợi ý của board).
+        $flow = function_exists('thean_ops_step_compute') ? thean_ops_step_compute($order) : ['step' => '', 'hint' => ''];
+        if (!empty($hints[$id])) {
+            $flow['hint'] = $hints[$id];
+        }
         $shipper = thean_ous_shipper($order);
         $ship    = thean_ous_ship_code($order);
         $phone   = $order->get_billing_phone() ?: $order->get_shipping_phone();
         $address = thean_ous_address_line($order);
         ?>
         <tr data-order-id="<?php echo esc_attr($id); ?>" tabindex="0">
+            <td class="thean-ous__c-check"><label><input type="checkbox" data-thean-ous-check value="<?php echo esc_attr($id); ?>" aria-label="Chọn đơn #<?php echo esc_attr($id); ?>"></label></td>
             <td class="thean-ous__c-order">
                 <div class="thean-ous__order-head">
                     <strong><?php echo thean_ous_highlight('#' . $id, $tokens); ?></strong>
                     <span class="column-order_status"><?php echo thean_ous_status_badge($order); ?></span>
                 </div>
                 <small><?php echo thean_ous_highlight($order->get_order_number(), $tokens); ?> · <?php echo esc_html(thean_ous_short_date($order)); ?></small>
-                <?php if (!empty($hints[$id])) : ?><div class="thean-ous__hint">👉 <?php echo esc_html($hints[$id]); ?></div><?php endif; ?>
                 <div class="thean-ous__total">
                     <?php echo wp_kses_post(wc_price($order->get_total(), ['currency' => $order->get_currency()])); ?>
                     <small><?php echo esc_html($order->get_payment_method_title()); ?></small>
@@ -745,6 +819,10 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): st
                 <?php foreach ($order->get_items() as $item) : ?>
                     <div><?php echo thean_ous_highlight($item->get_name(), $tokens); ?> <b>×<?php echo esc_html($item->get_quantity()); ?></b></div>
                 <?php endforeach; ?>
+            </td>
+            <td class="thean-ous__c-next">
+                <?php if ($flow['hint'] !== '') : ?><div class="thean-ous__hint">👉 <?php echo esc_html($flow['hint']); ?></div><?php endif; ?>
+                <?php echo thean_ous_next_actions($order, $flow['step']); ?>
             </td>
             <td class="thean-ous__c-acts"><?php echo thean_ous_render_actions($order, true); ?></td>
         </tr>
@@ -970,6 +1048,70 @@ function thean_ous_ajax_board(): void
     ]);
 }
 
+/** Đổi trạng thái 1 đơn (thao tác hàng loạt). Trả [thành công?, thông báo]. */
+function thean_ous_bulk_status(WC_Order $order, string $status, string $note): array
+{
+    if ($status === '' || !wc_is_order_status('wc-' . $status)) {
+        return [false, 'Trạng thái không hợp lệ.'];
+    }
+    if (function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order)) {
+        return [false, 'Đơn đã bị khóa đổi trạng thái (chỉ admin).'];
+    }
+    if ($order->get_status() === $status) {
+        return [false, 'Đơn đã ở trạng thái ' . wc_get_order_status_name($status) . '.'];
+    }
+    $order->update_status($status, '🔁 Đổi trạng thái hàng loạt (ô tìm đơn)' . ($note !== '' ? ': ' . $note : '') . '.', true);
+    return [true, 'Đã chuyển sang: ' . wc_get_order_status_name($status)];
+}
+
+add_action('wp_ajax_thean_order_usearch_bulk', 'thean_ous_ajax_bulk');
+function thean_ous_ajax_bulk(): void
+{
+    check_ajax_referer('thean_ous', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => 'Không có quyền.'], 403);
+    }
+    $op     = sanitize_key(wp_unslash($_POST['op'] ?? ''));
+    $reason = sanitize_text_field(wp_unslash($_POST['reason'] ?? ''));
+    $status = sanitize_key(wp_unslash($_POST['status'] ?? ''));
+    $ids    = array_values(array_unique(array_filter(array_map('absint', explode(',', (string) wp_unslash($_POST['ids'] ?? ''))))));
+    if (!$ids) {
+        wp_send_json_error(['message' => 'Chưa chọn đơn nào.']);
+    }
+    if (count($ids) > THEAN_OUS_BULK_MAX) {
+        wp_send_json_error(['message' => sprintf('Mỗi lần tối đa %d đơn.', THEAN_OUS_BULK_MAX)]);
+    }
+    $flows = ['hold', 'resume', 'cancel', 'preorder'];
+    if (!in_array($op, array_merge($flows, ['status']), true)) {
+        wp_send_json_error(['message' => 'Thao tác không hợp lệ.']);
+    }
+    if (in_array($op, $flows, true) && !function_exists('thean_ow_apply_flow')) {
+        require_once __DIR__ . '/order-workspace.php';
+    }
+
+    $done   = [];
+    $failed = [];
+    $orders = thean_ous_load_orders($ids);
+    foreach ($orders as $order) {
+        [$ok, $message] = $op === 'status'
+            ? thean_ous_bulk_status($order, $status, $reason)
+            : thean_ow_apply_flow($order, $op, $reason);
+        if ($ok) {
+            $done[] = $order->get_id();
+        } else {
+            $failed[] = ['id' => $order->get_id(), 'message' => $message];
+        }
+    }
+    foreach (array_diff($ids, array_map(static fn($o) => $o->get_id(), $orders)) as $missing) {
+        $failed[] = ['id' => $missing, 'message' => 'Không tìm thấy đơn.'];
+    }
+    wp_send_json_success([
+        'done'    => $done,
+        'failed'  => $failed,
+        'message' => sprintf('Xong %d/%d đơn.', count($done), count($ids)),
+    ]);
+}
+
 add_action('wp_ajax_thean_order_usearch', 'thean_ous_ajax_search');
 function thean_ous_ajax_search(): void
 {
@@ -1084,7 +1226,7 @@ function thean_ous_ui_config(): array
         'alertsOff'      => thean_ous_alerts_off(),
         // Modal thao tác nhanh của orders-admin.php — Esc nhường chúng đóng trước.
         'wcList'         => function_exists('thean_wcl_state') ? thean_wcl_state() : null, // order-list-lazy.php
-        'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden]), #thean-preorder-modal:not([hidden])',
+        'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden]), #thean-flow-modal:not([hidden])',
     ];
 }
 
@@ -1101,8 +1243,8 @@ function thean_ous_enqueue_assets(): void
     wp_enqueue_style('thean-ous', $uri . 'order-universal-search.css', [], (string) @filemtime($dir . 'order-universal-search.css'));
     wp_enqueue_script('thean-ous', $uri . 'order-universal-search.js', [], (string) @filemtime($dir . 'order-universal-search.js'), true);
     wp_add_inline_script('thean-ous', 'window.theanOusCfg = ' . wp_json_encode(thean_ous_ui_config()) . ';', 'before');
-    if (function_exists('thean_preorder_enqueue')) {
-        thean_preorder_enqueue(false); // popup đơn đặt trước (order-ops-step.php)
+    if (function_exists('thean_flow_popup_enqueue')) {
+        thean_flow_popup_enqueue(false); // popup Tạm giữ / Hủy / Đặt trước… (order-ops-step.php)
     }
 }
 

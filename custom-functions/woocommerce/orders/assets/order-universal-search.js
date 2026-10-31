@@ -200,15 +200,27 @@
     }
     function shell(modal) {
         var wrap = document.createElement('div');
-        wrap.innerHTML = '<table class="thean-ous__table"><colgroup><col class="c-order"><col class="c-cus"><col class="c-items"><col class="c-acts"></colgroup>'
-            + '<thead><tr><th>Đơn · Trạng thái · Tổng</th><th>Khách hàng · Giao hàng</th><th>Sản phẩm</th><th>Thao tác</th></tr></thead><tbody></tbody></table>'
+        var statusOpts = (cfg.statuses || []).map(function (st) { return '<option value="' + st.slug + '">' + st.name.replace(/</g, '&lt;') + '</option>'; }).join('');
+        wrap.innerHTML = '<div class="thean-ous-bulk" hidden><strong data-bulk-count></strong>'
+            + '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="hold">⏸️ Tạm giữ</button>'
+            + '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="resume">▶️ Tiếp tục</button>'
+            + '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="preorder">📅 Đặt trước</button>'
+            + '<button type="button" class="thean-ous-btn thean-ous-btn--danger" data-thean-ous-bulk="cancel">✖️ Hủy</button>'
+            + '<span class="thean-ous-bulk__status"><select data-bulk-status aria-label="Trạng thái mới"><option value="">Đổi trạng thái…</option>' + statusOpts + '</select>'
+            + '<button type="button" class="thean-ous-btn thean-ous-btn--view" data-thean-ous-bulk="status">Áp dụng</button></span>'
+            + '<button type="button" class="thean-ous-bulk__clear" data-thean-ous-bulk-clear>Bỏ chọn</button></div>'
+            + '<div class="thean-ous-bulk-result" hidden></div>'
+            + '<table class="thean-ous__table"><colgroup><col class="c-check"><col class="c-order"><col class="c-cus"><col class="c-items"><col class="c-next"><col class="c-acts"></colgroup>'
+            + '<thead><tr><th class="thean-ous__c-check"><input type="checkbox" data-thean-ous-check-all aria-label="Chọn tất cả đơn đang hiện"></th><th>Đơn · Trạng thái · Tổng</th><th>Khách hàng · Giao hàng</th><th>Sản phẩm</th><th>Thao tác tiếp theo</th><th>Thao tác</th></tr></thead><tbody></tbody></table>'
             + '<div class="thean-ous__more" hidden><button type="button" class="thean-ous__more-btn" data-thean-ous-more></button></div>';
         body(modal).replaceChildren(wrap);
+        selection(modal).clear();
         return wrap;
     }
     function fillTable(modal, data, page) {
         var tbody = page === 1 ? shell(modal).querySelector('tbody') : body(modal).querySelector('tbody');
         tbody.insertAdjacentHTML('beforeend', data.rows);
+        syncBulk(modal);
         var more = body(modal).querySelector('.thean-ous__more');
         more.hidden = !data.has_more;
         if (data.has_more) more.querySelector('button').textContent = 'Xem thêm ' + Math.min(cfg.perPage, data.total - data.shown) + ' đơn (còn ' + (data.total - data.shown) + ')';
@@ -249,6 +261,87 @@
             results.querySelector('.thean-ous-chips').replaceChildren();
             notice(body(results), err.message || 'Lỗi kết nối.');
         }).finally(function () { state.loading = false; if (moreBtn) moreBtn.disabled = false; });
+    }
+
+    /* ---------- Chọn nhiều đơn + thao tác hàng loạt (kết quả tìm + board) ---------- */
+    var selected = { results: new Set(), board: new Set() };
+    function selection(modal) { return modal === board ? selected.board : selected.results; }
+    function syncBulk(modal) {
+        var set = selection(modal);
+        var boxes = body(modal).querySelectorAll('[data-thean-ous-check]');
+        boxes.forEach(function (box) { box.checked = set.has(box.value); box.closest('tr').classList.toggle('is-selected', box.checked); });
+        var all = body(modal).querySelector('[data-thean-ous-check-all]');
+        if (all) {
+            var on = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+            all.checked = boxes.length > 0 && on === boxes.length;
+            all.indeterminate = on > 0 && on < boxes.length;
+        }
+        var bar = body(modal).querySelector('.thean-ous-bulk');
+        if (bar) {
+            bar.hidden = !set.size;
+            bar.querySelector('[data-bulk-count]').textContent = set.size + ' đơn đã chọn';
+        }
+    }
+    function onCheck(modal, e) {
+        var set = selection(modal);
+        if (e.target.matches('[data-thean-ous-check-all]')) {
+            body(modal).querySelectorAll('[data-thean-ous-check]').forEach(function (box) {
+                if (e.target.checked) set.add(box.value); else set.delete(box.value);
+            });
+        } else if (e.target.matches('[data-thean-ous-check]')) {
+            if (e.target.checked) set.add(e.target.value); else set.delete(e.target.value);
+        } else {
+            return;
+        }
+        syncBulk(modal);
+    }
+    function toast(text, isError) {
+        var t = document.createElement('div');
+        t.className = 'thean-ous-toast' + (isError ? ' is-error' : '');
+        t.textContent = text;
+        document.body.appendChild(t);
+        setTimeout(function () { t.remove(); }, 5000);
+    }
+    function refresh(modal) {
+        if (modal === board) { boardCache.clear(); loadBoard(boardState.tab, 1, false); return; }
+        cache.clear();
+        state.page = 0;
+        if (state.q) search(state.q, 1);
+    }
+    function runBulk(modal, op) {
+        var ids = Array.from(selection(modal));
+        if (!ids.length) return;
+        if (ids.length > 50) { toast('Mỗi lần tối đa 50 đơn — bỏ bớt đơn đã chọn.', true); return; }
+        if (!window.theanFlow) { toast('Chưa tải được popup thao tác — tải lại trang.', true); return; }
+        var statusSel = body(modal).querySelector('[data-bulk-status]');
+        var status = op === 'status' ? statusSel.value : '';
+        if (op === 'status' && !status) { toast('Chọn trạng thái mới trước.', true); return; }
+        var kind = window.theanFlow.kinds[op];
+        var spec = op === 'status'
+            ? { title: '🔁 Đổi trạng thái ' + ids.length + ' đơn → ' + statusSel.options[statusSel.selectedIndex].text, help: 'Ghi chú (không bắt buộc) sẽ ghi vào từng đơn.', placeholder: 'Ghi chú', required: false, buttons: [['status', 'Đổi trạng thái ' + ids.length + ' đơn', 'primary']] }
+            : Object.assign({}, kind, { title: kind.title + ' — ' + ids.length + ' đơn', buttons: [[op, kind.buttons[0][1] + ' (' + ids.length + ' đơn)', kind.buttons[0][2]]] });
+        window.theanFlow.prompt(spec, function (note) {
+            return post('thean_order_usearch_bulk', { op: op, ids: ids.join(','), reason: note, status: status }, new AbortController()).then(function (res) {
+                if (!res.success) throw new Error(message(res, 'Không thực hiện được.'));
+                var d = res.data;
+                var lines = [d.message].concat((d.failed || []).map(function (f) { return '#' + f.id + ': ' + f.message; }));
+                selection(modal).clear();
+                refresh(modal);
+                // Kết quả (kể cả đơn lỗi) hiện trên đầu bảng sau khi tải lại.
+                setTimeout(function () {
+                    var box = body(modal).querySelector('.thean-ous-bulk-result');
+                    if (box) { box.textContent = lines.join(' · '); box.hidden = false; box.classList.toggle('is-error', (d.failed || []).length > 0); }
+                }, 800);
+                toast(d.message, (d.failed || []).length > 0);
+                document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { bulk: true } }));
+            });
+        });
+    }
+    function onBulkClick(modal, e) {
+        var btn = e.target.closest('[data-thean-ous-bulk]');
+        if (btn) { runBulk(modal, btn.getAttribute('data-thean-ous-bulk')); return true; }
+        if (e.target.closest('[data-thean-ous-bulk-clear]')) { selection(modal).clear(); syncBulk(modal); return true; }
+        return false;
     }
 
     /* ---------- Board "Cần xử lý" (tab theo bước của bảng điều phối) ---------- */
@@ -364,21 +457,25 @@
     }
     results.addEventListener('click', function (e) {
         if (e.target.closest('[data-thean-ous-more]')) { if (!state.loading) search(state.q, state.page + 1); return; }
+        if (onBulkClick(results, e)) return;
         tableClick(e);
     });
+    results.addEventListener('change', function (e) { onCheck(results, e); });
+    board.addEventListener('change', function (e) { onCheck(board, e); });
     board.addEventListener('click', function (e) {
         var tab = e.target.closest('[data-thean-ous-tab]');
         if (tab) { if (!boardState.loading || tab.dataset.theanOusTab !== boardState.tab) loadBoard(tab.dataset.theanOusTab, 1, false); return; }
         if (e.target.closest('[data-thean-ous-board-refresh]')) { loadBoard(boardState.tab, 1, true); return; }
         if (e.target.closest('[data-thean-ous-board-close]')) { board.hidden = true; return; }
+        if (onBulkClick(board, e)) return;
         if (e.target.closest('[data-thean-ous-more]')) { if (!boardState.loading) loadBoard(boardState.tab, boardState.page + 1, false); return; }
         tableClick(e);
     });
-    // Popup đơn đặt trước (order-preorder.js) / thao tác khác báo đơn đã đổi → board tính lại tab đang xem.
-    document.addEventListener('thean:order-updated', function () {
-        if (board.hidden) return;
-        boardCache.clear();
-        loadBoard(boardState.tab, 1, false);
+    // Popup thao tác (order-flow-popup.js) báo đơn đã đổi → board tính lại tab đang xem.
+    document.addEventListener('thean:order-updated', function (e) {
+        if (e.detail && e.detail.bulk) return; // runBulk đã tự làm mới
+        if (!board.hidden) { boardCache.clear(); loadBoard(boardState.tab, 1, false); }
+        cache.clear(); // kết quả tìm: lần mở / tìm sau lấy dữ liệu mới
     });
     results.addEventListener('keydown', tableKey);
     board.addEventListener('keydown', tableKey);

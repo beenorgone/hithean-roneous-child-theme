@@ -748,4 +748,8 @@
 
     // Lần đầu: ưu tiên tab trên URL (F5 giữ tab), không có thì tab server chọn (bước cần làm).
     init((location.hash.match(/^#step-([\w-]+)$/) || [])[1] || '');
+    // Hash trỏ tới box (không phải tab), VD #step-preorder từ ô tìm đơn / board → mở + cuộn tới box.
+    (function (key) {
+        if (key && !inner().querySelector('.tow-tab[data-tab="' + key + '"]')) goTo(key);
+    })((location.hash.match(/^#step-([\w-]+)$/) || [])[1] || '');
 })();

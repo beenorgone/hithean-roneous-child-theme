@@ -102,9 +102,13 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   nên đổi domain có hiệu lực ngay; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.
   **Đổi luồng vận hành → tăng `THEAN_OPS_STEP_VERSION`** để mọi đơn mở được tính lại.
 - Đơn đặt trước: trạng thái `pre-order` (đăng ký ở order-status.php, cùng slug theanmarket) có tab "Đặt trước". Nút
-  "Chuyển sang đặt trước" (popup ghi chú bắt buộc — `assets/order-preorder.js`, dùng chung) ở bảng điều phối, cột Thao tác, ô tìm,
+  "Chuyển sang đặt trước" (popup ghi chú bắt buộc — `assets/order-flow-popup.js`, dùng chung) ở bảng điều phối, cột Thao tác, ô tìm,
   board → task `order_flow` flow `preorder` (ghi `_thean_preorder_note`). "Tiếp tục" từ Đặt trước → gắn `_thean_preorder_confirm`,
   đơn vào tab "Xác nhận khách" (đổi tên từ "Xác nhận COD") tới khi ghi nhận "Khách đã xác nhận giao" (task `preorder_confirm`).
+- Dòng kết quả / board: cột **"Thao tác tiếp theo"** (gợi ý + nút đúng bước — `thean_ous_next_actions()`, so đuôi slug action nên
+  chạy cả `hithean-order-*`; bước chưa có thao tác nhanh → mở trang sửa đơn `#step-<bước>`) và nút Tạm giữ / Tiếp tục / Hủy (popup lý do,
+  `assets/order-flow-popup.js` → `thean_ow_apply_flow()` của order-workspace.php). Ô chọn từng đơn + chọn tất cả → thanh thao tác
+  hàng loạt (Tạm giữ / Tiếp tục / Đặt trước / Hủy / Đổi trạng thái — AJAX `thean_order_usearch_bulk`, ≤50 đơn / lần).
 - Tải: 10 đơn/trang đọc gộp 1 lần `wc_get_orders(['post__in' => …])`; HTML xem nhanh cache Redis (`wp_cache`, nhóm
   `thean_ous`) 2 phút; mỗi user ≤4 lượt tìm thật (không trúng cache) / 30s, lượt thứ 5 khóa 2 phút (HTTP 429, `retry_after`).
 
