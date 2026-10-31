@@ -1,5 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
+require_once __DIR__ . '/order-actions-column.php'; // cột Thao tác: bước tiếp theo + menu Thêm
 // Filter to add no-link class for shop_order post type
 add_filter('post_class', function ($classes) {
     if (is_admin()) {
@@ -43,7 +44,6 @@ function add_custom_actions($actions, $order)
     $bill_phone = $order->get_billing_phone();
     $ship_phone = $order->get_shipping_phone();
     $order_total = $order->get_total();
-    $compensate_status = $order->get_meta('compensate_status');
     $refund_status = $order->get_meta('refund_status');
 
     $qr_url = hithean_payment_qr_url(hithean_primary_bank_account(), (float) $order_total, hithean_payment_transfer_content($order_id));
@@ -135,16 +135,6 @@ function add_custom_actions($actions, $order)
         ];
     }
 
-    if ($compensate_status) {
-        // Theo doi yeu cau boi hoan
-        $actions['theo-doi-boi-hoan'] = [
-            'url' => 'https://ivarvietnam.sg.larksuite.com/share/base/view/shrlgvghQ7MdT8Dn24B500a5pBg',
-            'name' => __('Theo dõi yêu cầu đền bù với shipper', 'woocommerce'),
-            'action' => 'theo-doi-boi-hoan',
-            'target' => '_blank'
-        ];
-    }
-
     if (!$refund_status) {
         // Nhap yeu cau hoan tien: https://applink.larksuite.com/T8T1KEvmpDQw
         $actions['don-hoan-tien'] = [
@@ -155,66 +145,7 @@ function add_custom_actions($actions, $order)
         ];
     }
 
-    if ($refund_status) {
-        // Theo doi yeu cau hoan tien:
-        $actions['theo-doi-hoan-tien'] = [
-            'url' => 'https://ivarvietnam.sg.larksuite.com/share/base/view/shrlgfNPS0U52nGaZClUNvARIpb',
-            'name' => __('Theo dõi yêu cầu hoàn tiền cho khách', 'woocommerce'),
-            'action' => 'theo-doi-hoan-tien',
-            'target' => '_blank'
-        ];
-    }
-
-    // Add GHTK action: Tra van don
-    $actions['tra-don-ghtk'] = [
-        'url' => 'https://khachhang.giaohangtietkiem.vn/web/don-hang',
-        'name' => __('Tra cứu vận đơn tại GHTK', 'woocommerce'),
-        'action' => 'tra-don-ghtk'
-    ];
-
-    // Add Viettel Post action: Tra van don
-    $actions['tra-don-vtp'] = [
-        'url' => 'https://viettelpost.vn/quan-ly-van-don',
-        'name' => __('Tra cứu vận đơn tại Viettel Post', 'woocommerce'),
-        'action' => 'tra-don-vtp'
-    ];
-
     return $actions;
-}
-
-// Add custom styles for order action buttons
-add_action('admin_head', 'add_custom_order_actions_button_css');
-function add_custom_order_actions_button_css()
-{
-    $styles = [
-        'in-van-don-ghtk' => 'background: green !important; color: #fff !important; content: "🖨 Phiếu GHTK"',
-        // 'in-van-don-ntlog' => 'background: #FCD804; content: url(https://theanorganics.com/wp-content/uploads/2024/03/nhattin-logo-30x30-1.png);',
-        'qr-code' => 'content: "▦ QR thanh toán"',
-        'don-hoan-tien' => 'content: "↩ YC hoàn tiền KH"',
-        'theo-doi-boi-hoan' => 'content: "🔎 Theo dõi bồi hoàn"',
-        'theo-doi-hoan-tien' => 'content: "🔎 Theo dõi hoàn tiền KH"',
-        'chinh-don-tao-don' => 'background: #08e097 !important; color: #002b1c !important; content: "✏ Chỉnh đơn"',
-        'tra-don-ghtk' => 'background: green !important; opacity: 0.8; color:  #fff !important; content: "🔎 Tra đơn GHTK"',
-        'tra-don-vtp' => 'background: red !important; opacity: 0.8; color:  #fff !important; content: "🔎 Tra đơn Viettel"',
-        'hithean-order-payment' => 'background: #0068ff !important; color: #fff !important; content: "💳 Xác nhận TT"',
-        'hithean-order-customer-confirmed' => 'background: #007a52 !important; color: #fff !important; content: "✓ Khách đã XN"',
-        'hithean-order-export-images' => 'background: #6b46c1 !important; color: #fff !important; content: "📦 Ảnh xuất kho"',
-        'hithean-order-export-confirm' => 'background: #15803d !important; color: #fff !important; content: "✓ Xác nhận XK"',
-        'hithean-order-return-record' => 'background: #b45309 !important; color: #fff !important; content: "↩ Ghi nhận hoàn"',
-        'hithean-order-return-images' => 'background: #7c3aed !important; color: #fff !important; content: "📷 Ảnh hoàn hàng"'
-    ];
-
-    if (wp_is_mobile()) {
-        $styles['goi-sdt-dat-hang'] = 'content: "📞 Gọi số đặt";';
-        $styles['goi-sdt-nhan-hang'] = 'content: "📞 Gọi số nhận";';
-    }
-
-    foreach ($styles as $action => $style) {
-        echo "<style>.wc-action-button-$action::after { font-size: 15px; font-weight: 500 !important; $style }</style>";
-    }
-
-    // Add customizable button width via CSS variable
-    echo '<style>.wc-action-button::after { border-radius: 5px; background: cornsilk; C6E1C6; color: black;}</style>';
 }
 
 function hithean_order_admin_is_list_screen(): bool

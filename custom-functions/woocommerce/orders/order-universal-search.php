@@ -536,28 +536,11 @@ function thean_ous_order_actions(WC_Order $order): array
     return (array) apply_filters('woocommerce_admin_order_actions', [], $order);
 }
 
-/** Nhóm + nhãn ngắn cho từng action. Nhóm quyết định màu nút. */
+/** Nhóm + nhãn ngắn cho từng action (dùng chung với cột Thao tác). Nhóm quyết định màu nút. */
 function thean_ous_action_meta(string $slug): array
 {
-    $map = [
-        'hithean-order-payment'            => ['pay', 'Xác nhận TT'],
-        'hithean-order-customer-confirmed' => ['pay', 'Khách XN COD'],
-        'qr-code'                          => ['pay', 'QR thanh toán'],
-        'hithean-order-export-images'      => ['kho', 'Ảnh xuất kho'],
-        'hithean-order-export-confirm'     => ['kho', 'XN xuất kho'],
-        'in-van-don-ghtk'                  => ['kho', 'In phiếu GHTK'],
-        'print_pxk'                        => ['kho', 'PXK IVAR'],
-        'hithean-order-return-record'      => ['hoan', 'Ghi nhận hoàn'],
-        'hithean-order-return-images'      => ['hoan', 'Ảnh hoàn'],
-        'don-hoan-tien'                    => ['hoan', 'YC hoàn tiền'],
-        'theo-doi-hoan-tien'               => ['hoan', 'Theo dõi hoàn tiền'],
-        'theo-doi-boi-hoan'                => ['hoan', 'Theo dõi bồi hoàn'],
-        'tra-don-ghtk'                     => ['other', 'Tra GHTK'],
-        'tra-don-vtp'                      => ['other', 'Tra Viettel'],
-        'goi-sdt-dat-hang'                 => ['other', 'Gọi người đặt'],
-        'goi-sdt-nhan-hang'                => ['other', 'Gọi người nhận'],
-    ];
-    return $map[$slug] ?? ['other', ''];
+    $meta = hithean_order_action_meta($slug);
+    return [$meta['group'], $meta['short']];
 }
 
 function thean_ous_action_groups(): array
