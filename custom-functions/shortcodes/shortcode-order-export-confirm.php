@@ -548,7 +548,12 @@ function shortcode_list_unconfirmed_exports()
     $orders = wc_get_orders($args); // HPOS + legacy (meta_query chạy cả 2)
     // Đơn đã xác nhận nhưng meta bị metabox xóa khi lưu trang sửa đơn (lỗi cũ) → khôi phục từ ghi chú, bỏ khỏi danh sách.
     $orders = array_values(array_filter($orders, static function ($p) {
-        return !hithean_export_restore_confirmed_from_notes((int) $p->get_id());
+        $id = (int) $p->get_id();
+        // Đã xác nhận nhưng meta chỉ ở posts (HPOS trống) → kéo sang HPOS, bỏ khỏi danh sách (order-legacy-meta-sync.php).
+        if (function_exists('thean_export_confirmed_settle') && thean_export_confirmed_settle($id)) {
+            return false;
+        }
+        return !hithean_export_restore_confirmed_from_notes($id);
     }));
 
     echo '<h2>Ảnh lấy hàng chờ kiểm tra</h2>';

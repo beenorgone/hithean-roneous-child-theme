@@ -237,6 +237,81 @@ add_action('admin_footer', static function () {
     }
 });
 
+/**
+ * Danh sách xuất kho (đọc HPOS): đơn đã xác nhận nhưng export_confirmed_by chỉ nằm ở posts → kéo sang HPOS và trả
+ * true để bỏ khỏi "Ảnh lấy hàng chờ kiểm tra" (trước đây đơn đã xác nhận cứ quay lại danh sách).
+ */
+function thean_export_confirmed_settle(int $order_id): bool
+{
+    $order = wc_get_order($order_id);
+    if (!$order instanceof WC_Order) {
+        return false;
+    }
+    thean_legacy_meta_reconcile($order);
+    if (!thean_legacy_meta_empty($order->get_meta('export_confirmed_by'))) {
+        return true;
+    }
+    foreach (thean_legacy_post_meta_raw($order_id, 'export_confirmed_by') as $v) {
+        if (!thean_legacy_meta_empty($v)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Backfill 1 lần: đơn có meta luồng cũ ở posts mà HPOS trống → reconcile, 100 đơn / lượt, chạy cuối request admin
+ * (tối đa 1 lượt / 2 phút) tới khi hết rồi ghi option xong. Đổi THEAN_LEGACY_META_BACKFILL khi thêm key cần chép lại.
+ */
+const THEAN_LEGACY_META_BACKFILL = '1';
+function thean_legacy_meta_backfill_ids(int $limit = 100): array
+{
+    global $wpdb;
+    if (!thean_legacy_meta_hpos() || !class_exists('\Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore')) {
+        return [];
+    }
+    $orders = \Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore::get_orders_table_name();
+    $meta   = \Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStore::get_meta_table_name();
+    $keys   = implode(',', array_map(static fn($k) => $wpdb->prepare('%s', $k), thean_legacy_meta_keys()));
+    return array_map('intval', (array) $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT pm.post_id FROM {$wpdb->postmeta} pm
+         JOIN {$orders} o ON o.id = pm.post_id AND o.type = 'shop_order'
+         WHERE pm.meta_key IN ({$keys}) AND pm.meta_value <> ''
+           AND NOT EXISTS (SELECT 1 FROM {$meta} om WHERE om.order_id = pm.post_id AND om.meta_key = pm.meta_key AND om.meta_value <> '')
+         ORDER BY pm.post_id DESC LIMIT %d", $limit)));
+}
+
+function thean_legacy_meta_backfill_run(): int
+{
+    if (get_option('thean_legacy_meta_backfill') === THEAN_LEGACY_META_BACKFILL || get_transient('thean_legacy_meta_backfill_lock')) {
+        return 0;
+    }
+    set_transient('thean_legacy_meta_backfill_lock', 1, 2 * MINUTE_IN_SECONDS);
+    $ids = thean_legacy_meta_backfill_ids(100);
+    if (!$ids) {
+        update_option('thean_legacy_meta_backfill', THEAN_LEGACY_META_BACKFILL, false);
+        return 0;
+    }
+    $done = 0;
+    foreach ($ids as $id) {
+        $order = wc_get_order($id);
+        if ($order instanceof WC_Order && thean_legacy_meta_reconcile($order)) {
+            $done++;
+        }
+    }
+    if ($done === 0) {
+        update_option('thean_legacy_meta_backfill', THEAN_LEGACY_META_BACKFILL, false); // không tiến triển → dừng, tránh lặp vô hạn
+    }
+    return $done;
+}
+
+add_action('admin_init', static function () {
+    if (wp_doing_ajax() || !current_user_can('manage_woocommerce') || get_option('thean_legacy_meta_backfill') === THEAN_LEGACY_META_BACKFILL) {
+        return;
+    }
+    add_action('shutdown', 'thean_legacy_meta_backfill_run', 20);
+});
+
 /** Tên file ảnh xuất kho đính kèm đơn (upload từng đơn / lô nhiều đơn AI tách). Hàm thuần. */
 function thean_export_proof_image_file(string $basename, int $order_id): bool
 {
