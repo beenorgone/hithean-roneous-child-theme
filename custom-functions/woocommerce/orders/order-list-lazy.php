@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) exit;
  *   (phòng khi bản WC không có filter đó: chỉ lấy 1 dòng).
  * Bảng vẫn hiện như cũ khi: có ?thean_wc_list=1 (JS gắn tiếp vào link phân trang / tab trạng thái / sắp xếp),
  * tìm kiếm cũ ?s=, lọc khách / tháng, hoặc vừa chạy thao tác hàng loạt.
+ * Nút "Thêm đơn hàng" của trang danh sách trỏ sang trang Tạo đơn (/tao-don/) khi theme có module tạo đơn hộ khách.
  * Dùng chung theanmarket + hithean.
  */
 
@@ -98,4 +99,49 @@ add_filter('woocommerce_hpos_pre_query', function ($pre) {
 // Class ở <body> để CSS (assets/order-universal-search.css, nạp ở <head>) ẩn vùng bảng — không chớp.
 add_filter('admin_body_class', function ($classes) {
     return thean_wcl_off() ? $classes . ' thean-wc-list-off' : $classes;
+});
+
+/**
+ * URL trang Tạo đơn (/tao-don/) nếu module tạo đơn hộ khách có trong theme: đã nạp (hithean nạp mọi request →
+ * có ORDER_CREATOR_ROUTE) hoặc được khai trong tpc_loader_modules() (theanmarket chỉ nạp ở /tao-don).
+ * '' = không có module hoặc người xem không có quyền tạo đơn.
+ */
+function thean_order_creator_url(): string
+{
+    $has = defined('ORDER_CREATOR_ROUTE');
+    if (!$has && function_exists('tpc_loader_modules')) {
+        foreach ((array) tpc_loader_modules() as $module) {
+            if (($module['id'] ?? '') === 'order_creator') {
+                $has = true;
+                break;
+            }
+        }
+    }
+    if (!$has || (!current_user_can('edit_shop_orders') && !current_user_can('manage_woocommerce'))) {
+        return '';
+    }
+    $route = defined('ORDER_CREATOR_ROUTE') ? ORDER_CREATOR_ROUTE : 'tao-don';
+    return home_url('/' . trim($route, '/') . '/');
+}
+
+// Nút "Thêm đơn hàng" (page-title-action) ở danh sách đơn → /tao-don/ (tab mới, giữ trang danh sách).
+add_action('admin_footer', function (): void {
+    if (!thean_wcl_is_list_request()) {
+        return;
+    }
+    $url = thean_order_creator_url();
+    if ($url === '') {
+        return;
+    }
+    ?>
+    <script>
+    document.querySelectorAll('.wrap a.page-title-action').forEach(function (a) {
+        if (!/post-new\.php|action=new/.test(a.getAttribute('href') || '')) return;
+        a.href = <?php echo wp_json_encode($url); ?>;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.title = 'Tạo đơn trên trang Tạo đơn';
+    });
+    </script>
+    <?php
 });
