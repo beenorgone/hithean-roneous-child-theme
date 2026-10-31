@@ -1015,6 +1015,19 @@ function thean_ow_box_export(WC_Order $order, array $images, int $confirmed_by, 
     thean_ow_box_close();
 }
 
+/**
+ * Nút "Đăng đơn GHTK" (bước Giao hàng): mở + cuộn tới khung GHTK của plugin devvn-woo-ghtk trên trang sửa đơn
+ * (order-workspace.js tìm khung theo tiêu đề — không phụ thuộc mã nguồn plugin). Đã đăng → hiện mã GHTK.
+ */
+function thean_ow_ghtk_button(WC_Order $order): string
+{
+    $code = (string) $order->get_meta('_ghtk_ordercode');
+    if ($code !== '') {
+        return thean_ow_row('GHTK', '<code>' . esc_html($code) . '</code> <button type="button" class="button button-small" data-thean-ghtk>Xem khung GHTK</button>');
+    }
+    return '<p><button type="button" class="button" data-thean-ghtk>🚚 Đăng đơn GHTK</button> <span class="tow-muted">mở khung GHTK của plugin trên trang này</span></p>';
+}
+
 function thean_ow_box_delivery(WC_Order $order, array $shippers, array $handling, string $ship_code, string $export_date, bool $is_pickup, bool $locked): void
 {
     $status = $order->get_status();
@@ -1024,6 +1037,7 @@ function thean_ow_box_delivery(WC_Order $order, array $shippers, array $handling
     // 1. Chuyển trạng thái đơn
     thean_ow_box_open('delivery', '🔄 Chuyển trạng thái đơn');
     echo thean_ow_row('Hiện tại', thean_ow_badge(wc_get_order_status_name($status), 'status'));
+    echo thean_ow_ghtk_button($order);
     if ($locked) {
         echo '<p class="tow-muted">Đơn đã khóa đổi trạng thái — chỉ admin được chuyển.</p>';
     } else {
@@ -1312,6 +1326,9 @@ add_action('wp_ajax_thean_order_workspace', 'thean_ow_ajax');
  */
 function thean_ow_skip_export_proof(WC_Order $order, string $reason): array
 {
+    if (!function_exists('thean_can_skip_export_proof') || !thean_can_skip_export_proof()) {
+        return [false, 'Chỉ admin được bỏ qua lỗi thiếu chứng từ xuất kho.'];
+    }
     if ((string) $order->get_meta('_thean_export_proof_skip') === '1') {
         return [false, 'Đơn đã được đánh dấu bỏ qua.'];
     }

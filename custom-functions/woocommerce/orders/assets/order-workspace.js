@@ -748,8 +748,27 @@
 
     // Lần đầu: ưu tiên tab trên URL (F5 giữ tab), không có thì tab server chọn (bước cần làm).
     init((location.hash.match(/^#step-([\w-]+)$/) || [])[1] || '');
-    // Hash trỏ tới box (không phải tab), VD #step-preorder từ ô tìm đơn / board → mở + cuộn tới box.
+    // Khung GHTK của plugin devvn-woo-ghtk (metabox trên trang sửa đơn) — tìm theo tiêu đề, mở + cuộn tới.
+    function openGhtk() {
+        var box = Array.prototype.find.call(document.querySelectorAll('#poststuff .postbox'), function (b) {
+            var head = b.querySelector('.hndle, .postbox-header h2');
+            return head && /GHTK|giao h[aà]ng ti[eế]t ki[eệ]m/i.test(head.textContent);
+        });
+        if (!box) { toast('Không thấy khung GHTK trên trang (plugin GHTK chưa bật?).', true); return; }
+        box.classList.remove('closed', 'hide-if-js');
+        box.hidden = false;
+        box.style.display = '';
+        box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        box.style.outline = '3px solid #0047ba';
+        setTimeout(function () { box.style.outline = ''; }, 2500);
+    }
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('[data-thean-ghtk]')) { e.preventDefault(); openGhtk(); }
+    });
+
+    // Hash trỏ tới box (không phải tab), VD #step-preorder / #step-ghtk từ ô tìm đơn / board → mở + cuộn tới.
     (function (key) {
+        if (key === 'ghtk') { setTimeout(openGhtk, 400); return; }
         if (key && !inner().querySelector('.tow-tab[data-tab="' + key + '"]')) goTo(key);
     })((location.hash.match(/^#step-([\w-]+)$/) || [])[1] || '');
 })();

@@ -130,6 +130,25 @@ function thean_ops_internal_sql(array $t): string
     return implode(' AND ', $parts);
 }
 
+/** Chỉ admin (manage_options) được bỏ qua lỗi thiếu chứng từ xuất kho. */
+function thean_can_skip_export_proof(): bool
+{
+    return current_user_can('manage_options');
+}
+
+/**
+ * Được đổi trạng thái tùy ý (từng đơn + hàng loạt) ở ô tìm đơn / board: người được chỉ định ở Cài đặt ERP → Xử lý đơn
+ * (option `thean_status_change_users`, ID user). Danh sách trống = mọi admin (manage_options).
+ */
+function thean_can_change_any_status(): bool
+{
+    if (!current_user_can('manage_woocommerce')) {
+        return false;
+    }
+    $ids = array_map('intval', (array) get_option('thean_status_change_users', []));
+    return $ids ? in_array(get_current_user_id(), $ids, true) : current_user_can('manage_options');
+}
+
 /** Trạng thái đã giao / xong — thiếu chứng từ xuất kho thì vào tab "Thiếu chứng từ XK". */
 function thean_ops_proof_statuses(): array
 {
@@ -399,8 +418,65 @@ add_action(THEAN_OPS_CRON, function () {
 });
 
 /**
- * Mục "Đơn nội bộ" trong Cài đặt ERP → tab Xử lý đơn (gọi từ core/ai-settings.php của mỗi theme): lưu + hiển thị.
+ * Các mục của luồng vận hành trong Cài đặt ERP → tab Xử lý đơn (gọi từ core/ai-settings.php của mỗi theme):
+ * "Đơn nội bộ" + "Quyền đổi trạng thái tùy ý".
  */
+function thean_order_ops_settings_section(): void
+{
+    thean_internal_domains_settings_section();
+    thean_status_change_settings_section();
+}
+
+/** Mục "Quyền đổi trạng thái tùy ý": danh sách user (email / tên đăng nhập / ID) → option thean_status_change_users. */
+function thean_status_change_settings_section(): void
+{
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    $notice = null;
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['thean_status_users_nonce'])
+        && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['thean_status_users_nonce'])), 'thean_status_users_save')) {
+        $ids = [];
+        $bad = [];
+        foreach (preg_split('/[\s,;]+/', trim(wp_unslash((string) ($_POST['thean_status_change_users'] ?? '')))) ?: [] as $who) {
+            if ($who === '') {
+                continue;
+            }
+            $user = ctype_digit($who) ? get_userdata((int) $who) : (get_user_by('email', $who) ?: get_user_by('login', $who));
+            if ($user) {
+                $ids[] = (int) $user->ID;
+            } else {
+                $bad[] = $who;
+            }
+        }
+        if ($bad) {
+            $notice = ['error', 'Không tìm thấy: ' . implode(', ', $bad) . ' — chưa lưu.'];
+        } else {
+            update_option('thean_status_change_users', array_values(array_unique($ids)), false);
+            $notice = ['success', '✅ Đã lưu người được đổi trạng thái tùy ý.'];
+        }
+    }
+    $users = array_filter(array_map('get_userdata', array_map('intval', (array) get_option('thean_status_change_users', []))));
+    ?>
+    <?php if ($notice) : ?><div class="notice notice-<?php echo esc_attr($notice[0]); ?> is-dismissible"><p><?php echo esc_html($notice[1]); ?></p></div><?php endif; ?>
+    <form method="post">
+        <?php wp_nonce_field('thean_status_users_save', 'thean_status_users_nonce'); ?>
+        <h2>Quyền đổi trạng thái tùy ý</h2>
+        <table class="form-table" role="presentation"><tbody><tr>
+            <th scope="row"><label for="thean-status-users">Người được đổi trạng thái tùy ý</label></th>
+            <td>
+                <input type="text" class="large-text" style="max-width:600px" id="thean-status-users" name="thean_status_change_users" value="<?php echo esc_attr(implode(', ', array_map(static fn($u) => $u->user_email, $users))); ?>" placeholder="Email / tên đăng nhập / ID, cách nhau bằng dấu phẩy">
+                <p class="description">Chỉ những người này thấy nút <strong>🔁 Đổi trạng thái</strong> (từng đơn) và <strong>Đổi trạng thái hàng loạt</strong> ở ô tìm đơn / board
+                    "Tải đơn cần xử lý". Để trống = mọi tài khoản Administrator. Bỏ qua lỗi thiếu chứng từ xuất kho luôn chỉ dành cho Administrator.</p>
+                <?php if ($users) : ?><p class="description">Đang chỉ định: <?php echo esc_html(implode(', ', array_map(static fn($u) => $u->display_name . ' (#' . $u->ID . ')', $users))); ?>.</p><?php endif; ?>
+            </td>
+        </tr></tbody></table>
+        <?php submit_button('Lưu quyền'); ?>
+    </form>
+    <?php
+}
+
+/** Mục "Đơn nội bộ" (domain email nội bộ). */
 function thean_internal_domains_settings_section(): void
 {
     if (!current_user_can('manage_options')) {

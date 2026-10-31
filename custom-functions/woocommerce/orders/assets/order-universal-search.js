@@ -206,9 +206,9 @@
             + '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="resume">▶️ Tiếp tục</button>'
             + '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="preorder">📅 Đặt trước</button>'
             + '<button type="button" class="thean-ous-btn thean-ous-btn--danger" data-thean-ous-bulk="cancel">✖️ Hủy</button>'
-            + (modal === board && boardState.tab === 'proof' ? '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="skipproof">⏭️ Bỏ qua thiếu CT</button>' : '')
-            + '<span class="thean-ous-bulk__status"><select data-bulk-status aria-label="Trạng thái mới"><option value="">Đổi trạng thái…</option>' + statusOpts + '</select>'
-            + '<button type="button" class="thean-ous-btn thean-ous-btn--view" data-thean-ous-bulk="status">Áp dụng</button></span>'
+            + (cfg.canSkipProof && modal === board && boardState.tab === 'proof' ? '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="skipproof">⏭️ Bỏ qua thiếu CT</button>' : '')
+            + (cfg.canChangeStatus ? '<span class="thean-ous-bulk__status"><select data-bulk-status aria-label="Trạng thái mới"><option value="">Đổi trạng thái…</option>' + statusOpts + '</select>'
+                + '<button type="button" class="thean-ous-btn thean-ous-btn--view" data-thean-ous-bulk="status">Áp dụng</button></span>' : '')
             + '<button type="button" class="thean-ous-bulk__clear" data-thean-ous-bulk-clear>Bỏ chọn</button></div>'
             + '<div class="thean-ous-bulk-result" hidden></div>'
             + '<table class="thean-ous__table"><colgroup><col class="c-check"><col class="c-order"><col class="c-cus"><col class="c-items"><col class="c-next"><col class="c-acts"></colgroup>'
@@ -315,7 +315,7 @@
         if (ids.length > 50) { toast('Mỗi lần tối đa 50 đơn — bỏ bớt đơn đã chọn.', true); return; }
         if (!window.theanFlow) { toast('Chưa tải được popup thao tác — tải lại trang.', true); return; }
         var statusSel = body(modal).querySelector('[data-bulk-status]');
-        var status = op === 'status' ? statusSel.value : '';
+        var status = op === 'status' && statusSel ? statusSel.value : '';
         if (op === 'status' && !status) { toast('Chọn trạng thái mới trước.', true); return; }
         var kind = window.theanFlow.kinds[op];
         var spec = op === 'status'
@@ -338,6 +338,34 @@
             });
         });
     }
+    // Đổi trạng thái tùy ý 1 đơn (chỉ người được chỉ định — cfg.canChangeStatus; server kiểm tra lại).
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-thean-ous-status]');
+        if (!btn || !cfg.canChangeStatus) return;
+        e.preventDefault();
+        if (!window.theanFlow) { toast('Chưa tải được popup thao tác — tải lại trang.', true); return; }
+        var id = btn.getAttribute('data-order-id');
+        var current = btn.getAttribute('data-thean-ous-status');
+        var host = btn.closest('#thean-ous-board') ? board : (btn.closest('#thean-ous-results') ? results : null);
+        window.theanFlow.prompt({
+            title: '🔁 Đổi trạng thái — đơn #' + id,
+            help: 'Chuyển sang trạng thái bất kỳ (ngoài luồng thông thường). Ghi chú (không bắt buộc) lưu vào đơn.',
+            placeholder: 'Ghi chú',
+            required: false,
+            select: { label: 'Trạng thái mới…', options: (cfg.statuses || []).filter(function (st) { return st.slug !== current; }).map(function (st) { return [st.slug, st.name]; }) },
+            buttons: [['status', 'Đổi trạng thái', 'primary']]
+        }, function (note, key, status) {
+            return post('thean_order_usearch_bulk', { op: 'status', ids: id, status: status, reason: note }, new AbortController()).then(function (res) {
+                if (!res.success) throw new Error(message(res, 'Không đổi được trạng thái.'));
+                var failed = (res.data.failed || [])[0];
+                if (failed) throw new Error(failed.message);
+                toast('Đơn #' + id + ': đã đổi trạng thái.');
+                if (host) refresh(host);
+                document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderId: id, bulk: !!host } }));
+            });
+        });
+    });
+
     function onBulkClick(modal, e) {
         var btn = e.target.closest('[data-thean-ous-bulk]');
         if (btn) { runBulk(modal, btn.getAttribute('data-thean-ous-bulk')); return true; }

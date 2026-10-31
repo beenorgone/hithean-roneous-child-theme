@@ -87,7 +87,8 @@
     }
 
     /**
-     * Dựng popup. spec: {title, help, placeholder, required, buttons: [[key, label, tone]], phone}.
+     * Dựng popup. spec: {title, help, placeholder, required, buttons: [[key, label, tone]], phone,
+     * select?: {label, options: [[value, label]]} — giá trị chọn truyền vào onSubmit(note, key, selectValue)}.
      * current = {kind, trigger, orderId, onSubmit?}.
      */
     function render(spec, job) {
@@ -109,6 +110,16 @@
             contact.append(tel, zalo);
             form.appendChild(contact);
         }
+        if (spec.select) {
+            var sel = el('select');
+            sel.name = 'select';
+            sel.style.cssText = 'width:100%;margin:0 0 10px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px';
+            var first = el('option', '', spec.select.label || 'Chọn…');
+            first.value = '';
+            sel.appendChild(first);
+            spec.select.options.forEach(function (o) { var opt = el('option', '', o[1]); opt.value = o[0]; sel.appendChild(opt); });
+            form.appendChild(sel);
+        }
         var note = el('textarea');
         note.name = 'note';
         note.placeholder = spec.placeholder || '';
@@ -126,6 +137,7 @@
         });
         form.append(actions, el('div', 'tp-notice'));
         current.required = !!spec.required;
+        current.needSelect = !!spec.select;
         modal.hidden = false;
         note.focus();
     }
@@ -145,11 +157,13 @@
         var note = form.elements.note.value.trim();
         var noticeEl = form.querySelector('.tp-notice');
         if (current.required && !note) { noticeEl.textContent = 'Nhập ghi chú / lý do trước.'; return; }
+        var picked = form.elements.select ? form.elements.select.value : '';
+        if (current.needSelect && !picked) { noticeEl.textContent = 'Chọn giá trị trước.'; return; }
         if (current.onSubmit) {
             // Popup tùy biến (VD thao tác hàng loạt): người gọi tự gửi; Promise reject → hiện lỗi, giữ popup.
             var custom = current;
             form.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
-            Promise.resolve().then(function () { return custom.onSubmit(note, result); })
+            Promise.resolve().then(function () { return custom.onSubmit(note, result, picked); })
                 .then(function () { close(); })
                 .catch(function (err) { noticeEl.textContent = (err && err.message) || 'Lỗi.'; })
                 .then(function () { form.querySelectorAll('button').forEach(function (b) { b.disabled = false; }); });

@@ -103,7 +103,11 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   **Đổi luồng vận hành → tăng `THEAN_OPS_STEP_VERSION`** để mọi đơn mở được tính lại.
 - Tab "Thiếu chứng từ XK": đơn Đã giao / Giao 1 phần / Hoàn thành tạo trong `THEAN_OPS_PROOF_DAYS` (60) ngày mà thiếu ảnh xuất kho
   hoặc xác nhận xuất kho (`thean_ops_missing_proof()`, ưu tiên trên mọi bước khác). Nút "⏭️ Bỏ qua" (đơn lẻ + hàng loạt) → meta
-  `_thean_export_proof_skip`, task `export_proof_skip` (`thean_ow_skip_export_proof()`).
+  `_thean_export_proof_skip`, task `export_proof_skip` (`thean_ow_skip_export_proof()`) — **chỉ Administrator** (`thean_can_skip_export_proof()`).
+- "🔁 Đổi trạng thái" tùy ý (từng đơn + hàng loạt): chỉ người được chỉ định ở Cài đặt ERP → Xử lý đơn → "Quyền đổi trạng thái tùy ý"
+  (option `thean_status_change_users`; trống = mọi Administrator) — `thean_can_change_any_status()`, server kiểm tra lại.
+- GHTK (phương án A): bước Chờ giao có "🚚 Đăng GHTK" (board → trang sửa đơn `#step-ghtk`; bảng điều phối: nút trong box Giao hàng)
+  → order-workspace.js mở + cuộn tới khung GHTK của plugin devvn-woo-ghtk (tìm postbox theo tiêu đề, không phụ thuộc mã plugin).
 - Đơn đặt trước: trạng thái `pre-order` (đăng ký ở order-status.php, cùng slug theanmarket) có tab "Đặt trước". Nút
   "Chuyển sang đặt trước" (popup ghi chú bắt buộc — `assets/order-flow-popup.js`, dùng chung) ở bảng điều phối, cột Thao tác, ô tìm,
   board → task `order_flow` flow `preorder` (ghi `_thean_preorder_note`). "Tiếp tục" từ Đặt trước → gắn `_thean_preorder_confirm`,

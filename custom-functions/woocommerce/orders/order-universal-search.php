@@ -658,6 +658,9 @@ function thean_ous_flow_buttons(WC_Order $order): array
     $btn   = static fn(string $kind, string $label, string $tone) => '<button type="button" class="thean-ous-btn thean-ous-btn--' . $tone . '" data-thean-flow="' . $kind . '"' . $attrs . '>' . esc_html($label) . '</button>';
     $out   = [in_array($status, ['on-hold', 'pre-order'], true) ? $btn('resume', '▶️ Tiếp tục', 'flow') : $btn('hold', '⏸️ Tạm giữ', 'flow')];
     $out[] = $btn('cancel', '✖️ Hủy', 'danger');
+    if (function_exists('thean_can_change_any_status') && thean_can_change_any_status()) {
+        $out[] = '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-status="' . esc_attr($status) . '"' . $attrs . '>🔁 Đổi trạng thái</button>';
+    }
     return $out;
 }
 
@@ -696,10 +699,14 @@ function thean_ous_next_actions(WC_Order $order, string $step): string
     if ($step === 'preorder') {
         $buttons = array_slice(thean_ous_flow_buttons($order), 0, 1); // ▶️ Tiếp tục
     }
-    if ($step === 'proof' && current_user_can('manage_woocommerce')) {
+    if ($step === 'proof' && function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof()) {
         $buttons[] = '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-flow="skipproof" data-order-id="' . esc_attr($order->get_id()) . '">⏭️ Bỏ qua</button>';
     }
-    if (!$buttons) {
+    if ($step === 'delivery' && (string) $order->get_meta('_ghtk_ordercode') === '') {
+        // Phương án A: mở trang sửa đơn, bảng điều phối mở + cuộn tới khung GHTK của plugin (#step-ghtk).
+        $buttons[] = thean_ous_button('kho', '🚚 Đăng GHTK ↗', $order->get_edit_order_url() . '#step-ghtk', '', true);
+    }
+    if (!$buttons || $step === 'delivery') {
         $tab = ['cod' => 'payment', 'shipping' => 'delivery'][$step] ?? $step;
         $labels = function_exists('thean_ops_step_tabs') ? thean_ops_step_tabs() : [];
         $buttons[] = thean_ous_button('view', 'Mở bước ' . ($labels[$step] ?? $step) . ' ↗', $order->get_edit_order_url() . '#step-' . $tab, '', true);
@@ -1089,6 +1096,12 @@ function thean_ous_ajax_bulk(): void
     if (!in_array($op, array_merge($flows, ['status', 'skipproof']), true)) {
         wp_send_json_error(['message' => 'Thao tác không hợp lệ.']);
     }
+    if ($op === 'status' && !(function_exists('thean_can_change_any_status') && thean_can_change_any_status())) {
+        wp_send_json_error(['message' => 'Chỉ người được chỉ định (Cài đặt ERP → Xử lý đơn) mới đổi trạng thái tùy ý.'], 403);
+    }
+    if ($op === 'skipproof' && !(function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof())) {
+        wp_send_json_error(['message' => 'Chỉ admin được bỏ qua lỗi thiếu chứng từ xuất kho.'], 403);
+    }
     if ($op !== 'status' && !function_exists('thean_ow_apply_flow')) {
         require_once __DIR__ . '/order-workspace.php';
     }
@@ -1233,6 +1246,8 @@ function thean_ous_ui_config(): array
         'statuses'       => thean_ous_statuses(),
         'alertsOff'      => thean_ous_alerts_off(),
         // Modal thao tác nhanh của orders-admin.php — Esc nhường chúng đóng trước.
+        'canChangeStatus' => function_exists('thean_can_change_any_status') && thean_can_change_any_status(), // order-ops-step.php
+        'canSkipProof'   => function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof(),
         'wcList'         => function_exists('thean_wcl_state') ? thean_wcl_state() : null, // order-list-lazy.php
         'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden]), #thean-flow-modal:not([hidden])',
     ];

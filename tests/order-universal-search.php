@@ -26,6 +26,9 @@ function delete_transient($k) { unset($GLOBALS['__transients'][$k]); return true
 function apply_filters($tag, $value) { return $value; }
 $GLOBALS['__options'] = [];
 function get_option($k, $d = false) { return $GLOBALS['__options'][$k] ?? $d; }
+$GLOBALS['__caps'] = []; $GLOBALS['__uid'] = 0;
+function current_user_can($cap) { return in_array($cap, $GLOBALS['__caps'], true); }
+function get_current_user_id() { return $GLOBALS['__uid']; }
 function esc_sql($s) { return addslashes($s); }
 function remove_accents($s)
 {
@@ -201,6 +204,17 @@ foreach ([true, false] as $hpos) {
         && strpos($q, $hpos ? 'COALESCE(o.billing_email' : "meta_key = '_billing_email'") !== false, 'board skips internal orders ' . ($hpos ? 'HPOS' : 'legacy'));
 }
 unset($GLOBALS['__options']['thean_internal_email_domains']);
+
+// Quyền: đổi trạng thái tùy ý (người chỉ định / mặc định Administrator), bỏ qua thiếu chứng từ (chỉ Administrator).
+$GLOBALS['__caps'] = ['manage_woocommerce']; $GLOBALS['__uid'] = 5;
+check(!thean_can_change_any_status() && !thean_can_skip_export_proof(), 'shop manager: no arbitrary status / skip by default');
+$GLOBALS['__caps'] = ['manage_woocommerce', 'manage_options'];
+check(thean_can_change_any_status() && thean_can_skip_export_proof(), 'admin allowed when no one is designated');
+$GLOBALS['__options']['thean_status_change_users'] = [7];
+check(!thean_can_change_any_status(), 'admin not designated → no arbitrary status');
+$GLOBALS['__caps'] = ['manage_woocommerce']; $GLOBALS['__uid'] = 7;
+check(thean_can_change_any_status() && !thean_can_skip_export_proof(), 'designated shop manager can change status, still cannot skip proof');
+unset($GLOBALS['__options']['thean_status_change_users']); $GLOBALS['__caps'] = []; $GLOBALS['__uid'] = 0;
 
 echo "OK ({$checks} checks)\n";
 }

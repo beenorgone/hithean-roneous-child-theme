@@ -405,7 +405,7 @@ function theme_erp_settings_render_page(): void
         <?php endif; ?>
 
         <?php if ($active_tab === 'xu-ly-don'): ?>
-            <?php if (function_exists('thean_internal_domains_settings_section')) thean_internal_domains_settings_section(); // order-ops-step.php ?>
+            <?php if (function_exists('thean_order_ops_settings_section')) thean_order_ops_settings_section(); // order-ops-step.php: đơn nội bộ + quyền đổi trạng thái ?>
             <?php $lark_settings = function_exists('hithean_export_lark_settings') ? hithean_export_lark_settings() : ['enabled' => '0', 'only_alerts' => '0', 'webhook_url' => '']; ?>
             <form method="post">
                 <?php wp_nonce_field('theme_erp_settings_save_xu-ly-don'); ?>
