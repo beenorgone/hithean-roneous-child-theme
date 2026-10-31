@@ -16,6 +16,8 @@ define('ABSPATH', __DIR__);
 function add_action(...$a) {}
 function wp_strip_all_tags($s) { return strip_tags((string) $s); }
 function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
+function get_user_meta() { return ''; }
+function add_filter(...$a) {}
 function esc_sql($s) { return addslashes($s); }
 function remove_accents($s)
 {
@@ -122,6 +124,7 @@ $ids = thean_ous_find_order_ids(array_merge($empty, ['text' => '0901 234 567']))
 $sql = implode("\n", $wpdb->queries);
 check(strpos($sql, 'wp_wc_order_addresses') !== false && strpos($sql, 'wp_wc_orders_meta') !== false, 'HPOS tables used');
 check(strpos($sql, 'wp_postmeta') === false, 'HPOS does not touch postmeta');
+check(strpos($sql, "'order_ship_code'") !== false && strpos($sql, "'order_shipper'") !== false, 'hithean order_* tracking meta searched');
 check(strpos($sql, "LIKE '%901234567%'") !== false, 'HPOS phone normalized');
 check(strpos($sql, "type = 'shop_order'") !== false, 'HPOS filters order type');
 

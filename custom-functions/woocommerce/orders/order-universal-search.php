@@ -13,18 +13,61 @@ if (!defined('ABSPATH')) exit;
  * Kết quả trong modal dạng bảng (mobile: dạng thẻ); bấm dòng để xem nhanh đơn kèm các nút
  * thao tác (dùng chung modal thao tác nhanh ở orders-admin.php qua class .wc-action-button-*).
  *
- * AJAX: thean_order_usearch, thean_order_usearch_preview.
+ * "Ẩn thông báo": ô tích trên thanh tìm ẩn mọi .notice / .update-nag ở danh sách đơn, lưu theo
+ * user (user meta THEAN_OUS_ALERTS_META) nên phiên sau vẫn giữ.
+ *
+ * AJAX: thean_order_usearch, thean_order_usearch_preview, thean_order_usearch_alerts.
  */
 
 const THEAN_OUS_PER_PAGE  = 10;
 const THEAN_OUS_CAP       = 500;  // tối đa số đơn khớp giữ trong cache cho 1 truy vấn
 const THEAN_OUS_SOURCE    = 1000; // tối đa ứng viên lấy từ mỗi nguồn
 const THEAN_OUS_CACHE_TTL = 180;
+const THEAN_OUS_ALERTS_META = 'thean_ous_alerts_off';
 
-/** Meta vận đơn / hoàn hàng được tìm theo chuỗi con. */
+/**
+ * Meta vận đơn / hoàn hàng được tìm theo chuỗi con. Hithean: field Meta Box có tiền tố
+ * "order_" (order-metabox.php, order_shipper là select nhiều giá trị); giữ key cũ để tìm đơn cũ.
+ */
 function thean_ous_tracking_meta_keys(): array
 {
-    return ['ship_code', '_ghtk_ordercode', 'return_code', 'compensate_code', 'shipper'];
+    return ['order_ship_code', 'ship_code', '_ghtk_ordercode', 'return_code', 'compensate_code', 'order_shipper', 'shipper'];
+}
+
+/** Đọc meta vận hành: key "order_*" (hiện tại) trước, rồi key cũ. Mảng → nối bằng dấu phẩy. */
+function thean_ous_meta(WC_Order $order, array $keys): string
+{
+    foreach ($keys as $key) {
+        $value = $order->get_meta($key);
+        if (is_array($value)) {
+            $value = implode(', ', array_filter(array_map('strval', $value)));
+        }
+        if (is_scalar($value) && trim((string) $value) !== '') {
+            return trim((string) $value);
+        }
+    }
+    return '';
+}
+
+/** Shipper (mã self/ghtk/…) → nhãn, đồng bộ filter eim_order_shipper_label ở bootstrap.php. */
+function thean_ous_shipper(WC_Order $order): string
+{
+    $map = ['self' => 'THEAN', 'ghtk' => 'GHTK', 'ahamove' => 'Ahamove', 'viettel' => 'Viettel Post'];
+    $raw = $order->get_meta('order_shipper');
+    $raw = is_array($raw) ? $raw : ($raw === '' || $raw === null ? [] : [$raw]);
+    $names = [];
+    foreach ($raw as $code) {
+        $code = strtolower(trim((string) $code));
+        if ($code !== '') {
+            $names[] = $map[$code] ?? $code;
+        }
+    }
+    return $names ? implode(', ', array_unique($names)) : thean_ous_meta($order, ['shipper']);
+}
+
+function thean_ous_ship_code(WC_Order $order): string
+{
+    return thean_ous_meta($order, ['order_ship_code', 'ship_code', '_ghtk_ordercode']);
 }
 
 /** Lệnh lọc: khóa chuẩn => [nhãn, ví dụ, mô tả]. */
@@ -620,8 +663,8 @@ function thean_ous_render_rows(array $ids, array $tokens): string
         if (!$order instanceof WC_Order) {
             continue;
         }
-        $shipper = (string) $order->get_meta('shipper');
-        $ship    = (string) ($order->get_meta('ship_code') ?: $order->get_meta('_ghtk_ordercode'));
+        $shipper = thean_ous_shipper($order);
+        $ship    = thean_ous_ship_code($order);
         $phone   = $order->get_billing_phone() ?: $order->get_shipping_phone();
         $address = thean_ous_address_line($order);
         ?>
@@ -679,14 +722,14 @@ function thean_ous_render_preview(WC_Order $order): string
     $id   = $order->get_id();
     $date = $order->get_date_created();
     $ops  = array_filter([
-        'Giao bởi'         => $order->get_meta('shipper'),
-        'Mã vận đơn'       => $order->get_meta('ship_code') ?: $order->get_meta('_ghtk_ordercode'),
-        'Ngày xuất kho'    => $order->get_meta('export_date'),
-        'Ngày CK'          => $order->get_meta('paid_date'),
-        'TK nhận'          => $order->get_meta('bank_account_received'),
-        'Trạng thái xử lý' => $order->get_meta('handling_status'),
-        'Hoàn hàng'        => $order->get_meta('return_status'),
-    ], static fn($v) => is_scalar($v) && trim((string) $v) !== '');
+        'Giao bởi'         => thean_ous_shipper($order),
+        'Mã vận đơn'       => thean_ous_ship_code($order),
+        'Ngày xuất kho'    => thean_ous_meta($order, ['order_ship_date', 'order_export_date', 'export_date']),
+        'Ngày CK'          => thean_ous_meta($order, ['order_paid_date', 'paid_date']),
+        'TK nhận'          => thean_ous_meta($order, ['order_bank_account_received', 'bank_account_received']),
+        'Trạng thái xử lý' => thean_ous_meta($order, ['order_handling_status', 'handling_status']),
+        'Hoàn hàng'        => thean_ous_meta($order, ['return_status']),
+    ], static fn($v) => $v !== '');
     $notes = function_exists('wc_get_order_notes') ? wc_get_order_notes(['order_id' => $id, 'limit' => 5]) : [];
 
     ob_start();
@@ -808,14 +851,47 @@ function thean_ous_ajax_preview(): void
     wp_send_json_success(['html' => thean_ous_render_preview($order)]);
 }
 
+add_action('wp_ajax_thean_order_usearch_alerts', 'thean_ous_ajax_alerts');
+function thean_ous_ajax_alerts(): void
+{
+    check_ajax_referer('thean_ous', 'nonce');
+    if (!thean_ous_user_can()) {
+        wp_send_json_error(['message' => 'Không có quyền.'], 403);
+    }
+    $off = !empty($_POST['off']);
+    update_user_meta(get_current_user_id(), THEAN_OUS_ALERTS_META, $off ? '1' : '');
+    wp_send_json_success(['off' => $off]);
+}
+
+/** Đang ở màn danh sách đơn (không phải màn sửa/tạo đơn của HPOS) và có quyền. */
+function thean_ous_is_list_ui(): bool
+{
+    if (!function_exists('hithean_order_admin_is_list_screen') || !hithean_order_admin_is_list_screen() || !thean_ous_user_can()) {
+        return false;
+    }
+    // HPOS dùng chung screen id cho danh sách và màn sửa đơn.
+    return !in_array($_GET['action'] ?? '', ['edit', 'new'], true);
+}
+
+function thean_ous_alerts_off(): bool
+{
+    return get_user_meta(get_current_user_id(), THEAN_OUS_ALERTS_META, true) === '1';
+}
+
+// Class + CSS in sẵn ở <head> để thông báo không chớp hiện rồi mới ẩn.
+add_filter('admin_body_class', function ($classes) {
+    return thean_ous_is_list_ui() && thean_ous_alerts_off() ? $classes . ' thean-ous-alerts-off' : $classes;
+});
+add_action('admin_head', function (): void {
+    if (thean_ous_is_list_ui()) {
+        echo '<style>body.thean-ous-alerts-off #wpbody-content .notice, body.thean-ous-alerts-off #wpbody-content .update-nag, body.thean-ous-alerts-off .woocommerce-layout__notice-list { display:none !important; }</style>';
+    }
+});
+
 add_action('admin_footer', 'thean_ous_render_ui');
 function thean_ous_render_ui(): void
 {
-    if (!function_exists('hithean_order_admin_is_list_screen') || !hithean_order_admin_is_list_screen() || !thean_ous_user_can()) {
-        return;
-    }
-    // HPOS dùng chung screen id cho danh sách và màn sửa đơn.
-    if (in_array($_GET['action'] ?? '', ['edit', 'new'], true)) {
+    if (!thean_ous_is_list_ui()) {
         return;
     }
 
@@ -831,23 +907,38 @@ function thean_ous_render_ui(): void
         'commands' => $commands,
         'aliases'  => thean_ous_command_aliases(),
         'statuses' => thean_ous_statuses(),
+        'alertsOff' => thean_ous_alerts_off(),
     ];
     ?>
     <style>
+        #thean-ous-bar, .thean-ous-modal {
+            /* Xanh dương đậm Hi The An (--default-color-dark-blue) — đổi màu ở đây. */
+            --ous-primary:#0047ba; --ous-primary-dark:#003a99; --ous-primary-light:#e8f0ff; --ous-primary-lighter:#f3f7ff;
+            --ous-border:#b9cdf0; --ous-border-strong:#8fb0e6;
+        }
         /* Thay ô tìm mặc định của danh sách đơn (legacy + HPOS). */
         #posts-filter p.search-box, #wc-orders-filter p.search-box, .woocommerce_page_wc-orders p.search-box { display:none !important; }
 
         .thean-ous-bar { position:sticky; top:32px; z-index:90; margin:10px 0 12px; }
         body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên modal kết quả */
-        .thean-ous-bar__row { display:flex; gap:8px; align-items:center; padding:8px 10px; border:1px solid #c3d4f3; border-radius:10px; background:#f5f9ff; box-shadow:0 4px 12px rgba(15,23,42,.08); }
-        .thean-ous-bar input[type="search"] { flex:1; min-width:0; padding:7px 12px; border:1px solid #9db6e6; border-radius:8px; font-size:15px; line-height:1.4; }
+        .thean-ous-bar__row { display:flex; gap:8px; align-items:center; padding:8px 10px; border:1px solid var(--ous-border); border-radius:10px; background:var(--ous-primary-lighter); box-shadow:0 4px 12px rgba(15,23,42,.08); }
+        .thean-ous-bar input[type="search"] { flex:1; min-width:0; padding:7px 12px; border:1px solid var(--ous-border-strong); border-radius:8px; font-size:15px; line-height:1.4; }
         .thean-ous-bar kbd { font-size:11px; color:#64748b; }
-        .thean-ous-bar .button-primary { background:#0047ba; border-color:#003a99; }
+        .thean-ous-bar__submit, .thean-ous__more-btn { flex:0 0 auto; margin:0; padding:7px 16px; border:1px solid var(--ous-primary-dark); border-radius:8px; background:var(--ous-primary); color:#fff; font-size:14px; font-weight:600; line-height:1.4; text-transform:none; letter-spacing:0; box-shadow:none; cursor:pointer; }
+        .thean-ous-bar__submit:hover, .thean-ous__more-btn:hover { background:var(--ous-primary-dark); }
+        .thean-ous__more-btn { background:#fff; color:var(--ous-primary); border-color:var(--ous-border-strong); }
+        .thean-ous__more-btn:hover { background:var(--ous-primary-light); }
+        .thean-ous__more-btn:disabled { opacity:.6; cursor:wait; }
+        .thean-ous-bar .dashicons-search { color:var(--ous-primary); }
+        .thean-ous-bar__toggle { display:inline-flex; flex:0 0 auto; align-items:center; gap:5px; margin:0; padding:5px 9px; border:1px solid var(--ous-border); border-radius:8px; background:#fff; color:#334155; font-size:13px; white-space:nowrap; cursor:pointer; user-select:none; }
+        .thean-ous-bar__toggle input { margin:0 !important; }
+        .thean-ous-bar__toggle b { min-width:18px; padding:0 5px; border-radius:999px; background:#fde68a; color:#78350f; font-size:11px; text-align:center; }
+        .thean-ous-bar__toggle:has(input:checked) { border-color:var(--ous-primary); background:var(--ous-primary-light); color:var(--ous-primary); }
         .thean-ous-suggest[hidden] { display:none; }
-        .thean-ous-suggest { position:absolute; left:0; right:0; top:100%; z-index:95; max-height:min(360px, 60vh); overflow:auto; margin-top:4px; padding:4px; border:1px solid #c3d4f3; border-radius:10px; background:#fff; box-shadow:0 12px 28px rgba(15,23,42,.18); }
+        .thean-ous-suggest { position:absolute; left:0; right:0; top:100%; z-index:95; max-height:min(360px, 60vh); overflow:auto; margin-top:4px; padding:4px; border:1px solid var(--ous-border); border-radius:10px; background:#fff; box-shadow:0 12px 28px rgba(15,23,42,.18); }
         .thean-ous-suggest__item { display:flex; gap:10px; align-items:baseline; width:100%; padding:7px 10px; border:0; border-radius:7px; background:none; text-align:left; cursor:pointer; color:#1e293b; font-size:13px; }
-        .thean-ous-suggest__item.is-active, .thean-ous-suggest__item:hover { background:#eef4ff; }
-        .thean-ous-suggest__item code { flex:0 0 auto; padding:1px 6px; border-radius:5px; background:#e8f0ff; color:#0047ba; font-size:12px; }
+        .thean-ous-suggest__item.is-active, .thean-ous-suggest__item:hover { background:var(--ous-primary-light); }
+        .thean-ous-suggest__item code { flex:0 0 auto; padding:1px 6px; border-radius:5px; background:var(--ous-primary-light); color:var(--ous-primary); font-size:12px; }
         .thean-ous-suggest__item span { color:#64748b; }
         .thean-ous-suggest__head { padding:6px 10px 2px; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
 
@@ -861,7 +952,7 @@ function thean_ous_render_ui(): void
         .thean-ous-modal__title { margin:0 40px 6px 0; font-size:17px; }
         .thean-ous-modal__status { color:#64748b; font-weight:400; font-size:13px; }
         .thean-ous-chips { display:flex; flex-wrap:wrap; gap:6px; margin:0 40px 10px 0; }
-        .thean-ous-chips span { padding:2px 9px; border-radius:999px; background:#eef4ff; color:#0047ba; font-size:12px; }
+        .thean-ous-chips span { padding:2px 9px; border-radius:999px; background:var(--ous-primary-light); color:var(--ous-primary); font-size:12px; }
 
         .thean-ous__table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:13px; }
         .thean-ous__table th, .thean-ous__table td { padding:9px 8px; border-bottom:1px solid #e2e8f0; text-align:left; vertical-align:top; overflow-wrap:anywhere; }
@@ -870,7 +961,7 @@ function thean_ous_render_ui(): void
         .thean-ous__table col.c-cus { width:32%; }
         .thean-ous__table col.c-acts { width:300px; }
         .thean-ous__table tbody tr { cursor:pointer; }
-        .thean-ous__table tbody tr:hover, .thean-ous__table tbody tr:focus { background:#f5f9ff; outline:none; }
+        .thean-ous__table tbody tr:hover, .thean-ous__table tbody tr:focus { background:var(--ous-primary-lighter); outline:none; }
         .thean-ous__table small { display:block; margin-top:2px; color:#64748b; }
         .thean-ous__table mark:not(.order-status) { background:#fff3a3; color:inherit; padding:0 1px; }
         .thean-ous__order-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
@@ -888,11 +979,11 @@ function thean_ous_render_ui(): void
         .thean-ous-btn, .thean-ous-btn.wc-action-button { --c:#334155; --bg:#f1f5f9; --bd:#cbd5e1; display:inline-flex !important; align-items:center; width:auto !important; height:auto !important; margin:0 !important; padding:3px 9px !important; border:1px solid var(--bd) !important; border-radius:6px !important; background:var(--bg) !important; color:var(--c) !important; font-size:12px; font-weight:600; line-height:1.6; text-indent:0 !important; text-transform:none !important; letter-spacing:0 !important; text-decoration:none; white-space:nowrap; overflow:visible; box-shadow:none !important; cursor:pointer; }
         .thean-ous-btn::after { display:none !important; content:none !important; }
         .thean-ous-btn:hover { filter:brightness(.95); }
-        .thean-ous-btn:focus-visible { outline:2px solid #0047ba; outline-offset:1px; }
-        .thean-ous-btn--primary { --c:#fff; --bg:#0047ba; --bd:#003a99; }
-        .thean-ous-btn--view { --c:#0047ba; --bg:#fff; --bd:#9db6e6; }
+        .thean-ous-btn:focus-visible { outline:2px solid var(--ous-primary); outline-offset:1px; }
+        .thean-ous-btn--primary { --c:#fff; --bg:var(--ous-primary); --bd:var(--ous-primary-dark); }
+        .thean-ous-btn--view { --c:var(--ous-primary); --bg:#fff; --bd:var(--ous-border-strong); }
         .thean-ous-btn--edit { --c:#002b1c; --bg:#08e097; --bd:#05b97c; }
-        .thean-ous-btn--pay { --c:#0047ba; --bg:#e8f0ff; --bd:#a9c4f5; }
+        .thean-ous-btn--pay { --c:var(--ous-primary); --bg:var(--ous-primary-light); --bd:var(--ous-border); }
         .thean-ous-btn--kho { --c:#166534; --bg:#e7f6ee; --bd:#9ed8b6; }
         .thean-ous-btn--hoan { --c:#9a3412; --bg:#fff4e5; --bd:#f5c27a; }
         .thean-ous-btn--other { --c:#334155; --bg:#f1f5f9; --bd:#cbd5e1; }
@@ -917,7 +1008,7 @@ function thean_ous_render_ui(): void
         .thean-ous-preview__note { margin:12px 0; padding:10px 12px; border-radius:8px; background:#fff8e6; }
         .thean-ous-preview__notes { margin:0 0 4px; padding:0; list-style:none; }
         .thean-ous-preview__notes li { margin-bottom:6px; padding:8px 10px; border-radius:6px; background:#f1f5f9; overflow-wrap:anywhere; }
-        .thean-ous-preview__notes li.is-customer { background:#e8f0ff; }
+        .thean-ous-preview__notes li.is-customer { background:var(--ous-primary-light); }
         .thean-ous-preview__notes li p { margin:0; }
         .thean-ous-preview__notes small { color:#64748b; }
         body.thean-ous-open { overflow:hidden; }
@@ -926,6 +1017,9 @@ function thean_ous_render_ui(): void
         @media (max-width:782px) {
             .thean-ous-bar { top:46px; }
             .thean-ous-bar kbd { display:none; }
+            .thean-ous-bar__row { flex-wrap:wrap; }
+            .thean-ous-bar__row input[type="search"] { flex-basis:calc(100% - 110px); }
+            .thean-ous-bar__toggle { order:5; }
             .thean-ous-bar input[type="search"] { font-size:16px; } /* iOS không zoom */
             .thean-ous-modal { padding:0; align-items:stretch; }
             .thean-ous-modal__dialog, .thean-ous-modal--preview .thean-ous-modal__dialog { width:100%; max-height:none; padding:14px 12px; border-radius:0; }
@@ -945,7 +1039,10 @@ function thean_ous_render_ui(): void
             <span class="dashicons dashicons-search" aria-hidden="true"></span>
             <input type="search" name="q" placeholder="Tìm đơn: ID, tên, SĐT, email, địa chỉ, SP, vận đơn… — gõ / để lọc (/tt, /sdt, /id, /sp)" aria-label="Tìm đơn hàng" aria-autocomplete="list" aria-controls="thean-ous-suggest">
             <kbd>/</kbd>
-            <button type="submit" class="button button-primary">Tìm</button>
+            <button type="submit" class="thean-ous-bar__submit">Tìm</button>
+            <label class="thean-ous-bar__toggle" title="Ẩn mọi thông báo (notice) ở trang danh sách đơn — nhớ cho lần sau">
+                <input type="checkbox" name="alerts_off"> <span>Ẩn thông báo</span><b data-thean-ous-alert-count hidden></b>
+            </label>
         </div>
         <div class="thean-ous-suggest" id="thean-ous-suggest" role="listbox" hidden></div>
     </form>
@@ -986,7 +1083,44 @@ function thean_ous_render_ui(): void
         var anchor = document.querySelector('.wrap .wp-header-end') || document.querySelector('.wrap h1');
         if (anchor) anchor.parentNode.insertBefore(bar, anchor.nextSibling);
         bar.hidden = false;
+
+        function stickyTop() {
+            var top = 0;
+            ['#wpadminbar', '.woocommerce-layout__header'].forEach(function (sel) {
+                var el = document.querySelector(sel);
+                if (!el || getComputedStyle(el).position !== 'fixed') return;
+                var r = el.getBoundingClientRect();
+                if (r.height && r.top < 1 + top) top = Math.max(top, Math.round(r.bottom));
+            });
+            bar.style.top = (top + 6) + 'px';
+        }
+        stickyTop();
+        [300, 1000, 2500].forEach(function (ms) { setTimeout(stickyTop, ms); });
+        window.addEventListener('load', stickyTop);
+        window.addEventListener('resize', function () { clearTimeout(stickyTop.t); stickyTop.t = setTimeout(stickyTop, 150); });
         try { var s = new URLSearchParams(location.search).get('s'); if (s) input.value = s; } catch (e) {}
+
+        /* ---------- Ẩn thông báo (lưu user meta) ---------- */
+        var alertBox = bar.elements.alerts_off;
+        var alertCount = bar.querySelector('[data-thean-ous-alert-count]');
+        function countAlerts() {
+            var n = document.querySelectorAll('#wpbody-content .notice, #wpbody-content .update-nag').length;
+            alertCount.textContent = n;
+            alertCount.hidden = !(alertBox.checked && n);
+            alertCount.title = n + ' thông báo đang ẩn';
+        }
+        alertBox.checked = !!cfg.alertsOff;
+        countAlerts();
+        setTimeout(countAlerts, 1500); // notice do JS thêm muộn
+        alertBox.addEventListener('change', function () {
+            document.body.classList.toggle('thean-ous-alerts-off', alertBox.checked);
+            countAlerts();
+            var fd = new FormData();
+            fd.append('action', 'thean_order_usearch_alerts');
+            fd.append('nonce', cfg.nonce);
+            if (alertBox.checked) fd.append('off', '1');
+            fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd }).catch(function () {});
+        });
 
         function post(action, data, ctl) {
             var fd = new FormData();
@@ -1090,7 +1224,7 @@ function thean_ous_render_ui(): void
             var wrap = document.createElement('div');
             wrap.innerHTML = '<table class="thean-ous__table"><colgroup><col class="c-order"><col class="c-cus"><col class="c-items"><col class="c-acts"></colgroup>'
                 + '<thead><tr><th>Đơn · Trạng thái · Tổng</th><th>Khách hàng · Giao hàng</th><th>Sản phẩm</th><th>Thao tác</th></tr></thead><tbody></tbody></table>'
-                + '<div class="thean-ous__more" hidden><button type="button" class="button" data-thean-ous-more></button></div>';
+                + '<div class="thean-ous__more" hidden><button type="button" class="thean-ous__more-btn" data-thean-ous-more></button></div>';
             body(results).replaceChildren(wrap);
             return wrap;
         }
