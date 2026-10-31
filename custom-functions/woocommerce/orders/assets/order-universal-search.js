@@ -9,6 +9,7 @@
     var results = document.getElementById('thean-ous-results');
     var preview = document.getElementById('thean-ous-preview');
     var board = document.getElementById('thean-ous-board');
+    var invoice = document.getElementById('thean-ous-invoice');
     var searchCtl = null, previewCtl = null, boardCtl = null, timer = 0;
     var boardState = { tab: '', page: 0, shown: 0, loading: false };
     var boardCache = new Map(); // "tab|page" → {at, data}; trang 1 của mọi tab nạp sẵn khi mở board (5 phút)
@@ -115,7 +116,8 @@
             results.style.paddingTop = Math.round(bar.getBoundingClientRect().bottom + 8) + 'px';
         }
         modal.hidden = !open;
-        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden);
+        if (modal === invoice && !open) invoice.querySelector('iframe').src = 'about:blank';
+        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden || !invoice.hidden);
     }
     function body(modal) { return modal.querySelector('.thean-ous-modal__body'); }
     function notice(el, text) {
@@ -338,6 +340,23 @@
             });
         });
     }
+    // Xem hóa đơn (bản xem trước của trang Tạo đơn — AJAX order_creator_invoice_preview) trong popup, In / Mở tab mới.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-thean-ous-invoice]');
+        if (btn) {
+            e.preventDefault();
+            var url = btn.getAttribute('data-thean-ous-invoice');
+            invoice.querySelector('#thean-ous-invoice-title').textContent = '🧾 Hóa đơn đơn #' + (btn.getAttribute('data-order-id') || '');
+            invoice.querySelector('[data-thean-ous-invoice-open]').href = url;
+            invoice.querySelector('iframe').src = url;
+            setOpen(invoice, true);
+            return;
+        }
+        if (e.target.closest('[data-thean-ous-invoice-print]')) {
+            try { invoice.querySelector('iframe').contentWindow.print(); } catch (err) { toast('Không in được — dùng "Mở tab mới".', true); }
+        }
+    });
+
     // Đổi trạng thái tùy ý 1 đơn (chỉ người được chỉ định — cfg.canChangeStatus; server kiểm tra lại).
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-thean-ous-status]');
@@ -537,7 +556,8 @@
             if (!menuList.hidden) { setMenu(false); return; }
             // Modal thao tác nhanh (orders-admin.php) nằm trên cùng — để nó tự đóng trước.
             if (cfg.blockingModals && document.querySelector(cfg.blockingModals)) return;
-            if (!preview.hidden) setOpen(preview, false);
+            if (!invoice.hidden) setOpen(invoice, false);
+            else if (!preview.hidden) setOpen(preview, false);
             else if (!results.hidden) setOpen(results, false);
             return;
         }

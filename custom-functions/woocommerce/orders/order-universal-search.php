@@ -715,6 +715,22 @@ function thean_ous_next_actions(WC_Order $order, string $step): string
     return '<div class="thean-ous-acts__g">' . implode('', $buttons) . '</div>';
 }
 
+/**
+ * Link xem hóa đơn của đơn — dùng lại bản xem trước hóa đơn của trang Tạo đơn (AJAX order_creator_invoice_preview,
+ * WC_Email_Customer_Invoice). '' khi theme không có module tạo đơn / người xem không có quyền (thean_order_creator_url).
+ */
+function thean_ous_invoice_url(WC_Order $order): string
+{
+    if (!function_exists('thean_order_creator_url') || thean_order_creator_url() === '') {
+        return '';
+    }
+    return add_query_arg([
+        'action'   => 'order_creator_invoice_preview',
+        'order_id' => $order->get_id(),
+        'nonce'    => wp_create_nonce(defined('ORDER_CREATOR_NONCE') ? ORDER_CREATOR_NONCE : 'order_creator_nonce'),
+    ], admin_url('admin-ajax.php'));
+}
+
 function thean_ous_render_actions(WC_Order $order, bool $compact): string
 {
     $id      = $order->get_id();
@@ -724,6 +740,10 @@ function thean_ous_render_actions(WC_Order $order, bool $compact): string
         $buttons['view'][] = '<button type="button" class="thean-ous-btn thean-ous-btn--primary" data-thean-ous-preview="' . esc_attr($id) . '">Xem nhanh</button>';
     }
     $buttons['view'][] = thean_ous_button('view', 'Chi tiết', $order->get_edit_order_url(), '', true);
+    $invoice = thean_ous_invoice_url($order);
+    if ($invoice !== '') {
+        $buttons['view'][] = '<button type="button" class="thean-ous-btn thean-ous-btn--view" data-thean-ous-invoice="' . esc_url($invoice) . '" data-order-id="' . esc_attr($order->get_id()) . '">🧾 Xem hóa đơn</button>';
+    }
 
     foreach (thean_ous_order_actions($order) as $key => $action) {
         if (empty($action['url'])) {
@@ -1368,6 +1388,19 @@ function thean_ous_render_ui(): void
         <div class="thean-ous-tabs" role="tablist" aria-label="Bước xử lý"></div>
         <div class="thean-ous-modal__body"></div>
     </section>
+
+    <div class="thean-ous-modal thean-ous-modal--invoice" id="thean-ous-invoice" hidden>
+        <div class="thean-ous-modal__backdrop" data-thean-ous-close></div>
+        <div class="thean-ous-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="thean-ous-invoice-title">
+            <button type="button" class="thean-ous-modal__close" data-thean-ous-close aria-label="Đóng">&times;</button>
+            <div class="thean-ous-invoice__head">
+                <h2 class="thean-ous-modal__title" id="thean-ous-invoice-title">🧾 Hóa đơn</h2>
+                <button type="button" class="thean-ous__more-btn" data-thean-ous-invoice-print>🖨 In</button>
+                <a class="thean-ous__more-btn" data-thean-ous-invoice-open href="#" target="_blank" rel="noopener">Mở tab mới ↗</a>
+            </div>
+            <iframe class="thean-ous-invoice__frame" title="Hóa đơn" src="about:blank"></iframe>
+        </div>
+    </div>
 
     <div class="thean-ous-modal thean-ous-modal--preview" id="thean-ous-preview" hidden>
         <div class="thean-ous-modal__backdrop" data-thean-ous-close></div>

@@ -48,6 +48,12 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-modal[hidden] { display:none; }
 .thean-ous-modal { position:fixed; inset:0; z-index:99000; display:grid; grid-template-rows:minmax(0,1fr); place-items:center; padding:24px; }
 .thean-ous-modal--preview { z-index:99500; }
+.thean-ous-modal--invoice { z-index:99600; }
+.thean-ous-modal--invoice .thean-ous-modal__dialog { display:flex; flex-direction:column; width:min(820px,100%); height:100%; }
+.thean-ous-invoice__head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:0 40px 10px 0; }
+.thean-ous-invoice__head .thean-ous-modal__title { margin:0; }
+.thean-ous-invoice__head .thean-ous__more-btn { padding:4px 12px; font-size:13px; text-decoration:none; }
+.thean-ous-invoice__frame { flex:1; width:100%; min-height:60vh; border:1px solid #e2e8f0; border-radius:8px; background:#fff; }
 .thean-ous-modal__backdrop { position:absolute; inset:0; background:rgba(15,23,42,.5); }
 .thean-ous-modal__dialog { position:relative; box-sizing:border-box; width:min(1280px,100%); max-height:100%; overflow-y:auto; overflow-x:hidden; padding:18px 22px; border-radius:12px; background:#fff; box-shadow:0 24px 60px rgba(15,23,42,.32); }
 .thean-ous-modal--preview .thean-ous-modal__dialog { width:min(960px,100%); }

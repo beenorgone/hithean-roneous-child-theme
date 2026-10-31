@@ -124,6 +124,8 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   chạy cả `hithean-order-*`; bước chưa có thao tác nhanh → mở trang sửa đơn `#step-<bước>`) và nút Tạm giữ / Tiếp tục / Hủy (popup lý do,
   `assets/order-flow-popup.js` → `thean_ow_apply_flow()` của order-workspace.php). Ô chọn từng đơn + chọn tất cả → thanh thao tác
   hàng loạt (Tạm giữ / Tiếp tục / Đặt trước / Hủy / Đổi trạng thái — AJAX `thean_order_usearch_bulk`, ≤50 đơn / lần).
+- "🧾 Xem hóa đơn" (cột Thao tác + xem nhanh): popup iframe dùng bản xem trước hóa đơn của trang Tạo đơn (AJAX
+  `order_creator_invoice_preview`, `WC_Email_Customer_Invoice`), có In / Mở tab mới; chỉ hiện khi có module tạo đơn.
 - Tải: 10 đơn/trang đọc gộp 1 lần `wc_get_orders(['post__in' => …])`; HTML xem nhanh cache Redis (`wp_cache`, nhóm
   `thean_ous`) 2 phút; mỗi user ≤4 lượt tìm thật (không trúng cache) / 30s, lượt thứ 5 khóa 2 phút (HTTP 429, `retry_after`).
 
