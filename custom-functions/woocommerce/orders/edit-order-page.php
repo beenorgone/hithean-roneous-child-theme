@@ -101,4 +101,7 @@ add_action('order_edit_form_top', 'thean_render_order_workspace');
     $uri = get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/';
     wp_enqueue_style('thean-order-workspace', $uri . 'order-workspace.css', [], (string) @filemtime($dir . 'order-workspace.css'));
     wp_enqueue_script('thean-order-workspace', $uri . 'order-workspace.js', [], (string) @filemtime($dir . 'order-workspace.js'), true);
+    if (function_exists('thean_preorder_enqueue')) {
+        thean_preorder_enqueue(true); // popup đơn đặt trước — xong thì tải lại trang
+    }
 })();

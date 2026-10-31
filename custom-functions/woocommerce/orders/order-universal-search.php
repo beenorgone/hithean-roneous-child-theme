@@ -655,7 +655,8 @@ function thean_ous_render_actions(WC_Order $order, bool $compact): string
         if ($slug === 'chinh-don-tao-don') {
             continue; // nút "Chỉnh" riêng bên dưới
         }
-        if ($compact && strpos($slug, 'hithean-order-') !== 0) {
+        // Thao tác nhanh của hithean + nút dùng chung 2 site (thean-order-preorder…, order-ops-step.php).
+        if ($compact && strpos($slug, 'hithean-order-') !== 0 && strpos($slug, 'thean-order-') !== 0) {
             continue;
         }
         [$group, $label] = thean_ous_action_meta($slug);
@@ -1083,7 +1084,7 @@ function thean_ous_ui_config(): array
         'alertsOff'      => thean_ous_alerts_off(),
         // Modal thao tác nhanh của orders-admin.php — Esc nhường chúng đóng trước.
         'wcList'         => function_exists('thean_wcl_state') ? thean_wcl_state() : null, // order-list-lazy.php
-        'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden])',
+        'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden]), #thean-preorder-modal:not([hidden])',
     ];
 }
 
@@ -1100,6 +1101,9 @@ function thean_ous_enqueue_assets(): void
     wp_enqueue_style('thean-ous', $uri . 'order-universal-search.css', [], (string) @filemtime($dir . 'order-universal-search.css'));
     wp_enqueue_script('thean-ous', $uri . 'order-universal-search.js', [], (string) @filemtime($dir . 'order-universal-search.js'), true);
     wp_add_inline_script('thean-ous', 'window.theanOusCfg = ' . wp_json_encode(thean_ous_ui_config()) . ';', 'before');
+    if (function_exists('thean_preorder_enqueue')) {
+        thean_preorder_enqueue(false); // popup đơn đặt trước (order-ops-step.php)
+    }
 }
 
 add_action('admin_footer', 'thean_ous_render_ui');

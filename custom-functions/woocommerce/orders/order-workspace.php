@@ -336,6 +336,23 @@ function thean_ow_order_flows(): array
         'hold'   => ['on-hold', true, '⏸️ Tạm giữ đơn để điều chỉnh'],
         'resume' => ['', false, '▶️ Tiếp tục xử lý đơn sau tạm giữ'], // đích theo thean_ow_resume_status()
         'cancel' => ['cancelled', true, '✖️ Hủy đơn (trả hàng về tồn kho)'],
+        // Ghi chú lưu ở _thean_preorder_note; tiếp tục từ Đặt trước → phải nhắn/gọi khách xác nhận giao (thean_ow_preorder_confirm_results).
+        'preorder' => ['pre-order', true, '📅 Chuyển sang đặt trước'],
+    ];
+}
+
+/** Trạng thái không còn chuyển sang Đặt trước được (đang giao / đã giao / đã đóng). */
+function thean_ow_preorder_blocked_statuses(): array
+{
+    return array_merge(thean_ow_closed_statuses(), ['pre-order', 'completed', 'shipping', 'local-shipping', 'partial-shipping', 'delivered', 'partial-shipped']);
+}
+
+/** Xác nhận giao đơn đặt trước với khách: [giá trị _thean_preorder_confirm (rỗng = xong), ghi chú]. */
+function thean_ow_preorder_confirm_results(): array
+{
+    return [
+        'confirmed' => ['', '📞 Khách đã xác nhận giao đơn đặt trước.'],
+        'waiting'   => ['waiting', '📞 Đã nhắn/gọi khách xác nhận giao đơn đặt trước, chờ khách phản hồi.'],
     ];
 }
 
@@ -640,7 +657,18 @@ function thean_ow_flow(WC_Order $order): array
     // Tab mở sẵn: bước cần làm; xong hết thì bước cuối.
     $active = isset($steps[$next]) ? $next : ($has_return ? 'return' : 'delivery');
 
-    return compact('payment', 'export_images', 'confirmed_by', 'ai', 'shippers', 'handling', 'ship_code', 'export_date', 'return_status', 'return_code', 'compensate', 'refund', 'return_images', 'is_cod', 'cod_confirm', 'is_pickup', 'is_closed', 'is_shipping', 'return_done', 'has_return', 'steps', 'next', 'next_hint', 'next_goto', 'active');
+    // Đặt trước: đang đặt trước (chờ đến hẹn), hoặc vừa tiếp tục mà chưa nhắn/gọi khách xác nhận giao.
+    $preorder_note    = (string) $order->get_meta('_thean_preorder_note');
+    $preorder_confirm = !$is_closed && $status !== 'pre-order' ? (string) $order->get_meta('_thean_preorder_confirm') : '';
+    if ($status === 'pre-order') {
+        $next_goto = 'preorder';
+        $next_hint = 'Đơn đặt trước' . ($preorder_note !== '' ? ': ' . $preorder_note : '') . ' — đến hẹn thì tiếp tục xử lý';
+    } elseif ($preorder_confirm !== '') {
+        $next_goto = 'preorder';
+        $next_hint = $preorder_confirm === 'waiting' ? 'Đơn đặt trước: chờ khách phản hồi xác nhận giao' : 'Đơn đặt trước: nhắn/gọi khách xác nhận giao đơn';
+    }
+
+    return compact('preorder_note', 'preorder_confirm', 'payment', 'export_images', 'confirmed_by', 'ai', 'shippers', 'handling', 'ship_code', 'export_date', 'return_status', 'return_code', 'compensate', 'refund', 'return_images', 'is_cod', 'cod_confirm', 'is_pickup', 'is_closed', 'is_shipping', 'return_done', 'has_return', 'steps', 'next', 'next_hint', 'next_goto', 'active');
 }
 
 /** Phần bảng thay được qua AJAX (task `render`) — không gồm modal/toast/config. */
@@ -682,6 +710,8 @@ function thean_ow_render_inner(WC_Order $order): void
         'next_hint' => $next_hint,
         'next_goto' => $next_goto,
         'active' => $active,
+        'preorder_note' => $preorder_note,
+        'preorder_confirm' => $preorder_confirm,
     ] = thean_ow_flow($order);
     ?>
     <div class="tow-inner" data-active="<?php echo esc_attr($active); ?>">
@@ -740,6 +770,7 @@ function thean_ow_render_inner(WC_Order $order): void
                 <?php
                 // COD: thu tiền sau khi giao → mở sẵn khi đã giao mà chưa đối soát.
                 if ($is_cod) thean_ow_box_payment($order, $order_no, $payment, $locked, !$payment['done'] && $steps['delivery'][1]);
+                if ($status === 'pre-order' || $preorder_confirm !== '') thean_ow_box_preorder($order, $preorder_note, $preorder_confirm, $locked);
                 thean_ow_box_customer($order);
                 thean_ow_box_hdsd($order);
                 if (!$has_return) thean_ow_box_return($order, $return_status, $return_code, $compensate, $refund, $return_images);
@@ -1191,6 +1222,35 @@ function thean_ow_box_customer(WC_Order $order): void
     thean_ow_box_close();
 }
 
+/** Đơn đặt trước: đang chờ đến hẹn (tiếp tục / sửa ghi chú) hoặc cần nhắn/gọi khách xác nhận giao. */
+function thean_ow_box_preorder(WC_Order $order, string $note, string $confirm, bool $locked): void
+{
+    $phone = $order->get_billing_phone() ?: $order->get_shipping_phone();
+    $attrs = ' data-order-id="' . esc_attr($order->get_id()) . '" data-phone="' . esc_attr($phone) . '"';
+    if ($order->get_status() === 'pre-order') {
+        thean_ow_box_open('preorder', '📅 Đơn đặt trước', thean_ow_badge('Đặt trước', 'warning'), true);
+        echo '<p>' . ($note !== '' ? '<strong>Ghi chú:</strong> ' . esc_html($note) : '<em>Chưa có ghi chú.</em>') . '</p>';
+        if ($locked) {
+            echo '<p class="tow-hint">🔒 Đơn đã bị khóa đổi trạng thái (chỉ admin).</p>';
+        } else {
+            $resume = thean_ow_resume_status($order) ?: (wc_is_order_status('wc-pending') ? 'pending' : 'processing');
+            echo '<p class="tow-hint">ⓘ Tiếp tục xử lý thì phải nhắn/gọi khách xác nhận giao trước khi soạn hàng.</p>';
+            echo '<div class="tow-form" data-task="order_flow"><div class="tow-btns">'
+                . '<button type="button" class="button button-primary tow-act" data-action="order_flow" data-flow="resume">▶️ Tiếp tục → ' . esc_html(wc_get_order_status_name($resume)) . '</button>'
+                . '<button type="button" class="button" data-thean-preorder' . $attrs . '>✏️ Sửa ghi chú</button>'
+                . '</div></div>';
+        }
+    } else {
+        thean_ow_box_open('preorder', '📞 Xác nhận giao đơn đặt trước', thean_ow_badge($confirm === 'waiting' ? 'Chờ khách phản hồi' : 'Cần xác nhận', $confirm === 'waiting' ? 'warning' : 'danger'), true);
+        echo '<p>Nhắn / gọi khách xác nhận giao đơn trước khi soạn hàng' . ($note !== '' ? ' (đặt trước: ' . esc_html($note) . ')' : '') . '.</p>';
+        if ($phone) {
+            echo '<p><a class="tow-chip" href="tel:' . esc_attr($phone) . '">📞 ' . esc_html($phone) . '</a> <a class="tow-chip" href="https://zalo.me/' . esc_attr(preg_replace('/\D/', '', $phone)) . '" target="_blank" rel="noopener">💬 Zalo</a></p>';
+        }
+        echo '<div class="tow-btns"><button type="button" class="button button-primary" data-thean-preorder-confirm' . $attrs . '>📞 Ghi nhận kết quả liên hệ</button></div>';
+    }
+    thean_ow_box_close();
+}
+
 function thean_ow_box_hold_cancel(WC_Order $order, bool $locked): void
 {
     $on_hold = $order->get_status() === 'on-hold';
@@ -1214,6 +1274,9 @@ function thean_ow_box_hold_cancel(WC_Order $order, bool $locked): void
                 <button type="button" class="button button-primary tow-act" data-action="order_flow" data-flow="resume">▶️ Tiếp tục → <?php echo esc_html(wc_get_order_status_name($resume)); ?></button>
             <?php elseif (!$on_hold) : ?>
                 <button type="button" class="button tow-act" data-action="order_flow" data-flow="hold">⏸️ Tạm giữ để điều chỉnh</button>
+            <?php endif; ?>
+            <?php if (!in_array($order->get_status(), thean_ow_preorder_blocked_statuses(), true) && wc_is_order_status('wc-pre-order')) : ?>
+                <button type="button" class="button" data-thean-preorder data-order-id="<?php echo esc_attr($order->get_id()); ?>">📅 Chuyển sang đặt trước</button>
             <?php endif; ?>
             <button type="button" class="button tow-btn-danger tow-act" data-action="order_flow" data-flow="cancel" data-danger="1">✖️ Hủy đơn</button>
         </div>
@@ -1348,9 +1411,28 @@ function thean_ow_ajax(): void
                 wp_send_json_error(['message' => 'Đơn đã bị khóa đổi trạng thái (chỉ admin).']);
             }
             if ($need_reason && $reason === '') wp_send_json_error(['message' => 'Nhập lý do trước.']);
-            if ($flow === 'resume' && $status !== 'on-hold') wp_send_json_error(['message' => 'Đơn không ở trạng thái Tạm giữ.']);
+            if ($flow === 'resume' && !in_array($status, ['on-hold', 'pre-order'], true)) wp_send_json_error(['message' => 'Đơn không ở trạng thái Tạm giữ / Đặt trước.']);
+            if ($flow === 'preorder') {
+                if (!wc_is_order_status('wc-pre-order')) wp_send_json_error(['message' => 'Site chưa có trạng thái Đặt trước.']);
+                if ($status === 'pre-order') {
+                    // Đang đặt trước: chỉ cập nhật ghi chú.
+                    $order->update_meta_data('_thean_preorder_note', $reason);
+                    $order->add_order_note('📅 Cập nhật ghi chú đặt trước: ' . $reason, false, true);
+                    $order->save();
+                    wp_send_json_success(['message' => 'Đã cập nhật ghi chú đặt trước.']);
+                }
+                if (in_array($status, thean_ow_preorder_blocked_statuses(), true)) wp_send_json_error(['message' => 'Đơn ' . wc_get_order_status_name($status) . ' không chuyển sang đặt trước được.']);
+                $order->update_meta_data('_thean_preorder_note', $reason);
+                $order->delete_meta_data('_thean_preorder_confirm');
+            }
             if ($flow === 'resume') {
                 $target = thean_ow_resume_status($order);
+                if ($status === 'pre-order') {
+                    // Đơn CK chưa thanh toán → Chờ thanh toán; tiếp tục thì phải nhắn/gọi khách xác nhận giao.
+                    if ($target === '') $target = wc_is_order_status('wc-pending') ? 'pending' : 'processing';
+                    $order->update_meta_data('_thean_preorder_confirm', 'pending');
+                    $label = '▶️ Tiếp tục đơn đặt trước — cần nhắn/gọi khách xác nhận giao';
+                }
                 if ($target === '') wp_send_json_error(['message' => 'Đơn CK chưa xác nhận thanh toán — xác nhận thanh toán trước.']);
             }
             if ($status === $target) wp_send_json_error(['message' => 'Đơn đã ở trạng thái ' . wc_get_order_status_name($target) . '.']);
@@ -1360,6 +1442,19 @@ function thean_ow_ajax(): void
             // WooCommerce tự trả tồn kho khi chuyển Đã hủy (wc_maybe_increase_stock_levels).
             $order->update_status($target, $label . ($reason !== '' ? ': ' . $reason : '') . '.', true);
             wp_send_json_success(['message' => 'Đã chuyển sang: ' . wc_get_order_status_name($target)]);
+            break;
+
+        case 'preorder_confirm':
+            $results = thean_ow_preorder_confirm_results();
+            $result  = sanitize_key($_POST['result'] ?? '');
+            if (!isset($results[$result])) wp_send_json_error(['message' => 'Thao tác không hợp lệ.']);
+            [$value, $note] = $results[$result];
+            $extra = sanitize_text_field(wp_unslash($_POST['note'] ?? ''));
+            if ($value === '') $order->delete_meta_data('_thean_preorder_confirm');
+            else $order->update_meta_data('_thean_preorder_confirm', $value);
+            $order->add_order_note($note . ($extra !== '' ? ' ' . $extra : ''), false, true);
+            $order->save();
+            wp_send_json_success(['message' => $result === 'confirmed' ? 'Đã ghi nhận khách xác nhận giao.' : 'Đã ghi nhận: chờ khách phản hồi.']);
             break;
 
         case 'cod_confirm':

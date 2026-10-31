@@ -374,6 +374,12 @@
         if (e.target.closest('[data-thean-ous-more]')) { if (!boardState.loading) loadBoard(boardState.tab, boardState.page + 1, false); return; }
         tableClick(e);
     });
+    // Popup đơn đặt trước (order-preorder.js) / thao tác khác báo đơn đã đổi → board tính lại tab đang xem.
+    document.addEventListener('thean:order-updated', function () {
+        if (board.hidden) return;
+        boardCache.clear();
+        loadBoard(boardState.tab, 1, false);
+    });
     results.addEventListener('keydown', tableKey);
     board.addEventListener('keydown', tableKey);
     bar.querySelector('[data-thean-ous-board]').addEventListener('click', function () {

@@ -19,6 +19,7 @@ function cws_get_custom_statuses(): array
         'local-shipping' => 'Giao nhanh',
         'shipping'       => 'Đang giao',
         'delivered'      => 'Đã giao',
+        'pre-order'      => 'Đặt trước', // cùng slug theanmarket; eim hub đọc "pre-order"
     ];
 }
 
@@ -67,6 +68,14 @@ function register_custom_order_statuses()
         'label_count'                => _n_noop('Đang giao <span class="count">(%s)</span>', 'Đang giao <span class="count">(%s)</span>', 'woocommerce'),
     ));
 
+    register_post_status('wc-pre-order', array(
+        'label'                     => 'Đặt trước',
+        'public'                    => true,
+        'show_in_admin_status_list'  => true,
+        'show_in_admin_all_list'     => true,
+        'label_count'                => _n_noop('Đặt trước <span class="count">(%s)</span>', 'Đặt trước <span class="count">(%s)</span>', 'woocommerce'),
+    ));
+
     register_post_status('wc-delivered', array(
         'label'                     => 'Đã giao',
         'public'                    => true,
@@ -88,6 +97,7 @@ function add_custom_wc_order_statuses($order_statuses)
     $order_statuses['wc-local-shipping'] = 'Giao nhanh';
     $order_statuses['wc-shipping'] = 'Đang giao';
     $order_statuses['wc-delivered'] = 'Đã giao';
+    $order_statuses['wc-pre-order'] = 'Đặt trước';
     return $order_statuses;
 }
 add_filter('wc_order_statuses', 'add_custom_wc_order_statuses');
@@ -103,6 +113,7 @@ function custom_order_status_styles()
         .order-status.status-local-shipping { background: #111; color: #fff; }
         .order-status.status-shipping { background: green; color: #fff; }
         .order-status.status-delivered { background: #999; color: #fff; }
+        .order-status.status-pre-order { background: #9c27b0; color: #fff; }
     </style>';
 }
 add_action('admin_head', 'custom_order_status_styles');

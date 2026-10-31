@@ -101,6 +101,10 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   option `thean_internal_email_domains`, trống = dùng danh sách của eim; hoặc cờ `_eim_internal`) — board lọc thẳng bằng SQL
   nên đổi domain có hiệu lực ngay; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.
   **Đổi luồng vận hành → tăng `THEAN_OPS_STEP_VERSION`** để mọi đơn mở được tính lại.
+- Đơn đặt trước: trạng thái `pre-order` (đăng ký ở order-status.php, cùng slug theanmarket) có tab "Đặt trước". Nút
+  "Chuyển sang đặt trước" (popup ghi chú bắt buộc — `assets/order-preorder.js`, dùng chung) ở bảng điều phối, cột Thao tác, ô tìm,
+  board → task `order_flow` flow `preorder` (ghi `_thean_preorder_note`). "Tiếp tục" từ Đặt trước → gắn `_thean_preorder_confirm`,
+  đơn vào tab "Xác nhận khách" (đổi tên từ "Xác nhận COD") tới khi ghi nhận "Khách đã xác nhận giao" (task `preorder_confirm`).
 - Tải: 10 đơn/trang đọc gộp 1 lần `wc_get_orders(['post__in' => …])`; HTML xem nhanh cache Redis (`wp_cache`, nhóm
   `thean_ous`) 2 phút; mỗi user ≤4 lượt tìm thật (không trúng cache) / 30s, lượt thứ 5 khóa 2 phút (HTTP 429, `retry_after`).
 

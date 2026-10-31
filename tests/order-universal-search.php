@@ -170,6 +170,10 @@ check(thean_ops_step_from_flow(['next_goto' => 'delivery']) === 'delivery', 'not
 check(thean_ops_step_from_flow(['next_goto' => 'picking', 'is_closed' => true]) === '', 'closed order skipped');
 check(thean_ops_step_from_flow(['next_goto' => 'return', 'is_closed' => true]) === 'return', 'closed order with pending return kept');
 check(thean_ops_step_from_flow(['next_goto' => 'picking'], 'chua-ghi-nhan') === '', 'Chưa ghi nhận not in ops flow');
+check(thean_ops_step_from_flow(['next_goto' => 'preorder']) === 'preorder', 'pre-order status → tab Đặt trước');
+check(thean_ops_step_from_flow(['next_goto' => 'preorder', 'preorder_confirm' => 'pending']) === 'confirm', 'resumed pre-order → Xác nhận khách');
+check(thean_ops_step_from_flow(['next_goto' => 'preorder', 'preorder_confirm' => 'waiting']) === 'confirm', 'waiting customer reply stays in Xác nhận khách');
+check(array_key_last(thean_ops_step_tabs()) === 'preorder' && thean_ops_step_tabs()['confirm'] === 'Xác nhận khách', 'tabs: Đặt trước + Xác nhận khách');
 check(thean_ops_step_from_flow(['next_goto' => 'payment'], 'da-ghi-nhan') === '', 'Đã ghi nhận not in ops flow');
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
@@ -178,7 +182,7 @@ foreach ([true, false] as $hpos) {
         && strpos($q, "'wc-chua-ghi-nhan'") !== false && strpos($q, '_spx_date') !== false, 'board SQL ' . ($hpos ? 'HPOS' : 'legacy'));
     $wpdb->queries = [];
     thean_ops_step_unsynced_ids(20);
-    check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '1'") !== false && strpos($wpdb->queries[0], 'LIMIT 20') !== false, 'unsynced = no meta for current version ' . ($hpos ? 'HPOS' : 'legacy'));
+    check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '2'") !== false && strpos($wpdb->queries[0], 'LIMIT 20') !== false, 'unsynced = no meta for current version ' . ($hpos ? 'HPOS' : 'legacy'));
 }
 
 // Đơn nội bộ: domain email (Cài đặt ERP) / cờ _eim_internal → không vào luồng vận hành.

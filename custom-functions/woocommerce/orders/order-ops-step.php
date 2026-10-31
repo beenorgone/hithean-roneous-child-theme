@@ -28,7 +28,7 @@ if (!defined('ABSPATH')) exit;
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '1'; // tăng khi đổi logic bước vận hành
+const THEAN_OPS_STEP_VERSION = '2'; // tăng khi đổi logic bước vận hành (2: tab Đặt trước + xác nhận giao đơn đặt trước)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
 const THEAN_OPS_SWEEP     = 50;
 
@@ -36,7 +36,7 @@ const THEAN_OPS_SWEEP     = 50;
 function thean_ops_step_tabs(): array
 {
     return [
-        'confirm'  => 'Xác nhận COD',
+        'confirm'  => 'Xác nhận khách', // COD chờ khách xác nhận + đơn đặt trước vừa tiếp tục cần xác nhận giao
         'payment'  => 'Chờ thanh toán',
         'picking'  => 'Lấy hàng',
         'export'   => 'Xuất kho',
@@ -44,6 +44,7 @@ function thean_ops_step_tabs(): array
         'shipping' => 'Đang giao',
         'cod'      => 'Thu COD',
         'return'   => 'Hoàn hàng',
+        'preorder' => 'Đặt trước',      // trạng thái pre-order, chờ đến hẹn
     ];
 }
 
@@ -138,6 +139,10 @@ function thean_ops_step_from_flow(array $flow, string $status = ''): string
     if ($off && $next !== 'return') {
         return '';
     }
+    if ($next === 'preorder') {
+        // thean_ow_flow: đang Đặt trước → tab Đặt trước; vừa tiếp tục, chưa xác nhận giao → Xác nhận khách.
+        return !empty($flow['preorder_confirm']) ? 'confirm' : 'preorder';
+    }
     if ($next === 'payment' && !empty($flow['is_cod'])) {
         return 'cod'; // COD đã giao, chờ đối soát thu tiền
     }
@@ -223,13 +228,54 @@ add_action('woocommerce_after_order_object_save', function ($order) {
     }
 });
 
+/**
+ * Nút đơn đặt trước ở danh sách đơn / ô tìm / board (popup: assets/order-preorder.js, xử lý: order-workspace.php):
+ * "Chuyển sang đặt trước" và "Xác nhận giao (đặt trước)" khi đơn vừa tiếp tục từ Đặt trước.
+ */
+add_filter('woocommerce_admin_order_actions', function ($actions, $order) {
+    if (!$order instanceof WC_Order || !current_user_can('manage_woocommerce') || !wc_is_order_status('wc-pre-order')) {
+        return $actions;
+    }
+    $status = $order->get_status();
+    $args   = ['order_id' => $order->get_id(), 'phone' => $order->get_billing_phone() ?: $order->get_shipping_phone()];
+    $closed = ['pre-order', 'cancelled', 'failed', 'refunded', 'completed', 'shipping', 'local-shipping', 'partial-shipping', 'delivered', 'partial-shipped'];
+    if (!in_array($status, $closed, true)) {
+        $actions['thean-order-preorder'] = [
+            'url'    => add_query_arg(['thean_order_action' => 'preorder'] + $args, admin_url('admin.php')),
+            'name'   => 'Chuyển sang đặt trước',
+            'action' => 'thean-order-preorder',
+        ];
+    }
+    if ($status !== 'pre-order' && (string) $order->get_meta('_thean_preorder_confirm') !== '') {
+        $actions['thean-order-preorder-confirm'] = [
+            'url'    => add_query_arg(['thean_order_action' => 'preorder-confirm'] + $args, admin_url('admin.php')),
+            'name'   => 'Xác nhận giao (đặt trước)',
+            'action' => 'thean-order-preorder-confirm',
+        ];
+    }
+    return $actions;
+}, 120, 2);
+
+/** Cấu hình cho assets/order-preorder.js — gọi khi enqueue (trang sửa đơn: reload = true). */
+function thean_preorder_enqueue(bool $reload): void
+{
+    $dir = get_stylesheet_directory() . '/custom-functions/woocommerce/orders/assets/';
+    $uri = get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/';
+    wp_enqueue_script('thean-order-preorder', $uri . 'order-preorder.js', [], (string) @filemtime($dir . 'order-preorder.js'), true);
+    wp_add_inline_script('thean-order-preorder', 'window.theanPreorderCfg = ' . wp_json_encode([
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'nonce'   => wp_create_nonce('thean_order_workspace'), // THEAN_OW_NONCE
+        'reload'  => $reload,
+    ]) . ';', 'before');
+}
+
 /** Meta ảnh hưởng bước vận hành (cả tên theanmarket lẫn tên "order_*" của hithean). */
 function thean_ops_step_watched_meta(): array
 {
     return [
         '_order_payment_confirmation_audit', 'paid_date', 'order_paid_date', 'bank_account_received', 'order_bank_account_received',
         'handling_status', 'order_handling_status', 'warehouse_export_images', 'export_confirmed_by', 'return_status',
-        '_payment_method', '_spx_date', '_eim_internal', '_billing_email',
+        '_payment_method', '_spx_date', '_eim_internal', '_billing_email', '_thean_preorder_confirm',
     ];
 }
 
