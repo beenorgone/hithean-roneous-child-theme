@@ -861,6 +861,16 @@ function thean_ous_step_badge(WC_Order $order, array $flow): string
     return '<div class="thean-ous__step ' . esc_attr($class) . '">' . $html . '</div>';
 }
 
+/**
+ * Mã vận đơn GHTK dạng "S12734516.BO.SGP120-V44.1363613511" → chỉ lấy phần cuối "1363613511"
+ * (mã tra cứu ngắn). Mã khác định dạng giữ nguyên.
+ */
+function thean_ous_ship_code_short(string $code): string
+{
+    $code = trim($code);
+    return preg_match('/^S\d+\..*\.(\d+)$/i', $code, $m) ? $m[1] : $code;
+}
+
 function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): string
 {
     ob_start();
@@ -872,7 +882,8 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): st
             $flow['hint'] = $hints[$id];
         }
         $shipper = thean_ous_shipper($order);
-        $ship    = thean_ous_ship_code($order);
+        $ship_full = thean_ous_ship_code($order);
+        $ship      = thean_ous_ship_code_short($ship_full);
         $phone   = $order->get_billing_phone() ?: $order->get_shipping_phone();
         $address = thean_ous_address_line($order);
         ?>
@@ -898,7 +909,7 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): st
                 </small>
                 <?php if ($address !== '') : ?><small>📍 <?php echo thean_ous_highlight($address, $tokens); ?></small><?php endif; ?>
                 <?php if ($ship !== '' || $shipper !== '') : ?>
-                    <small>🚚 <?php echo thean_ous_highlight(trim($shipper . ' ' . $ship), $tokens); ?></small>
+                    <small title="<?php echo esc_attr($ship_full); ?>">🚚 <?php echo thean_ous_highlight(trim($shipper . ' ' . $ship), $tokens); ?></small>
                 <?php endif; ?>
             </td>
             <td class="thean-ous__c-items">
@@ -942,7 +953,7 @@ function thean_ous_render_preview(WC_Order $order): string
     $date = $order->get_date_created();
     $ops  = array_filter([
         'Giao bởi'         => thean_ous_shipper($order),
-        'Mã vận đơn'       => thean_ous_ship_code($order),
+        'Mã vận đơn'       => thean_ous_ship_code_short(thean_ous_ship_code($order)),
         'Ngày xuất kho'    => thean_ous_meta($order, ['order_ship_date', 'order_export_date', 'export_date']),
         'Ngày CK'          => thean_ous_meta($order, ['order_paid_date', 'paid_date']),
         'TK nhận'          => thean_ous_meta($order, ['order_bank_account_received', 'bank_account_received']),
