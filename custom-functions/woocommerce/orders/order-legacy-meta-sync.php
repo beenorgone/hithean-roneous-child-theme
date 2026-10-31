@@ -76,7 +76,41 @@ function thean_legacy_meta_save(WC_Order $order): void
     }
 }
 
-/** 1. Post meta của đơn vừa đổi → ghi sang HPOS. */
+/**
+ * Mọi giá trị của key ở bảng posts, đọc thẳng DB (bỏ qua filter get_post_metadata của order-hpos-compat.php — filter
+ * đó trả bản HPOS). Field chọn nhiều của Meta Box (order_export_by, order_shipper…) lưu mỗi giá trị 1 dòng.
+ */
+function thean_legacy_post_meta_raw(int $post_id, string $key): array
+{
+    global $wpdb;
+    $rows = $wpdb->get_col($wpdb->prepare("SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = %s ORDER BY meta_id", $post_id, $key));
+    return array_map('maybe_unserialize', (array) $rows);
+}
+
+/** Giá trị HPOS hiện có của key (danh sách). */
+function thean_legacy_order_meta_values(WC_Order $order, string $key): array
+{
+    $out = [];
+    foreach ($order->get_meta($key, false) as $meta) {
+        $out[] = $meta->value;
+    }
+    return $out;
+}
+
+/** Đặt toàn bộ giá trị key trên HPOS = $values (giữ nhiều dòng). Trả true nếu có đổi (chưa lưu). */
+function thean_legacy_order_meta_assign(WC_Order $order, string $key, array $values): bool
+{
+    if (array_map('maybe_serialize', thean_legacy_order_meta_values($order, $key)) === array_map('maybe_serialize', $values)) {
+        return false;
+    }
+    $order->delete_meta_data($key);
+    foreach ($values as $v) {
+        $order->add_meta_data($key, $v, false);
+    }
+    return true;
+}
+
+/** 1. Post meta của đơn vừa đổi → chép nguyên tập giá trị của key sang HPOS. */
 function thean_legacy_meta_mirror(int $post_id, string $key, $value, bool $delete): void
 {
     if (thean_legacy_meta_busy() || $post_id <= 0 || !in_array($key, thean_legacy_meta_keys(), true) || !thean_legacy_meta_hpos()
@@ -90,18 +124,9 @@ function thean_legacy_meta_mirror(int $post_id, string $key, $value, bool $delet
     if (!$order instanceof WC_Order) {
         return;
     }
-    if ($delete) {
-        if (!$order->meta_exists($key)) {
-            return;
-        }
-        $order->delete_meta_data($key);
-    } else {
-        if ($order->meta_exists($key) && maybe_serialize($order->get_meta($key, true)) === maybe_serialize($value)) {
-            return;
-        }
-        $order->update_meta_data($key, $value);
+    if (thean_legacy_order_meta_assign($order, $key, thean_legacy_post_meta_raw($post_id, $key))) {
+        thean_legacy_meta_save($order);
     }
-    thean_legacy_meta_save($order);
 }
 
 foreach (['added_post_meta', 'updated_post_meta'] as $thean_lms_hook) {
@@ -125,9 +150,8 @@ function thean_legacy_meta_reconcile(WC_Order $order): bool
         if (!thean_legacy_meta_empty($order->get_meta($key, true))) {
             continue;
         }
-        $legacy = get_post_meta($order->get_id(), $key, true);
-        if (!thean_legacy_meta_empty($legacy)) {
-            $order->update_meta_data($key, $legacy);
+        $legacy = array_values(array_filter(thean_legacy_post_meta_raw($order->get_id(), $key), static fn($v) => !thean_legacy_meta_empty($v)));
+        if ($legacy && thean_legacy_order_meta_assign($order, $key, $legacy)) {
             $changed = true;
         }
     }
@@ -161,6 +185,22 @@ add_action('current_screen', static function ($screen) {
         thean_export_proof_recover($order);
     }
 });
+
+/**
+ * Meta Box trên màn hình sửa đơn HPOS (hithean khai post_types 'woocommerce_page_wc-orders') lấy ID đơn bằng
+ * get_the_ID() — màn hình HPOS không đặt $post toàn cục → ID 0 → MỌI ô hiện trống, bấm Cập nhật gửi trống → xóa
+ * shipper / mã vận đơn / ảnh xuất kho… Đặt $post = bản ghi đơn ở bảng posts (đồng bộ HPOS đang bật) trước khi vẽ box.
+ */
+add_action('add_meta_boxes', static function ($screen_id, $object = null) {
+    if ($screen_id !== 'woocommerce_page_wc-orders' || !$object instanceof WC_Order || !empty($GLOBALS['post'])) {
+        return;
+    }
+    $post = get_post($object->get_id());
+    if ($post instanceof WP_Post) {
+        $GLOBALS['post'] = $post;
+        setup_postdata($post);
+    }
+}, 0, 2);
 
 /** Tên file ảnh xuất kho đính kèm đơn (upload từng đơn / lô nhiều đơn AI tách). Hàm thuần. */
 function thean_export_proof_image_file(string $basename, int $order_id): bool
