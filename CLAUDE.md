@@ -72,7 +72,7 @@ Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_m
 
 - **Bảng danh sách của Woo tắt mặc định** (`order-list-lazy.php`, nạp sớm ở đầu `core/admin.php` vì WC truy vấn danh sách
   trước `admin_enqueue_scripts`): không chạy truy vấn đơn (legacy `posts_pre_query`, HPOS `woocommerce_hpos_pre_query`).
-  Nút "⤓ Tải danh sách Woo" mở lại với `?thean_wc_list=1` (JS gắn tiếp vào phân trang / tab / sắp xếp), không nhớ cho lần sau.
+  Menu ⋯ trên thanh tìm → "⤓ Tải danh sách Woo" mở lại với `?thean_wc_list=1` (JS gắn tiếp vào phân trang / tab / sắp xếp), không nhớ cho lần sau.
   Bảng cũng hiện khi có `?s=`, lọc khách / tháng, hoặc kết quả thao tác hàng loạt.
 
 Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô tìm mặc định** (ẩn `p.search-box`).
@@ -91,7 +91,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   `thean_ous_alerts_off` (nhớ cho phiên sau, mọi thiết bị); class `thean-ous-alerts-off` gắn ở `admin_body_class` để không chớp.
 - CSS/JS: `orders/assets/order-universal-search.{css,js}` — **giống hệt bản theanmarket**, sửa thì chép sang cả 2 site;
   khác biệt truyền qua `window.theanOusCfg` (`thean_ous_ui_config()`, vd `blockingModals`). Màu: biến `--ous-*` đầu file CSS.
-- Board "📋 Cần xử lý" (AJAX `thean_order_usearch_board`): tab Xác nhận COD / Chờ thanh toán / Lấy hàng / Xuất kho / Chờ giao /
+- Board "📋 Tải đơn cần xử lý" — hiện ngay trên trang dưới thanh tìm, không phải modal (AJAX `thean_order_usearch_board`): tab Xác nhận COD / Chờ thanh toán / Lấy hàng / Xuất kho / Chờ giao /
   Đang giao / Thu COD / Hoàn hàng. Bước của mỗi đơn **lưu sẵn ở meta `_thean_ops_step`** (`woocommerce/orders/order-ops-step.php`,
   nạp mọi request): tính bằng `thean_ow_flow()` (order-workspace.php — cùng logic bảng điều phối) khi đơn được lưu / meta liên quan
   bị ghi thẳng, cron 10 phút quét 50 đơn mở, và 10 đơn đang hiện trên board luôn được tính lại (tự sửa). Board chỉ đếm (GROUP BY)

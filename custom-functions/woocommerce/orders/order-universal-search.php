@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) exit;
  * "Ẩn thông báo": ô tích trên thanh tìm ẩn mọi .notice / .update-nag ở danh sách đơn — MẶC ĐỊNH BẬT
  * cho mọi user; bỏ tích thì lưu '0' vào user meta THEAN_OUS_ALERTS_META, phiên sau vẫn giữ.
  *
- * Board "Cần xử lý": nút trên thanh tìm mở modal chia tab theo bước vận hành của đơn. Bước được lưu sẵn ở meta
+ * Board "Cần xử lý": nút "Tải đơn cần xử lý" trên thanh tìm hiện board NGAY TRÊN TRANG (dưới thanh tìm), chia tab theo bước vận hành của đơn. Bước được lưu sẵn ở meta
  * `_thean_ops_step` (order-ops-step.php, tính bằng thean_ow_flow() — cùng logic bảng điều phối) nên board chỉ
  * đếm + phân trang bằng SQL rồi đọc 10 đơn của trang; 10 đơn đó được tính lại tại chỗ (tự sửa nếu lệch).
  *
@@ -1114,10 +1114,14 @@ function thean_ous_render_ui(): void
             <input type="search" name="q" placeholder="Tìm đơn: ID, tên, SĐT, email, địa chỉ, SP, vận đơn… — gõ / để lọc (/tt, /sdt, /id, /sp)" aria-label="Tìm đơn hàng" aria-autocomplete="list" aria-controls="thean-ous-suggest">
             <kbd>/</kbd>
             <button type="submit" class="thean-ous-bar__submit">Tìm</button>
-            <button type="button" class="thean-ous-bar__board" data-thean-ous-board title="Đơn cần xử lý, chia tab theo bước (giống bảng điều phối)">📋 <span>Cần xử lý</span></button>
+            <button type="button" class="thean-ous-bar__board" data-thean-ous-board title="Tải đơn cần xử lý ngay trên trang, chia tab theo bước (giống bảng điều phối)">📋 <span>Tải đơn cần xử lý</span></button>
             <label class="thean-ous-bar__toggle" title="Ẩn mọi thông báo (notice) ở trang danh sách đơn — nhớ cho lần sau">
                 <input type="checkbox" name="alerts_off"> <span>Ẩn thông báo</span><b data-thean-ous-alert-count hidden></b>
             </label>
+            <div class="thean-ous-menu" data-thean-ous-menu hidden>
+                <button type="button" class="thean-ous-menu__btn" aria-haspopup="menu" aria-expanded="false" title="Thêm" aria-label="Thêm">⋯</button>
+                <div class="thean-ous-menu__list" role="menu" hidden></div>
+            </div>
         </div>
         <div class="thean-ous-suggest" id="thean-ous-suggest" role="listbox" hidden></div>
     </form>
@@ -1132,18 +1136,15 @@ function thean_ous_render_ui(): void
         </div>
     </div>
 
-    <div class="thean-ous-modal thean-ous-modal--board" id="thean-ous-board" hidden>
-        <div class="thean-ous-modal__backdrop" data-thean-ous-close></div>
-        <div class="thean-ous-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="thean-ous-board-title">
-            <button type="button" class="thean-ous-modal__close" data-thean-ous-close aria-label="Đóng">&times;</button>
-            <div class="thean-ous-board__head">
-                <h2 class="thean-ous-modal__title" id="thean-ous-board-title">Đơn cần xử lý <span class="thean-ous-modal__status"></span></h2>
-                <button type="button" class="thean-ous__more-btn" data-thean-ous-board-refresh>↻ Làm mới</button>
-            </div>
-            <div class="thean-ous-tabs" role="tablist" aria-label="Bước xử lý"></div>
-            <div class="thean-ous-modal__body"></div>
+    <section class="thean-ous-board" id="thean-ous-board" aria-labelledby="thean-ous-board-title" hidden>
+        <div class="thean-ous-board__head">
+            <h2 class="thean-ous-modal__title" id="thean-ous-board-title">Đơn cần xử lý <span class="thean-ous-modal__status"></span></h2>
+            <button type="button" class="thean-ous__more-btn" data-thean-ous-board-refresh>↻ Làm mới</button>
+            <button type="button" class="thean-ous__more-btn" data-thean-ous-board-close>Ẩn</button>
         </div>
-    </div>
+        <div class="thean-ous-tabs" role="tablist" aria-label="Bước xử lý"></div>
+        <div class="thean-ous-modal__body"></div>
+    </section>
 
     <div class="thean-ous-modal thean-ous-modal--preview" id="thean-ous-preview" hidden>
         <div class="thean-ous-modal__backdrop" data-thean-ous-close></div>

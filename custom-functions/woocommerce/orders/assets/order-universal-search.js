@@ -23,25 +23,29 @@
     if (anchor) anchor.parentNode.insertBefore(bar, anchor.nextSibling);
     bar.hidden = false;
 
-    /* ---------- Bảng danh sách của Woo (order-list-lazy.php): mặc định tắt, không nhớ ---------- */
+    // Board "Cần xử lý" nằm ngay dưới thanh tìm (trên trang, không phải modal).
+    bar.parentNode.insertBefore(board, bar.nextSibling);
+
+    /* ---------- Menu ⋯: bật / tắt bảng danh sách của Woo (order-list-lazy.php — mặc định tắt, không nhớ) ---------- */
+    var menu = bar.querySelector('[data-thean-ous-menu]');
+    var menuBtn = menu.querySelector('.thean-ous-menu__btn');
+    var menuList = menu.querySelector('.thean-ous-menu__list');
+    function setMenu(open) { menuList.hidden = !open; menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
     (function () {
         var wc = cfg.wcList;
         if (!wc) return;
-        var box = document.createElement('div');
-        box.className = 'thean-ous-wclist' + (wc.off ? ' is-off' : '');
-        var text = document.createElement('span');
         var link = document.createElement('a');
-        var url = new URL(location.href);
+        link.setAttribute('role', 'menuitem');
+        link.className = 'thean-ous-menu__item';
         if (wc.off) {
-            text.textContent = 'Danh sách đơn của Woo đang tắt cho trang tải nhanh — dùng ô tìm hoặc 📋 Cần xử lý.';
+            var url = new URL(location.href);
             url.searchParams.set('thean_wc_list', '1');
             link.href = url.toString();
-            link.className = 'thean-ous-wclist__btn';
             link.textContent = '⤓ Tải danh sách Woo';
+            link.title = 'Tải lại trang kèm bảng danh sách đơn của WooCommerce (lần vào sau lại tắt)';
         } else {
-            text.textContent = 'Đang hiện danh sách đơn của Woo (lần vào sau sẽ tắt).';
             link.href = wc.hideUrl;
-            link.textContent = 'Ẩn danh sách';
+            link.textContent = 'Ẩn danh sách Woo';
             // Giữ bảng khi phân trang / đổi tab trạng thái / sắp xếp / lọc.
             document.querySelectorAll('.wrap .subsubsub a, .wrap .tablenav a, .wrap .wp-list-table thead a, .wrap .wp-list-table tfoot a').forEach(function (a) {
                 try { var u = new URL(a.href); u.searchParams.set('thean_wc_list', '1'); a.href = u.toString(); } catch (e) {}
@@ -52,9 +56,11 @@
                 form.appendChild(input);
             });
         }
-        box.append(text, link);
-        bar.parentNode.insertBefore(box, bar.nextSibling);
+        menuList.appendChild(link);
+        menu.hidden = false;
     }());
+    menuBtn.addEventListener('click', function () { setMenu(menuList.hidden); });
+    document.addEventListener('click', function (e) { if (!menuList.hidden && !menu.contains(e.target)) setMenu(false); });
 
     function stickyTop() {
         var top = 0;
@@ -104,14 +110,12 @@
     }
     function message(res, fallback) { return (res && res.data && res.data.message) || fallback; }
     function setOpen(modal, open) {
-        if ((modal === results || modal === board) && open) {
+        if (modal === results && open) {
             // Chừa chỗ cho thanh tìm (đang nổi trên modal) để vẫn thấy mình gõ gì.
-            modal.style.paddingTop = Math.round(bar.getBoundingClientRect().bottom + 8) + 'px';
-            // Kết quả tìm và board dùng chung chỗ — mở cái này thì đóng cái kia.
-            (modal === results ? board : results).hidden = true;
+            results.style.paddingTop = Math.round(bar.getBoundingClientRect().bottom + 8) + 'px';
         }
         modal.hidden = !open;
-        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden || !board.hidden);
+        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden);
     }
     function body(modal) { return modal.querySelector('.thean-ous-modal__body'); }
     function notice(el, text) {
@@ -279,7 +283,7 @@
     }
     function loadBoard(tab, page, refresh) {
         var key = tab + '|' + page, hit = boardCache.get(key);
-        setOpen(board, true);
+        board.hidden = false;
         if (!refresh && tab && hit && Date.now() - hit.at < 30000) { renderBoard(hit.data, page); return; }
         if (refresh) boardCache.clear();
         if (boardCtl) boardCtl.abort();
@@ -366,6 +370,7 @@
         var tab = e.target.closest('[data-thean-ous-tab]');
         if (tab) { if (!boardState.loading || tab.dataset.theanOusTab !== boardState.tab) loadBoard(tab.dataset.theanOusTab, 1, false); return; }
         if (e.target.closest('[data-thean-ous-board-refresh]')) { loadBoard(boardState.tab, 1, true); return; }
+        if (e.target.closest('[data-thean-ous-board-close]')) { board.hidden = true; return; }
         if (e.target.closest('[data-thean-ous-more]')) { if (!boardState.loading) loadBoard(boardState.tab, boardState.page + 1, false); return; }
         tableClick(e);
     });
@@ -383,11 +388,11 @@
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             if (!suggest.hidden) return; // ô gợi ý tự đóng (handler của input)
+            if (!menuList.hidden) { setMenu(false); return; }
             // Modal thao tác nhanh (orders-admin.php) nằm trên cùng — để nó tự đóng trước.
             if (cfg.blockingModals && document.querySelector(cfg.blockingModals)) return;
             if (!preview.hidden) setOpen(preview, false);
             else if (!results.hidden) setOpen(results, false);
-            else if (!board.hidden) setOpen(board, false);
             return;
         }
         var tag = (e.target.tagName || '').toLowerCase();
