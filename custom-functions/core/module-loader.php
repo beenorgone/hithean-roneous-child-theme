@@ -469,7 +469,7 @@ function tpc_loader_modules()
             // Tìm đơn nhanh ở danh sách đơn admin (UI nạp qua core/admin.php) — HPOS + legacy.
             'id' => 'order_universal_search',
             'file' => 'custom-functions/woocommerce/orders/order-universal-search.php',
-            'ajax_actions' => ['thean_order_usearch', 'thean_order_usearch_preview', 'thean_order_usearch_alerts', 'thean_order_usearch_board', 'thean_order_usearch_bulk'],
+            'ajax_actions' => ['thean_order_usearch', 'thean_order_usearch_preview', 'thean_order_usearch_alerts', 'thean_order_usearch_board', 'thean_order_usearch_bulk', 'thean_order_usearch_flush'],
         ],
         [
             'id' => 'bulk_order_status_change',

@@ -662,6 +662,35 @@
         loadBoard(boardState.tab || savedTab(), 1, false);
     });
 
+    /* ---------- 🧹 Xoá cache: bỏ cache trình duyệt + server (version cache orders), tính lại bước flow các đơn mở ---------- */
+    var flushBtn = bar.querySelector('[data-thean-ous-flush]');
+    if (flushBtn) flushBtn.addEventListener('click', function () {
+        if (flushBtn.disabled) return;
+        var label = flushBtn.querySelector('span'), orig = label.textContent;
+        flushBtn.disabled = true;
+        cache.clear();
+        boardCache.clear();
+        var ctl = new AbortController();
+        (function step(offset) {
+            label.textContent = offset ? 'Đang tính… ' + offset : 'Đang xoá…';
+            post('thean_order_usearch_flush', { offset: offset }, ctl).then(function (res) {
+                if (!res.success) throw new Error(message(res, 'Không xoá được cache.'));
+                var d = res.data;
+                label.textContent = 'Đang tính… ' + d.done + '/' + d.total;
+                if (!d.finished) { step(d.done); return; }
+                flushBtn.disabled = false;
+                label.textContent = orig;
+                toast('🧹 Đã xoá cache, tính lại bước cho ' + d.done + ' đơn đang mở.');
+                if (!board.hidden) loadBoard(boardState.tab, 1, true);
+                if (!results.hidden && state.q) { state.page = 0; search(state.q, 1); }
+            }).catch(function (err) {
+                flushBtn.disabled = false;
+                label.textContent = orig;
+                toast(err.message || 'Lỗi kết nối.', true);
+            });
+        }(0));
+    });
+
     document.addEventListener('click', function (e) {
         var close = e.target.closest('[data-thean-ous-close]');
         if (close) setOpen(close.closest('.thean-ous-modal'), false);

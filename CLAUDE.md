@@ -114,6 +114,10 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   option `thean_internal_email_domains`, trống = dùng danh sách của eim; hoặc cờ `_eim_internal`) — board lọc thẳng bằng SQL
   nên đổi domain có hiệu lực ngay; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.
   **Đổi luồng vận hành → tăng `THEAN_OPS_STEP_VERSION`** để mọi đơn mở được tính lại.
+- Nút "🧹 Xoá cache" (thanh tìm, AJAX `thean_order_usearch_flush` — khai ở module-loader): xoá cache trình duyệt, đổi version cache
+  `orders` của WC (bỏ danh sách ID khớp + HTML xem nhanh), tính lại bước 50 đơn mở / lượt (≤ `THEAN_OUS_FLUSH_MAX` = 2000 đơn mới nhất).
+- Dòng kết quả có nhãn "📍 bước flow" (`thean_ous_step_badge()`: bước tính trực tiếp, lý do ngoài board — nội bộ / đơn cũ / đã đóng / gộp Shopee)
+  + cảnh báo "⚠ Board đang xếp: …" khi meta `_thean_ops_step` lệch; trên board chỉ hiện khi lệch.
 - "Ẩn thanh admin + menu trái" (menu ⋯): ẩn `#wpadminbar` + `#adminmenumain` ở danh sách đơn, **mặc định bật**; bỏ tích lưu `'0'` vào user meta
   `thean_ous_chrome_off` (AJAX `thean_order_usearch_alerts` với `what=chrome`), class `thean-ous-chrome-off` ở `admin_body_class`.
   Popup Thao tác / Xem nhanh / Hóa đơn có z-index trên `#wpadminbar` (99999) để không bị che đầu.

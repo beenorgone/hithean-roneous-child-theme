@@ -43,6 +43,8 @@ const THEAN_OUS_RL_BLOCK    = 120; // khóa 2 phút
 const THEAN_OUS_BULK_MAX = 50; // thao tác hàng loạt: tối đa 50 đơn / lần
 const THEAN_OUS_BOARD_FIRST = 5;  // board: lần tải đầu (mọi tab) lấy 5 đơn / tab …
 const THEAN_OUS_BOARD_MORE  = 20; // … tab đang xem tự tải thêm cho đủ 20; "Xem thêm" tải 20 đơn / lần (client gửi limit ≤ 50)
+const THEAN_OUS_FLUSH_BATCH = 50;   // nút 🧹 Xoá cache: tính lại bước 50 đơn mở / request …
+const THEAN_OUS_FLUSH_MAX   = 2000; // … tối đa 2000 đơn mới nhất (còn lại cron quét dần)
 const THEAN_OUS_BOARD_BACKFILL = 20; // board: mỗi lần mở tính bù tối đa 20 đơn chưa có bước
 
 /**
@@ -816,6 +818,49 @@ function thean_ous_load_orders(array $ids): array
     return $out;
 }
 
+/**
+ * Nhãn "📍 bước của flow" ở dòng kết quả: bước tính trực tiếp (cùng logic board), lý do khi đơn không vào board,
+ * và cảnh báo khi meta bước board đang lưu khác (dữ liệu cũ / cache) — bấm 🧹 Xoá cache để tính lại.
+ */
+function thean_ous_step_badge(WC_Order $order, array $flow): string
+{
+    $tabs   = function_exists('thean_ops_step_tabs') ? thean_ops_step_tabs() : [];
+    $step   = (string) ($flow['step'] ?? '');
+    $stored = defined('THEAN_OPS_STEP_META') ? (string) $order->get_meta(THEAN_OPS_STEP_META) : '';
+    $class  = 'is-' . ($step !== '' ? $step : 'none');
+    $off    = false;
+    if ($step !== '') {
+        $label = $tabs[$step] ?? $step;
+        if (!empty($flow['proof']) && $step !== 'proof') {
+            $label .= ' + ' . ($tabs['proof'] ?? 'Thiếu chứng từ XK');
+        }
+    } else {
+        $created = $order->get_date_created();
+        $off     = true;
+        if ((string) $order->get_meta('_spx_date') !== '') {
+            $label = 'Đơn gộp Shopee — ngoài board';
+        } elseif (function_exists('thean_order_is_internal') && thean_order_is_internal($order)) {
+            $label = 'Đơn nội bộ — ngoài board';
+        } elseif (function_exists('thean_ops_age_cutoff_ts') && (!$created || $created->getTimestamp() < thean_ops_age_cutoff_ts())) {
+            $label = 'Đơn cũ (trước mốc khóa) — ngoài board';
+        } elseif (function_exists('thean_ops_excluded_statuses') && in_array($order->get_status(), thean_ops_excluded_statuses(), true)) {
+            $label = 'Đã đóng — ngoài board';
+        } else {
+            $label = 'Không cần xử lý';
+            $off   = false;
+        }
+    }
+    $html = '<span class="thean-ous__step-label">📍 ' . esc_html($label) . '</span>';
+    // Lệch với meta board (chỉ xét đơn board có thể hiện): đơn nội bộ / cũ / gộp Shopee bị SQL loại nên bỏ qua.
+    $board = $step !== '' ? $step : 'none';
+    if (!$off && $stored !== $board) {
+        $class .= ' is-stale';
+        $html  .= '<small class="thean-ous__step-warn" title="Board đọc bước lưu sẵn; bấm 🧹 Xoá cache trên thanh tìm để tính lại">⚠ Board đang xếp: '
+            . esc_html($stored === '' ? 'chưa tính' : ($stored === 'none' ? 'Không cần xử lý' : ($tabs[$stored] ?? $stored))) . '</small>';
+    }
+    return '<div class="thean-ous__step ' . esc_attr($class) . '">' . $html . '</div>';
+}
+
 function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): string
 {
     ob_start();
@@ -839,6 +884,7 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): st
                     <span class="column-order_status"><?php echo thean_ous_status_badge($order); ?></span>
                 </div>
                 <small><?php echo thean_ous_highlight($order->get_order_number(), $tokens); ?> · <?php echo esc_html(thean_ous_short_date($order)); ?></small>
+                <?php echo thean_ous_step_badge($order, $flow); ?>
                 <div class="thean-ous__total">
                     <?php echo wp_kses_post(wc_price($order->get_total(), ['currency' => $order->get_currency()])); ?>
                     <small><?php echo esc_html($order->get_payment_method_title()); ?></small>
@@ -1313,6 +1359,35 @@ function thean_ous_ajax_preview(): void
     wp_send_json_success(['html' => thean_ous_preview_html($order)]);
 }
 
+/**
+ * Nút 🧹 Xoá cache (thanh tìm): lượt đầu (offset 0) đổi version cache 'orders' của WC → bỏ mọi danh sách ID khớp + HTML
+ * xem nhanh đã cache; mỗi lượt tính lại bước THEAN_OUS_FLUSH_BATCH đơn mở mới nhất (thean_ops_step_sync_ids bỏ OrderCache
+ * trước khi đọc). Client gọi lặp theo `done` tới khi `finished`.
+ */
+add_action('wp_ajax_thean_order_usearch_flush', 'thean_ous_ajax_flush');
+function thean_ous_ajax_flush(): void
+{
+    check_ajax_referer('thean_ous', 'nonce');
+    if (!thean_ous_user_can()) {
+        wp_send_json_error(['message' => 'Không có quyền.'], 403);
+    }
+    global $wpdb;
+    $offset = absint($_POST['offset'] ?? 0);
+    if ($offset === 0 && class_exists('WC_Cache_Helper')) {
+        WC_Cache_Helper::get_transient_version('orders', true);
+    }
+    $t     = thean_ops_step_tables();
+    $base  = thean_ops_step_open_sql($t);
+    $total = min(THEAN_OUS_FLUSH_MAX, (int) $wpdb->get_var("SELECT COUNT(*) {$base}"));
+    $ids   = $offset < $total
+        ? array_map('intval', $wpdb->get_col("SELECT o.{$t['id']} {$base} ORDER BY o.{$t['id']} DESC LIMIT " . THEAN_OUS_FLUSH_BATCH . ' OFFSET ' . $offset))
+        : [];
+    $ids   = array_slice($ids, 0, max(0, $total - $offset));
+    thean_ops_step_sync_ids($ids);
+    $done = $offset + count($ids);
+    wp_send_json_success(['total' => $total, 'done' => $done, 'finished' => !$ids || $done >= $total]);
+}
+
 add_action('wp_ajax_thean_order_usearch_alerts', 'thean_ous_ajax_alerts');
 function thean_ous_ajax_alerts(): void
 {
@@ -1442,6 +1517,7 @@ function thean_ous_render_ui(): void
             <kbd>/</kbd>
             <button type="submit" class="thean-ous-bar__submit">Tìm</button>
             <button type="button" class="thean-ous-bar__board" data-thean-ous-board title="Tải đơn cần xử lý ngay trên trang, chia tab theo bước (giống bảng điều phối)">📋 <span>Tải đơn cần xử lý</span></button>
+            <button type="button" class="thean-ous-bar__flush" data-thean-ous-flush title="Xoá cache tìm kiếm / xem nhanh / board và tính lại bước flow cho các đơn đang mở">🧹 <span>Xoá cache</span></button>
             <div class="thean-ous-menu" data-thean-ous-menu>
                 <button type="button" class="thean-ous-menu__btn" aria-haspopup="menu" aria-expanded="false" title="Thêm" aria-label="Thêm">⋯<b data-thean-ous-alert-dot hidden></b></button>
                 <div class="thean-ous-menu__list" role="menu" hidden>

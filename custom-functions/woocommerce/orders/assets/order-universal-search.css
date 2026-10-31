@@ -36,6 +36,18 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous__more-btn:disabled { opacity:.6; cursor:wait; }
 .thean-ous-bar__board { display:inline-flex; flex:0 0 auto; align-items:center; gap:5px; margin:0; padding:7px 12px; border:1px solid var(--ous-primary); border-radius:8px; background:#fff; color:var(--ous-primary); font-size:14px; font-weight:600; line-height:1.4; white-space:nowrap; cursor:pointer; }
 .thean-ous-bar__board:hover { background:var(--ous-primary-light); }
+.thean-ous-bar__flush { display:inline-flex; flex:0 0 auto; align-items:center; gap:5px; margin:0; padding:7px 10px; border:1px solid var(--ous-border); border-radius:8px; background:#fff; color:#334155; font-size:13px; font-weight:600; line-height:1.4; white-space:nowrap; cursor:pointer; }
+.thean-ous-bar__flush:hover { border-color:var(--ous-primary); color:var(--ous-primary); }
+.thean-ous-bar__flush:disabled { opacity:.7; cursor:wait; }
+/* Nhãn bước flow ở dòng kết quả (thean_ous_step_badge). Board: tab đã cho biết bước → chỉ hiện khi lệch. */
+.thean-ous__step { display:flex; flex-wrap:wrap; align-items:center; gap:2px 6px; margin-top:5px; }
+.thean-ous__step-label { padding:1px 8px; border-radius:999px; background:var(--ous-primary-light); color:var(--ous-primary); font-size:12px; font-weight:600; line-height:1.6; }
+.thean-ous__step.is-none .thean-ous__step-label { background:#f1f5f9; color:#64748b; }
+.thean-ous__step.is-payment .thean-ous__step-label, .thean-ous__step.is-cod .thean-ous__step-label { background:#fff1f0; color:#b42318; }
+.thean-ous__step.is-picking .thean-ous__step-label, .thean-ous__step.is-export .thean-ous__step-label { background:#e7f6ee; color:#166534; }
+.thean-ous__step.is-return .thean-ous__step-label, .thean-ous__step.is-proof .thean-ous__step-label { background:#fff4e5; color:#9a3412; }
+.thean-ous__table small.thean-ous__step-warn { display:inline; margin:0; color:#b45309; font-weight:600; }
+.thean-ous-board .thean-ous__step:not(.is-stale) { display:none; }
 .thean-ous-bar__brand { display:flex; flex:0 0 auto; align-items:center; margin-right:4px; color:var(--ous-primary); font-weight:700; text-decoration:none; }
 .thean-ous-bar__brand img { display:block; height:28px; width:auto; max-width:140px; object-fit:contain; }
 .thean-ous-bar .dashicons-search { color:var(--ous-primary); }
@@ -89,6 +101,7 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous__total small { font-weight:400; }
 .thean-ous__c-items div + div { margin-top:3px; }
 .thean-ous__more { display:flex; justify-content:center; padding:14px 0 4px; }
+.thean-ous__more[hidden] { display:none; } /* "Xem thêm" hết đơn: trước đây display:flex đè hidden → nút trống */
 .thean-ous__empty, .thean-ous__loading { padding:24px; text-align:center; color:#64748b; }
 
 .thean-ous-acts { display:flex; flex-direction:column; gap:5px; }
@@ -213,6 +226,9 @@ body.thean-ous-open { overflow:hidden; }
     .thean-ous-bar__board { order:4; }
     .thean-ous-menu { order:6; }
     .thean-ous-board { padding:12px 10px; }
+    .thean-ous-bar__flush { order:5; }
+    .thean-ous-bar__flush span { display:none; } /* mobile: chỉ biểu tượng 🧹 (khi đang chạy vẫn hiện tiến độ) */
+    .thean-ous-bar__flush:disabled span { display:inline; }
     .thean-ous-bar input[type="search"] { font-size:16px; } /* iOS không zoom */
     .thean-ous-modal { padding:0; align-items:stretch; }
     .thean-ous-modal__dialog, .thean-ous-modal--preview .thean-ous-modal__dialog { width:100%; max-height:none; padding:14px 12px; border-radius:0; }
