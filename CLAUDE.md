@@ -109,7 +109,8 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   option `thean_internal_email_domains`, trống = dùng danh sách của eim; hoặc cờ `_eim_internal`) — board lọc thẳng bằng SQL
   nên đổi domain có hiệu lực ngay; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.
   **Đổi luồng vận hành → tăng `THEAN_OPS_STEP_VERSION`** để mọi đơn mở được tính lại.
-- Tab "Thiếu chứng từ XK": đơn Đã giao / Giao 1 phần / Hoàn thành tạo trong `THEAN_OPS_PROOF_DAYS` (60) ngày mà thiếu ảnh xuất kho
+- Tab "Thiếu chứng từ XK" lọc theo **cờ** `_thean_ops_proof` (không theo bước): đơn **Đang giao** thiếu chứng từ nằm ở cả tab
+  "Đang giao" (bước chính, để theo dõi — không về "Lấy hàng") lẫn "Thiếu chứng từ XK"; đơn Đã giao / Giao 1 phần / Hoàn thành tạo trong `THEAN_OPS_PROOF_DAYS` (60) ngày mà thiếu ảnh xuất kho
   hoặc xác nhận xuất kho (`thean_ops_missing_proof()`, ưu tiên trên mọi bước khác). Nút "⏭️ Bỏ qua" (đơn lẻ + hàng loạt) → meta
   `_thean_export_proof_skip`, task `export_proof_skip` (`thean_ow_skip_export_proof()`) — **chỉ Administrator** (`thean_can_skip_export_proof()`).
 - "🔁 Đổi trạng thái" tùy ý (từng đơn + hàng loạt): chỉ người được chỉ định ở Cài đặt ERP → Xử lý đơn → "Quyền đổi trạng thái tùy ý"

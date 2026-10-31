@@ -671,7 +671,7 @@ function thean_ous_flow_buttons(WC_Order $order): array
  * cả thean-order-* lẫn hithean-order-*); bước chưa có thao tác nhanh → mở trang sửa đơn đúng bước (#step-<bước>,
  * bảng điều phối mở tab / box tương ứng).
  */
-function thean_ous_next_actions(WC_Order $order, string $step): string
+function thean_ous_next_actions(WC_Order $order, string $step, bool $proof = false): string
 {
     if ($step === '') {
         return '';
@@ -686,7 +686,9 @@ function thean_ous_next_actions(WC_Order $order, string $step): string
         'proof'   => ['order-export-images', 'order-export-confirm'],
     ];
     $buttons = [];
-    foreach ($map[$step] ?? [] as $suffix) {
+    // Đơn đang giao thiếu chứng từ XK: nút theo dõi giao + nút bổ sung chứng từ (như tab Thiếu chứng từ XK).
+    $suffixes = array_merge($map[$step] ?? [], $proof && $step !== 'proof' ? $map['proof'] : []);
+    foreach ($suffixes as $suffix) {
         foreach (thean_ous_order_actions($order) as $key => $action) {
             $slug = sanitize_html_class($action['action'] ?? $key);
             if (empty($action['url']) || ($slug !== $suffix && substr($slug, -strlen('-' . $suffix)) !== '-' . $suffix)) {
@@ -700,14 +702,14 @@ function thean_ous_next_actions(WC_Order $order, string $step): string
     if ($step === 'preorder') {
         $buttons = array_slice(thean_ous_flow_buttons($order), 0, 1); // ▶️ Tiếp tục
     }
-    if ($step === 'proof' && function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof()) {
+    if (($step === 'proof' || $proof) && function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof()) {
         $buttons[] = '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-flow="skipproof" data-order-id="' . esc_attr($order->get_id()) . '">⏭️ Bỏ qua</button>';
     }
     if ($step === 'delivery' && (string) $order->get_meta('_ghtk_ordercode') === '') {
         // Phương án A: mở trang sửa đơn, bảng điều phối mở + cuộn tới khung GHTK của plugin (#step-ghtk).
         $buttons[] = thean_ous_button('kho', '🚚 Đăng GHTK ↗', $order->get_edit_order_url() . '#step-ghtk', '', true);
     }
-    if (!$buttons || $step === 'delivery') {
+    if (!$buttons || $step === 'delivery' || $step === 'shipping') {
         $tab = ['cod' => 'payment', 'shipping' => 'delivery'][$step] ?? $step;
         $labels = function_exists('thean_ops_step_tabs') ? thean_ops_step_tabs() : [];
         $buttons[] = thean_ous_button('view', 'Mở bước ' . ($labels[$step] ?? $step) . ' ↗', $order->get_edit_order_url() . '#step-' . $tab, '', true);
@@ -814,7 +816,7 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): st
     foreach (thean_ous_load_orders($ids) as $order) {
         $id = $order->get_id();
         // Bước tiếp theo (board đã tính sẵn thì dùng gợi ý của board).
-        $flow = function_exists('thean_ops_step_compute') ? thean_ops_step_compute($order) : ['step' => '', 'hint' => ''];
+        $flow = function_exists('thean_ops_step_compute') ? thean_ops_step_compute($order) : ['step' => '', 'hint' => '', 'proof' => false];
         if (!empty($hints[$id])) {
             $flow['hint'] = $hints[$id];
         }
@@ -854,7 +856,7 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): st
             </td>
             <td class="thean-ous__c-next">
                 <?php if ($flow['hint'] !== '') : ?><div class="thean-ous__hint">👉 <?php echo esc_html($flow['hint']); ?></div><?php endif; ?>
-                <?php echo thean_ous_next_actions($order, $flow['step']); ?>
+                <?php echo thean_ous_next_actions($order, $flow['step'], !empty($flow['proof'])); ?>
             </td>
             <td class="thean-ous__c-acts"><?php echo thean_ous_render_actions($order, true); ?></td>
         </tr>
@@ -1004,7 +1006,27 @@ function thean_ous_board_sql(): string
               AND " . thean_ops_age_sql($t);
 }
 
-/** Số đơn mỗi tab (1 truy vấn GROUP BY). */
+/**
+ * Điều kiện SQL chọn đơn của 1 tab: tab "Thiếu chứng từ XK" theo cờ THEAN_OPS_PROOF_META (gồm cả đơn đang giao — bước
+ * chính vẫn là Đang giao), các tab khác theo bước `_thean_ops_step` (alias s).
+ */
+function thean_ous_board_tab_sql(string $tab): string
+{
+    global $wpdb;
+    if ($tab === 'proof') {
+        $t = thean_ops_step_tables();
+        return "EXISTS (SELECT 1 FROM {$t['meta']} pf WHERE pf.{$t['fk']} = o.{$t['id']} AND pf.meta_key = '" . THEAN_OPS_PROOF_META . "' AND pf.meta_value = '1')";
+    }
+    return $wpdb->prepare('s.meta_value = %s', $tab);
+}
+
+/** Đơn (kết quả thean_ops_step_compute) có thuộc tab không — cùng quy tắc thean_ous_board_tab_sql. */
+function thean_ous_board_in_tab(array $res, string $tab): bool
+{
+    return $tab === 'proof' ? !empty($res['proof']) : ($res['step'] ?? '') === $tab;
+}
+
+/** Số đơn mỗi tab (GROUP BY theo bước + đếm riêng tab "Thiếu chứng từ XK" theo cờ). */
 function thean_ous_board_counts(): array
 {
     global $wpdb;
@@ -1015,6 +1037,9 @@ function thean_ous_board_counts(): array
             $counts[$row['tab']] = (int) $row['n'];
         }
     }
+    if (isset($counts['proof'])) {
+        $counts['proof'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') ' . thean_ous_board_sql() . ' AND ' . thean_ous_board_tab_sql('proof'));
+    }
     return $counts;
 }
 
@@ -1024,8 +1049,8 @@ function thean_ous_board_page_ids(string $tab, int $offset, int $limit): array
     global $wpdb;
     $id = thean_ops_step_tables()['id'];
     return array_map('intval', $wpdb->get_col($wpdb->prepare(
-        "SELECT DISTINCT o.{$id} " . thean_ous_board_sql() . " AND s.meta_value = %s ORDER BY o.{$id} DESC LIMIT %d OFFSET %d",
-        $tab, $limit, $offset
+        "SELECT DISTINCT o.{$id} " . thean_ous_board_sql() . ' AND ' . thean_ous_board_tab_sql($tab) . " ORDER BY o.{$id} DESC LIMIT %d OFFSET %d",
+        $limit, $offset
     )));
 }
 
@@ -1070,7 +1095,7 @@ function thean_ous_ajax_board(): void
     foreach ($ids_by as $t => $ids) {
         $show_by[$t] = [];
         foreach ($ids as $id) {
-            if (($fresh[$id]['step'] ?? '') === $t) {
+            if (isset($fresh[$id]) && thean_ous_board_in_tab($fresh[$id], $t)) {
                 $show_by[$t][] = $id;
                 $hints[$id]    = $fresh[$id]['hint'];
             } else {

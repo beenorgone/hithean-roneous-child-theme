@@ -7,6 +7,8 @@ if (!defined('ABSPATH')) exit;
  *
  * - `_thean_ops_step`    = tab board (confirm, payment, picking, export, delivery, shipping, cod, return) hoặc 'none'.
  * - `_thean_ops_step_v`  = THEAN_OPS_STEP_VERSION lúc tính (đánh dấu đơn đã được tính theo logic hiện tại).
+ * - `_thean_ops_proof`   = '1' khi thiếu chứng từ xuất kho: tab "Thiếu chứng từ XK" lọc theo cờ này (không theo bước), nên đơn
+ *   đang giao thiếu chứng từ hiện ở CẢ "Đang giao" (bước) lẫn "Thiếu chứng từ XK" (cờ).
  * Bước tính bằng thean_ow_flow() (order-workspace.php) — cùng logic bảng điều phối ở trang sửa đơn.
  *
  * ĐỔI LUỒNG VẬN HÀNH (thean_ow_flow, thean_ops_step_from_flow, trạng thái loại trừ…) → TĂNG THEAN_OPS_STEP_VERSION:
@@ -28,7 +30,8 @@ if (!defined('ABSPATH')) exit;
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '3'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK)
+const THEAN_OPS_STEP_VERSION = '4'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK; 4: cờ chứng từ cho đơn đang giao)
+const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu chứng từ XK" (đơn đang giao: kèm tab Đang giao)
 const THEAN_OPS_MAX_AGE_DAYS = 365; // luồng vận hành / board bỏ qua đơn tạo quá 365 ngày
 const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu chứng từ XK: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
@@ -150,20 +153,27 @@ function thean_can_change_any_status(): bool
     return $ids ? in_array(get_current_user_id(), $ids, true) : current_user_can('manage_options');
 }
 
-/** Trạng thái đã giao / xong — thiếu chứng từ xuất kho thì vào tab "Thiếu chứng từ XK". */
+/** Trạng thái đã giao / xong — thiếu chứng từ xuất kho thì chỉ ở tab "Thiếu chứng từ XK". */
 function thean_ops_proof_statuses(): array
 {
     return ['delivered', 'partial-shipped', 'completed'];
 }
 
+/** Trạng thái đang giao — thiếu chứng từ thì ở cả tab "Đang giao" (theo dõi) lẫn "Thiếu chứng từ XK", không về "Lấy hàng". */
+function thean_ops_shipping_statuses(): array
+{
+    return ['shipping', 'local-shipping', 'partial-shipping'];
+}
+
 /**
- * Chứng từ xuất kho còn thiếu của đơn đã giao / xong (rỗng = đủ, hoặc đã đánh dấu bỏ qua, hoặc đơn ngoài diện xét).
+ * Chứng từ xuất kho còn thiếu của đơn đang giao / đã giao / xong (rỗng = đủ, hoặc đã đánh dấu bỏ qua, hoặc đơn ngoài diện xét).
  *
  * @return string[]
  */
 function thean_ops_missing_proof(WC_Order $order): array
 {
-    if (!in_array($order->get_status(), thean_ops_proof_statuses(), true) || (string) $order->get_meta('_thean_export_proof_skip') === '1') {
+    $statuses = array_merge(thean_ops_proof_statuses(), thean_ops_shipping_statuses());
+    if (!in_array($order->get_status(), $statuses, true) || (string) $order->get_meta('_thean_export_proof_skip') === '1') {
         return [];
     }
     $created = $order->get_date_created();
@@ -205,7 +215,7 @@ function thean_ops_step_from_flow(array $flow, string $status = ''): string
     return array_key_exists($next, thean_ops_step_tabs()) ? $next : '';
 }
 
-/** Tính bước + gợi ý cho 1 đơn (không ghi). ['step' => tab|'', 'hint' => string]. */
+/** Tính bước + gợi ý cho 1 đơn (không ghi). ['step' => tab|'', 'hint' => string, 'proof' => thiếu chứng từ XK?]. */
 function thean_ops_step_compute(WC_Order $order): array
 {
     if (!function_exists('thean_ow_flow')) {
@@ -214,16 +224,19 @@ function thean_ops_step_compute(WC_Order $order): array
     $created = $order->get_date_created();
     $too_old = !$created || $created->getTimestamp() < time() - THEAN_OPS_MAX_AGE_DAYS * DAY_IN_SECONDS;
     if ($too_old || $order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '' || thean_order_is_internal($order)) {
-        return ['step' => '', 'hint' => ''];
+        return ['step' => '', 'hint' => '', 'proof' => false];
     }
     $missing = thean_ops_missing_proof($order);
     if ($missing) {
-        return ['step' => 'proof', 'hint' => 'Đã ' . mb_strtolower(wc_get_order_status_name($order->get_status())) . ' nhưng thiếu ' . implode(' + ', $missing)];
+        $status = $order->get_status();
+        $hint   = wc_get_order_status_name($status) . ' nhưng thiếu ' . implode(' + ', $missing); // VD "Đang giao nhưng thiếu ảnh xuất kho"
+        // Đang giao: bước chính là theo dõi giao (tab Đang giao), cờ chứng từ đưa thêm vào tab Thiếu chứng từ XK.
+        return ['step' => in_array($status, thean_ops_shipping_statuses(), true) ? 'shipping' : 'proof', 'hint' => $hint, 'proof' => true];
     }
     $flow = thean_ow_flow($order);
     $step = thean_ops_step_from_flow($flow, $order->get_status());
     $hint = $step === '' ? '' : (string) ($flow['next_hint'] ?: ($step === 'return' ? 'Hoàn hàng: ' . $flow['return_status'] : ''));
-    return ['step' => $step, 'hint' => $hint];
+    return ['step' => $step, 'hint' => $hint, 'proof' => false];
 }
 
 /** Tính và lưu bước của đơn. Trả kết quả thean_ops_step_compute(). */
@@ -232,9 +245,16 @@ function thean_ops_step_sync(WC_Order $order): array
     $res   = thean_ops_step_compute($order);
     $value = $res['step'] !== '' ? $res['step'] : 'none';
     // save_meta_data (không phải save) → không kích lại woocommerce_after_order_object_save.
-    if ((string) $order->get_meta(THEAN_OPS_STEP_META) !== $value || (string) $order->get_meta(THEAN_OPS_STEP_VER) !== THEAN_OPS_STEP_VERSION) {
+    $proof = !empty($res['proof']) ? '1' : '';
+    if ((string) $order->get_meta(THEAN_OPS_STEP_META) !== $value || (string) $order->get_meta(THEAN_OPS_STEP_VER) !== THEAN_OPS_STEP_VERSION
+        || (string) $order->get_meta(THEAN_OPS_PROOF_META) !== $proof) {
         $order->update_meta_data(THEAN_OPS_STEP_META, $value);
         $order->update_meta_data(THEAN_OPS_STEP_VER, THEAN_OPS_STEP_VERSION);
+        if ($proof !== '') {
+            $order->update_meta_data(THEAN_OPS_PROOF_META, $proof);
+        } else {
+            $order->delete_meta_data(THEAN_OPS_PROOF_META);
+        }
         $order->save_meta_data();
     }
     return $res;

@@ -177,6 +177,11 @@ check(thean_ops_step_from_flow(['next_goto' => 'picking'], 'chua-ghi-nhan') === 
 check(thean_ops_step_from_flow(['next_goto' => 'preorder']) === 'preorder', 'pre-order status → tab Đặt trước');
 check(thean_ops_step_from_flow(['next_goto' => 'preorder', 'preorder_confirm' => 'pending']) === 'confirm', 'resumed pre-order → Xác nhận khách');
 check(thean_ops_step_from_flow(['next_goto' => 'preorder', 'preorder_confirm' => 'waiting']) === 'confirm', 'waiting customer reply stays in Xác nhận khách');
+// Tab "Thiếu chứng từ XK" theo cờ (đơn đang giao thiếu chứng từ ở cả tab Đang giao lẫn Thiếu chứng từ XK).
+check(thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'shipping') && thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'proof'), 'shipping + missing proof → both tabs');
+check(!thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'picking') && !thean_ous_board_in_tab(['step' => 'shipping', 'proof' => false], 'proof'), 'not in picking; no proof flag → not in proof tab');
+check(strpos(thean_ous_board_tab_sql('proof'), "meta_key = '_thean_ops_proof' AND pf.meta_value = '1'") !== false && thean_ous_board_tab_sql('shipping') === "s.meta_value = 'shipping'", 'tab SQL: proof by flag, others by step');
+check(thean_ops_shipping_statuses() === ['shipping', 'local-shipping', 'partial-shipping'], 'shipping statuses');
 check(isset(thean_ops_step_tabs()['proof']) && thean_ops_proof_statuses() === ['delivered', 'partial-shipped', 'completed'], 'tab Thiếu chứng từ XK');
 check(array_key_last(thean_ops_step_tabs()) === 'preorder' && thean_ops_step_tabs()['confirm'] === 'Xác nhận khách', 'tabs: Đặt trước + Xác nhận khách');
 check(thean_ops_step_from_flow(['next_goto' => 'payment'], 'da-ghi-nhan') === '', 'Đã ghi nhận not in ops flow');
@@ -189,7 +194,7 @@ foreach ([true, false] as $hpos) {
     check(strpos($q, '//') === false && preg_match("/o\\.(date_created_gmt|post_date_gmt) >= '\\d{4}-/", $q), 'board SQL: no stray comment, skips orders older than 365 days');
     $wpdb->queries = [];
     thean_ops_step_unsynced_ids(20);
-    check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '3'") !== false
+    check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '4'") !== false
         && strpos($wpdb->queries[0], "IN ('wc-delivered','wc-partial-shipped','wc-completed') AND o.") !== false && strpos($wpdb->queries[0], 'LIMIT 20') !== false, 'unsynced = no meta for current version ' . ($hpos ? 'HPOS' : 'legacy'));
 }
 
