@@ -8,7 +8,10 @@
     var suggest = document.getElementById('thean-ous-suggest');
     var results = document.getElementById('thean-ous-results');
     var preview = document.getElementById('thean-ous-preview');
-    var searchCtl = null, previewCtl = null, timer = 0;
+    var board = document.getElementById('thean-ous-board');
+    var searchCtl = null, previewCtl = null, boardCtl = null, timer = 0;
+    var boardState = { tab: '', page: 0, loading: false };
+    var boardCache = new Map(); // "tab|page" → {at, data}; 30s
     var blockedUntil = 0; // server khóa tìm kiếm (quá nhiều lượt) — không tự gửi tới khi hết hạn
     var state = { q: '', page: 0, loading: false };
     var cache = new Map(); // "q|page" → {at, data}; 60s, tránh gọi lại khi mở/đóng modal
@@ -68,12 +71,14 @@
     }
     function message(res, fallback) { return (res && res.data && res.data.message) || fallback; }
     function setOpen(modal, open) {
-        if (modal === results && open) {
+        if ((modal === results || modal === board) && open) {
             // Chừa chỗ cho thanh tìm (đang nổi trên modal) để vẫn thấy mình gõ gì.
-            results.style.paddingTop = Math.round(bar.getBoundingClientRect().bottom + 8) + 'px';
+            modal.style.paddingTop = Math.round(bar.getBoundingClientRect().bottom + 8) + 'px';
+            // Kết quả tìm và board dùng chung chỗ — mở cái này thì đóng cái kia.
+            (modal === results ? board : results).hidden = true;
         }
         modal.hidden = !open;
-        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden);
+        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden || !board.hidden);
     }
     function body(modal) { return modal.querySelector('.thean-ous-modal__body'); }
     function notice(el, text) {
@@ -156,13 +161,20 @@
         if (!ready(q) || Date.now() < blockedUntil) return;
         timer = setTimeout(function () { search(q, 1); }, delay);
     }
-    function shell() {
+    function shell(modal) {
         var wrap = document.createElement('div');
         wrap.innerHTML = '<table class="thean-ous__table"><colgroup><col class="c-order"><col class="c-cus"><col class="c-items"><col class="c-acts"></colgroup>'
             + '<thead><tr><th>Đơn · Trạng thái · Tổng</th><th>Khách hàng · Giao hàng</th><th>Sản phẩm</th><th>Thao tác</th></tr></thead><tbody></tbody></table>'
             + '<div class="thean-ous__more" hidden><button type="button" class="thean-ous__more-btn" data-thean-ous-more></button></div>';
-        body(results).replaceChildren(wrap);
+        body(modal).replaceChildren(wrap);
         return wrap;
+    }
+    function fillTable(modal, data, page) {
+        var tbody = page === 1 ? shell(modal).querySelector('tbody') : body(modal).querySelector('tbody');
+        tbody.insertAdjacentHTML('beforeend', data.rows);
+        var more = body(modal).querySelector('.thean-ous__more');
+        more.hidden = !data.has_more;
+        if (data.has_more) more.querySelector('button').textContent = 'Xem thêm ' + Math.min(cfg.perPage, data.total - data.shown) + ' đơn (còn ' + (data.total - data.shown) + ')';
     }
     function render(data, page) {
         var status = results.querySelector('.thean-ous-modal__status');
@@ -171,11 +183,7 @@
         (data.summary || []).forEach(function (txt) { var s = document.createElement('span'); s.textContent = txt; chips.appendChild(s); });
         status.textContent = '— ' + (data.capped ? cfg.cap + '+' : data.total) + ' đơn' + (data.total ? ', đang hiện ' + data.shown : '');
         if (!data.total) { notice(body(results), 'Không tìm thấy đơn nào khớp.'); return; }
-        var tbody = page === 1 ? shell().querySelector('tbody') : body(results).querySelector('tbody');
-        tbody.insertAdjacentHTML('beforeend', data.rows);
-        var more = body(results).querySelector('.thean-ous__more');
-        more.hidden = !data.has_more;
-        if (data.has_more) more.querySelector('button').textContent = 'Xem thêm ' + Math.min(cfg.perPage, data.total - data.shown) + ' đơn (còn ' + (data.total - data.shown) + ')';
+        fillTable(results, data, page);
     }
     function search(q, page) {
         var key = q + '|' + page, hit = cache.get(key);
@@ -204,6 +212,61 @@
             results.querySelector('.thean-ous-chips').replaceChildren();
             notice(body(results), err.message || 'Lỗi kết nối.');
         }).finally(function () { state.loading = false; if (moreBtn) moreBtn.disabled = false; });
+    }
+
+    /* ---------- Board "Cần xử lý" (tab theo bước của bảng điều phối) ---------- */
+    function rememberTab(tab) { try { localStorage.setItem('theanOusBoardTab', tab); } catch (e) {} }
+    function savedTab() { try { return localStorage.getItem('theanOusBoardTab') || ''; } catch (e) { return ''; } }
+    function renderTabs(tabs, current) {
+        var nav = board.querySelector('.thean-ous-tabs');
+        nav.replaceChildren();
+        tabs.forEach(function (t) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'thean-ous-tab' + (t.key === current ? ' is-active' : '') + (t.count ? '' : ' is-empty');
+            b.setAttribute('role', 'tab');
+            b.setAttribute('aria-selected', t.key === current ? 'true' : 'false');
+            b.dataset.theanOusTab = t.key;
+            var label = document.createElement('span'); label.textContent = t.label;
+            var count = document.createElement('b'); count.textContent = t.count;
+            b.append(label, count);
+            nav.appendChild(b);
+        });
+        var on = nav.querySelector('.is-active');
+        if (on) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+    function renderBoard(data, page) {
+        boardState.tab = data.tab;
+        boardState.page = page;
+        rememberTab(data.tab);
+        renderTabs(data.tabs, data.tab);
+        board.querySelector('.thean-ous-modal__status').textContent = '— cập nhật ' + data.at + (data.capped ? ' · xét 400 đơn mở mới nhất' : '');
+        if (!data.total) { notice(body(board), 'Không có đơn nào ở bước này 🎉'); return; }
+        fillTable(board, data, page);
+    }
+    function loadBoard(tab, page, refresh) {
+        var key = tab + '|' + page, hit = boardCache.get(key);
+        setOpen(board, true);
+        if (!refresh && tab && hit && Date.now() - hit.at < 30000) { renderBoard(hit.data, page); return; }
+        if (refresh) boardCache.clear();
+        if (boardCtl) boardCtl.abort();
+        boardCtl = new AbortController();
+        boardState.loading = true;
+        var moreBtn = body(board).querySelector('[data-thean-ous-more]');
+        if (page === 1) notice(body(board), 'Đang tải đơn cần xử lý…');
+        else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
+        var data = { tab: tab, page: page };
+        if (refresh) data.refresh = 1;
+        post('thean_order_usearch_board', data, boardCtl).then(function (res) {
+            if (!res.success) {
+                if (res.data && res.data.retry_after) blockedUntil = Date.now() + res.data.retry_after * 1000;
+                throw new Error(message(res, 'Không tải được board.'));
+            }
+            boardCache.set(res.data.tab + '|' + page, { at: Date.now(), data: res.data });
+            renderBoard(res.data, page);
+        }).catch(function (err) {
+            if (err.name !== 'AbortError') notice(body(board), err.message || 'Lỗi kết nối.');
+        }).finally(function () { boardState.loading = false; if (moreBtn) moreBtn.disabled = false; });
     }
 
     function openPreview(orderId) {
@@ -250,17 +313,34 @@
         else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeSuggest(); }
     });
 
-    results.addEventListener('click', function (e) {
-        if (e.target.closest('[data-thean-ous-more]')) { if (!state.loading) search(state.q, state.page + 1); return; }
+    // Bảng đơn (kết quả tìm + board): Xem nhanh / bấm dòng → modal xem nhanh.
+    function tableClick(e) {
         var btn = e.target.closest('[data-thean-ous-preview]');
         if (btn) { e.preventDefault(); openPreview(btn.getAttribute('data-thean-ous-preview')); return; }
         if (e.target.closest('a, button, input, select, textarea')) return;
         var row = e.target.closest('tr[data-order-id]');
         if (row) openPreview(row.getAttribute('data-order-id'));
-    });
-    results.addEventListener('keydown', function (e) {
+    }
+    function tableKey(e) {
         var row = e.target.closest('tr[data-order-id]');
         if (row && e.target === row && e.key === 'Enter') openPreview(row.getAttribute('data-order-id'));
+    }
+    results.addEventListener('click', function (e) {
+        if (e.target.closest('[data-thean-ous-more]')) { if (!state.loading) search(state.q, state.page + 1); return; }
+        tableClick(e);
+    });
+    board.addEventListener('click', function (e) {
+        var tab = e.target.closest('[data-thean-ous-tab]');
+        if (tab) { if (!boardState.loading || tab.dataset.theanOusTab !== boardState.tab) loadBoard(tab.dataset.theanOusTab, 1, false); return; }
+        if (e.target.closest('[data-thean-ous-board-refresh]')) { loadBoard(boardState.tab, 1, true); return; }
+        if (e.target.closest('[data-thean-ous-more]')) { if (!boardState.loading) loadBoard(boardState.tab, boardState.page + 1, false); return; }
+        tableClick(e);
+    });
+    results.addEventListener('keydown', tableKey);
+    board.addEventListener('keydown', tableKey);
+    bar.querySelector('[data-thean-ous-board]').addEventListener('click', function () {
+        closeSuggest();
+        loadBoard(boardState.tab || savedTab(), 1, false);
     });
 
     document.addEventListener('click', function (e) {
@@ -274,6 +354,7 @@
             if (cfg.blockingModals && document.querySelector(cfg.blockingModals)) return;
             if (!preview.hidden) setOpen(preview, false);
             else if (!results.hidden) setOpen(results, false);
+            else if (!board.hidden) setOpen(board, false);
             return;
         }
         var tag = (e.target.tagName || '').toLowerCase();

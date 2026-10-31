@@ -18,7 +18,11 @@ if (!defined('ABSPATH')) exit;
  * "Ẩn thông báo": ô tích trên thanh tìm ẩn mọi .notice / .update-nag ở danh sách đơn — MẶC ĐỊNH BẬT
  * cho mọi user; bỏ tích thì lưu '0' vào user meta THEAN_OUS_ALERTS_META, phiên sau vẫn giữ.
  *
- * AJAX: thean_order_usearch, thean_order_usearch_preview, thean_order_usearch_alerts.
+ * Board "Cần xử lý": nút trên thanh tìm mở modal chia tab theo bước cần làm tiếp của từng đơn — tính bằng
+ * thean_ow_flow() (order-workspace.php, cùng logic bảng điều phối ở trang sửa đơn). Mỗi tab là bảng đơn
+ * (cùng dòng + nút thao tác như kết quả tìm), 10 đơn/trang. Kết quả phân tab cache 60s theo version orders.
+ *
+ * AJAX: thean_order_usearch, thean_order_usearch_preview, thean_order_usearch_alerts, thean_order_usearch_board.
  */
 
 const THEAN_OUS_PER_PAGE  = 10;
@@ -30,6 +34,8 @@ const THEAN_OUS_PREVIEW_TTL = 120; // HTML xem nhanh trong object cache (Redis)
 const THEAN_OUS_RL_MAX      = 4;   // tối đa lượt tìm thật (không trúng cache) …
 const THEAN_OUS_RL_WINDOW   = 30;  // … trong 30 giây; lượt thứ 5 bị chặn
 const THEAN_OUS_RL_BLOCK    = 120; // khóa 2 phút
+const THEAN_OUS_BOARD_CAP   = 400; // board: xét tối đa 400 đơn mở mới nhất
+const THEAN_OUS_BOARD_TTL   = 60;
 
 /**
  * Meta vận đơn / hoàn hàng được tìm theo chuỗi con. Hithean: field Meta Box có tiền tố
@@ -701,7 +707,7 @@ function thean_ous_load_orders(array $ids): array
     return $out;
 }
 
-function thean_ous_render_rows(array $ids, array $tokens): string
+function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): string
 {
     ob_start();
     foreach (thean_ous_load_orders($ids) as $order) {
@@ -718,6 +724,7 @@ function thean_ous_render_rows(array $ids, array $tokens): string
                     <span class="column-order_status"><?php echo thean_ous_status_badge($order); ?></span>
                 </div>
                 <small><?php echo thean_ous_highlight($order->get_order_number(), $tokens); ?> · <?php echo esc_html(thean_ous_short_date($order)); ?></small>
+                <?php if (!empty($hints[$id])) : ?><div class="thean-ous__hint">👉 <?php echo esc_html($hints[$id]); ?></div><?php endif; ?>
                 <div class="thean-ous__total">
                     <?php echo wp_kses_post(wc_price($order->get_total(), ['currency' => $order->get_currency()])); ?>
                     <small><?php echo esc_html($order->get_payment_method_title()); ?></small>
@@ -871,6 +878,154 @@ function thean_ous_preview_html(WC_Order $order): string
     return $html;
 }
 
+/** Tab board "Cần xử lý": khóa => nhãn, theo thứ tự luồng. */
+function thean_ous_board_tabs(): array
+{
+    return [
+        'confirm'  => 'Xác nhận COD',
+        'payment'  => 'Chờ thanh toán',
+        'picking'  => 'Lấy hàng',
+        'export'   => 'Xuất kho',
+        'delivery' => 'Chờ giao',
+        'shipping' => 'Đang giao',
+        'cod'      => 'Thu COD',
+        'return'   => 'Hoàn hàng',
+    ];
+}
+
+/** Trạng thái không đưa vào board (đơn đã đóng / xong / nội bộ). Đơn đóng còn hoàn hàng dở vẫn được xét. */
+function thean_ous_board_excluded_statuses(): array
+{
+    return (array) apply_filters('thean_ous_board_excluded_statuses', ['cancelled', 'failed', 'refunded', 'completed', 'da-ghi-nhan']);
+}
+
+/** Bước tiếp theo (thean_ow_flow) → tab board; '' = không cần xử lý. Hàm thuần. */
+function thean_ous_board_tab(array $flow): string
+{
+    $next = (string) ($flow['next_goto'] ?? '');
+    if ($next === '' || (!empty($flow['is_closed']) && $next !== 'return')) {
+        return '';
+    }
+    if ($next === 'payment' && !empty($flow['is_cod'])) {
+        return 'cod'; // COD đã giao, chờ đối soát thu tiền
+    }
+    if ($next === 'delivery' && !empty($flow['is_shipping'])) {
+        return 'shipping';
+    }
+    return array_key_exists($next, thean_ous_board_tabs()) ? $next : '';
+}
+
+/**
+ * Ứng viên board: đơn chưa đóng (trừ trạng thái loại trừ) hoặc còn hoàn hàng dở, bỏ đơn gộp Shopee
+ * (_spx_date), mới nhất trước, tối đa THEAN_OUS_BOARD_CAP. HPOS + legacy.
+ *
+ * @return int[]
+ */
+function thean_ous_board_candidate_ids(): array
+{
+    global $wpdb;
+    $hpos     = thean_ous_hpos_enabled();
+    $orders   = $hpos ? "{$wpdb->prefix}wc_orders" : $wpdb->posts;
+    $meta     = $hpos ? "{$wpdb->prefix}wc_orders_meta" : $wpdb->postmeta;
+    $id_col   = $hpos ? 'id' : 'ID';
+    $st_col   = $hpos ? 'status' : 'post_status';
+    $type     = $hpos ? "o.type = 'shop_order'" : "o.post_type = 'shop_order'";
+    $fk       = $hpos ? 'order_id' : 'post_id';
+    $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ous_board_excluded_statuses())) . "'";
+
+    return array_map('intval', $wpdb->get_col(
+        "SELECT o.{$id_col} FROM {$orders} o
+         WHERE {$type}
+           AND o.{$st_col} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
+           AND (
+               o.{$st_col} NOT IN ({$excluded})
+               OR EXISTS (SELECT 1 FROM {$meta} r WHERE r.{$fk} = o.{$id_col} AND r.meta_key = 'return_status'
+                          AND r.meta_value <> '' AND r.meta_value NOT LIKE 'Đã nhận%' AND r.meta_value <> 'Hủy yêu cầu')
+           )
+           AND NOT EXISTS (SELECT 1 FROM {$meta} x WHERE x.{$fk} = o.{$id_col} AND x.meta_key = '_spx_date' AND x.meta_value <> '')
+         ORDER BY o.{$id_col} DESC LIMIT " . THEAN_OUS_BOARD_CAP
+    ));
+}
+
+/** Khóa transient (Redis) của board — đổi theo version cache orders, TTL THEAN_OUS_BOARD_TTL giây. */
+function thean_ous_board_cache_key(): string
+{
+    return 'thean_ous_board_' . md5(thean_ous_hpos_enabled() . '|' . thean_ous_orders_version());
+}
+
+/** Phân tab board: ['tabs' => [tab => int[]], 'hints' => [id => gợi ý], 'capped' => bool, 'at' => time]. */
+function thean_ous_board_build(): array
+{
+    if (!function_exists('thean_ow_flow')) {
+        require_once __DIR__ . '/order-workspace.php';
+    }
+    $ids   = thean_ous_board_candidate_ids();
+    $tabs  = array_fill_keys(array_keys(thean_ous_board_tabs()), []);
+    $hints = [];
+    foreach (array_chunk($ids, 100) as $chunk) {
+        foreach (thean_ous_load_orders($chunk) as $order) {
+            $flow = thean_ow_flow($order);
+            $tab  = thean_ous_board_tab($flow);
+            if ($tab === '') {
+                continue;
+            }
+            $tabs[$tab][] = $order->get_id();
+            $hints[$order->get_id()] = (string) ($flow['next_hint'] ?: ($tab === 'return' ? 'Hoàn hàng: ' . $flow['return_status'] : ''));
+        }
+    }
+    return ['tabs' => $tabs, 'hints' => $hints, 'capped' => count($ids) >= THEAN_OUS_BOARD_CAP, 'at' => time()];
+}
+
+add_action('wp_ajax_thean_order_usearch_board', 'thean_ous_ajax_board');
+function thean_ous_ajax_board(): void
+{
+    check_ajax_referer('thean_ous', 'nonce');
+    if (!thean_ous_user_can()) {
+        wp_send_json_error(['message' => 'Không có quyền.'], 403);
+    }
+
+    $page    = max(1, absint($_POST['page'] ?? 1));
+    $key     = thean_ous_board_cache_key();
+    $board   = empty($_POST['refresh']) ? get_transient($key) : false;
+    if (!is_array($board)) {
+        // Tính lại board là truy vấn nặng → tính chung giới hạn lượt với tìm kiếm.
+        $wait = thean_ous_rate_hit(get_current_user_id());
+        if ($wait) {
+            wp_send_json_error([
+                'message'     => sprintf('Thao tác quá nhanh (quá %d lượt tìm / làm mới trong %d giây). Thử lại sau %d giây.', THEAN_OUS_RL_MAX, THEAN_OUS_RL_WINDOW, $wait),
+                'retry_after' => $wait,
+            ], 429);
+        }
+        $board = thean_ous_board_build();
+        set_transient($key, $board, THEAN_OUS_BOARD_TTL);
+    }
+
+    $labels = thean_ous_board_tabs();
+    $tab    = sanitize_key(wp_unslash($_POST['tab'] ?? ''));
+    if (!isset($labels[$tab])) {
+        $tab = (string) (array_key_first(array_filter($board['tabs'])) ?? array_key_first($labels));
+    }
+    $ids   = $board['tabs'][$tab] ?? [];
+    $total = count($ids);
+    $slice = array_slice($ids, ($page - 1) * THEAN_OUS_PER_PAGE, THEAN_OUS_PER_PAGE);
+
+    $counts = [];
+    foreach ($labels as $k => $label) {
+        $counts[] = ['key' => $k, 'label' => $label, 'count' => count($board['tabs'][$k] ?? [])];
+    }
+    wp_send_json_success([
+        'tab'      => $tab,
+        'tabs'     => $counts,
+        'rows'     => thean_ous_render_rows($slice, [], array_intersect_key($board['hints'], array_flip($slice))),
+        'total'    => $total,
+        'shown'    => min($total, $page * THEAN_OUS_PER_PAGE),
+        'page'     => $page,
+        'has_more' => $page * THEAN_OUS_PER_PAGE < $total,
+        'capped'   => !empty($board['capped']),
+        'at'       => wp_date('H:i:s', (int) $board['at']),
+    ]);
+}
+
 add_action('wp_ajax_thean_order_usearch', 'thean_ous_ajax_search');
 function thean_ous_ajax_search(): void
 {
@@ -1016,6 +1171,7 @@ function thean_ous_render_ui(): void
             <input type="search" name="q" placeholder="Tìm đơn: ID, tên, SĐT, email, địa chỉ, SP, vận đơn… — gõ / để lọc (/tt, /sdt, /id, /sp)" aria-label="Tìm đơn hàng" aria-autocomplete="list" aria-controls="thean-ous-suggest">
             <kbd>/</kbd>
             <button type="submit" class="thean-ous-bar__submit">Tìm</button>
+            <button type="button" class="thean-ous-bar__board" data-thean-ous-board title="Đơn cần xử lý, chia tab theo bước (giống bảng điều phối)">📋 <span>Cần xử lý</span></button>
             <label class="thean-ous-bar__toggle" title="Ẩn mọi thông báo (notice) ở trang danh sách đơn — nhớ cho lần sau">
                 <input type="checkbox" name="alerts_off"> <span>Ẩn thông báo</span><b data-thean-ous-alert-count hidden></b>
             </label>
@@ -1029,6 +1185,19 @@ function thean_ous_render_ui(): void
             <button type="button" class="thean-ous-modal__close" data-thean-ous-close aria-label="Đóng">&times;</button>
             <h2 class="thean-ous-modal__title" id="thean-ous-results-title">Kết quả tìm đơn <span class="thean-ous-modal__status"></span></h2>
             <div class="thean-ous-chips"></div>
+            <div class="thean-ous-modal__body"></div>
+        </div>
+    </div>
+
+    <div class="thean-ous-modal thean-ous-modal--board" id="thean-ous-board" hidden>
+        <div class="thean-ous-modal__backdrop" data-thean-ous-close></div>
+        <div class="thean-ous-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="thean-ous-board-title">
+            <button type="button" class="thean-ous-modal__close" data-thean-ous-close aria-label="Đóng">&times;</button>
+            <div class="thean-ous-board__head">
+                <h2 class="thean-ous-modal__title" id="thean-ous-board-title">Đơn cần xử lý <span class="thean-ous-modal__status"></span></h2>
+                <button type="button" class="thean-ous__more-btn" data-thean-ous-board-refresh>↻ Làm mới</button>
+            </div>
+            <div class="thean-ous-tabs" role="tablist" aria-label="Bước xử lý"></div>
             <div class="thean-ous-modal__body"></div>
         </div>
     </div>

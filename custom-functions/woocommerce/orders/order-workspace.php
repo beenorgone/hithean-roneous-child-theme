@@ -575,18 +575,13 @@ function thean_render_order_workspace($order_arg): void
     <?php
 }
 
-/** Phần bảng thay được qua AJAX (task `render`) — không gồm modal/toast/config. */
-function thean_ow_render_inner(WC_Order $order): void
+/**
+ * Trạng thái luồng xử lý của đơn (không render, không ghi): các bước, bước cần làm tiếp và gợi ý.
+ * Dùng chung cho bảng điều phối (thean_ow_render_inner) và board "Cần xử lý" của ô tìm đơn.
+ */
+function thean_ow_flow(WC_Order $order): array
 {
-    $order_no  = function_exists('change_order_number') ? change_order_number($order->get_id()) : $order->get_order_number();
-    $status    = $order->get_status();
-    $locked    = function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order);
-
-    // Đơn đã rời Tạm giữ (kể cả đổi ngoài bảng) → bỏ trạng thái gốc đã nhớ, tránh lần tạm giữ sau trả về nhầm.
-    if ($status !== 'on-hold' && $order->get_meta('_thean_ow_hold_from') !== '') {
-        $order->delete_meta_data('_thean_ow_hold_from');
-        $order->save_meta_data();
-    }
+    $status = $order->get_status();
 
     $payment       = thean_ow_payment_state($order);
     $export_images = thean_ow_export_images($order);
@@ -644,6 +639,50 @@ function thean_ow_render_inner(WC_Order $order): void
     if ($is_closed) $next_hint = '';
     // Tab mở sẵn: bước cần làm; xong hết thì bước cuối.
     $active = isset($steps[$next]) ? $next : ($has_return ? 'return' : 'delivery');
+
+    return compact('payment', 'export_images', 'confirmed_by', 'ai', 'shippers', 'handling', 'ship_code', 'export_date', 'return_status', 'return_code', 'compensate', 'refund', 'return_images', 'is_cod', 'cod_confirm', 'is_pickup', 'is_closed', 'is_shipping', 'return_done', 'has_return', 'steps', 'next', 'next_hint', 'next_goto', 'active');
+}
+
+/** Phần bảng thay được qua AJAX (task `render`) — không gồm modal/toast/config. */
+function thean_ow_render_inner(WC_Order $order): void
+{
+    $order_no  = function_exists('change_order_number') ? change_order_number($order->get_id()) : $order->get_order_number();
+    $status    = $order->get_status();
+    $locked    = function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order);
+
+    // Đơn đã rời Tạm giữ (kể cả đổi ngoài bảng) → bỏ trạng thái gốc đã nhớ, tránh lần tạm giữ sau trả về nhầm.
+    if ($status !== 'on-hold' && $order->get_meta('_thean_ow_hold_from') !== '') {
+        $order->delete_meta_data('_thean_ow_hold_from');
+        $order->save_meta_data();
+    }
+
+    [
+        'payment' => $payment,
+        'export_images' => $export_images,
+        'confirmed_by' => $confirmed_by,
+        'ai' => $ai,
+        'shippers' => $shippers,
+        'handling' => $handling,
+        'ship_code' => $ship_code,
+        'export_date' => $export_date,
+        'return_status' => $return_status,
+        'return_code' => $return_code,
+        'compensate' => $compensate,
+        'refund' => $refund,
+        'return_images' => $return_images,
+        'is_cod' => $is_cod,
+        'cod_confirm' => $cod_confirm,
+        'is_pickup' => $is_pickup,
+        'is_closed' => $is_closed,
+        'is_shipping' => $is_shipping,
+        'return_done' => $return_done,
+        'has_return' => $has_return,
+        'steps' => $steps,
+        'next' => $next,
+        'next_hint' => $next_hint,
+        'next_goto' => $next_goto,
+        'active' => $active,
+    ] = thean_ow_flow($order);
     ?>
     <div class="tow-inner" data-active="<?php echo esc_attr($active); ?>">
         <div class="tow-head">

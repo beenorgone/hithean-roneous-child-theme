@@ -22,6 +22,8 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous__more-btn { background:#fff; color:var(--ous-primary); border-color:var(--ous-border-strong); }
 .thean-ous__more-btn:hover { background:var(--ous-primary-light); }
 .thean-ous__more-btn:disabled { opacity:.6; cursor:wait; }
+.thean-ous-bar__board { display:inline-flex; flex:0 0 auto; align-items:center; gap:5px; margin:0; padding:7px 12px; border:1px solid var(--ous-primary); border-radius:8px; background:#fff; color:var(--ous-primary); font-size:14px; font-weight:600; line-height:1.4; white-space:nowrap; cursor:pointer; }
+.thean-ous-bar__board:hover { background:var(--ous-primary-light); }
 .thean-ous-bar .dashicons-search { color:var(--ous-primary); }
 .thean-ous-bar__toggle { display:inline-flex; flex:0 0 auto; align-items:center; gap:5px; margin:0; padding:5px 9px; border:1px solid var(--ous-border); border-radius:8px; background:#fff; color:#334155; font-size:13px; white-space:nowrap; cursor:pointer; user-select:none; }
 .thean-ous-bar__toggle input { margin:0 !important; }
@@ -82,6 +84,19 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-btn--other { --c:#334155; --bg:#f1f5f9; --bd:#cbd5e1; }
 .thean-ous-btn.is-thean-complete { opacity:.5; pointer-events:none; }
 
+/* Board "Cần xử lý" */
+.thean-ous-board__head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-right:40px; }
+.thean-ous-board__head .thean-ous-modal__title { margin:0; }
+.thean-ous-board__head .thean-ous__more-btn { padding:4px 12px; font-size:13px; }
+.thean-ous-tabs { display:flex; gap:6px; margin:12px 0 10px; padding-bottom:4px; overflow-x:auto; scrollbar-width:thin; }
+.thean-ous-tab { display:inline-flex; flex:0 0 auto; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--ous-border); border-radius:999px; background:#fff; color:#334155; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; }
+.thean-ous-tab b { min-width:20px; padding:0 6px; border-radius:999px; background:var(--ous-primary-light); color:var(--ous-primary); font-size:12px; text-align:center; }
+.thean-ous-tab:hover { border-color:var(--ous-primary); }
+.thean-ous-tab.is-active { border-color:var(--ous-primary); background:var(--ous-primary); color:#fff; }
+.thean-ous-tab.is-active b { background:#fff; }
+.thean-ous-tab.is-empty:not(.is-active) { opacity:.55; }
+.thean-ous__hint { margin-top:6px; padding:3px 7px; border-radius:6px; background:#fff7e0; color:#7c4a03; font-size:12px; line-height:1.45; }
+
 .thean-ous-preview__head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; margin-right:40px; }
 .thean-ous-preview__head h2 { margin:0; font-size:20px; }
 .thean-ous-preview__head h2 small { color:#64748b; font-weight:400; font-size:13px; }
@@ -113,6 +128,7 @@ body.thean-ous-open { overflow:hidden; }
     .thean-ous-bar__row { flex-wrap:wrap; }
     .thean-ous-bar__row input[type="search"] { flex-basis:calc(100% - 110px); }
     .thean-ous-bar__toggle { order:5; }
+    .thean-ous-bar__board { order:4; }
     .thean-ous-bar input[type="search"] { font-size:16px; } /* iOS không zoom */
     .thean-ous-modal { padding:0; align-items:stretch; }
     .thean-ous-modal__dialog, .thean-ous-modal--preview .thean-ous-modal__dialog { width:100%; max-height:none; padding:14px 12px; border-radius:0; }

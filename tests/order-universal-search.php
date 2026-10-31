@@ -22,6 +22,7 @@ $GLOBALS['__transients'] = [];
 function get_transient($k) { return $GLOBALS['__transients'][$k] ?? false; }
 function set_transient($k, $v, $ttl = 0) { $GLOBALS['__transients'][$k] = $v; return true; }
 function delete_transient($k) { unset($GLOBALS['__transients'][$k]); return true; }
+function apply_filters($tag, $value) { return $value; }
 function esc_sql($s) { return addslashes($s); }
 function remove_accents($s)
 {
@@ -155,6 +156,23 @@ check(thean_ous_rate_hit(8, $t) === 0, 'per-user');
 $t = 5000;
 foreach ([0, 10, 20, 31] as $d) thean_ous_rate_hit(9, $t + $d);
 check(thean_ous_rate_hit(9, $t + 35) === 0, 'old hits fall out of the 30s window');
+
+// Board "Cần xử lý": bước tiếp theo (thean_ow_flow) → tab.
+check(thean_ous_board_tab(['next_goto' => 'picking']) === 'picking', 'next step → tab');
+check(thean_ous_board_tab(['next_goto' => '']) === '', 'nothing to do → no tab');
+check(thean_ous_board_tab(['next_goto' => 'payment', 'is_cod' => true]) === 'cod', 'COD delivered unpaid → Thu COD');
+check(thean_ous_board_tab(['next_goto' => 'payment', 'is_cod' => false]) === 'payment', 'bank transfer unpaid → Chờ thanh toán');
+check(thean_ous_board_tab(['next_goto' => 'delivery', 'is_shipping' => true]) === 'shipping', 'shipping → Đang giao');
+check(thean_ous_board_tab(['next_goto' => 'delivery']) === 'delivery', 'not shipped → Chờ giao');
+check(thean_ous_board_tab(['next_goto' => 'picking', 'is_closed' => true]) === '', 'closed order skipped');
+check(thean_ous_board_tab(['next_goto' => 'return', 'is_closed' => true]) === 'return', 'closed order with pending return kept');
+foreach ([true, false] as $hpos) {
+    \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
+    $wpdb->queries = [];
+    thean_ous_board_candidate_ids();
+    $q = $wpdb->queries[0];
+    check(strpos($q, $hpos ? 'wp_wc_orders_meta' : 'wp_postmeta') !== false && strpos($q, "'wc-completed'") !== false && strpos($q, '_spx_date') !== false && strpos($q, 'LIMIT 400') !== false, 'board candidates SQL ' . ($hpos ? 'HPOS' : 'legacy'));
+}
 
 echo "OK ({$checks} checks)\n";
 }
