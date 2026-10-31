@@ -138,7 +138,21 @@
         fd.append('nonce', cfg.nonce);
         Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
         return fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd, signal: ctl.signal })
-            .then(function (r) { return r.json(); });
+            .then(function (r) { return r.json(); })
+            .then(function (res) { checkVer(res); return res; });
+    }
+    // Code đã deploy bản mới trong lúc tab đang mở → dòng (PHP mới) lệch cột với tiêu đề (JS cũ): nhắc tải lại.
+    var staleShown = false;
+    function checkVer(res) {
+        var v = res && res.data && res.data.ver;
+        if (!v || !cfg.ver || v === cfg.ver || staleShown) return;
+        staleShown = true;
+        var el = document.createElement('div');
+        el.className = 'thean-ous-stale';
+        el.setAttribute('role', 'alert');
+        el.innerHTML = '⚠️ Công cụ tìm đơn vừa được cập nhật — bảng có thể lệch cột. <button type="button" class="thean-ous-btn thean-ous-btn--primary">Tải lại trang</button>';
+        el.querySelector('button').addEventListener('click', function () { location.reload(); });
+        document.body.appendChild(el);
     }
     function message(res, fallback) { return (res && res.data && res.data.message) || fallback; }
     function setOpen(modal, open) {

@@ -1219,6 +1219,7 @@ function thean_ous_ajax_board(): void
         'panes'   => $all ? $panes : null,
         'pending' => max(0, count($pending) - THEAN_OUS_BOARD_BACKFILL) > 0,
         'at'      => wp_date('H:i:s'),
+        'ver'     => thean_ous_build_ver(),
     ]);
 }
 
@@ -1333,6 +1334,7 @@ function thean_ous_ajax_search(): void
     $slice = array_slice($ids, ($page - 1) * THEAN_OUS_PER_PAGE, THEAN_OUS_PER_PAGE);
 
     wp_send_json_success([
+        'ver'      => thean_ous_build_ver(),
         'rows'     => thean_ous_render_rows($slice, thean_ous_highlight_tokens($filters)),
         'total'    => $total,
         'capped'   => $total >= THEAN_OUS_CAP,
@@ -1432,6 +1434,20 @@ add_filter('admin_body_class', function ($classes) {
     return $classes . (thean_ous_alerts_off() ? ' thean-ous-alerts-off' : '') . (thean_ous_chrome_off() ? ' thean-ous-chrome-off' : '');
 });
 
+/**
+ * Phiên bản giao diện bảng = mtime JS + PHP render dòng. Tab admin mở từ trước khi deploy vẫn chạy JS cũ
+ * (tiêu đề/colgroup cũ) nhưng AJAX trả dòng theo PHP mới → lệch cột. JS so 'ver' trong phản hồi với
+ * cfg.ver, khác thì nhắc tải lại trang.
+ */
+function thean_ous_build_ver(): string
+{
+    static $ver = null;
+    if ($ver === null) {
+        $ver = (string) @filemtime(__DIR__ . '/assets/order-universal-search.js') . '.' . (string) @filemtime(__FILE__);
+    }
+    return $ver;
+}
+
 /** Config cho assets/order-universal-search.js (window.theanOusCfg). */
 function thean_ous_ui_config(): array
 {
@@ -1442,6 +1458,7 @@ function thean_ous_ui_config(): array
     return [
         'ajaxUrl'        => admin_url('admin-ajax.php'),
         'nonce'          => wp_create_nonce('thean_ous'),
+        'ver'            => thean_ous_build_ver(),
         'perPage'        => THEAN_OUS_PER_PAGE,
         'cap'            => THEAN_OUS_CAP,
         'commands'       => $commands,

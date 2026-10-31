@@ -82,9 +82,9 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous__table thead th { position:sticky; top:-18px; z-index:1; background:#f8fafc; color:#334155; }
 .thean-ous__table col.c-check { width:34px; }
 .thean-ous__table col.c-order { width:170px; }
-.thean-ous__table col.c-cus { width:24%; }
-.thean-ous__table col.c-next { width:210px; }
-.thean-ous__table col.c-acts { width:210px; }
+.thean-ous__table col.c-cus { width:22%; }
+.thean-ous__table col.c-items { width:20%; }
+/* c-next + c-acts không đặt width → chia đều phần còn lại (nút thao tác cần chỗ hơn tên SP). */
 .thean-ous__c-check { text-align:center !important; }
 .thean-ous__c-check label { display:block; padding:2px; cursor:pointer; }
 .thean-ous__c-check input { margin:0 !important; }
@@ -215,8 +215,9 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-preview__notes li p { margin:0; }
 .thean-ous-preview__notes small { color:#64748b; }
 body.thean-ous-open { overflow:hidden; }
+.thean-ous-stale { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:100100; display:flex; align-items:center; gap:10px; max-width:calc(100% - 32px); padding:10px 14px; border:1px solid #f59e0b; border-radius:10px; background:#fffbeb; color:#78350f; font-size:14px; box-shadow:0 6px 24px rgba(0,0,0,.18); }
 
-@media (max-width:1100px) { .thean-ous__table col.c-acts, .thean-ous__table col.c-next { width:180px; } .thean-ous__table col.c-order { width:150px; } }
+@media (max-width:1100px) { .thean-ous__table col.c-order { width:150px; } }
 @media (max-width:782px) {
     .thean-ous-bar { top:46px; }
     .thean-ous-bar kbd { display:none; }
