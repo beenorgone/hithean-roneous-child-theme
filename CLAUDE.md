@@ -96,7 +96,8 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   Đang giao / Thu COD / Hoàn hàng. Bước của mỗi đơn **lưu sẵn ở meta `_thean_ops_step`** (`woocommerce/orders/order-ops-step.php`,
   nạp mọi request): tính bằng `thean_ow_flow()` (order-workspace.php — cùng logic bảng điều phối) khi đơn được lưu / meta liên quan
   bị ghi thẳng, cron 10 phút quét 50 đơn mở, và 10 đơn đang hiện trên board luôn được tính lại (tự sửa). Board chỉ đếm (GROUP BY)
-  + phân trang SQL rồi đọc 10 đơn. Loại khỏi luồng: Hủy / Thất bại / Hoàn tiền / Hoàn thành / Chưa ghi nhận / Đã ghi nhận
+  + phân trang SQL. Mở board / Làm mới / sau thao tác: tải sẵn trang 1 của **mọi tab** trong 1 request (`all=1`) → đổi tab
+  lấy từ bộ nhớ đệm (5 phút), không gọi server; "Xem thêm" trong tab vẫn tải từng trang. Loại khỏi luồng: Hủy / Thất bại / Hoàn tiền / Hoàn thành / Chưa ghi nhận / Đã ghi nhận
   (`thean_ops_excluded_statuses()`), đơn gộp Shopee, **đơn nội bộ** (email thuộc domain ở Cài đặt ERP → Xử lý đơn → "Đơn nội bộ",
   option `thean_internal_email_domains`, trống = dùng danh sách của eim; hoặc cờ `_eim_internal`) — board lọc thẳng bằng SQL
   nên đổi domain có hiệu lực ngay; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.

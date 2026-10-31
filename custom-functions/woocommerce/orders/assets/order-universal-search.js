@@ -11,7 +11,7 @@
     var board = document.getElementById('thean-ous-board');
     var searchCtl = null, previewCtl = null, boardCtl = null, timer = 0;
     var boardState = { tab: '', page: 0, loading: false };
-    var boardCache = new Map(); // "tab|page" → {at, data}; 30s
+    var boardCache = new Map(); // "tab|page" → {at, data}; trang 1 của mọi tab nạp sẵn khi mở board (5 phút)
     var blockedUntil = 0; // server khóa tìm kiếm (quá nhiều lượt) — không tự gửi tới khi hết hạn
     var state = { q: '', page: 0, loading: false };
     var cache = new Map(); // "q|page" → {at, data}; 60s, tránh gọi lại khi mở/đóng modal
@@ -403,11 +403,14 @@
         if (!data.total) { notice(body(board), 'Không có đơn nào ở bước này 🎉'); return; }
         fillTable(board, data, page);
     }
+    // Trang 1 (mở board / Làm mới / sau thao tác): server trả luôn trang 1 của MỌI tab (all = 1) → đổi tab lấy từ
+    // boardCache, không gọi lại server. "Xem thêm" trong 1 tab vẫn tải tiếp từng trang.
+    var BOARD_TTL = 300000;
     function loadBoard(tab, page, refresh) {
         var key = tab + '|' + page, hit = boardCache.get(key);
         board.hidden = false;
-        if (!refresh && tab && hit && Date.now() - hit.at < 30000) { renderBoard(hit.data, page); return; }
-        if (refresh) boardCache.clear();
+        if (!refresh && tab && hit && Date.now() - hit.at < BOARD_TTL) { renderBoard(hit.data, page); return; }
+        if (page === 1) boardCache.clear();
         if (boardCtl) boardCtl.abort();
         boardCtl = new AbortController();
         boardState.loading = true;
@@ -415,14 +418,23 @@
         if (page === 1) notice(body(board), 'Đang tải đơn cần xử lý…');
         else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
         var data = { tab: tab, page: page };
-        if (refresh) data.refresh = 1;
+        if (page === 1) data.all = 1;
         post('thean_order_usearch_board', data, boardCtl).then(function (res) {
             if (!res.success) {
                 if (res.data && res.data.retry_after) blockedUntil = Date.now() + res.data.retry_after * 1000;
                 throw new Error(message(res, 'Không tải được board.'));
             }
-            boardCache.set(res.data.tab + '|' + page, { at: Date.now(), data: res.data });
-            renderBoard(res.data, page);
+            var d = res.data, at = Date.now();
+            if (d.panes) {
+                // Tab không có đơn cũng có pane rỗng → bấm vào không phải gọi server.
+                (d.tabs || []).forEach(function (t) {
+                    var pane = d.panes[t.key] || { tab: t.key, rows: '', total: 0, shown: 0, page: 1, has_more: false };
+                    boardCache.set(t.key + '|1', { at: at, data: Object.assign({}, pane, { tabs: d.tabs, pending: d.pending, at: d.at }) });
+                });
+            } else {
+                boardCache.set(d.tab + '|' + page, { at: at, data: d });
+            }
+            renderBoard(d, page);
         }).catch(function (err) {
             if (err.name !== 'AbortError') notice(body(board), err.message || 'Lỗi kết nối.');
         }).finally(function () { boardState.loading = false; if (moreBtn) moreBtn.disabled = false; });

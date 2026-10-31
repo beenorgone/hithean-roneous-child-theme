@@ -1026,36 +1026,59 @@ function thean_ous_ajax_board(): void
         $tab = (string) (array_key_first(array_filter($counts)) ?? array_key_first($labels));
     }
 
-    // Tính lại tại chỗ 10 đơn của trang: lệch thì ghi lại, đơn đã sang bước khác thì không hiện ở tab này.
-    $ids   = thean_ous_board_page_ids($tab, $page);
-    $fresh = thean_ops_step_sync_ids($ids);
-    $hints = [];
-    $show  = [];
-    foreach ($ids as $id) {
-        if (($fresh[$id]['step'] ?? '') === $tab) {
-            $show[]     = $id;
-            $hints[$id] = $fresh[$id]['hint'];
+    // all = 1 (mở board / Làm mới): trả luôn trang 1 của mọi tab có đơn → đổi tab không phải gọi lại server.
+    $all  = !empty($_POST['all']);
+    $load = $all ? array_keys(array_filter($counts)) : [];
+    if (!in_array($tab, $load, true)) {
+        $load[] = $tab;
+    }
+    $ids_by = [];
+    foreach ($load as $t) {
+        $ids_by[$t] = thean_ous_board_page_ids($t, $t === $tab ? $page : 1);
+    }
+
+    // Tính lại tại chỗ các đơn sẽ hiện (đọc gộp 1 lần): lệch thì ghi lại, đơn đã sang bước khác thì không hiện ở tab đó.
+    $fresh   = thean_ops_step_sync_ids(array_merge([], ...array_values($ids_by)));
+    $show_by = [];
+    $hints   = [];
+    $recount = false;
+    foreach ($ids_by as $t => $ids) {
+        $show_by[$t] = [];
+        foreach ($ids as $id) {
+            if (($fresh[$id]['step'] ?? '') === $t) {
+                $show_by[$t][] = $id;
+                $hints[$id]    = $fresh[$id]['hint'];
+            } else {
+                $recount = true;
+            }
         }
     }
-    if (count($show) !== count($ids)) {
+    if ($recount) {
         $counts = thean_ous_board_counts();
     }
 
-    $total = $counts[$tab] ?? 0;
-    $tabs  = [];
+    $panes = [];
+    foreach ($show_by as $t => $show) {
+        $p     = $t === $tab ? $page : 1;
+        $total = $counts[$t] ?? 0;
+        $panes[$t] = [
+            'tab'      => $t,
+            'rows'     => thean_ous_render_rows($show, [], array_intersect_key($hints, array_flip($show))),
+            'total'    => $total,
+            'shown'    => min($total, ($p - 1) * THEAN_OUS_PER_PAGE + count($show)),
+            'page'     => $p,
+            'has_more' => $p * THEAN_OUS_PER_PAGE < $total,
+        ];
+    }
+    $tabs = [];
     foreach ($labels as $k => $label) {
         $tabs[] = ['key' => $k, 'label' => $label, 'count' => $counts[$k] ?? 0];
     }
-    wp_send_json_success([
-        'tab'      => $tab,
-        'tabs'     => $tabs,
-        'rows'     => thean_ous_render_rows($show, [], $hints),
-        'total'    => $total,
-        'shown'    => min($total, ($page - 1) * THEAN_OUS_PER_PAGE + count($show)),
-        'page'     => $page,
-        'has_more' => $page * THEAN_OUS_PER_PAGE < $total,
-        'pending'  => max(0, count($pending) - THEAN_OUS_BOARD_BACKFILL) > 0,
-        'at'       => wp_date('H:i:s'),
+    wp_send_json_success($panes[$tab] + [
+        'tabs'    => $tabs,
+        'panes'   => $all ? $panes : null,
+        'pending' => max(0, count($pending) - THEAN_OUS_BOARD_BACKFILL) > 0,
+        'at'      => wp_date('H:i:s'),
     ]);
 }
 
