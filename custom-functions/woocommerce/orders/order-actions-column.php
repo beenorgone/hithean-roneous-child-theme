@@ -31,6 +31,8 @@ function hithean_order_action_meta(string $slug): array
         'hithean-order-return-record'      => ['hoan', '↩', 'Ghi nhận đơn hoàn hàng', 'Ghi nhận hoàn'],
         'hithean-order-return-images'      => ['hoan', '📷', 'Up ảnh hoàn hàng', 'Ảnh hoàn'],
         'don-hoan-tien'                    => ['hoan', '↩', 'Yêu cầu hoàn tiền cho khách', 'YC hoàn tiền'],
+        'tra-vd-ghtk'                      => ['kho', '🔎', '', ''],
+        'tra-vd-vtp'                       => ['kho', '🔎', '', ''],
         'goi-sdt-dat-hang'                 => ['other', '📞', '', 'Gọi người đặt'],
         'goi-sdt-nhan-hang'                => ['other', '📞', '', 'Gọi người nhận'],
     ];
@@ -45,6 +47,8 @@ function hithean_oac_meta_list(WC_Order $order, string $key): array
         'handling_status'       => 'order_handling_status',
         'paid_date'             => 'order_paid_date',
         'bank_account_received' => 'order_bank_account_received',
+        'shipper'               => 'order_shipper',
+        'ship_code'             => 'order_ship_code',
     ];
     $out = [];
     foreach ($order->get_meta($map[$key] ?? $key, false) as $meta) {
@@ -104,6 +108,45 @@ function hithean_oac_primary_slug(WC_Order $order, array $actions): string
     return '';
 }
 
+/**
+ * "Tra vận đơn" theo mã của đơn (link cho khách): GHTK mở thẳng i.ghtk.vn/<mã>; Viettel Post không nhận mã
+ * qua URL nên mở trang tra cứu + chép sẵn mã (data-hithean-oa-copy). Link tra cho kho nằm trên thanh công cụ.
+ */
+add_filter('woocommerce_admin_order_actions', 'hithean_oac_tracking_actions', 150, 2);
+function hithean_oac_tracking_actions($actions, $order)
+{
+    if (!$order instanceof WC_Order) {
+        return $actions;
+    }
+    $shippers = hithean_oac_meta_list($order, 'shipper');
+    $carriers = array_intersect(['ghtk', 'viettel'], $shippers);
+    if (!$carriers) {
+        return $actions;
+    }
+    $codes = preg_split('/[\s,;|]+/u', implode(' ', hithean_oac_meta_list($order, 'ship_code'))) ?: [];
+    $codes = array_slice(array_unique(array_filter($codes, fn($c) => strlen($c) >= 6 && preg_match('/\d/', $c))), 0, 3);
+    foreach ($codes as $i => $code) {
+        if (in_array('ghtk', $carriers, true)) {
+            $actions['tra-vd-ghtk-' . $i] = [
+                'url'    => 'https://i.ghtk.vn/' . rawurlencode($code),
+                'name'   => 'Tra GHTK · ' . $code,
+                'action' => 'tra-vd-ghtk',
+                'target' => '_blank',
+            ];
+        }
+        if (in_array('viettel', $carriers, true)) {
+            $actions['tra-vd-vtp-' . $i] = [
+                'url'    => 'https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/',
+                'name'   => 'Tra Viettel · ' . $code,
+                'action' => 'tra-vd-vtp',
+                'target' => '_blank',
+                'copy'   => $code,
+            ];
+        }
+    }
+    return $actions;
+}
+
 add_action('woocommerce_admin_order_actions_start', function () {
     $GLOBALS['hithean_oac_capturing'] = true;
 });
@@ -139,7 +182,8 @@ function hithean_oac_render($order): void
         $meta  = hithean_order_action_meta($slug);
         $label = $meta['label'] !== '' ? $meta['label'] : wp_strip_all_tags((string) ($action['name'] ?? $key));
         $attrs = ' href="' . esc_url($action['url']) . '" title="' . esc_attr($label) . '"'
-            . (!empty($action['target']) ? ' target="_blank" rel="noopener"' : '');
+            . (!empty($action['target']) ? ' target="_blank" rel="noopener"' : '')
+            . (!empty($action['copy']) ? ' data-hithean-oa-copy="' . esc_attr($action['copy']) . '"' : '');
         $inner = '<span aria-hidden="true">' . esc_html($meta['icon']) . '</span>';
 
         if ($slug === 'chinh-don-tao-don') {
@@ -248,6 +292,8 @@ function hithean_oac_assets(): void
                 toggle.setAttribute('aria-expanded', String(!menu.hidden));
                 return;
             }
+            var copy = event.target.closest('[data-hithean-oa-copy]');
+            if (copy && navigator.clipboard) navigator.clipboard.writeText(copy.getAttribute('data-hithean-oa-copy')).catch(function () {});
             if (event.target.closest('.hithean-oa__menu') && !event.target.closest('a')) return;
             closeAll(null);
         });
