@@ -18,6 +18,10 @@ function wp_strip_all_tags($s) { return strip_tags((string) $s); }
 function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
 function get_user_meta() { return ''; }
 function add_filter(...$a) {}
+$GLOBALS['__transients'] = [];
+function get_transient($k) { return $GLOBALS['__transients'][$k] ?? false; }
+function set_transient($k, $v, $ttl = 0) { $GLOBALS['__transients'][$k] = $v; return true; }
+function delete_transient($k) { unset($GLOBALS['__transients'][$k]); return true; }
 function esc_sql($s) { return addslashes($s); }
 function remove_accents($s)
 {
@@ -139,6 +143,18 @@ $wpdb->queries = [];
 thean_ous_find_order_ids(array_merge($empty, ['product' => 'whey', 'statuses' => ['processing']]));
 $last = end($wpdb->queries);
 check(strpos($last, 'ID IN (300,120)') !== false && strpos($last, "post_status IN ('wc-processing')") !== false, 'product AND status (legacy)');
+
+// Giới hạn: 4 lượt tìm thật / 30s, lượt thứ 5 khóa 2 phút.
+$t = 1000;
+check(thean_ous_rate_hit(7, $t) === 0 && thean_ous_rate_hit(7, $t + 5) === 0 && thean_ous_rate_hit(7, $t + 10) === 0 && thean_ous_rate_hit(7, $t + 15) === 0, '4 searches allowed');
+check(thean_ous_rate_hit(7, $t + 20) === 120, '5th within 30s blocks 120s');
+check(thean_ous_rate_blocked(7, $t + 80) === 60, 'still blocked after 60s');
+check(thean_ous_rate_hit(7, $t + 80) === 60, 'hits while blocked do not extend block');
+check(thean_ous_rate_blocked(7, $t + 141) === 0 && thean_ous_rate_hit(7, $t + 141) === 0, 'unblocked after 2 minutes, counter reset');
+check(thean_ous_rate_hit(8, $t) === 0, 'per-user');
+$t = 5000;
+foreach ([0, 10, 20, 31] as $d) thean_ous_rate_hit(9, $t + $d);
+check(thean_ous_rate_hit(9, $t + 35) === 0, 'old hits fall out of the 30s window');
 
 echo "OK ({$checks} checks)\n";
 }
