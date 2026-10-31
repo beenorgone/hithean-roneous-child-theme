@@ -190,6 +190,12 @@ check(thean_export_proof_image_file('order-export-image-10786-20261031-091800-1.
     && !thean_export_proof_image_file('order-export-image-10787-20261031-1.jpg', 10786) && !thean_export_proof_image_file('return-10786-1.jpg', 10786), 'export proof image filenames');
 check(thean_export_confirm_name_from_note('✅ Đã xác nhận xuất kho bởi Tuan') === 'Tuan' && thean_export_confirm_name_from_note('Đã xác nhận ảnh xuất kho bởi Kho 1') === 'Kho 1'
     && thean_export_confirm_name_from_note('Đã xác nhận thanh toán.') === '', 'confirm name from note');
+$__ai = thean_export_ai_result_from_note("🤖 AI review ảnh xuất kho\nKết quả: Khớp — vẫn cần nhân viên xác nhận.\nMã đơn/phiếu: Khớp (khớp theo mã che chuẩn)\nSản phẩm và số lượng: Khớp\nĐộ tin cậy: high\nAI đọc được: #10786**\nNhận định: Phiếu rõ\nMã vận đơn đọc được: S1.A.123, 456");
+check($__ai['overall'] === 'pass' && $__ai['order_match'] === 'match' && $__ai['items_match'] === 'match' && $__ai['confidence'] === 'high'
+    && $__ai['masked_order_match'] && $__ai['visible_order_reference'] === '#10786**' && $__ai['shipping_codes'] === ['S1.A.123', '456'], 'AI result from note: pass');
+$__ai = thean_export_ai_result_from_note("AI review ảnh xuất kho\nKết quả: Cần kiểm tra thủ công.\nMã đơn/phiếu: Không khớp\nSản phẩm và số lượng: Chưa đủ bằng chứng\nĐộ tin cậy: low\nCần xem lại: thiếu A; thừa B");
+check($__ai['overall'] === 'review' && $__ai['order_match'] === 'mismatch' && $__ai['items_match'] === 'unclear' && $__ai['missing_or_suspected_missing'] === ['thiếu A', 'thừa B'], 'AI result from note: review');
+check(thean_export_ai_result_from_note('AI review ảnh xuất kho đã được đưa vào hàng đợi.') === null && thean_export_ai_result_from_note('Đã xác nhận xuất kho bởi Tuan') === null, 'non-result notes ignored');
 check(thean_legacy_meta_empty('  ') && thean_legacy_meta_empty([]) && thean_legacy_meta_empty(null) && !thean_legacy_meta_empty('0') && !thean_legacy_meta_empty([1]), 'legacy meta empty');
 check(in_array('warehouse_export_images', thean_legacy_meta_keys(), true) && in_array('export_confirmed_by', thean_legacy_meta_keys(), true), 'legacy meta keys');
 check(thean_ops_shipping_statuses() === ['shipping', 'local-shipping', 'partial-shipping'], 'shipping statuses');

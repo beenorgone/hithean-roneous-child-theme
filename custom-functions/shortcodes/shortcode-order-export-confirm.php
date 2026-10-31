@@ -302,6 +302,10 @@ function hithean_export_ai_check_order(WC_Order $order, int $requested_by = 0)
 
 function hithean_render_export_ai_check(int $order_id): string
 {
+    // Kết quả AI bị mất do lệch post meta ↔ HPOS → dựng lại từ ghi chú AI (order-legacy-meta-sync.php).
+    if (function_exists('thean_export_ai_recover') && ($ai_order = wc_get_order($order_id))) {
+        thean_export_ai_recover($ai_order);
+    }
     $result = get_post_meta($order_id, 'warehouse_export_ai_check', true);
     $result = is_array($result) ? $result : [];
     $review_status = get_post_meta($order_id, 'warehouse_export_ai_review_status', true);

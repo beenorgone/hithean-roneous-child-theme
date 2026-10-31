@@ -339,7 +339,7 @@ function thean_export_proof_recover(WC_Order $order): bool
     $need_confirm = thean_legacy_meta_empty($order->get_meta('export_confirmed_by'))
         && thean_legacy_meta_empty(get_post_meta($id, 'export_confirmed_by', true));
     if ((!$need_images && !$need_confirm) || get_transient('thean_proof_recover_' . $id)) {
-        return false;
+        return thean_export_ai_recover($order);
     }
     set_transient('thean_proof_recover_' . $id, 1, 12 * HOUR_IN_SECONDS);
 
@@ -378,6 +378,82 @@ function thean_export_proof_recover(WC_Order $order): bool
     }
     if ($restored) {
         $order->add_order_note('♻️ Khôi phục ' . implode(' + ', $restored) . ' — dữ liệu bị mất khi lưu trang sửa đơn (lỗi đồng bộ HPOS).');
+    }
+    return thean_export_ai_recover($order) || (bool) $restored;
+}
+
+/**
+ * Ghi chú "🤖 AI review ảnh xuất kho" (thean_/hithean_export_ai_order_note) → mảng kết quả như warehouse_export_ai_check;
+ * null nếu không phải ghi chú AI. Hàm thuần.
+ */
+function thean_export_ai_result_from_note(string $note): ?array
+{
+    if (strpos($note, 'AI review ảnh xuất kho') === false || !preg_match('/^Kết quả:\s*(.+)$/mu', $note, $m)) {
+        return null;
+    }
+    $field = static function (string $label) use ($note): string {
+        return preg_match('/^' . preg_quote($label, '/') . ':\s*(.*)$/mu', $note, $mm) ? trim($mm[1]) : '';
+    };
+    $state = static function (string $v): string {
+        if (strpos($v, 'Không khớp') === 0) {
+            return 'mismatch';
+        }
+        return strpos($v, 'Khớp') === 0 ? 'match' : 'unclear';
+    };
+    $order_v = $field('Mã đơn/phiếu');
+    $codes   = $field('Mã vận đơn đọc được');
+    $issues  = $field('Cần xem lại');
+    $conf    = $field('Độ tin cậy');
+    return [
+        'overall'                       => strpos(trim($m[1]), 'Khớp') === 0 ? 'pass' : 'review',
+        'order_match'                   => $state($order_v),
+        'items_match'                   => $state($field('Sản phẩm và số lượng')),
+        'confidence'                    => in_array($conf, ['high', 'medium', 'low'], true) ? $conf : 'low',
+        'visible_order_reference'       => $field('AI đọc được'),
+        'masked_order_match'            => strpos($order_v, 'mã che chuẩn') !== false,
+        'shipment_order_match'          => strpos($order_v, 'mã giao vận') !== false,
+        'reason'                        => $field('Nhận định'),
+        'shipping_codes'                => $codes === '' ? [] : array_values(array_filter(array_map('trim', explode(',', $codes)))),
+        'missing_or_suspected_missing'  => $issues === '' ? [] : array_values(array_filter(array_map('trim', explode(';', $issues)))),
+        'unexpected_or_suspected_extra' => [],
+        'restored_from_note'            => true,
+    ];
+}
+
+/**
+ * Kết quả AI check bị mất (cả 2 bảng) mà ghi chú AI còn → dựng lại warehouse_export_ai_check từ ghi chú AI mới nhất.
+ * Bỏ qua nếu sau ghi chú AI có lượt upload ảnh mới (kết quả cũ không còn đúng bộ ảnh). Thử tối đa 12 giờ/lần.
+ */
+function thean_export_ai_recover(WC_Order $order): bool
+{
+    $id = $order->get_id();
+    if ($id <= 0 || !function_exists('wc_get_order_notes') || get_transient('thean_ai_recover_' . $id)
+        || !thean_legacy_meta_empty($order->get_meta('warehouse_export_ai_check'))
+        || array_filter(thean_legacy_post_meta_raw($id, 'warehouse_export_ai_check'), static fn($v) => !thean_legacy_meta_empty($v))
+        || thean_legacy_meta_empty($order->get_meta('warehouse_export_images'))) {
+        return false;
+    }
+    set_transient('thean_ai_recover_' . $id, 1, 12 * HOUR_IN_SECONDS);
+    // Ảnh xuất kho mới nhất đính kèm đơn: ghi chú AI cũ hơn ảnh này = kết quả của bộ ảnh trước → không dùng.
+    $latest_img = 0;
+    foreach (get_posts(['post_type' => 'attachment', 'post_parent' => $id, 'post_status' => 'inherit', 'posts_per_page' => 60, 'fields' => 'ids']) as $aid) {
+        $file = (string) get_attached_file((int) $aid);
+        if ($file !== '' && thean_export_proof_image_file(wp_basename($file), $id)) {
+            $latest_img = max($latest_img, (int) get_post_time('U', true, (int) $aid));
+        }
+    }
+    foreach (wc_get_order_notes(['order_id' => $id, 'type' => 'internal']) as $note) { // mới nhất trước
+        $result = thean_export_ai_result_from_note(wp_strip_all_tags((string) $note->content));
+        if ($result === null) {
+            continue;
+        }
+        if ($note->date_created instanceof WC_DateTime && $note->date_created->getTimestamp() < $latest_img) {
+            return false;
+        }
+        $result['checked_at'] = $note->date_created instanceof WC_DateTime ? $note->date_created->date_i18n('Y-m-d H:i:s') : current_time('mysql');
+        $result['checked_by'] = 0;
+        $result['provider']   = 'note';
+        thean_legacy_meta_put($order, 'warehouse_export_ai_check', $result);
         return true;
     }
     return false;
