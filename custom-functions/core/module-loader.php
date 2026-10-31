@@ -83,6 +83,7 @@ $general_includes = [
     // checkout-page.php → conditional (tpc_loader_modules)
     'custom-functions/woocommerce/orders/order-age-lock.php', // khóa đổi trạng thái đơn tạo >365 ngày (người dùng không phải admin + mọi tiến trình tự động)
     'custom-functions/woocommerce/orders/order-auto-tasks.php',
+    'custom-functions/woocommerce/orders/order-hpos-compat.php', // HPOS: link sửa đơn, bảng meta đơn, get_post_meta() trên đơn đọc từ HPOS
     'custom-functions/woocommerce/orders/order-legacy-meta-sync.php', // HPOS: post meta do code cũ ghi → HPOS + khôi phục chứng từ XK bị mất
     'custom-functions/woocommerce/orders/order-ops-step.php', // bước vận hành lưu sẵn (meta) cho board "Cần xử lý"
     'custom-functions/woocommerce/orders/order-vat-request.php', // nhập thông tin xuất VAT (ảnh tin nhắn khách + AI) → eim / VAT chờ khớp

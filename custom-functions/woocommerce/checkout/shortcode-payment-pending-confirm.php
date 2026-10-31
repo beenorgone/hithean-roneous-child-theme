@@ -1010,7 +1010,7 @@ function oppc_render_order_row(WC_Order $order, bool $is_audit_view): void
 
     echo '<tr>';
     echo '<td class="oppc-select-cell" data-label="Chọn">' . ($is_audit_view ? '' : '<input type="checkbox" class="oppc-row-select" value="' . intval($order_id) . '" aria-label="Chọn đơn #' . intval($order_id) . '">') . '</td>';
-    echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><span class="oppc-muted">Mã: ' . esc_html($new_order_id) . '</span><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank" rel="noopener noreferrer">Chỉnh sửa</a></td>';
+    echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><span class="oppc-muted">Mã: ' . esc_html($new_order_id) . '</span><a href="' . esc_url(thean_order_edit_url((int) $order_id)) . '" target="_blank" rel="noopener noreferrer">Chỉnh sửa</a></td>';
     $shipper_display = oppc_get_order_shipper_display($order);
     echo '<td data-label="Khách hàng">' . esc_html($billing_name ?: 'Khách lẻ') . '<span class="oppc-muted">' . esc_html($billing_phone) . '</span><span class="oppc-muted">Trạng thái: ' . esc_html($order_status) . '</span></td>';
     echo '<td data-label="Thanh toán"><strong>' . $order_total . '</strong><span class="oppc-muted">' . esc_html($payment_method) . '</span><span class="oppc-muted">Giao bởi: ' . esc_html($shipper_display ?: 'Chưa chọn') . '</span><span class="oppc-muted">' . esc_html($order_date) . '</span></td>';

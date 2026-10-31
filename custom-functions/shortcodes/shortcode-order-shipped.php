@@ -65,7 +65,7 @@ function ost_render_image_thumbs($image_urls, $order_id = 0) {
 function ost_render_order_links($ids) {
     if (empty($ids)) return '0';
     $links = array_map(function($id) {
-        return sprintf('<a href="%s" target="_blank">%s</a>', get_edit_post_link($id), $id);
+        return sprintf('<a href="%s" target="_blank">%s</a>', esc_url(thean_order_edit_url((int) $id)), $id);
     }, $ids);
     return implode(', ', $links);
 }
@@ -280,6 +280,10 @@ function ost_resolve_search_to_order_ids($search) {
 
 function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids = null) {
     global $wpdb;
+    // HPOS: meta đơn ở wc_orders_meta (cột order_id) — posts/postmeta không còn đủ dữ liệu.
+    $mt = thean_order_meta_table();
+    $mtable = $mt['table'];
+    $mid = $mt['id'];
 
     // --- MAPPING META KEYS (Cấu hình Hithean) ---
     $key_ship_date = 'order_ship_date';
@@ -303,9 +307,9 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids 
         if ($from_date && $to_date) {
             $placeholders = implode(',', array_fill(0, count($order_ids), '%d'));
             $date_results = $wpdb->get_results($wpdb->prepare(
-                "SELECT post_id, meta_value as ship_date FROM {$wpdb->postmeta}
+                "SELECT {$mid} AS post_id, meta_value as ship_date FROM {$mtable}
                  WHERE meta_key = %s AND meta_value BETWEEN %s AND %s
-                 AND post_id IN ($placeholders)",
+                 AND {$mid} IN ($placeholders)",
                 $key_ship_date, $from_date, $to_date, ...$order_ids
             ));
             $order_ids = [];
@@ -318,8 +322,8 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids 
         if (empty($order_ids)) return ['status' => 'empty'];
     } else {
         $results = $wpdb->get_results($wpdb->prepare(
-            "SELECT post_id, meta_value as ship_date
-             FROM {$wpdb->postmeta}
+            "SELECT {$mid} AS post_id, meta_value as ship_date
+             FROM {$mtable}
              WHERE meta_key = %s AND meta_value BETWEEN %s AND %s
              LIMIT 500",
             $key_ship_date, $from_date, $to_date
@@ -353,8 +357,8 @@ function ost_get_orders_data($from_date, $to_date, $filter_shipper, $search_ids 
     $keys_in_sql  = "'" . implode("','", array_map('esc_sql', $meta_keys_to_fetch)) . "'";
 
     $meta_results = $wpdb->get_results($wpdb->prepare("
-        SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta}
-        WHERE post_id IN ($placeholders)
+        SELECT {$mid} AS post_id, meta_key, meta_value FROM {$mtable}
+        WHERE {$mid} IN ($placeholders)
         AND meta_key IN ($keys_in_sql)
     ", ...$order_ids));
 
@@ -527,7 +531,7 @@ function ost_render_single_row($data) {
 
     ?>
     <tr class="ost-detail-row ost-row-<?php echo esc_attr($data['bucket']); ?>" data-bucket="<?php echo esc_attr($data['bucket']); ?>">
-        <td><a href="<?php echo esc_url(get_edit_post_link($data['id'])); ?>" target="_blank">#<?php echo $data['id']; ?></a></td>
+        <td><a href="<?php echo esc_url(thean_order_edit_url((int) $data['id'])); ?>" target="_blank">#<?php echo $data['id']; ?></a></td>
         <td class="ost-status-cell"><?php echo ost_render_issue_badges($data['issues']); ?></td>
         <td><?php echo esc_html($order->get_billing_phone()); ?></td>
         <td><?php echo wp_kses_post($order->get_formatted_order_total()); ?></td>
@@ -1396,7 +1400,7 @@ function ost_ajax_preview_order() {
     ?>
     <div class="ost-order-preview">
         <p><strong>#<?php echo esc_html($order_id); ?></strong> - <?php echo esc_html(wc_get_order_status_name($order->get_status())); ?></p>
-        <p><a href="<?php echo esc_url(get_edit_post_link($order_id)); ?>" target="_blank" rel="noopener" class="ost-modal-primary">Xem đơn</a></p>
+        <p><a href="<?php echo esc_url(thean_order_edit_url((int) $order_id)); ?>" target="_blank" rel="noopener" class="ost-modal-primary">Xem đơn</a></p>
         <p><?php echo esc_html($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()); ?> | <?php echo esc_html($order->get_billing_phone()); ?></p>
         <p><?php echo wp_kses_post($order->get_formatted_order_total()); ?> | <?php echo esc_html(ost_get_payment_label($order->get_payment_method())); ?></p>
         <p><strong>Địa chỉ giao hàng:</strong><br><?php echo $shipping_address ? wp_kses_post($shipping_address) : '-'; ?></p>

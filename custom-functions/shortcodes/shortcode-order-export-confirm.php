@@ -516,9 +516,9 @@ function shortcode_list_unconfirmed_exports()
     ob_start();
 
     $args = [
-        'post_type' => 'shop_order',
-        'post_status' => 'any',
-        'posts_per_page' => 40,
+        'type'      => 'shop_order',
+        'status' => array_keys(wc_get_order_statuses()),
+        'limit'          => 40,
         'meta_query' => [
             'relation' => 'AND',
             [
@@ -545,10 +545,10 @@ function shortcode_list_unconfirmed_exports()
         ],
     ];
 
-    $orders = get_posts($args);
+    $orders = wc_get_orders($args); // HPOS + legacy (meta_query chạy cả 2)
     // Đơn đã xác nhận nhưng meta bị metabox xóa khi lưu trang sửa đơn (lỗi cũ) → khôi phục từ ghi chú, bỏ khỏi danh sách.
     $orders = array_values(array_filter($orders, static function ($p) {
-        return !hithean_export_restore_confirmed_from_notes((int) $p->ID);
+        return !hithean_export_restore_confirmed_from_notes((int) $p->get_id());
     }));
 
     echo '<h2>Ảnh lấy hàng chờ kiểm tra</h2>';
@@ -562,10 +562,10 @@ function shortcode_list_unconfirmed_exports()
     echo '<div data-uexe-bulk-grid="unconfirmed" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;">';
 
     foreach ($orders as $order_post) {
-        $order_id = $order_post->ID;
+        $order_id = $order_post->get_id();
         $order = wc_get_order($order_id);
         $status = wc_get_order_status_name($order->get_status());
-        $edit_link = get_edit_post_link($order_id);
+        $edit_link = thean_order_edit_url((int) $order_id);
 
         echo '<div class="order-card uexe-export-card" data-uexe-order-id="' . esc_attr($order_id) . '" data-uexe-order-number="' . esc_attr($order->get_order_number()) . '" style="border:1px solid #ccc;border-radius:8px;padding:15px;background:#fff;">';
         echo '<h4 style="margin-top: 10px;">Đơn hàng #' . esc_html($order_id) . '</h4>';
@@ -614,9 +614,9 @@ function shortcode_list_uploaded_not_shipped_exports()
     $excluded_statuses = ['wc-cancelled', 'wc-failed'];
 
     $args = [
-        'post_type'      => 'shop_order',
-        'post_status'    => array_values(array_diff(array_keys(wc_get_order_statuses()), $excluded_statuses)),
-        'posts_per_page' => 40,
+        'type'           => 'shop_order',
+        'status'         => array_values(array_diff(array_keys(wc_get_order_statuses()), $excluded_statuses)),
+        'limit'          => 40,
         'meta_query'     => [
             'relation' => 'AND',
             [
@@ -643,12 +643,12 @@ function shortcode_list_uploaded_not_shipped_exports()
         ],
     ];
 
-    $orders = get_posts($args);
+    $orders = wc_get_orders($args); // HPOS + legacy (meta_query chạy cả 2)
 
     // Lọc phòng vệ theo trạng thái đơn (loại bỏ đơn đã giao và đơn kết thúc).
     $filtered_orders = [];
     foreach ($orders as $order_post) {
-        $order = wc_get_order($order_post->ID);
+        $order = $order_post;
         if (!$order) continue;
         $status = $order->get_status();
 
@@ -670,7 +670,7 @@ function shortcode_list_uploaded_not_shipped_exports()
     foreach ($filtered_orders as $order) {
         $order_id   = $order->get_id();
         $status     = wc_get_order_status_name($order->get_status());
-        $edit_link  = get_edit_post_link($order_id);
+        $edit_link  = thean_order_edit_url((int) $order_id);
         $confirmed  = get_post_meta($order_id, 'export_confirmed_by', true);
 
         echo '<div class="order-card uexe-export-card" data-uexe-order-id="' . esc_attr($order_id) . '" data-uexe-order-number="' . esc_attr($order->get_order_number()) . '" style="border:1px solid #ccc;border-radius:8px;padding:15px;background:#fff;">';

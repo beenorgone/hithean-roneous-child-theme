@@ -752,7 +752,7 @@ function render_single_order_info($order)
 
     echo '<tr>';
     echo '<td class="btc-select-cell" data-label="Chọn"><input type="checkbox" class="btc-row-select" value="' . intval($order_id) . '" aria-label="Chọn đơn #' . intval($order_id) . '"></td>';
-    echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><br><a href="' . esc_url(admin_url('post.php?post=' . intval($order_id) . '&action=edit')) . '" target="_blank">✏️ Chỉnh sửa đơn hàng</a></td>';
+    echo '<td data-label="Mã đơn"><strong>#' . intval($order_id) . '</strong><br><a href="' . esc_url(thean_order_edit_url((int) $order_id)) . '" target="_blank">✏️ Chỉnh sửa đơn hàng</a></td>';
     echo '<td data-label="Khách hàng">' . esc_html($billing_name) . '<span class="btc-table__muted">' . esc_html($billing_phone) . '</span></td>';
     echo '<td data-label="Đơn hàng"><strong>' . $order_total . '</strong><span class="btc-table__muted">' . esc_html($order_date) . '</span><span class="btc-table__muted">' . esc_html($payment_method) . '</span>';
     if ($paid_date || $bank_account) {
