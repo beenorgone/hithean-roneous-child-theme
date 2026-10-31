@@ -179,9 +179,9 @@ function hithean_export_bulk_attach(int $order_id, array $attachment_ids, int $b
     }
     $existing = (string) get_post_meta($order_id, 'warehouse_export_images', true);
     $all = array_values(array_unique(array_filter(array_merge(explode("\n", $existing), $urls))));
-    update_post_meta($order_id, 'warehouse_export_images', implode("\n", $all));
-    delete_post_meta($order_id, 'warehouse_export_ai_check');
-    delete_post_meta($order_id, 'warehouse_export_ai_review_status');
+    thean_order_meta_set((int) $order_id, 'warehouse_export_images', implode("\n", $all));
+    thean_order_meta_delete((int) $order_id, 'warehouse_export_ai_check');
+    thean_order_meta_delete((int) $order_id, 'warehouse_export_ai_review_status');
 
     $order = wc_get_order($order_id);
     if ($order) {

@@ -1003,8 +1003,8 @@ function process_order_payment($order, $bank_account, $paid_date, $amount_receiv
             $order->add_order_note("🔄 Phương thức thanh toán đã được đổi từ COD sang Chuyển khoản ngân hàng.");
         }
 
-        if (!empty($paid_date)) update_post_meta($order_id, 'order_paid_date', $paid_date);
-        if (!empty($bank_account)) update_post_meta($order_id, 'order_bank_account_received', $bank_account);
+        if (!empty($paid_date)) thean_order_meta_set((int) $order_id, 'order_paid_date', $paid_date);
+        if (!empty($bank_account)) thean_order_meta_set((int) $order_id, 'order_bank_account_received', $bank_account);
 
         if ($current_status === 'completed') {
             $order->add_order_note("✅ Đã xác nhận thanh toán. Đơn đã Hoàn thành nên giữ nguyên trạng thái hiện tại.");

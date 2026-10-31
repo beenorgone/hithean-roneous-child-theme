@@ -139,6 +139,59 @@ add_action('deleted_post_meta', static function ($meta_ids, $object_id, $meta_ke
     thean_legacy_meta_mirror((int) $object_id, (string) $meta_key, null, true);
 }, 20, 3);
 
+/**
+ * GHI META ĐƠN — dùng thay update_post_meta / add_post_meta / delete_post_meta trên đơn hàng.
+ * Ghi thẳng HPOS ($order->update_meta_data + save_meta_data — không gọi save() nên không kích đổi trạng thái / email)
+ * và bản ở posts (đồng bộ đang bật; hook *_post_meta cũ — bump danh sách xuất kho, tính bước board — vẫn chạy).
+ * HPOS tắt → chỉ ghi posts như trước.
+ */
+function thean_order_meta_write(int $order_id, string $key, $value, string $op): void
+{
+    $order = $order_id > 0 && function_exists('wc_get_order') ? wc_get_order($order_id) : null;
+    thean_legacy_meta_busy(true); // mirror (thean_legacy_meta_mirror) bỏ qua — đã tự ghi HPOS dưới
+    try {
+        if ($op === 'delete') {
+            delete_post_meta($order_id, $key);
+        } elseif ($op === 'add') {
+            add_post_meta($order_id, $key, $value);
+        } else {
+            update_post_meta($order_id, $key, $value);
+        }
+    } finally {
+        thean_legacy_meta_busy(false);
+    }
+    if (!$order instanceof WC_Order || !thean_legacy_meta_hpos()) {
+        return;
+    }
+    if ($op === 'delete') {
+        if (!$order->meta_exists($key)) {
+            return;
+        }
+        $order->delete_meta_data($key);
+    } elseif ($op === 'add') {
+        $order->add_meta_data($key, $value, false);
+    } else {
+        $order->update_meta_data($key, $value);
+    }
+    thean_legacy_meta_save($order);
+}
+
+function thean_order_meta_set(int $order_id, string $key, $value): void
+{
+    thean_order_meta_write($order_id, $key, $value, 'set');
+}
+
+/** Thêm 1 dòng (field nhiều giá trị, VD order_export_by của hithean). */
+function thean_order_meta_add(int $order_id, string $key, $value): void
+{
+    thean_order_meta_write($order_id, $key, $value, 'add');
+}
+
+function thean_order_meta_delete(int $order_id, string $key): void
+{
+    thean_order_meta_write($order_id, $key, null, 'delete');
+}
+
 /** 2. HPOS trống nhưng posts có → kéo sang HPOS (cập nhật luôn $order). Trả true nếu có đổi. */
 function thean_legacy_meta_reconcile(WC_Order $order): bool
 {

@@ -291,7 +291,7 @@ function hithean_export_ai_check_order(WC_Order $order, int $requested_by = 0)
         $result['checked_at'] = current_time('mysql');
         $result['checked_by'] = $requested_by ?: get_current_user_id();
         $result['provider'] = sanitize_key((string) $cfg['provider']);
-        update_post_meta($order_id, 'warehouse_export_ai_check', $result);
+        thean_order_meta_set((int) $order_id, 'warehouse_export_ai_check', $result);
         $order->add_order_note(hithean_export_ai_order_note($result));
         do_action('hithean_export_ai_check_completed', $order, $result);
         return $result;
@@ -502,7 +502,7 @@ function hithean_export_restore_confirmed_from_notes(int $order_id): bool
         if ($uid <= 0) {
             return false;
         }
-        update_post_meta($order_id, 'export_confirmed_by', $uid);
+        thean_order_meta_set((int) $order_id, 'export_confirmed_by', $uid);
         if ($order = wc_get_order($order_id)) {
             $order->add_order_note('♻️ Khôi phục "Xác nhận xuất kho" (bị mất khi lưu trang sửa đơn) theo ghi chú: ' . $name);
         }
@@ -781,10 +781,10 @@ add_action('wp_ajax_ajax_upload_images', function () {
     if ($uploaded_urls) {
         $existing = get_post_meta($order_id, 'warehouse_export_images', true);
         $all = array_filter(array_merge(explode("\n", $existing), $uploaded_urls));
-        update_post_meta($order_id, 'warehouse_export_images', implode("\n", $all));
+        thean_order_meta_set((int) $order_id, 'warehouse_export_images', implode("\n", $all));
         hithean_export_record_uploader($order_id, get_current_user_id());
-        delete_post_meta($order_id, 'warehouse_export_ai_check');
-        delete_post_meta($order_id, 'warehouse_export_ai_review_status');
+        thean_order_meta_delete((int) $order_id, 'warehouse_export_ai_check');
+        thean_order_meta_delete((int) $order_id, 'warehouse_export_ai_review_status');
         $message = '✅ Đã upload thành công ' . count($uploaded_urls) . ' ảnh';
         $ai_check = null;
         if (!empty($_POST['ueif_ai_check'])) {
@@ -854,7 +854,7 @@ add_action('wp_ajax_ajax_confirm_export', function () {
     }
 
     $user = wp_get_current_user();
-    update_post_meta($order_id, 'export_confirmed_by', $user->ID);
+    thean_order_meta_set((int) $order_id, 'export_confirmed_by', $user->ID);
     $order->add_order_note("✅ Đã xác nhận xuất kho bởi " . $user->display_name);
     do_action('hithean_warehouse_export_confirmed', $order);
     wp_send_json_success("✅ Đã xác nhận xuất kho đơn hàng #$order_id" . hithean_export_ship_codes_toast_suffix($order_id));

@@ -1350,7 +1350,7 @@ function ost_ajax_upload_export_images() {
 
     $existing = get_post_meta($order_id, 'warehouse_export_images', true);
     $all = array_filter(array_merge(explode("\n", (string) $existing), $uploaded_urls));
-    update_post_meta($order_id, 'warehouse_export_images', implode("\n", $all));
+    thean_order_meta_set((int) $order_id, 'warehouse_export_images', implode("\n", $all));
     $order->add_order_note('Đã upload thêm ' . count($uploaded_urls) . ' ảnh xuất kho từ màn hình kiểm soát xuất kho.');
     wp_send_json_success('Đã upload ' . count($uploaded_urls) . ' ảnh.');
 }
@@ -1365,7 +1365,7 @@ function ost_ajax_confirm_export_image() {
     if (!$order) wp_send_json_error('Không tìm thấy đơn');
 
     $user = wp_get_current_user();
-    update_post_meta($order_id, 'export_confirmed_by', $user->ID);
+    thean_order_meta_set((int) $order_id, 'export_confirmed_by', $user->ID);
     $order->add_order_note('Đã xác nhận ảnh xuất kho bởi ' . $user->display_name);
     do_action('hithean_warehouse_export_confirmed', $order);
     wp_send_json_success('Đã xác nhận ảnh xuất kho #' . $order_id . (function_exists('hithean_export_ship_codes_toast_suffix') ? hithean_export_ship_codes_toast_suffix($order_id) : ''));
@@ -1381,7 +1381,7 @@ function ost_ajax_set_order_shipper() {
     $order = wc_get_order($order_id);
     if (!$order || $shipper === '') wp_send_json_error('Thiếu đơn hàng hoặc shipper');
 
-    update_post_meta($order_id, 'order_shipper', $shipper);
+    thean_order_meta_set((int) $order_id, 'order_shipper', $shipper);
     $order->add_order_note('Đã cập nhật shipper xuất kho: ' . $shipper);
     wp_send_json_success('Đã cập nhật shipper #' . $order_id);
 }

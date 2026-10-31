@@ -18,7 +18,7 @@ function hithean_export_ai_schedule_check(int $order_id, int $requested_by = 0)
         return true;
     }
 
-    update_post_meta($order_id, 'warehouse_export_ai_review_status', [
+    thean_order_meta_set((int) $order_id, 'warehouse_export_ai_review_status', [
         'state'        => 'queued',
         'queued_at'    => current_time('mysql'),
         'requested_by' => absint($requested_by),
@@ -46,13 +46,13 @@ add_action('hithean_export_ai_check_async', function ($order_id): void {
         require_once $review_file;
     }
     if (!function_exists('hithean_export_ai_check_order')) {
-        update_post_meta($order_id, 'warehouse_export_ai_review_status', ['state' => 'failed', 'updated_at' => current_time('mysql')]);
+        thean_order_meta_set((int) $order_id, 'warehouse_export_ai_review_status', ['state' => 'failed', 'updated_at' => current_time('mysql')]);
         return;
     }
 
     $result = hithean_export_ai_check_order($order, $requested_by);
     if (is_wp_error($result)) {
-        update_post_meta($order_id, 'warehouse_export_ai_review_status', [
+        thean_order_meta_set((int) $order_id, 'warehouse_export_ai_review_status', [
             'state'      => 'failed',
             'updated_at' => current_time('mysql'),
             'error'      => sanitize_text_field($result->get_error_message()),
@@ -61,7 +61,7 @@ add_action('hithean_export_ai_check_async', function ($order_id): void {
         return;
     }
 
-    update_post_meta($order_id, 'warehouse_export_ai_review_status', ['state' => 'completed', 'updated_at' => current_time('mysql')]);
+    thean_order_meta_set((int) $order_id, 'warehouse_export_ai_review_status', ['state' => 'completed', 'updated_at' => current_time('mysql')]);
 }, 10, 1);
 
 /**
@@ -121,12 +121,12 @@ function hithean_export_append_ship_codes(int $order_id, array $codes, string $t
     }
     if (!$added) return [];
 
-    update_post_meta($order_id, 'order_ship_code', implode(', ', array_merge($existing, $added)));
+    thean_order_meta_set((int) $order_id, 'order_ship_code', implode(', ', array_merge($existing, $added)));
     $labels = ['ai_pass' => 'AI xác nhận ảnh khớp đơn', 'export_confirmed' => 'xác nhận xuất kho'];
     $log    = get_post_meta($order_id, 'warehouse_export_ship_codes_log', true);
     $log    = is_array($log) ? $log : [];
     $log[]  = ['codes' => $added, 'trigger' => $trigger, 'at' => current_time('mysql'), 'by' => get_current_user_id()];
-    update_post_meta($order_id, 'warehouse_export_ship_codes_log', array_slice($log, -10));
+    thean_order_meta_set((int) $order_id, 'warehouse_export_ship_codes_log', array_slice($log, -10));
     $order->add_order_note('🚚 Tự động lưu mã vận đơn từ ảnh xuất kho (' . ($labels[$trigger] ?? $trigger) . '): ' . implode(', ', $added));
     $GLOBALS['hithean_export_ship_codes_added'][$order_id] = $added;
     return $added;
@@ -154,7 +154,7 @@ function hithean_export_record_uploader(int $order_id, int $user_id): void
     $ids = array_map('absint', (array) get_post_meta($order_id, 'warehouse_export_uploaded_by', true));
     if (in_array($user_id, $ids, true)) return;
     $ids[] = $user_id;
-    update_post_meta($order_id, 'warehouse_export_uploaded_by', array_values(array_filter($ids)));
+    thean_order_meta_set((int) $order_id, 'warehouse_export_uploaded_by', array_values(array_filter($ids)));
 }
 
 /**
@@ -174,7 +174,7 @@ function hithean_export_save_uploaders_as_exporters(int $order_id, string $trigg
     foreach ((array) get_post_meta($order_id, 'warehouse_export_uploaded_by', true) as $user_id) {
         $user = get_userdata(absint($user_id));
         if (!$user || in_array($user->user_login, $existing, true)) continue;
-        add_post_meta($order_id, 'order_export_by', $user->user_login);
+        thean_order_meta_add((int) $order_id, 'order_export_by', $user->user_login);
         $existing[] = $user->user_login;
         $added[]    = $user->user_login;
     }
@@ -215,7 +215,7 @@ function hithean_export_lark_queue_notification(int $order_id): void
         return;
     }
 
-    update_post_meta($order_id, 'warehouse_export_lark_status', ['state' => 'queued', 'updated_at' => current_time('mysql')]);
+    thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'queued', 'updated_at' => current_time('mysql')]);
     wp_schedule_single_event(time() + 5, 'hithean_export_lark_notify_async', [$order_id, 0]);
 }
 
@@ -233,7 +233,7 @@ add_action('hithean_export_lark_notify_async', function ($order_id, $attempt = 0
     $settings = hithean_export_lark_settings();
     $webhook  = hithean_export_lark_sanitize_webhook($settings['webhook_url'] ?? '');
     if (empty($settings['enabled']) || $webhook === '') {
-        update_post_meta($order_id, 'warehouse_export_lark_status', ['state' => 'disabled', 'updated_at' => current_time('mysql')]);
+        thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'disabled', 'updated_at' => current_time('mysql')]);
         return;
     }
 
@@ -246,7 +246,7 @@ add_action('hithean_export_lark_notify_async', function ($order_id, $attempt = 0
 
     $passed  = is_array($review) && ($review['overall'] ?? '') === 'pass';
     if ($passed && !empty($settings['only_alerts'])) {
-        update_post_meta($order_id, 'warehouse_export_lark_status', ['state' => 'skipped_passed', 'updated_at' => current_time('mysql')]);
+        thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'skipped_passed', 'updated_at' => current_time('mysql')]);
         return;
     }
     $content = ($passed ? '✅' : '⚠️') . ' Xuất kho #' . $order->get_order_number() . ' — AI: ' . ($passed ? 'Đạt' : 'Không đạt');
@@ -258,15 +258,15 @@ add_action('hithean_export_lark_notify_async', function ($order_id, $attempt = 0
     $code = is_wp_error($response) ? 0 : (int) wp_remote_retrieve_response_code($response);
     if (is_wp_error($response) || $code < 200 || $code >= 300) {
         $error = is_wp_error($response) ? $response->get_error_message() : 'Webhook HTTP ' . $code;
-        update_post_meta($order_id, 'warehouse_export_lark_status', ['state' => 'failed', 'updated_at' => current_time('mysql'), 'error' => sanitize_text_field($error)]);
+        thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'failed', 'updated_at' => current_time('mysql'), 'error' => sanitize_text_field($error)]);
         if ($attempt < 2) {
             wp_schedule_single_event(time() + 60, 'hithean_export_lark_notify_async', [$order_id, $attempt + 1]);
         }
         return;
     }
 
-    update_post_meta($order_id, 'warehouse_export_lark_notified_at', current_time('mysql'));
-    update_post_meta($order_id, 'warehouse_export_lark_status', ['state' => 'sent', 'updated_at' => current_time('mysql')]);
+    thean_order_meta_set((int) $order_id, 'warehouse_export_lark_notified_at', current_time('mysql'));
+    thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'sent', 'updated_at' => current_time('mysql')]);
 }, 10, 2);
 
 add_action('hithean_warehouse_export_confirmed', function ($order): void {
