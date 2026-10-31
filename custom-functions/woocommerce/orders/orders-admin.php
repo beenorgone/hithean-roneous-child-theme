@@ -341,3 +341,40 @@ function hithean_order_admin_render_return_action_modals(): void
     <?php
 }
 add_action('admin_footer', 'hithean_order_admin_render_return_action_modals');
+
+/**
+ * Danh sách đơn: bấm vào dòng / mã đơn → mở trang chi tiết đơn ở TAB MỚI (WC mặc định mở ngay tab hiện tại).
+ * Chạy ở capture phase để chặn handler click dòng của WooCommerce; bỏ qua link, nút, ô tích, dòng .no-link,
+ * và khi đang bôi đen chữ.
+ */
+function hithean_order_admin_open_orders_in_new_tab(): void
+{
+    if (!hithean_order_admin_is_list_screen() || in_array($_GET['action'] ?? '', ['edit', 'new'], true)) {
+        return;
+    }
+    ?>
+    <script>
+    (function () {
+        function markLinks() {
+            document.querySelectorAll('.wp-list-table a.order-view').forEach(function (a) {
+                a.target = '_blank';
+                a.rel = 'noopener';
+            });
+        }
+        markLinks();
+        document.addEventListener('click', function (e) {
+            var row = e.target.closest('.wp-list-table tbody tr');
+            if (!row || e.button !== 0) return;
+            if (e.target.closest('a, button, input, select, textarea, label, .no-link, .check-column')) return;
+            if (window.getSelection && String(window.getSelection()).length) return;
+            var link = row.querySelector('a.order-view');
+            if (!link || !link.href) return;
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(link.href, '_blank', 'noopener');
+        }, true);
+    }());
+    </script>
+    <?php
+}
+add_action('admin_footer', 'hithean_order_admin_open_orders_in_new_tab');
