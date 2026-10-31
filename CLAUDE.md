@@ -111,7 +111,8 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   (`THEAN_OUS_BOARD_MORE`) → đổi tab
   lấy từ bộ nhớ đệm (1 phút, `BOARD_TTL`); lượt tự sửa làm đơn đổi tab thì server lấy lại danh sách trong cùng request, không gọi server; "Xem thêm" trong tab tải tiếp 20 đơn theo `offset` / `limit`. Loại khỏi luồng: Hủy / Thất bại / Hoàn tiền / Hoàn thành / Chưa ghi nhận / Đã ghi nhận
   (`thean_ops_excluded_statuses()`), đơn gộp Shopee, **đơn nội bộ** (cờ `_eim_internal`; lọc theo domain email ở Cài đặt ERP → Xử lý đơn → "Đơn nội bộ"
-  **đang TẮT** — bật bằng ô tích, option `thean_internal_domains_enabled` = '1', `thean_internal_domains_enabled()`; danh sách domain ở
+  **bật mặc định** — tắt bằng ô tích = option `thean_internal_domains_off` = '1', `thean_internal_domains_enabled()`; khớp **đúng** domain:
+  khai `thean.com` thì `a@hn.thean.com` vẫn vào board, muốn loại subdomain phải khai riêng; danh sách domain ở
   option `thean_internal_email_domains`, trống = dùng danh sách của eim) — board lọc thẳng bằng SQL
   nên đổi domain có hiệu lực ngay; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.
   **Đổi luồng vận hành → tăng `THEAN_OPS_STEP_VERSION`** để mọi đơn mở được tính lại.

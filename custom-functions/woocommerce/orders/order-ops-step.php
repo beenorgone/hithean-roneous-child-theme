@@ -72,7 +72,7 @@ function thean_ops_excluded_statuses(): array
 function thean_internal_email_domains(): array
 {
     if (!thean_internal_domains_enabled()) {
-        return []; // tạm tắt lọc theo domain (Cài đặt ERP → Xử lý đơn → Đơn nội bộ); cờ _eim_internal vẫn áp dụng
+        return []; // tắt lọc theo domain (Cài đặt ERP → Xử lý đơn → Đơn nội bộ); cờ _eim_internal vẫn áp dụng
     }
     $list = thean_parse_email_domains((string) get_option('thean_internal_email_domains', ''));
     if (!$list && function_exists('eim_internal_email_domains')) {
@@ -81,10 +81,13 @@ function thean_internal_email_domains(): array
     return $list;
 }
 
-/** Lọc đơn nội bộ theo domain email đang bật? Option `thean_internal_domains_enabled` = '1'; mặc định TẮT (tạm tắt 11/2026). */
+/**
+ * Lọc đơn nội bộ theo domain email đang bật? Mặc định BẬT. Option `thean_internal_domains_off` = '1' để tắt
+ * (key cũ `thean_internal_domains_enabled` — mặc định tắt — bỏ từ 31/10/2026 khi chuyển sang khớp đúng domain).
+ */
 function thean_internal_domains_enabled(): bool
 {
-    return (string) get_option('thean_internal_domains_enabled', '0') === '1';
+    return (string) get_option('thean_internal_domains_off', '0') !== '1';
 }
 
 /** Tách danh sách domain (phẩy / chấm phẩy / khoảng trắng / xuống dòng). Hàm thuần. */
@@ -100,21 +103,18 @@ function thean_parse_email_domains(string $raw): array
     return array_values(array_unique($out));
 }
 
-/** Email thuộc domain nội bộ? Khớp "@domain" hoặc subdomain ".domain" (không khớp nhầm thean.com với an.com). */
+/**
+ * Email thuộc domain nội bộ? Khớp ĐÚNG domain sau "@": khai "thean.com" thì a@thean.com là nội bộ, còn
+ * a@hn.thean.com (subdomain) vẫn là đơn thường — muốn loại subdomain thì khai riêng "hn.thean.com".
+ */
 function thean_email_is_internal(string $email, ?array $domains = null): bool
 {
     $email = strtolower(trim($email));
-    if ($email === '') {
+    $at    = strrpos($email, '@');
+    if ($at === false) {
         return false;
     }
-    foreach ($domains ?? thean_internal_email_domains() as $domain) {
-        $at = '@' . $domain;
-        $sub = '.' . $domain;
-        if (substr($email, -strlen($at)) === $at || (strpos($email, '@') !== false && substr($email, -strlen($sub)) === $sub)) {
-            return true;
-        }
-    }
-    return false;
+    return in_array(substr($email, $at + 1), $domains ?? thean_internal_email_domains(), true);
 }
 
 /** Đơn nội bộ: cờ `_eim_internal` hoặc email người mua thuộc domain nội bộ. */
@@ -130,9 +130,7 @@ function thean_ops_internal_sql(array $t): string
     $parts = ["NOT EXISTS (SELECT 1 FROM {$t['meta']} i WHERE i.{$t['fk']} = o.{$t['id']} AND i.meta_key = '_eim_internal' AND i.meta_value = '1')"];
     $likes = [];
     foreach (thean_internal_email_domains() as $domain) {
-        foreach (['%@', '%.'] as $prefix) {
-            $likes[] = $wpdb->prepare('%s', $prefix . $wpdb->esc_like($domain));
-        }
+        $likes[] = $wpdb->prepare('%s', '%@' . $wpdb->esc_like($domain)); // đúng domain, không gồm subdomain
     }
     if ($likes) {
         $match = static fn(string $col) => '(' . implode(' OR ', array_map(static fn($l) => "{$col} LIKE {$l}", $likes)) . ')';
@@ -585,7 +583,8 @@ function thean_internal_domains_settings_section(): void
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['thean_internal_domains_nonce'])
         && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['thean_internal_domains_nonce'])), 'thean_internal_domains_save')) {
         update_option('thean_internal_email_domains', implode(', ', thean_parse_email_domains(wp_unslash((string) ($_POST['thean_internal_email_domains'] ?? '')))), false);
-        update_option('thean_internal_domains_enabled', empty($_POST['thean_internal_domains_enabled']) ? '0' : '1', false);
+        update_option('thean_internal_domains_off', empty($_POST['thean_internal_domains_enabled']) ? '1' : '0', false);
+        delete_option('thean_internal_domains_enabled');
         $saved = true;
     }
     $value = (string) get_option('thean_internal_email_domains', '');
@@ -607,8 +606,10 @@ function thean_internal_domains_settings_section(): void
             <th scope="row"><label for="thean-internal-domains">Domain email nội bộ</label></th>
             <td>
                 <input type="text" class="large-text" style="max-width:600px" id="thean-internal-domains" name="thean_internal_email_domains" value="<?php echo esc_attr($value); ?>" placeholder="vd: theanmarket.com, ivarvietnam.com">
-                <p class="description">Đơn có email người mua thuộc các domain này (kể cả subdomain), hoặc có cờ <code>_eim_internal</code>, được coi là đơn nội bộ và
-                    <strong>không vào luồng vận hành</strong> (board "Tải đơn cần xử lý"). Ô tìm đơn vẫn tìm được. Cách nhau bằng dấu phẩy.</p>
+                <p class="description">Đơn có email người mua thuộc <strong>đúng</strong> các domain này, hoặc có cờ <code>_eim_internal</code>, được coi là đơn nội bộ và
+                    <strong>không vào luồng vận hành</strong> (board "Tải đơn cần xử lý"). Ô tìm đơn vẫn tìm được. Cách nhau bằng dấu phẩy.<br>
+                    Subdomain <strong>không</strong> tự tính: khai <code>thean.com</code> thì <code>a@thean.com</code> bị loại nhưng <code>a@hn.thean.com</code> vẫn vào board;
+                    muốn loại cả subdomain thì khai thêm <code>hn.thean.com</code>.</p>
                 <?php if ($value === '' && $eim) : ?>
                     <p class="description">Đang để trống → dùng danh sách của plugin hóa đơn (eim): <code><?php echo esc_html(implode(', ', $eim)); ?></code>.</p>
                 <?php endif; ?>
