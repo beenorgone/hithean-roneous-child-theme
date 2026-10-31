@@ -12,7 +12,7 @@
     var invoice = document.getElementById('thean-ous-invoice');
     var searchCtl = null, previewCtl = null, boardCtl = null, timer = 0;
     var boardState = { tab: '', page: 0, shown: 0, loading: false };
-    var boardCache = new Map(); // "tab|page" → {at, data}; trang 1 của mọi tab nạp sẵn khi mở board (5 phút)
+    var boardCache = new Map(); // "tab|page" → {at, data}; trang 1 của mọi tab nạp sẵn khi mở board (BOARD_TTL)
     var blockedUntil = 0; // server khóa tìm kiếm (quá nhiều lượt) — không tự gửi tới khi hết hạn
     var state = { q: '', page: 0, loading: false };
     var cache = new Map(); // "q|page" → {at, data}; 60s, tránh gọi lại khi mở/đóng modal
@@ -482,7 +482,7 @@
     }
     // Trang 1 (mở board / Làm mới / sau thao tác): server trả luôn 5 đơn đầu của MỌI tab (all = 1) → đổi tab lấy từ
     // boardCache, không gọi lại server. "Xem thêm" trong 1 tab tải tiếp từ vị trí đang hiện (offset).
-    var BOARD_TTL = 300000;
+    var BOARD_TTL = 60000; // 1 phút: đơn mới vào tab (đặt hàng, đổi trạng thái ở nơi khác) hiện ra khi đổi tab mà không cần Làm mới
     var BOARD_MORE = 20; // = THEAN_OUS_BOARD_MORE
     function loadBoard(tab, page, refresh, limit) {
         var key = tab + '|' + page, hit = boardCache.get(key);

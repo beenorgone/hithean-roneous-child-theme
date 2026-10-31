@@ -30,7 +30,8 @@ if (!defined('ABSPATH')) exit;
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '4'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK; 4: cờ chứng từ cho đơn đang giao)
+const THEAN_OPS_STEP_VERSION = '5'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK; 4: cờ chứng từ cho đơn đang giao;
+                                    // 5: tính lại mọi đơn — trước đây bỏ sót đổi meta qua save_meta_data trên HPOS)
 const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu chứng từ XK" (đơn đang giao: kèm tab Đang giao)
 const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu chứng từ XK: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
@@ -362,6 +363,16 @@ foreach (['added_post_meta', 'updated_post_meta', 'deleted_post_meta'] as $thean
     add_action($thean_ops_hook, function ($meta_id, $object_id, $meta_key) {
         if (in_array($meta_key, thean_ops_step_watched_meta(), true)
             && in_array(get_post_type((int) $object_id), ['shop_order', 'shop_order_placehold'], true)) {
+            thean_ops_step_queue((int) $object_id);
+        }
+    }, 10, 3);
+}
+// $order->update_meta_data() + save_meta_data() (không gọi save()): WC_Data phát {added,updated,deleted}_order_meta, KHÔNG phát
+// woocommerce_after_order_object_save và (HPOS) cũng không phát *_post_meta → trước đây bước lưu sẵn bị cũ: tìm đơn (tính trực tiếp)
+// thấy "Chờ thanh toán" nhưng board (đọc meta) không có.
+foreach (['added_order_meta', 'updated_order_meta', 'deleted_order_meta'] as $thean_ops_hook) {
+    add_action($thean_ops_hook, function ($meta_id, $object_id, $meta_key) {
+        if (in_array($meta_key, thean_ops_step_watched_meta(), true)) {
             thean_ops_step_queue((int) $object_id);
         }
     }, 10, 3);

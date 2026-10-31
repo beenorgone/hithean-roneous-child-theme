@@ -195,7 +195,7 @@ foreach ([true, false] as $hpos) {
     check(strpos($q, '//') === false && preg_match("/o\\.(date_created_gmt|post_date_gmt) >= '\\d{4}-/", $q), 'board SQL: no stray comment, skips orders older than 365 days');
     $wpdb->queries = [];
     thean_ops_step_unsynced_ids(20);
-    check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '4'") !== false
+    check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '" . THEAN_OPS_STEP_VERSION . "'") !== false
         && strpos($wpdb->queries[0], "IN ('wc-delivered','wc-partial-shipped','wc-completed') AND o.") !== false && strpos($wpdb->queries[0], 'LIMIT 20') !== false, 'unsynced = no meta for current version ' . ($hpos ? 'HPOS' : 'legacy'));
 }
 

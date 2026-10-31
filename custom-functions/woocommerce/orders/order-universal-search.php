@@ -1100,7 +1100,28 @@ function thean_ous_ajax_board(): void
     }
 
     // Tính lại tại chỗ các đơn sẽ hiện (đọc gộp 1 lần): lệch thì ghi lại, đơn đã sang bước khác thì không hiện ở tab đó.
-    $fresh   = thean_ops_step_sync_ids(array_merge([], ...array_values($ids_by)));
+    $fresh = thean_ops_step_sync_ids(array_merge([], ...array_values($ids_by)));
+    // Có đơn vừa đổi tab (meta cũ) → lấy lại danh sách: đơn chuyển SANG tab khác không bị kẹt ngoài trang đầu của tab đó
+    // ("Xem thêm" tính tiếp theo offset nên sẽ nhảy qua nó).
+    $moved = false;
+    foreach ($ids_by as $t => $ids) {
+        foreach ($ids as $id) {
+            $moved = $moved || !isset($fresh[$id]) || !thean_ous_board_in_tab($fresh[$id], $t);
+        }
+    }
+    if ($moved) {
+        $counts = thean_ous_board_counts();
+        $load   = $all ? array_keys(array_filter($counts)) : [];
+        if (!in_array($tab, $load, true)) {
+            $load[] = $tab;
+        }
+        $ids_by = [];
+        foreach ($load as $t) {
+            $ids_by[$t] = $all ? thean_ous_board_page_ids($t, 0, THEAN_OUS_BOARD_FIRST) : thean_ous_board_page_ids($t, $offset, $limit);
+        }
+        $new = array_diff(array_merge([], ...array_values($ids_by)), array_keys($fresh));
+        $fresh += thean_ops_step_sync_ids(array_values($new));
+    }
     $show_by = [];
     $hints   = [];
     $recount = false;
