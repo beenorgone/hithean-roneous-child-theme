@@ -13,6 +13,7 @@ namespace Automattic\WooCommerce\Utilities {
 
 namespace {
 define('ABSPATH', __DIR__);
+define('DAY_IN_SECONDS', 86400);
 function add_action(...$a) {}
 function wp_strip_all_tags($s) { return strip_tags((string) $s); }
 function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
@@ -173,16 +174,19 @@ check(thean_ops_step_from_flow(['next_goto' => 'picking'], 'chua-ghi-nhan') === 
 check(thean_ops_step_from_flow(['next_goto' => 'preorder']) === 'preorder', 'pre-order status → tab Đặt trước');
 check(thean_ops_step_from_flow(['next_goto' => 'preorder', 'preorder_confirm' => 'pending']) === 'confirm', 'resumed pre-order → Xác nhận khách');
 check(thean_ops_step_from_flow(['next_goto' => 'preorder', 'preorder_confirm' => 'waiting']) === 'confirm', 'waiting customer reply stays in Xác nhận khách');
+check(isset(thean_ops_step_tabs()['proof']) && thean_ops_proof_statuses() === ['delivered', 'partial-shipped', 'completed'], 'tab Thiếu chứng từ XK');
 check(array_key_last(thean_ops_step_tabs()) === 'preorder' && thean_ops_step_tabs()['confirm'] === 'Xác nhận khách', 'tabs: Đặt trước + Xác nhận khách');
 check(thean_ops_step_from_flow(['next_goto' => 'payment'], 'da-ghi-nhan') === '', 'Đã ghi nhận not in ops flow');
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
     $q = thean_ous_board_sql();
     check(strpos($q, $hpos ? 'wp_wc_orders_meta' : 'wp_postmeta') !== false && strpos($q, "'_thean_ops_step'") !== false
-        && strpos($q, "'wc-chua-ghi-nhan'") !== false && strpos($q, '_spx_date') !== false, 'board SQL ' . ($hpos ? 'HPOS' : 'legacy'));
+        && strpos($q, "'wc-chua-ghi-nhan'") !== false && strpos($q, '_spx_date') !== false
+        && strpos($q, "s.meta_value IN ('return', 'proof')") !== false, 'board SQL ' . ($hpos ? 'HPOS' : 'legacy'));
     $wpdb->queries = [];
     thean_ops_step_unsynced_ids(20);
-    check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '2'") !== false && strpos($wpdb->queries[0], 'LIMIT 20') !== false, 'unsynced = no meta for current version ' . ($hpos ? 'HPOS' : 'legacy'));
+    check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '3'") !== false
+        && strpos($wpdb->queries[0], "IN ('wc-delivered','wc-partial-shipped','wc-completed') AND o.") !== false && strpos($wpdb->queries[0], 'LIMIT 20') !== false, 'unsynced = no meta for current version ' . ($hpos ? 'HPOS' : 'legacy'));
 }
 
 // Đơn nội bộ: domain email (Cài đặt ERP) / cờ _eim_internal → không vào luồng vận hành.

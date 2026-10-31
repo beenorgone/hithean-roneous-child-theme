@@ -2,6 +2,7 @@
  * ô tìm đơn, board "Tải đơn cần xử lý"). Dùng chung theanmarket + hithean.
  *
  * - Tạm giữ / Tiếp tục / Hủy: `[data-thean-flow="hold|resume|cancel"]` → task order_flow (lý do bắt buộc trừ Tiếp tục).
+ * - Bỏ qua thiếu chứng từ XK: `[data-thean-flow="skipproof"]` → task export_proof_skip.
  * - Chuyển sang đặt trước (bắt buộc ghi chú): `.wc-action-button-thean-order-preorder` | `[data-thean-preorder]`
  *   → AJAX thean_order_workspace, task order_flow, flow preorder (order-workspace.php).
  * - Xác nhận giao đơn đặt trước (sau khi tiếp tục): `.wc-action-button-thean-order-preorder-confirm` |
@@ -16,6 +17,7 @@
         hold:     { title: '⏸️ Tạm giữ đơn', help: 'Tạm giữ để điều chỉnh (sửa sản phẩm / phí / địa chỉ). Nhập lý do.', placeholder: 'VD: khách đổi sản phẩm, sai địa chỉ…', required: true, buttons: [['hold', 'Tạm giữ', 'primary']] },
         cancel:   { title: '✖️ Hủy đơn', help: 'Hủy đơn sẽ trả hàng về tồn kho. Nhập lý do.', placeholder: 'VD: khách hủy, trùng đơn…', required: true, buttons: [['cancel', 'Hủy đơn và trả hàng về kho', 'danger']] },
         resume:   { title: '▶️ Tiếp tục xử lý', help: 'Đơn đặt trước: tiếp tục xong phải nhắn/gọi khách xác nhận giao. Đơn CK chưa thanh toán sẽ về Chờ thanh toán.', placeholder: 'Ghi chú (không bắt buộc)', required: false, buttons: [['resume', 'Tiếp tục', 'primary']] },
+        skipproof: { title: '⏭️ Bỏ qua thiếu chứng từ xuất kho', help: 'Đơn đã giao / hoàn thành mà thiếu ảnh hoặc xác nhận xuất kho. Đánh dấu bỏ qua để đơn rời tab "Thiếu chứng từ XK".', placeholder: 'Lý do (không bắt buộc): VD đơn giao thẳng từ NCC, ảnh lưu nơi khác…', required: false, buttons: [['skipproof', 'Đánh dấu bỏ qua', 'primary']] },
         confirm:  { title: '📞 Xác nhận giao đơn đặt trước', help: 'Nhắn / gọi khách xác nhận giao đơn, rồi ghi nhận kết quả.', placeholder: 'Ghi chú thêm (không bắt buộc)', required: false, buttons: [['waiting', 'Chờ khách phản hồi', ''], ['confirmed', '✅ Khách đã xác nhận giao', 'primary']] }
     };
     var modal = null, form = null, current = null;
@@ -157,7 +159,10 @@
         fd.append('action', 'thean_order_workspace');
         fd.append('nonce', cfg.nonce);
         fd.append('order_id', current.orderId);
-        if (current.kind !== 'confirm') {
+        if (current.kind === 'skipproof') {
+            fd.append('task', 'export_proof_skip');
+            fd.append('note', note);
+        } else if (current.kind !== 'confirm') {
             fd.append('task', 'order_flow');
             fd.append('flow', current.kind);
             fd.append('reason', note);
@@ -191,7 +196,7 @@
         if (cfg.reload) { location.reload(); return; }
         var t = job.trigger;
         t.classList.add('is-thean-complete');
-        t.setAttribute('data-thean-complete-label', { preorder: 'Đã đặt trước', hold: 'Đã tạm giữ', cancel: 'Đã hủy', resume: 'Đã tiếp tục' }[job.kind] || 'Đã ghi nhận');
+        t.setAttribute('data-thean-complete-label', { preorder: 'Đã đặt trước', hold: 'Đã tạm giữ', cancel: 'Đã hủy', resume: 'Đã tiếp tục', skipproof: 'Đã bỏ qua' }[job.kind] || 'Đã ghi nhận');
         t.removeAttribute('href');
         toast(message || 'Đã lưu.');
         document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderId: job.orderId, kind: job.kind } }));

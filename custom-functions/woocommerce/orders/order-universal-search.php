@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) exit;
  * đếm + phân trang bằng SQL rồi đọc 10 đơn của trang; 10 đơn đó được tính lại tại chỗ (tự sửa nếu lệch).
  *
  * Chọn nhiều đơn (kết quả tìm + board) → thao tác hàng loạt: Tạm giữ / Tiếp tục / Đặt trước / Hủy (thean_ow_apply_flow của
- * order-workspace.php) và Đổi trạng thái; tối đa THEAN_OUS_BULK_MAX đơn / lần.
+ * order-workspace.php), Đổi trạng thái, Bỏ qua thiếu chứng từ XK (tab board); tối đa THEAN_OUS_BULK_MAX đơn / lần.
  *
  * AJAX: thean_order_usearch, thean_order_usearch_preview, thean_order_usearch_alerts, thean_order_usearch_board,
  * thean_order_usearch_bulk.
@@ -679,6 +679,7 @@ function thean_ous_next_actions(WC_Order $order, string $step): string
         'picking' => ['order-export-images', 'in-van-don-ghtk', 'print_pxk'],
         'export'  => ['order-export-confirm'],
         'return'  => ['order-return-record', 'order-return-images'],
+        'proof'   => ['order-export-images', 'order-export-confirm'],
     ];
     $buttons = [];
     foreach ($map[$step] ?? [] as $suffix) {
@@ -694,6 +695,9 @@ function thean_ous_next_actions(WC_Order $order, string $step): string
     }
     if ($step === 'preorder') {
         $buttons = array_slice(thean_ous_flow_buttons($order), 0, 1); // ▶️ Tiếp tục
+    }
+    if ($step === 'proof' && current_user_can('manage_woocommerce')) {
+        $buttons[] = '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-flow="skipproof" data-order-id="' . esc_attr($order->get_id()) . '">⏭️ Bỏ qua</button>';
     }
     if (!$buttons) {
         $tab = ['cod' => 'payment', 'shipping' => 'delivery'][$step] ?? $step;
@@ -965,7 +969,7 @@ function thean_ous_board_sql(): string
             JOIN {$t['meta']} s ON s.{$t['fk']} = o.{$t['id']} AND s.meta_key = '" . THEAN_OPS_STEP_META . "' AND s.meta_value <> 'none'
             WHERE o.{$t['type']} = 'shop_order'
               AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
-              AND (o.{$t['status']} NOT IN ({$excluded}) OR s.meta_value = 'return')
+              AND (o.{$t['status']} NOT IN ({$excluded}) OR s.meta_value IN ('return', 'proof'))
               AND NOT EXISTS (SELECT 1 FROM {$t['meta']} x WHERE x.{$t['fk']} = o.{$t['id']} AND x.meta_key = '_spx_date' AND x.meta_value <> '')
               AND " . thean_ops_internal_sql($t); // đơn nội bộ (domain email / _eim_internal) — đổi cài đặt có hiệu lực ngay
 }
@@ -1082,10 +1086,10 @@ function thean_ous_ajax_bulk(): void
         wp_send_json_error(['message' => sprintf('Mỗi lần tối đa %d đơn.', THEAN_OUS_BULK_MAX)]);
     }
     $flows = ['hold', 'resume', 'cancel', 'preorder'];
-    if (!in_array($op, array_merge($flows, ['status']), true)) {
+    if (!in_array($op, array_merge($flows, ['status', 'skipproof']), true)) {
         wp_send_json_error(['message' => 'Thao tác không hợp lệ.']);
     }
-    if (in_array($op, $flows, true) && !function_exists('thean_ow_apply_flow')) {
+    if ($op !== 'status' && !function_exists('thean_ow_apply_flow')) {
         require_once __DIR__ . '/order-workspace.php';
     }
 
@@ -1093,9 +1097,13 @@ function thean_ous_ajax_bulk(): void
     $failed = [];
     $orders = thean_ous_load_orders($ids);
     foreach ($orders as $order) {
-        [$ok, $message] = $op === 'status'
-            ? thean_ous_bulk_status($order, $status, $reason)
-            : thean_ow_apply_flow($order, $op, $reason);
+        if ($op === 'status') {
+            [$ok, $message] = thean_ous_bulk_status($order, $status, $reason);
+        } elseif ($op === 'skipproof') {
+            [$ok, $message] = thean_ow_skip_export_proof($order, $reason);
+        } else {
+            [$ok, $message] = thean_ow_apply_flow($order, $op, $reason);
+        }
         if ($ok) {
             $done[] = $order->get_id();
         } else {

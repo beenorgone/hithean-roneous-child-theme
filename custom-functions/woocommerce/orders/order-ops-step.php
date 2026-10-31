@@ -28,7 +28,8 @@ if (!defined('ABSPATH')) exit;
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '2'; // tăng khi đổi logic bước vận hành (2: tab Đặt trước + xác nhận giao đơn đặt trước)
+const THEAN_OPS_STEP_VERSION = '3'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK)
+const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu chứng từ XK: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
 const THEAN_OPS_SWEEP     = 50;
 
@@ -43,6 +44,7 @@ function thean_ops_step_tabs(): array
         'delivery' => 'Chờ giao',
         'shipping' => 'Đang giao',
         'cod'      => 'Thu COD',
+        'proof'    => 'Thiếu chứng từ XK', // đã giao / hoàn thành mà thiếu ảnh hoặc xác nhận xuất kho
         'return'   => 'Hoàn hàng',
         'preorder' => 'Đặt trước',      // trạng thái pre-order, chờ đến hẹn
     ];
@@ -128,6 +130,37 @@ function thean_ops_internal_sql(array $t): string
     return implode(' AND ', $parts);
 }
 
+/** Trạng thái đã giao / xong — thiếu chứng từ xuất kho thì vào tab "Thiếu chứng từ XK". */
+function thean_ops_proof_statuses(): array
+{
+    return ['delivered', 'partial-shipped', 'completed'];
+}
+
+/**
+ * Chứng từ xuất kho còn thiếu của đơn đã giao / xong (rỗng = đủ, hoặc đã đánh dấu bỏ qua, hoặc đơn ngoài diện xét).
+ *
+ * @return string[]
+ */
+function thean_ops_missing_proof(WC_Order $order): array
+{
+    if (!in_array($order->get_status(), thean_ops_proof_statuses(), true) || (string) $order->get_meta('_thean_export_proof_skip') === '1') {
+        return [];
+    }
+    $created = $order->get_date_created();
+    if (!$created || $created->getTimestamp() < time() - THEAN_OPS_PROOF_DAYS * DAY_IN_SECONDS) {
+        return [];
+    }
+    $missing = [];
+    if (trim((string) $order->get_meta('warehouse_export_images')) === '') {
+        $missing[] = 'ảnh xuất kho';
+    }
+    // Workflow xuất kho cũ vẫn ghi post meta kể cả khi bật HPOS.
+    if (!$order->get_meta('export_confirmed_by') && !get_post_meta($order->get_id(), 'export_confirmed_by', true)) {
+        $missing[] = 'xác nhận xuất kho';
+    }
+    return $missing;
+}
+
 /** Bước tiếp theo (thean_ow_flow) → tab board; '' = không cần xử lý. Hàm thuần. */
 function thean_ops_step_from_flow(array $flow, string $status = ''): string
 {
@@ -160,6 +193,10 @@ function thean_ops_step_compute(WC_Order $order): array
     }
     if ($order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '' || thean_order_is_internal($order)) {
         return ['step' => '', 'hint' => ''];
+    }
+    $missing = thean_ops_missing_proof($order);
+    if ($missing) {
+        return ['step' => 'proof', 'hint' => 'Đã ' . mb_strtolower(wc_get_order_status_name($order->get_status())) . ' nhưng thiếu ' . implode(' + ', $missing)];
     }
     $flow = thean_ow_flow($order);
     $step = thean_ops_step_from_flow($flow, $order->get_status());
@@ -275,7 +312,7 @@ function thean_ops_step_watched_meta(): array
     return [
         '_order_payment_confirmation_audit', 'paid_date', 'order_paid_date', 'bank_account_received', 'order_bank_account_received',
         'handling_status', 'order_handling_status', 'warehouse_export_images', 'export_confirmed_by', 'return_status',
-        '_payment_method', '_spx_date', '_eim_internal', '_billing_email', '_thean_preorder_confirm',
+        '_payment_method', '_spx_date', '_eim_internal', '_billing_email', '_thean_preorder_confirm', '_thean_export_proof_skip',
     ];
 }
 
@@ -297,16 +334,19 @@ function thean_ops_step_tables(): array
     $hpos = class_exists('\Automattic\WooCommerce\Utilities\OrderUtil')
         && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
     return $hpos
-        ? ['orders' => "{$wpdb->prefix}wc_orders", 'meta' => "{$wpdb->prefix}wc_orders_meta", 'id' => 'id', 'status' => 'status', 'type' => 'type', 'fk' => 'order_id', 'email_col' => 'billing_email']
-        : ['orders' => $wpdb->posts, 'meta' => $wpdb->postmeta, 'id' => 'ID', 'status' => 'post_status', 'type' => 'post_type', 'fk' => 'post_id', 'email_col' => ''];
+        ? ['orders' => "{$wpdb->prefix}wc_orders", 'meta' => "{$wpdb->prefix}wc_orders_meta", 'id' => 'id', 'status' => 'status', 'type' => 'type', 'fk' => 'order_id', 'email_col' => 'billing_email', 'date' => 'date_created_gmt']
+        : ['orders' => $wpdb->posts, 'meta' => $wpdb->postmeta, 'id' => 'ID', 'status' => 'post_status', 'type' => 'post_type', 'fk' => 'post_id', 'email_col' => '', 'date' => 'post_date_gmt'];
 }
 
-/** FROM … WHERE chung: đơn mở thuộc luồng vận hành. */
+/** FROM … WHERE chung: đơn mở thuộc luồng vận hành + đơn đã giao / xong trong THEAN_OPS_PROOF_DAYS ngày (soát chứng từ XK). */
 function thean_ops_step_open_sql(array $t): string
 {
     $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_excluded_statuses())) . "'";
+    $proof    = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_proof_statuses())) . "'";
+    $since    = gmdate('Y-m-d H:i:s', time() - THEAN_OPS_PROOF_DAYS * DAY_IN_SECONDS);
     return "FROM {$t['orders']} o WHERE o.{$t['type']} = 'shop_order'
-             AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft', {$excluded})";
+             AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
+             AND (o.{$t['status']} NOT IN ({$excluded}) OR (o.{$t['status']} IN ({$proof}) AND o.{$t['date']} >= '{$since}'))";
 }
 
 /** Đơn mở chưa được tính bước theo logic hiện tại (THEAN_OPS_STEP_VERSION), mới nhất trước. @return int[] */

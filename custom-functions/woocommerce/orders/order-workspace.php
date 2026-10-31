@@ -1307,6 +1307,22 @@ function thean_ow_box_tools(WC_Order $order, $order_no): void
 
 add_action('wp_ajax_thean_order_workspace', 'thean_ow_ajax');
 /**
+ * Đánh dấu bỏ qua "thiếu chứng từ xuất kho" (đơn đã giao / xong mà thiếu ảnh / xác nhận xuất kho — tab
+ * "Thiếu chứng từ XK" của board, order-ops-step.php). Trả [thành công?, thông báo].
+ */
+function thean_ow_skip_export_proof(WC_Order $order, string $reason): array
+{
+    if ((string) $order->get_meta('_thean_export_proof_skip') === '1') {
+        return [false, 'Đơn đã được đánh dấu bỏ qua.'];
+    }
+    $order->update_meta_data('_thean_export_proof_skip', '1');
+    $order->update_meta_data('_thean_export_proof_skip_by', get_current_user_id());
+    $order->add_order_note('⏭️ Bỏ qua thiếu chứng từ xuất kho' . ($reason !== '' ? ': ' . $reason : '') . '.', false, true);
+    $order->save();
+    return [true, 'Đã đánh dấu bỏ qua thiếu chứng từ xuất kho.'];
+}
+
+/**
  * Tạm giữ / Tiếp tục / Hủy / Đặt trước 1 đơn (task order_flow). Trả [thành công?, thông báo].
  * Dùng chung cho AJAX bảng điều phối và thao tác hàng loạt của ô tìm đơn / board (order-universal-search.php).
  */
@@ -1449,6 +1465,11 @@ function thean_ow_ajax(): void
 
         case 'order_flow':
             [$ok, $message] = thean_ow_apply_flow($order, sanitize_key($_POST['flow'] ?? ''), sanitize_text_field(wp_unslash($_POST['reason'] ?? '')));
+            $ok ? wp_send_json_success(['message' => $message]) : wp_send_json_error(['message' => $message]);
+            break;
+
+        case 'export_proof_skip':
+            [$ok, $message] = thean_ow_skip_export_proof($order, sanitize_text_field(wp_unslash($_POST['note'] ?? '')));
             $ok ? wp_send_json_success(['message' => $message]) : wp_send_json_error(['message' => $message]);
             break;
 

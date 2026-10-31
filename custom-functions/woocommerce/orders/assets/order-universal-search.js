@@ -206,6 +206,7 @@
             + '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="resume">▶️ Tiếp tục</button>'
             + '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="preorder">📅 Đặt trước</button>'
             + '<button type="button" class="thean-ous-btn thean-ous-btn--danger" data-thean-ous-bulk="cancel">✖️ Hủy</button>'
+            + (modal === board && boardState.tab === 'proof' ? '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-ous-bulk="skipproof">⏭️ Bỏ qua thiếu CT</button>' : '')
             + '<span class="thean-ous-bulk__status"><select data-bulk-status aria-label="Trạng thái mới"><option value="">Đổi trạng thái…</option>' + statusOpts + '</select>'
             + '<button type="button" class="thean-ous-btn thean-ous-btn--view" data-thean-ous-bulk="status">Áp dụng</button></span>'
             + '<button type="button" class="thean-ous-bulk__clear" data-thean-ous-bulk-clear>Bỏ chọn</button></div>'
