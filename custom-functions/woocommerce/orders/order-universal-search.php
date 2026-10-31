@@ -1081,6 +1081,7 @@ function thean_ous_ui_config(): array
         'statuses'       => thean_ous_statuses(),
         'alertsOff'      => thean_ous_alerts_off(),
         // Modal thao tác nhanh của orders-admin.php — Esc nhường chúng đóng trước.
+        'wcList'         => function_exists('thean_wcl_state') ? thean_wcl_state() : null, // order-list-lazy.php
         'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden])',
     ];
 }

@@ -5,6 +5,11 @@ if (!defined('ABSPATH')) exit;
  * Admin: nạp file admin theo screen + admin styles, và ép admin color scheme mặc định.
  */
 
+// Tắt bảng danh sách đơn Woo mặc định — phải nạp trước prepare_items() (WC chạy trước admin_enqueue_scripts).
+if (is_admin()) {
+    require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/order-list-lazy.php';
+}
+
 // Conditionally load admin-specific files
 function load_custom_admin_files()
 {

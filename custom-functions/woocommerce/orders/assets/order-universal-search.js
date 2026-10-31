@@ -23,6 +23,39 @@
     if (anchor) anchor.parentNode.insertBefore(bar, anchor.nextSibling);
     bar.hidden = false;
 
+    /* ---------- Bảng danh sách của Woo (order-list-lazy.php): mặc định tắt, không nhớ ---------- */
+    (function () {
+        var wc = cfg.wcList;
+        if (!wc) return;
+        var box = document.createElement('div');
+        box.className = 'thean-ous-wclist' + (wc.off ? ' is-off' : '');
+        var text = document.createElement('span');
+        var link = document.createElement('a');
+        var url = new URL(location.href);
+        if (wc.off) {
+            text.textContent = 'Danh sách đơn của Woo đang tắt cho trang tải nhanh — dùng ô tìm hoặc 📋 Cần xử lý.';
+            url.searchParams.set('thean_wc_list', '1');
+            link.href = url.toString();
+            link.className = 'thean-ous-wclist__btn';
+            link.textContent = '⤓ Tải danh sách Woo';
+        } else {
+            text.textContent = 'Đang hiện danh sách đơn của Woo (lần vào sau sẽ tắt).';
+            link.href = wc.hideUrl;
+            link.textContent = 'Ẩn danh sách';
+            // Giữ bảng khi phân trang / đổi tab trạng thái / sắp xếp / lọc.
+            document.querySelectorAll('.wrap .subsubsub a, .wrap .tablenav a, .wrap .wp-list-table thead a, .wrap .wp-list-table tfoot a').forEach(function (a) {
+                try { var u = new URL(a.href); u.searchParams.set('thean_wc_list', '1'); a.href = u.toString(); } catch (e) {}
+            });
+            document.querySelectorAll('#posts-filter, #wc-orders-filter').forEach(function (form) {
+                var input = document.createElement('input');
+                input.type = 'hidden'; input.name = 'thean_wc_list'; input.value = '1';
+                form.appendChild(input);
+            });
+        }
+        box.append(text, link);
+        bar.parentNode.insertBefore(box, bar.nextSibling);
+    }());
+
     function stickyTop() {
         var top = 0;
         ['#wpadminbar', '.woocommerce-layout__header'].forEach(function (sel) {

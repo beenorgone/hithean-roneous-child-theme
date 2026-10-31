@@ -70,6 +70,11 @@ Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_m
 
 ## Ô tìm đơn (`woocommerce/orders/order-universal-search.php`)
 
+- **Bảng danh sách của Woo tắt mặc định** (`order-list-lazy.php`, nạp sớm ở đầu `core/admin.php` vì WC truy vấn danh sách
+  trước `admin_enqueue_scripts`): không chạy truy vấn đơn (legacy `posts_pre_query`, HPOS `woocommerce_hpos_pre_query`).
+  Nút "⤓ Tải danh sách Woo" mở lại với `?thean_wc_list=1` (JS gắn tiếp vào phân trang / tab / sắp xếp), không nhớ cho lần sau.
+  Bảng cũng hiện khi có `?s=`, lọc khách / tháng, hoặc kết quả thao tác hàng loạt.
+
 Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô tìm mặc định** (ẩn `p.search-box`).
 - UI nạp qua `core/admin.php`; AJAX `thean_order_usearch`, `thean_order_usearch_preview`, `thean_order_usearch_alerts`
   khai ở module `order_universal_search` trong module-loader.

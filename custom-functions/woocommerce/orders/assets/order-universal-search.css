@@ -4,6 +4,17 @@ body.thean-ous-alerts-off #wpbody-content .notice,
 body.thean-ous-alerts-off #wpbody-content .update-nag,
 body.thean-ous-alerts-off .woocommerce-layout__notice-list { display:none !important; }
 
+/* Bảng danh sách của Woo tắt mặc định (order-list-lazy.php) — ẩn vùng bảng ngay từ <head>. */
+body.thean-wc-list-off #posts-filter,
+body.thean-wc-list-off #wc-orders-filter,
+body.thean-wc-list-off .wrap .subsubsub,
+body.thean-wc-list-off .woocommerce-BlankState { display:none !important; }
+.thean-ous-wclist { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:0 0 12px; padding:8px 12px; border:1px dashed #b9cdf0; border-radius:10px; background:#fff; color:#475569; font-size:13px; }
+.thean-ous-wclist.is-off { padding:14px 16px; }
+.thean-ous-wclist a { color:#0047ba; font-weight:600; }
+.thean-ous-wclist__btn { padding:6px 12px; border:1px solid #8fb0e6; border-radius:8px; text-decoration:none; }
+.thean-ous-wclist__btn:hover { background:#e8f0ff; }
+
 #thean-ous-bar, .thean-ous-modal {
     /* Màu chính: xanh dương đậm #0047ba (The An / Hi The An) — đổi màu ở đây. */
     --ous-primary:#0047ba; --ous-primary-dark:#003a99; --ous-primary-light:#e8f0ff; --ous-primary-lighter:#f3f7ff;
