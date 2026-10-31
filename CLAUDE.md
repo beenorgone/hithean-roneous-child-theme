@@ -127,6 +127,11 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   chạy cả `hithean-order-*`; bước chưa có thao tác nhanh → mở trang sửa đơn `#step-<bước>`) và nút Tạm giữ / Tiếp tục / Hủy (popup lý do,
   `assets/order-flow-popup.js` → `thean_ow_apply_flow()` của order-workspace.php). Ô chọn từng đơn + chọn tất cả → thanh thao tác
   hàng loạt (Tạm giữ / Tiếp tục / Đặt trước / Hủy / Đổi trạng thái — AJAX `thean_order_usearch_bulk`, ≤50 đơn / lần).
+- "🧾 Nhập VAT" (`order-vat-request.php` + `assets/order-vat-request.js`, nạp mọi request; nút ở cột Thao tác, xem nhanh, box Khách hàng
+  của bảng điều phối): **bắt buộc up ảnh chụp tin nhắn thực tế của khách** (≤5, meta `_thean_vat_proof_ids`) rồi mới nhập MST / công ty /
+  địa chỉ / email — "🤖 Bóc tách bằng AI" (feature `order_vat_ai_extract`). Lưu meta eim `_eim_buyer_*` (chốt tay) + `_eim_vat_request`
+  {at, by, proof, note}; eim gửi kèm khi hub đồng bộ (`eim_order_vat_request`) và hub tự đưa vào "VAT chờ khớp"
+  (`eim_pending_vat_from_site_request`). Đơn đã vào lô / đã xuất HĐ thì khóa.
 - "🧾 Xem hóa đơn" (cột Thao tác + xem nhanh): popup iframe dùng bản xem trước hóa đơn của trang Tạo đơn (AJAX
   `order_creator_invoice_preview`, `WC_Email_Customer_Invoice`), có In / Mở tab mới; chỉ hiện khi có module tạo đơn.
 - Tải: 10 đơn/trang đọc gộp 1 lần `wc_get_orders(['post__in' => …])`; HTML xem nhanh cache Redis (`wp_cache`, nhóm

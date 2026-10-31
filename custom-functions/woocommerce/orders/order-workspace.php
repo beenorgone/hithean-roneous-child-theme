@@ -1233,6 +1233,11 @@ function thean_ow_box_customer(WC_Order $order): void
     echo '<div class="tow-chips">';
     foreach ($links as $label => $url) echo '<a class="tow-chip" href="' . esc_url($url) . '" target="_blank" rel="noopener">' . esc_html($label) . '</a>';
     echo '</div>';
+    // Thông tin xuất VAT (eim): MST hiện có + nút nhập / sửa (bắt buộc ảnh tin nhắn khách — order-vat-request.php).
+    if (function_exists('thean_vat_request_button') && ($vat = thean_vat_request_button($order, 'button')) !== '') {
+        $tax = (string) $order->get_meta('_eim_buyer_tax_code');
+        echo thean_ow_row('Xuất VAT', ($tax !== '' ? '<code>' . esc_html($tax) . '</code> ' . esc_html((string) $order->get_meta('_eim_buyer_company')) . ' ' : '<span class="tow-muted">Chưa có</span> ') . $vat);
+    }
     thean_ow_box_close();
 }
 

@@ -77,6 +77,7 @@ $GLOBALS['wpdb'] = new FakeWpdb();
 
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-ops-step.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-universal-search.php';
+require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-vat-request.php';
 
 $checks = 0;
 function check($cond, string $msg): void
@@ -221,6 +222,12 @@ check(!thean_can_change_any_status(), 'admin not designated → no arbitrary sta
 $GLOBALS['__caps'] = ['manage_woocommerce']; $GLOBALS['__uid'] = 7;
 check(thean_can_change_any_status() && !thean_can_skip_export_proof(), 'designated shop manager can change status, still cannot skip proof');
 unset($GLOBALS['__options']['thean_status_change_users']); $GLOBALS['__caps'] = []; $GLOBALS['__uid'] = 0;
+
+// Nhập VAT: bóc JSON trả lời của AI.
+$ai = thean_vat_request_parse_ai("Đây là kết quả:\n```json\n{\"tax_code\":\"MST: 0312 345 678\",\"company\":\" Công ty TNHH An \",\"address\":\"12 Lê Lợi, Q1\",\"email\":\"ketoan@an.vn\",\"note\":\"\"}\n```");
+check($ai['tax_code'] === '0312345678' && $ai['company'] === 'Công ty TNHH An' && $ai['email'] === 'ketoan@an.vn', 'AI JSON in code fence, MST cleaned');
+check(thean_vat_request_parse_ai('Không đọc được ảnh') === [], 'no JSON → empty');
+check(thean_vat_request_parse_ai('{"tax_code":"0101234567-001"}')['tax_code'] === '0101234567-001', 'MST 13 số giữ dấu -');
 
 echo "OK ({$checks} checks)\n";
 }

@@ -104,4 +104,7 @@ add_action('order_edit_form_top', 'thean_render_order_workspace');
     if (function_exists('thean_flow_popup_enqueue')) {
         thean_flow_popup_enqueue(true); // popup Đặt trước / xác nhận giao… — xong thì tải lại trang
     }
+    if (function_exists('thean_vat_request_enqueue')) {
+        thean_vat_request_enqueue(true); // popup Nhập thông tin xuất VAT — xong thì tải lại trang
+    }
 })();

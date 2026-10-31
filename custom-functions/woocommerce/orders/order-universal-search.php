@@ -747,6 +747,9 @@ function thean_ous_render_actions(WC_Order $order, bool $compact): string
     if ($invoice !== '') {
         $buttons['view'][] = '<button type="button" class="thean-ous-btn thean-ous-btn--view" data-thean-ous-invoice="' . esc_url($invoice) . '" data-order-id="' . esc_attr($order->get_id()) . '">🧾 Xem hóa đơn</button>';
     }
+    if (function_exists('thean_vat_request_button') && ($vat = thean_vat_request_button($order)) !== '') {
+        $buttons['view'][] = $vat; // Nhập / sửa thông tin xuất VAT (order-vat-request.php)
+    }
 
     foreach (thean_ous_order_actions($order) as $key => $action) {
         if (empty($action['url'])) {
@@ -1324,7 +1327,7 @@ function thean_ous_ui_config(): array
         'canChangeStatus' => function_exists('thean_can_change_any_status') && thean_can_change_any_status(), // order-ops-step.php
         'canSkipProof'   => function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof(),
         'wcList'         => function_exists('thean_wcl_state') ? thean_wcl_state() : null, // order-list-lazy.php
-        'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden]), #thean-flow-modal:not([hidden])',
+        'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden]), #thean-flow-modal:not([hidden]), #thean-vat-modal:not([hidden])',
     ];
 }
 
@@ -1343,6 +1346,9 @@ function thean_ous_enqueue_assets(): void
     wp_add_inline_script('thean-ous', 'window.theanOusCfg = ' . wp_json_encode(thean_ous_ui_config()) . ';', 'before');
     if (function_exists('thean_flow_popup_enqueue')) {
         thean_flow_popup_enqueue(false); // popup Tạm giữ / Hủy / Đặt trước… (order-ops-step.php)
+    }
+    if (function_exists('thean_vat_request_enqueue')) {
+        thean_vat_request_enqueue(false); // popup Nhập thông tin xuất VAT (order-vat-request.php)
     }
 }
 
