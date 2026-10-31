@@ -71,11 +71,20 @@ function thean_ops_excluded_statuses(): array
  */
 function thean_internal_email_domains(): array
 {
+    if (!thean_internal_domains_enabled()) {
+        return []; // tạm tắt lọc theo domain (Cài đặt ERP → Xử lý đơn → Đơn nội bộ); cờ _eim_internal vẫn áp dụng
+    }
     $list = thean_parse_email_domains((string) get_option('thean_internal_email_domains', ''));
     if (!$list && function_exists('eim_internal_email_domains')) {
         $list = thean_parse_email_domains(implode(' ', (array) eim_internal_email_domains()));
     }
     return $list;
+}
+
+/** Lọc đơn nội bộ theo domain email đang bật? Option `thean_internal_domains_enabled` = '1'; mặc định TẮT (tạm tắt 11/2026). */
+function thean_internal_domains_enabled(): bool
+{
+    return (string) get_option('thean_internal_domains_enabled', '0') === '1';
 }
 
 /** Tách danh sách domain (phẩy / chấm phẩy / khoảng trắng / xuống dòng). Hàm thuần. */
@@ -576,6 +585,7 @@ function thean_internal_domains_settings_section(): void
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['thean_internal_domains_nonce'])
         && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['thean_internal_domains_nonce'])), 'thean_internal_domains_save')) {
         update_option('thean_internal_email_domains', implode(', ', thean_parse_email_domains(wp_unslash((string) ($_POST['thean_internal_email_domains'] ?? '')))), false);
+        update_option('thean_internal_domains_enabled', empty($_POST['thean_internal_domains_enabled']) ? '0' : '1', false);
         $saved = true;
     }
     $value = (string) get_option('thean_internal_email_domains', '');
@@ -586,6 +596,14 @@ function thean_internal_domains_settings_section(): void
         <?php wp_nonce_field('thean_internal_domains_save', 'thean_internal_domains_nonce'); ?>
         <h2>Đơn nội bộ</h2>
         <table class="form-table" role="presentation"><tbody><tr>
+            <th scope="row">Lọc theo domain</th>
+            <td>
+                <label><input type="checkbox" name="thean_internal_domains_enabled" value="1" <?php checked(thean_internal_domains_enabled()); ?>>
+                    Bật — loại đơn có email thuộc các domain dưới khỏi board</label>
+                <p class="description">Đang <strong><?php echo thean_internal_domains_enabled() ? 'BẬT' : 'TẮT'; ?></strong>. Khi tắt, đơn có email nội bộ vẫn vào board như đơn thường;
+                    đơn có cờ <code>_eim_internal</code> (đơn gộp Shopee, đơn liên site…) vẫn luôn bị loại. Đổi có hiệu lực ngay.</p>
+            </td>
+        </tr><tr>
             <th scope="row"><label for="thean-internal-domains">Domain email nội bộ</label></th>
             <td>
                 <input type="text" class="large-text" style="max-width:600px" id="thean-internal-domains" name="thean_internal_email_domains" value="<?php echo esc_attr($value); ?>" placeholder="vd: theanmarket.com, ivarvietnam.com">

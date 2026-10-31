@@ -31,7 +31,21 @@
     var menu = bar.querySelector('[data-thean-ous-menu]');
     var menuBtn = menu.querySelector('.thean-ous-menu__btn');
     var menuList = menu.querySelector('.thean-ous-menu__list');
-    function setMenu(open) { menuList.hidden = !open; menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+    function setMenu(open) {
+        menuList.hidden = !open;
+        menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (!open) return;
+        // Mặc định canh mép phải nút ⋯; trên mobile nút rớt xuống đầu dòng → menu tràn mép trái màn hình. Đo rồi canh lại.
+        menuList.style.left = '';
+        menuList.style.right = '';
+        var r = menuList.getBoundingClientRect(), b = menuBtn.getBoundingClientRect(), pad = 8;
+        if (r.left < pad) {
+            menuList.style.right = 'auto';
+            menuList.style.left = Math.round(pad - b.left) + 'px';
+            r = menuList.getBoundingClientRect();
+            if (r.right > window.innerWidth - pad) menuList.style.left = Math.round(pad - b.left - (r.right - window.innerWidth + pad)) + 'px';
+        }
+    }
     (function () {
         var wc = cfg.wcList;
         if (!wc) return;

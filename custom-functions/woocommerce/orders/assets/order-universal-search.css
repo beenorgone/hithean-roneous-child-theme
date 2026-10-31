@@ -143,8 +143,9 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-menu { position:relative; flex:0 0 auto; }
 .thean-ous-menu__btn { width:34px; height:34px; margin:0; padding:0; border:1px solid var(--ous-border); border-radius:8px; background:#fff; color:#334155; font-size:18px; line-height:1; cursor:pointer; }
 .thean-ous-menu__btn:hover, .thean-ous-menu__btn[aria-expanded="true"] { border-color:var(--ous-primary); color:var(--ous-primary); }
-.thean-ous-menu__list { position:absolute; right:0; top:calc(100% + 4px); z-index:96; min-width:200px; padding:4px; border:1px solid var(--ous-border); border-radius:10px; background:#fff; box-shadow:0 12px 28px rgba(15,23,42,.18); }
+.thean-ous-menu__list { position:absolute; right:0; top:calc(100% + 4px); z-index:96; min-width:200px; max-width:calc(100vw - 16px); box-sizing:border-box; padding:4px; border:1px solid var(--ous-border); border-radius:10px; background:#fff; box-shadow:0 12px 28px rgba(15,23,42,.18); }
 .thean-ous-menu__item { display:block; padding:8px 10px; border-radius:7px; color:#1e293b; font-size:13px; text-decoration:none; white-space:nowrap; }
+@media (max-width:782px) { .thean-ous-menu__item { white-space:normal; padding:10px; font-size:14px; } } /* mobile: chữ xuống dòng, không tràn */
 .thean-ous-menu__item:hover { background:var(--ous-primary-light); color:var(--ous-primary); }
 /* "Ẩn thông báo" nằm trong menu ⋯; chấm vàng trên nút ⋯ khi đang ẩn thông báo. */
 .thean-ous-menu__toggle { display:flex; align-items:center; gap:7px; cursor:pointer; user-select:none; }

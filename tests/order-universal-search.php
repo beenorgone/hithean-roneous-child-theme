@@ -206,12 +206,17 @@ check(thean_parse_email_domains("@TheAn.com, ivar.vn;  bad  x@y\nsub.ivar.vn") =
 check(thean_email_is_internal('kho@thean.com', ['thean.com']) && thean_email_is_internal('a@hn.thean.com', ['thean.com']), 'internal email + subdomain');
 check(!thean_email_is_internal('khach@an.com', ['thean.com']) && !thean_email_is_internal('a@notthean.com', ['thean.com']) && !thean_email_is_internal('', ['thean.com']), 'no partial-domain match');
 $GLOBALS['__options']['thean_internal_email_domains'] = 'thean.com';
+$GLOBALS['__options']['thean_internal_domains_enabled'] = '1';
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
     $q = thean_ous_board_sql();
     check(strpos($q, "'_eim_internal'") !== false && strpos($q, "LIKE '%@thean.com'") !== false
         && strpos($q, $hpos ? 'COALESCE(o.billing_email' : "meta_key = '_billing_email'") !== false, 'board skips internal orders ' . ($hpos ? 'HPOS' : 'legacy'));
 }
+$GLOBALS['__options']['thean_internal_domains_enabled'] = '0';
+check(thean_internal_email_domains() === [] && strpos(thean_ous_board_sql(), 'LIKE') === false && strpos(thean_ous_board_sql(), "'_eim_internal'") !== false,
+    'internal domains switched off: no domain filter, _eim_internal flag still excluded');
+unset($GLOBALS['__options']['thean_internal_domains_enabled']);
 unset($GLOBALS['__options']['thean_internal_email_domains']);
 
 // Quyền: đổi trạng thái tùy ý (người chỉ định / mặc định Administrator), bỏ qua thiếu chứng từ (chỉ Administrator).
