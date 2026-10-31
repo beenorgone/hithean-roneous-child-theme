@@ -10,7 +10,7 @@
     var preview = document.getElementById('thean-ous-preview');
     var board = document.getElementById('thean-ous-board');
     var searchCtl = null, previewCtl = null, boardCtl = null, timer = 0;
-    var boardState = { tab: '', page: 0, loading: false };
+    var boardState = { tab: '', page: 0, shown: 0, loading: false };
     var boardCache = new Map(); // "tab|page" → {at, data}; trang 1 của mọi tab nạp sẵn khi mở board (5 phút)
     var blockedUntil = 0; // server khóa tìm kiếm (quá nhiều lượt) — không tự gửi tới khi hết hạn
     var state = { q: '', page: 0, loading: false };
@@ -397,14 +397,15 @@
     function renderBoard(data, page) {
         boardState.tab = data.tab;
         boardState.page = page;
+        boardState.shown = data.shown || 0;
         rememberTab(data.tab);
         renderTabs(data.tabs, data.tab);
         board.querySelector('.thean-ous-modal__status').textContent = '— cập nhật ' + data.at + (data.pending ? ' · còn đơn chưa được phân bước, bấm Làm mới để tính tiếp' : '');
         if (!data.total) { notice(body(board), 'Không có đơn nào ở bước này 🎉'); return; }
         fillTable(board, data, page);
     }
-    // Trang 1 (mở board / Làm mới / sau thao tác): server trả luôn trang 1 của MỌI tab (all = 1) → đổi tab lấy từ
-    // boardCache, không gọi lại server. "Xem thêm" trong 1 tab vẫn tải tiếp từng trang.
+    // Trang 1 (mở board / Làm mới / sau thao tác): server trả luôn 5 đơn đầu của MỌI tab (all = 1) → đổi tab lấy từ
+    // boardCache, không gọi lại server. "Xem thêm" trong 1 tab tải tiếp từ vị trí đang hiện (offset).
     var BOARD_TTL = 300000;
     function loadBoard(tab, page, refresh) {
         var key = tab + '|' + page, hit = boardCache.get(key);
@@ -417,8 +418,9 @@
         var moreBtn = body(board).querySelector('[data-thean-ous-more]');
         if (page === 1) notice(body(board), 'Đang tải đơn cần xử lý…');
         else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
-        var data = { tab: tab, page: page };
+        var data = { tab: tab };
         if (page === 1) data.all = 1;
+        else data.offset = boardState.shown;
         post('thean_order_usearch_board', data, boardCtl).then(function (res) {
             if (!res.success) {
                 if (res.data && res.data.retry_after) blockedUntil = Date.now() + res.data.retry_after * 1000;
