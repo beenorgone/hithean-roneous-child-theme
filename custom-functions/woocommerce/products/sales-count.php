@@ -44,7 +44,7 @@ function hithean_sc_default_settings(): array
             // Số sàn là cộng dồn nên ghi tháng cập nhật, không ghi "trong tháng".
             'button' => 'Đã bán {count} trên Shopee/TikTok',
             'modal'  => '{brand} đã bán {count} (cập nhật của tháng {thang})',
-            'price'  => '🔥 {brand} đã bán {count} (cập nhật của tháng {thang})',
+            'price'  => '🔥 {brand} đã bán {count} trên Shopee/TikTok (cập nhật của tháng {thang})',
             'loop'   => 'Đã bán {count} trên Shopee/TikTok',
         ],
         'min_count'  => 0,
