@@ -87,6 +87,59 @@ function thean_hpos_read_key(string $key, array $private_keys): bool
     return $key !== '' && ($key[0] !== '_' || in_array($key, $private_keys, true));
 }
 
+/**
+ * ID các ô Meta Box gắn lên đơn. Meta Box lưu bằng update_post_meta → chỉ vào posts; hook dưới chép sang HPOS bằng
+ * hàm của order-legacy-meta-sync.php. Thiếu bước này: filter đọc trả giá trị HPOS cũ → sửa ô mà "không ăn".
+ * KHÔNG đưa vào thean_legacy_meta_keys(): reconcile duyệt mọi key đó cho từng đơn (≤2000 đơn khi Xoá cache) → quá nhiều SQL.
+ */
+function thean_hpos_order_metabox_keys(): array
+{
+    static $keys = null;
+    if ($keys !== null) {
+        return $keys;
+    }
+    if (!function_exists('rwmb_get_registry') || !did_action('init')) {
+        return [];
+    }
+    $out = [];
+    foreach (rwmb_get_registry('meta_box')->all() as $box) {
+        $mb = is_object($box) && isset($box->meta_box) ? (array) $box->meta_box : [];
+        if (!array_intersect((array) ($mb['post_types'] ?? []), ['shop_order', 'woocommerce_page_wc-orders'])) {
+            continue;
+        }
+        foreach ((array) ($mb['fields'] ?? []) as $field) {
+            if (!empty($field['id']) && is_string($field['id'])) {
+                $out[] = $field['id'];
+            }
+        }
+    }
+    if ($out === [] && !did_action('wp_loaded')) {
+        return []; // Meta Box chưa đăng ký xong → chưa cache
+    }
+    return $keys = array_values(array_unique($out));
+}
+
+/** Ghi post meta một ô Meta Box của đơn → chép nguyên tập giá trị sang HPOS. */
+function thean_hpos_mirror_metabox_meta(int $post_id, string $key): void
+{
+    if ($post_id <= 0 || !function_exists('thean_legacy_order_meta_assign') || thean_legacy_meta_busy()
+        || in_array($key, thean_legacy_meta_keys(), true) // order-legacy-meta-sync.php tự lo
+        || !in_array($key, thean_hpos_order_metabox_keys(), true) || !thean_hpos_on()
+        || !in_array(get_post_type($post_id), ['shop_order', 'shop_order_placehold'], true)) {
+        return;
+    }
+    $order = wc_get_order($post_id);
+    if ($order instanceof WC_Order && thean_legacy_order_meta_assign($order, $key, thean_legacy_post_meta_raw($post_id, $key))) {
+        thean_legacy_meta_save($order);
+    }
+}
+foreach (['added_post_meta', 'updated_post_meta', 'deleted_post_meta'] as $thean_hpc_hook) {
+    add_action($thean_hpc_hook, static function ($meta_id, $object_id, $meta_key) {
+        thean_hpos_mirror_metabox_meta((int) $object_id, (string) $meta_key);
+    }, 20, 3);
+}
+unset($thean_hpc_hook);
+
 add_filter('get_post_metadata', static function ($value, $object_id, $meta_key, $single) {
     static $busy = false;
     $object_id = (int) $object_id;

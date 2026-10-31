@@ -13,6 +13,7 @@ namespace {
     define('ABSPATH', __DIR__);
     $GLOBALS['filters'] = [];
     function add_filter($hook, $cb) { $GLOBALS['filters'][$hook] = $cb; }
+    function add_action($hook, $cb) {}
     function apply_filters($hook, $value) { return $value; }
     function did_action($hook) { return 1; }
     function get_post_type($id) { return $GLOBALS['types'][$id] ?? false; }
@@ -51,6 +52,14 @@ namespace {
 
     check(thean_is_shop_order_id(10) && !thean_is_shop_order_id(20), 'thean_is_shop_order_id');
     check(thean_order_edit_url(10) === 'admin.php?page=wc-orders&action=edit&id=10', 'thean_order_edit_url HPOS');
+
+    // Ô Meta Box của đơn → thean_legacy_meta_keys (mirror sang HPOS)
+    class RWMB_Reg { public function all() { return [
+        (object) ['meta_box' => ['post_types' => ['shop_order'], 'fields' => [['id' => 'handling_status'], ['id' => 'return_status'], ['type' => 'heading']]]],
+        (object) ['meta_box' => ['post_types' => ['product'], 'fields' => [['id' => 'hdsd']]]],
+    ]; } }
+    function rwmb_get_registry($t) { return new RWMB_Reg(); }
+    check(thean_hpos_order_metabox_keys() === ['handling_status', 'return_status'], 'lấy ô Meta Box của đơn, bỏ ô của SP');
 
     echo $fail ? "\n$fail lỗi\n" : "\nTất cả ok\n";
     exit($fail ? 1 : 0);
