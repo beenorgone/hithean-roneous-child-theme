@@ -75,6 +75,7 @@ class FakeWpdb
 }
 $GLOBALS['wpdb'] = new FakeWpdb();
 
+require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-legacy-meta-sync.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-ops-step.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-universal-search.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-vat-request.php';
@@ -184,6 +185,13 @@ check(!thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'picking'
 check(strpos(thean_ous_board_tab_sql('proof'), "meta_key = '_thean_ops_proof' AND pf.meta_value = '1'") !== false && thean_ous_board_tab_sql('shipping') === "s.meta_value = 'shipping'", 'tab SQL: proof by flag, others by step');
 check(thean_ous_ship_code_short('S12734516.BO.SGP120-V44.1363613511') === '1363613511' && thean_ous_ship_code_short('S12734516.MB10-12-L17.1615456041') === '1615456041', 'GHTK code → last segment');
 check(thean_ous_ship_code_short('ahamove 26OU3IQB') === 'ahamove 26OU3IQB' && thean_ous_ship_code_short('') === '', 'non-GHTK code unchanged');
+// HPOS: khôi phục chứng từ xuất kho bị Meta Box xóa (order-legacy-meta-sync.php).
+check(thean_export_proof_image_file('order-export-image-10786-20261031-091800-1.jpg', 10786) && thean_export_proof_image_file('xuat-kho-lo-ab12-3.jpg', 10786)
+    && !thean_export_proof_image_file('order-export-image-10787-20261031-1.jpg', 10786) && !thean_export_proof_image_file('return-10786-1.jpg', 10786), 'export proof image filenames');
+check(thean_export_confirm_name_from_note('✅ Đã xác nhận xuất kho bởi Tuan') === 'Tuan' && thean_export_confirm_name_from_note('Đã xác nhận ảnh xuất kho bởi Kho 1') === 'Kho 1'
+    && thean_export_confirm_name_from_note('Đã xác nhận thanh toán.') === '', 'confirm name from note');
+check(thean_legacy_meta_empty('  ') && thean_legacy_meta_empty([]) && thean_legacy_meta_empty(null) && !thean_legacy_meta_empty('0') && !thean_legacy_meta_empty([1]), 'legacy meta empty');
+check(in_array('warehouse_export_images', thean_legacy_meta_keys(), true) && in_array('export_confirmed_by', thean_legacy_meta_keys(), true), 'legacy meta keys');
 check(thean_ops_shipping_statuses() === ['shipping', 'local-shipping', 'partial-shipping'], 'shipping statuses');
 check(preg_match("/pf\.meta_value = '1'\) AND o\.(date_created_gmt|post_date_gmt) >= '\d{4}-/", thean_ous_board_tab_sql('proof'))
     && strpos(thean_ous_board_sql(), "s.meta_value <> 'proof' OR o.") !== false, 'proof tab: only orders within THEAN_OPS_PROOF_DAYS (stale flags not counted)');

@@ -187,8 +187,13 @@ function thean_ops_missing_proof(WC_Order $order): array
     if (!$created || $created->getTimestamp() < time() - THEAN_OPS_PROOF_DAYS * DAY_IN_SECONDS) {
         return [];
     }
+    // Code cũ ghi post meta → HPOS có thể trống / đã bị Meta Box xóa: kéo sang + khôi phục (order-legacy-meta-sync.php).
+    if (function_exists('thean_legacy_meta_reconcile')) {
+        thean_legacy_meta_reconcile($order);
+        thean_export_proof_recover($order);
+    }
     $missing = [];
-    if (trim((string) $order->get_meta('warehouse_export_images')) === '') {
+    if (trim((string) $order->get_meta('warehouse_export_images')) === '' && trim((string) get_post_meta($order->get_id(), 'warehouse_export_images', true)) === '') {
         $missing[] = 'ảnh xuất kho';
     }
     // Workflow xuất kho cũ vẫn ghi post meta kể cả khi bật HPOS.
