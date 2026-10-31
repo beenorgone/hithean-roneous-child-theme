@@ -475,6 +475,38 @@ function hithean_export_live_render(array $scopes): array
     return $out;
 }
 
+/**
+ * Khôi phục export_confirmed_by từ ghi chú "Đã xác nhận (ảnh) xuất kho bởi <tên>" khi meta đã mất
+ * (field disabled của metabox từng bị Meta Box xóa mỗi lần lưu trang sửa đơn). Trả true nếu đã khôi phục.
+ */
+function hithean_export_restore_confirmed_from_notes(int $order_id): bool
+{
+    if ($order_id <= 0 || get_post_meta($order_id, 'export_confirmed_by', true) || !function_exists('wc_get_order_notes')) {
+        return false;
+    }
+    foreach (wc_get_order_notes(['order_id' => $order_id, 'type' => 'internal']) as $note) {
+        if (!preg_match('/Đã xác nhận (?:ảnh )?xuất kho bởi\s+(.+)$/u', wp_strip_all_tags((string) $note->content), $m)) {
+            continue;
+        }
+        $name  = trim($m[1]);
+        $users = get_users(['search' => $name, 'search_columns' => ['display_name', 'user_login'], 'number' => 2, 'fields' => 'ID']);
+        $uid   = count($users) === 1 ? (int) $users[0] : 0;
+        if ($uid <= 0) {
+            $by  = get_user_by('login', (string) ($note->added_by ?? ''));
+            $uid = $by ? (int) $by->ID : 0;
+        }
+        if ($uid <= 0) {
+            return false;
+        }
+        update_post_meta($order_id, 'export_confirmed_by', $uid);
+        if ($order = wc_get_order($order_id)) {
+            $order->add_order_note('♻️ Khôi phục "Xác nhận xuất kho" (bị mất khi lưu trang sửa đơn) theo ghi chú: ' . $name);
+        }
+        return true;
+    }
+    return false;
+}
+
 function shortcode_list_unconfirmed_exports()
 {
     if (!is_user_logged_in() || !current_user_can('manage_woocommerce')) {
@@ -514,6 +546,10 @@ function shortcode_list_unconfirmed_exports()
     ];
 
     $orders = get_posts($args);
+    // Đơn đã xác nhận nhưng meta bị metabox xóa khi lưu trang sửa đơn (lỗi cũ) → khôi phục từ ghi chú, bỏ khỏi danh sách.
+    $orders = array_values(array_filter($orders, static function ($p) {
+        return !hithean_export_restore_confirmed_from_notes((int) $p->ID);
+    }));
 
     echo '<h2>Ảnh lấy hàng chờ kiểm tra</h2>';
 

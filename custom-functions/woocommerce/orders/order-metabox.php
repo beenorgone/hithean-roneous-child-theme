@@ -140,6 +140,10 @@ function thean_register_order_meta_boxes($meta_boxes)
                 'attributes' => [
                     'disabled' => true, // không cho chỉnh sửa bằng tay
                 ],
+                // Input disabled không được trình duyệt gửi đi → Meta Box coi là rỗng và XÓA meta mỗi lần
+                // lưu trang sửa đơn (đơn đã xác nhận quay lại "Ảnh lấy hàng chờ kiểm tra"). Chỉ hiển thị, không lưu;
+                // meta do ajax_confirm_export / ost_confirm_export_image ghi.
+                'save_field' => false,
                 'desc' => esc_html__('Tự động lưu người xác nhận là admin hoặc quản lý cửa hàng.'),
             ],
 
