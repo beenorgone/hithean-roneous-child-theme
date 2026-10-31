@@ -202,6 +202,41 @@ add_action('add_meta_boxes', static function ($screen_id, $object = null) {
     }
 }, 0, 2);
 
+/** ID đơn đang mở ở màn sửa đơn HPOS (admin.php?page=wc-orders&action=edit&id=…); 0 nếu không phải. */
+function thean_legacy_hpos_edit_order_id(): int
+{
+    if (!is_admin() || ($_GET['page'] ?? '') !== 'wc-orders' || ($_GET['action'] ?? '') !== 'edit') {
+        return 0;
+    }
+    return absint($_GET['id'] ?? 0);
+}
+
+/**
+ * Dự phòng cho trên: Meta Box vẫn không lấy được ID đơn (ô trống) → nạp giá trị thẳng từ đơn (HPOS, rồi posts).
+ * Chỉ điền khi Meta Box trả trống, chỉ trên màn sửa đơn HPOS.
+ */
+add_filter('rwmb_field_meta', static function ($meta, $field, $saved = true) {
+    $id  = thean_legacy_hpos_edit_order_id();
+    $key = is_array($field) ? (string) ($field['id'] ?? '') : '';
+    if ($id <= 0 || $key === '' || !thean_legacy_meta_empty($meta) || !($order = wc_get_order($id)) instanceof WC_Order) {
+        return $meta;
+    }
+    $values = array_values(array_filter(thean_legacy_order_meta_values($order, $key), static fn($v) => !thean_legacy_meta_empty($v)));
+    if (!$values) {
+        $values = array_values(array_filter(thean_legacy_post_meta_raw($id, $key), static fn($v) => !thean_legacy_meta_empty($v)));
+    }
+    if (!$values) {
+        return $meta;
+    }
+    return (!empty($field['multiple']) || !empty($field['clone'])) && !is_array($values[0]) ? $values : $values[0];
+}, 20, 3);
+
+add_action('admin_footer', static function () {
+    if (thean_legacy_hpos_edit_order_id() > 0) {
+        echo '<meta name="thean-legacy-meta-sync" content="3">';
+    }
+});
+
 /** Tên file ảnh xuất kho đính kèm đơn (upload từng đơn / lô nhiều đơn AI tách). Hàm thuần. */
 function thean_export_proof_image_file(string $basename, int $order_id): bool
 {
