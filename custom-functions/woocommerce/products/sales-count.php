@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) exit;
 
   Hiển thị ở 4 vị trí, bật/tắt từng vị trí trong settings:
     - button : trong nút "Mua tại Shopee"
-    - modal  : modal "Chọn kênh mua hàng" (tổng nhóm + số của từng store khớp link)
+    - modal  : modal "Chọn kênh mua hàng" (tổng nhóm; từng store không hiện số riêng)
     - price  : dưới giá trên trang sản phẩm
     - loop   : thẻ sản phẩm ở trang danh mục / shop
   Shortcode [hithean_sales_count] in ở bất kỳ đâu, không phụ thuộc bật/tắt.
@@ -158,7 +158,7 @@ function hithean_sc_source_platform(array $source): string
     return ($source['platform'] ?? '') === 'tiktok' ? 'tiktok' : 'shopee';
 }
 
-/** Khóa so khớp 1 link (store trong modal ↔ nguồn trong nhóm). */
+/** Khóa so khớp 1 link (nguồn trùng link trong nhóm — bookmarklet thay số thay vì thêm mới). */
 function hithean_sc_link_key(string $url): string
 {
     $ids = hithean_sc_shopee_ids($url);
@@ -320,7 +320,6 @@ function hithean_sc_print_styles(): void
     .hithean-sales-count--button strong { color: inherit; }
     .hithean-sales-count--price { margin: 4px 0 12px; }
     .hithean-sales-count--modal { margin: -8px 0 12px; }
-    .hithean-sales-count--card { margin-top: 4px; font-size: 12px; }
     .hithean-sales-count--loop { margin: 2px 0 6px; font-size: 12px; }
     </style>
     <?php
@@ -357,27 +356,6 @@ add_action('hithean_ecom_buy_button_inner', static function (int $product_id): v
 add_action('hithean_ecom_modal_after_desc', static function (int $product_id): void {
     hithean_sc_echo_position('modal', $product_id);
 });
-
-/** Từng store trong modal: hiện số của nguồn có link khớp link store. */
-add_action('hithean_ecom_card_after_info', static function (array $channel, int $product_id): void {
-    if (!hithean_sc_position_enabled('modal')) {
-        return;
-    }
-
-    $group = hithean_sc_group_for_product($product_id);
-    $key   = hithean_sc_link_key((string) ($channel['link'] ?? ''));
-    if (!$group || $key === '') {
-        return;
-    }
-
-    foreach ((array) ($group['sources'] ?? []) as $source) {
-        if (($source['type'] ?? '') === 'link' && hithean_sc_link_key((string) ($source['ref'] ?? '')) === $key) {
-            $card = hithean_sc_source_platform((array) $source) === 'tiktok' ? __('Đã bán {count} trên TikTok', 'hithean.com') : __('Đã bán {count} trên Shopee', 'hithean.com');
-            echo hithean_sc_render_line($group, $card, 'card', 'short', absint($source['count'] ?? 0), (string) ($source['updated'] ?? '')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-            return;
-        }
-    }
-}, 10, 2);
 
 // Sau giá (woocommerce_template_single_price = 10), trước mô tả ngắn (20).
 add_action('woocommerce_single_product_summary', static function (): void {

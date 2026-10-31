@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) exit;
   Bóc tách 1 lần dán (textarea) hoặc 1 ảnh:
     - Mỗi dòng là link Shopee  → gọi API web Shopee lấy historical_sold.
       Shopee hay chặn request từ server: khi đó vẫn trả về dòng (count = null)
-      để admin tự gõ số, link vẫn được giữ để so khớp store trong modal.
+      để admin tự gõ số, link vẫn được giữ để lấy lại số sau (bookmarklet / Làm mới).
     - Link TikTok Shop         → không lấy tự động được (chống bot), chỉ giữ link
       + gắn sàn 'tiktok', admin gõ số hoặc dùng ảnh.
     - Ảnh chụp màn hình        → AI (feature sales_count_ai_extract).
@@ -997,12 +997,8 @@ function hithean_sc_render_settings_tab(): void
                 links.appendChild(el('a', {href: meta.cat.url, target: '_blank', rel: 'noopener'}, 'Danh mục "' + meta.cat.name + '" ↗'));
             }
 
-            var cards = (group.sources || []).filter(function (s) { return s.type === 'link' && s.ref; }).map(function (s) {
-                var line = lineHtml(group, s.platform === 'tiktok' ? 'Đã bán {count} trên TikTok' : 'Đã bán {count} trên Shopee', 'card', parseInt(s.count, 10) || 0, s.updated);
-                var on = (form.querySelector('[name="hithean_sc_display[modal]"]') || {}).checked;
-                return '<div class="hithean-sc-pv__card"><div><b>' + esc(s.label || (s.platform === 'tiktok' ? 'TikTok Shop' : 'Shopee')) + '</b>' + (on ? line : '') + '</div>'
-                    + '<span class="hithean-sc-pv__cta' + (s.platform === 'tiktok' ? ' hithean-sc-pv__cta--tiktok' : '') + '">Mua ngay</span></div>';
-            }).join('') || '<div class="hithean-sc-pv__card"><span class="hithean-sc-pv__off">Chưa có link nguồn — store trong modal không hiện số riêng.</span></div>';
+            // Store trong modal lấy từ kênh bán của sản phẩm (metabox), không hiện số nguồn.
+            var cards = '<div class="hithean-sc-pv__card"><div><b>Store trên Shopee</b></div><span class="hithean-sc-pv__cta">Mua ngay</span></div>';
 
             var single = el('div', {class: 'hithean-sc-pv__box'});
             single.innerHTML = '<div class="hithean-sc-pv__label">Trang sản phẩm</div>'
