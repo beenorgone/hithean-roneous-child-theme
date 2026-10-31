@@ -1012,6 +1012,7 @@ function thean_ous_board_sql(): string
             WHERE o.{$t['type']} = 'shop_order'
               AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
               AND (o.{$t['status']} NOT IN ({$excluded}) OR s.meta_value IN ('return', 'proof'))
+              AND (s.meta_value <> 'proof' OR " . thean_ous_proof_since_sql($t) . ")
               AND NOT EXISTS (SELECT 1 FROM {$t['meta']} x WHERE x.{$t['fk']} = o.{$t['id']} AND x.meta_key = '_spx_date' AND x.meta_value <> '')
               AND " . thean_ops_internal_sql($t) . "
               AND " . thean_ops_age_sql($t);
@@ -1026,9 +1027,19 @@ function thean_ous_board_tab_sql(string $tab): string
     global $wpdb;
     if ($tab === 'proof') {
         $t = thean_ops_step_tables();
-        return "EXISTS (SELECT 1 FROM {$t['meta']} pf WHERE pf.{$t['fk']} = o.{$t['id']} AND pf.meta_key = '" . THEAN_OPS_PROOF_META . "' AND pf.meta_value = '1')";
+        return "EXISTS (SELECT 1 FROM {$t['meta']} pf WHERE pf.{$t['fk']} = o.{$t['id']} AND pf.meta_key = '" . THEAN_OPS_PROOF_META . "' AND pf.meta_value = '1')"
+            . ' AND ' . thean_ous_proof_since_sql($t);
     }
     return $wpdb->prepare('s.meta_value = %s', $tab);
+}
+
+/**
+ * Tab "Thiếu chứng từ XK" chỉ xét đơn tạo trong THEAN_OPS_PROOF_DAYS ngày (thean_ops_missing_proof). Cờ lưu sẵn không tự
+ * hết hạn khi đơn quá 60 ngày → lọc thẳng bằng SQL để số đếm khớp danh sách.
+ */
+function thean_ous_proof_since_sql(array $t): string
+{
+    return "o.{$t['date']} >= '" . gmdate('Y-m-d H:i:s', time() - THEAN_OPS_PROOF_DAYS * DAY_IN_SECONDS) . "'";
 }
 
 /** Đơn (kết quả thean_ops_step_compute) có thuộc tab không — cùng quy tắc thean_ous_board_tab_sql. */

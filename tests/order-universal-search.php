@@ -183,6 +183,8 @@ check(thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'shipping'
 check(!thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'picking') && !thean_ous_board_in_tab(['step' => 'shipping', 'proof' => false], 'proof'), 'not in picking; no proof flag → not in proof tab');
 check(strpos(thean_ous_board_tab_sql('proof'), "meta_key = '_thean_ops_proof' AND pf.meta_value = '1'") !== false && thean_ous_board_tab_sql('shipping') === "s.meta_value = 'shipping'", 'tab SQL: proof by flag, others by step');
 check(thean_ops_shipping_statuses() === ['shipping', 'local-shipping', 'partial-shipping'], 'shipping statuses');
+check(preg_match("/pf\.meta_value = '1'\) AND o\.(date_created_gmt|post_date_gmt) >= '\d{4}-/", thean_ous_board_tab_sql('proof'))
+    && strpos(thean_ous_board_sql(), "s.meta_value <> 'proof' OR o.") !== false, 'proof tab: only orders within THEAN_OPS_PROOF_DAYS (stale flags not counted)');
 check(isset(thean_ops_step_tabs()['proof']) && thean_ops_proof_statuses() === ['delivered', 'partial-shipped', 'completed'], 'tab Thiếu chứng từ XK');
 check(array_key_last(thean_ops_step_tabs()) === 'preorder' && thean_ops_step_tabs()['confirm'] === 'Xác nhận khách', 'tabs: Đặt trước + Xác nhận khách');
 check(thean_ops_step_from_flow(['next_goto' => 'payment'], 'da-ghi-nhan') === '', 'Đã ghi nhận not in ops flow');

@@ -103,7 +103,10 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 - Board "📋 Tải đơn cần xử lý" — hiện ngay trên trang dưới thanh tìm, không phải modal (AJAX `thean_order_usearch_board`): tab Xác nhận COD / Chờ thanh toán / Lấy hàng / Xuất kho / Chờ giao /
   Đang giao / Thu COD / Hoàn hàng. Bước của mỗi đơn **lưu sẵn ở meta `_thean_ops_step`** (`woocommerce/orders/order-ops-step.php`,
   nạp mọi request): tính bằng `thean_ow_flow()` (order-workspace.php — cùng logic bảng điều phối) khi đơn được lưu / meta liên quan
-  bị ghi thẳng (`*_post_meta` lẫn `*_order_meta` — `save_meta_data()` trên HPOS chỉ phát hook sau), cron 10 phút quét 50 đơn mở, và 10 đơn đang hiện trên board luôn được tính lại (tự sửa). Board chỉ đếm (GROUP BY)
+  bị ghi thẳng (`*_post_meta` lẫn `*_order_meta` — `save_meta_data()` trên HPOS chỉ phát hook sau; luồng cũ ghi `update_post_meta`
+  → `thean_ops_order_cache_bust()` bỏ đơn khỏi OrderCache (Redis) để lần đọc sau kéo post meta sang HPOS — sync on read).
+  Meta lưu **bước thật** cả với đơn nội bộ / đơn cũ (`thean_ops_step_compute($order, false)`); board lọc 2 loại đó bằng SQL theo cài đặt hiện tại.
+  Tab "Thiếu chứng từ XK" lọc thêm ngày tạo ≤ `THEAN_OPS_PROOF_DAYS` bằng SQL (`thean_ous_proof_since_sql()`); cron 10 phút quét 50 đơn mở, và 10 đơn đang hiện trên board luôn được tính lại (tự sửa). Board chỉ đếm (GROUP BY)
   + phân trang SQL. Mở board / Làm mới / sau thao tác: tải sẵn 5 đơn đầu của **mọi tab** trong 1 request (`all=1`, `THEAN_OUS_BOARD_FIRST`); tab đang xem tự tải thêm cho đủ 20
   (`THEAN_OUS_BOARD_MORE`) → đổi tab
   lấy từ bộ nhớ đệm (1 phút, `BOARD_TTL`); lượt tự sửa làm đơn đổi tab thì server lấy lại danh sách trong cùng request, không gọi server; "Xem thêm" trong tab tải tiếp 20 đơn theo `offset` / `limit`. Loại khỏi luồng: Hủy / Thất bại / Hoàn tiền / Hoàn thành / Chưa ghi nhận / Đã ghi nhận

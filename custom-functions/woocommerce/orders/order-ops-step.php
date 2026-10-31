@@ -30,8 +30,8 @@ if (!defined('ABSPATH')) exit;
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '5'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK; 4: cờ chứng từ cho đơn đang giao;
-                                    // 5: tính lại mọi đơn — trước đây bỏ sót đổi meta qua save_meta_data trên HPOS)
+const THEAN_OPS_STEP_VERSION = '6'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK; 4: cờ chứng từ cho đơn đang giao;
+                                    // 5: bắt save_meta_data trên HPOS; 6: lưu bước thật cả đơn nội bộ / đơn cũ + đọc đơn bỏ qua cache)
 const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu chứng từ XK" (đơn đang giao: kèm tab Đang giao)
 const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu chứng từ XK: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
@@ -215,15 +215,20 @@ function thean_ops_step_from_flow(array $flow, string $status = ''): string
     return array_key_exists($next, thean_ops_step_tabs()) ? $next : '';
 }
 
-/** Tính bước + gợi ý cho 1 đơn (không ghi). ['step' => tab|'', 'hint' => string, 'proof' => thiếu chứng từ XK?]. */
-function thean_ops_step_compute(WC_Order $order): array
+/**
+ * Tính bước + gợi ý cho 1 đơn (không ghi). ['step' => tab|'', 'hint' => string, 'proof' => thiếu chứng từ XK?].
+ * $gated = true (hiển thị ở ô tìm): đơn cũ (trước mốc khóa) / đơn nội bộ → không có bước.
+ * $gated = false (lưu meta): vẫn tính bước thật — board đã loại 2 loại này bằng SQL theo cài đặt HIỆN TẠI, nên đổi
+ * domain nội bộ / ngày mốc khóa đơn cũ có hiệu lực ngay cả 2 chiều (trước đây đơn bị lưu 'none' và kẹt lại).
+ */
+function thean_ops_step_compute(WC_Order $order, bool $gated = true): array
 {
     if (!function_exists('thean_ow_flow')) {
         require_once __DIR__ . '/order-workspace.php';
     }
     $created = $order->get_date_created();
-    $too_old = !$created || $created->getTimestamp() < thean_ops_age_cutoff_ts();
-    if ($too_old || $order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '' || thean_order_is_internal($order)) {
+    $too_old = $gated && (!$created || $created->getTimestamp() < thean_ops_age_cutoff_ts());
+    if ($too_old || $order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '' || ($gated && thean_order_is_internal($order))) {
         return ['step' => '', 'hint' => '', 'proof' => false];
     }
     $missing = thean_ops_missing_proof($order);
@@ -242,7 +247,7 @@ function thean_ops_step_compute(WC_Order $order): array
 /** Tính và lưu bước của đơn. Trả kết quả thean_ops_step_compute(). */
 function thean_ops_step_sync(WC_Order $order): array
 {
-    $res   = thean_ops_step_compute($order);
+    $res   = thean_ops_step_compute($order, false);
     $value = $res['step'] !== '' ? $res['step'] : 'none';
     // save_meta_data (không phải save) → không kích lại woocommerce_after_order_object_save.
     $proof = !empty($res['proof']) ? '1' : '';
@@ -267,6 +272,7 @@ function thean_ops_step_sync_ids(array $ids): array
     if (!$ids || !function_exists('wc_get_orders')) {
         return $out;
     }
+    thean_ops_order_cache_bust($ids);
     foreach (wc_get_orders(['post__in' => $ids, 'type' => 'shop_order', 'limit' => count($ids), 'return' => 'objects']) as $order) {
         if ($order instanceof WC_Order && in_array($order->get_id(), $ids, true)) {
             $out[$order->get_id()] = thean_ops_step_sync($order);
@@ -289,10 +295,41 @@ function thean_ops_step_queue(int $order_id): void
     }
 }
 
+/**
+ * Bỏ đơn khỏi cache đối tượng của WC (OrderCache — nhóm `orders`, lưu bền ở Redis, gồm cả meta) để lần đọc kế tiếp
+ * đọc lại DB. Cần vì nhiều luồng cũ ghi update_post_meta (xác nhận TT, ảnh / xác nhận xuất kho…): trên HPOS bản ghi
+ * post chỉ được kéo sang bảng HPOS khi đơn được ĐỌC LẠI (sync on read) — đơn đang nằm trong cache thì không, nên
+ * bước tính ra theo dữ liệu cũ (đơn lọt / kẹt sai tab) cho tới khi có ai lưu đơn.
+ */
+function thean_ops_order_cache_bust(array $ids): void
+{
+    $cache = null;
+    if (class_exists('\Automattic\WooCommerce\Caches\OrderCache') && function_exists('wc_get_container')) {
+        try {
+            $cache = wc_get_container()->get(\Automattic\WooCommerce\Caches\OrderCache::class);
+        } catch (\Throwable $e) {
+            $cache = null;
+        }
+    }
+    foreach ($ids as $id) {
+        $id = (int) $id;
+        if ($id <= 0) {
+            continue;
+        }
+        if ($cache) {
+            $cache->remove($id);
+        }
+        if (method_exists('WC_Order', 'generate_meta_cache_key')) {
+            wp_cache_delete(WC_Order::generate_meta_cache_key($id, 'orders'), 'orders');
+        }
+    }
+}
+
 function thean_ops_step_flush(): void
 {
     $ids = array_keys($GLOBALS['thean_ops_step_queue'] ?? []);
     unset($GLOBALS['thean_ops_step_queue']);
+    thean_ops_order_cache_bust($ids);
     foreach ($ids as $id) {
         $order = wc_get_order($id);
         if ($order instanceof WC_Order) {
@@ -363,6 +400,7 @@ foreach (['added_post_meta', 'updated_post_meta', 'deleted_post_meta'] as $thean
     add_action($thean_ops_hook, function ($meta_id, $object_id, $meta_key) {
         if (in_array($meta_key, thean_ops_step_watched_meta(), true)
             && in_array(get_post_type((int) $object_id), ['shop_order', 'shop_order_placehold'], true)) {
+            thean_ops_order_cache_bust([(int) $object_id]); // đọc lại sau đó mới thấy giá trị mới (xem thean_ops_order_cache_bust)
             thean_ops_step_queue((int) $object_id);
         }
     }, 10, 3);
