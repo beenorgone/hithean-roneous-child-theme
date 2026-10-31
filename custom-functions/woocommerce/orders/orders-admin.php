@@ -343,9 +343,9 @@ function hithean_order_admin_render_return_action_modals(): void
 add_action('admin_footer', 'hithean_order_admin_render_return_action_modals');
 
 /**
- * Danh sách đơn: bấm vào dòng / mã đơn → mở trang chi tiết đơn ở TAB MỚI (WC mặc định mở ngay tab hiện tại).
- * Chạy ở capture phase để chặn handler click dòng của WooCommerce; bỏ qua link, nút, ô tích, dòng .no-link,
- * và khi đang bôi đen chữ.
+ * Danh sách đơn (legacy + HPOS): CHỈ bấm vào ô cột "Đơn hàng" mới mở trang chi tiết đơn, và mở ở TAB MỚI.
+ * Bấm các ô khác trên dòng không mở đơn (chặn handler click dòng của WooCommerce ở capture phase).
+ * Link, nút, ô tích và lúc đang bôi đen chữ giữ hành vi riêng.
  */
 function hithean_order_admin_open_orders_in_new_tab(): void
 {
@@ -365,12 +365,13 @@ function hithean_order_admin_open_orders_in_new_tab(): void
         document.addEventListener('click', function (e) {
             var row = e.target.closest('.wp-list-table tbody tr');
             if (!row || e.button !== 0) return;
-            if (e.target.closest('a, button, input, select, textarea, label, .no-link, .check-column')) return;
+            if (e.target.closest('a, button, input, select, textarea, label, .check-column')) return;
+            e.stopPropagation(); // không cho WC mở đơn khi bấm cả dòng
+            if (!e.target.closest('td.column-order_number')) return;
             if (window.getSelection && String(window.getSelection()).length) return;
             var link = row.querySelector('a.order-view');
             if (!link || !link.href) return;
             e.preventDefault();
-            e.stopPropagation();
             window.open(link.href, '_blank', 'noopener');
         }, true);
     }());
