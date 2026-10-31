@@ -87,9 +87,12 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 - CSS/JS: `orders/assets/order-universal-search.{css,js}` — **giống hệt bản theanmarket**, sửa thì chép sang cả 2 site;
   khác biệt truyền qua `window.theanOusCfg` (`thean_ous_ui_config()`, vd `blockingModals`). Màu: biến `--ous-*` đầu file CSS.
 - Board "📋 Cần xử lý" (AJAX `thean_order_usearch_board`): tab Xác nhận COD / Chờ thanh toán / Lấy hàng / Xuất kho / Chờ giao /
-  Đang giao / Thu COD / Hoàn hàng theo bước tiếp theo của đơn — `thean_ow_flow()` trong order-workspace.php (cùng logic bảng
-  điều phối, sửa luồng thì sửa ở đó). Xét ≤400 đơn mở mới nhất (loại trạng thái ở `thean_ous_board_excluded_statuses()`,
-  đơn đóng còn hoàn dở vẫn xét), phân tab cache 60s theo version orders; "Làm mới" tính lại (chung giới hạn lượt với tìm).
+  Đang giao / Thu COD / Hoàn hàng. Bước của mỗi đơn **lưu sẵn ở meta `_thean_ops_step`** (`woocommerce/orders/order-ops-step.php`,
+  nạp mọi request): tính bằng `thean_ow_flow()` (order-workspace.php — cùng logic bảng điều phối) khi đơn được lưu / meta liên quan
+  bị ghi thẳng, cron 10 phút quét 50 đơn mở, và 10 đơn đang hiện trên board luôn được tính lại (tự sửa). Board chỉ đếm (GROUP BY)
+  + phân trang SQL rồi đọc 10 đơn. Loại khỏi luồng: Hủy / Thất bại / Hoàn tiền / Hoàn thành / Chưa ghi nhận / Đã ghi nhận
+  (`thean_ops_excluded_statuses()`), đơn gộp Shopee; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.
+  **Đổi luồng vận hành → tăng `THEAN_OPS_STEP_VERSION`** để mọi đơn mở được tính lại.
 - Tải: 10 đơn/trang đọc gộp 1 lần `wc_get_orders(['post__in' => …])`; HTML xem nhanh cache Redis (`wp_cache`, nhóm
   `thean_ous`) 2 phút; mỗi user ≤4 lượt tìm thật (không trúng cache) / 30s, lượt thứ 5 khóa 2 phút (HTTP 429, `retry_after`).
 

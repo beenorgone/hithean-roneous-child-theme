@@ -69,6 +69,7 @@ class FakeWpdb
 }
 $GLOBALS['wpdb'] = new FakeWpdb();
 
+require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-ops-step.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-universal-search.php';
 
 $checks = 0;
@@ -157,21 +158,25 @@ $t = 5000;
 foreach ([0, 10, 20, 31] as $d) thean_ous_rate_hit(9, $t + $d);
 check(thean_ous_rate_hit(9, $t + 35) === 0, 'old hits fall out of the 30s window');
 
-// Board "Cần xử lý": bước tiếp theo (thean_ow_flow) → tab.
-check(thean_ous_board_tab(['next_goto' => 'picking']) === 'picking', 'next step → tab');
-check(thean_ous_board_tab(['next_goto' => '']) === '', 'nothing to do → no tab');
-check(thean_ous_board_tab(['next_goto' => 'payment', 'is_cod' => true]) === 'cod', 'COD delivered unpaid → Thu COD');
-check(thean_ous_board_tab(['next_goto' => 'payment', 'is_cod' => false]) === 'payment', 'bank transfer unpaid → Chờ thanh toán');
-check(thean_ous_board_tab(['next_goto' => 'delivery', 'is_shipping' => true]) === 'shipping', 'shipping → Đang giao');
-check(thean_ous_board_tab(['next_goto' => 'delivery']) === 'delivery', 'not shipped → Chờ giao');
-check(thean_ous_board_tab(['next_goto' => 'picking', 'is_closed' => true]) === '', 'closed order skipped');
-check(thean_ous_board_tab(['next_goto' => 'return', 'is_closed' => true]) === 'return', 'closed order with pending return kept');
+// Bước vận hành (order-ops-step.php): bước tiếp theo của thean_ow_flow → tab board.
+check(thean_ops_step_from_flow(['next_goto' => 'picking']) === 'picking', 'next step → tab');
+check(thean_ops_step_from_flow(['next_goto' => '']) === '', 'nothing to do → no tab');
+check(thean_ops_step_from_flow(['next_goto' => 'payment', 'is_cod' => true]) === 'cod', 'COD delivered unpaid → Thu COD');
+check(thean_ops_step_from_flow(['next_goto' => 'payment', 'is_cod' => false]) === 'payment', 'bank transfer unpaid → Chờ thanh toán');
+check(thean_ops_step_from_flow(['next_goto' => 'delivery', 'is_shipping' => true]) === 'shipping', 'shipping → Đang giao');
+check(thean_ops_step_from_flow(['next_goto' => 'delivery']) === 'delivery', 'not shipped → Chờ giao');
+check(thean_ops_step_from_flow(['next_goto' => 'picking', 'is_closed' => true]) === '', 'closed order skipped');
+check(thean_ops_step_from_flow(['next_goto' => 'return', 'is_closed' => true]) === 'return', 'closed order with pending return kept');
+check(thean_ops_step_from_flow(['next_goto' => 'picking'], 'chua-ghi-nhan') === '', 'Chưa ghi nhận not in ops flow');
+check(thean_ops_step_from_flow(['next_goto' => 'payment'], 'da-ghi-nhan') === '', 'Đã ghi nhận not in ops flow');
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
+    $q = thean_ous_board_sql();
+    check(strpos($q, $hpos ? 'wp_wc_orders_meta' : 'wp_postmeta') !== false && strpos($q, "'_thean_ops_step'") !== false
+        && strpos($q, "'wc-chua-ghi-nhan'") !== false && strpos($q, '_spx_date') !== false, 'board SQL ' . ($hpos ? 'HPOS' : 'legacy'));
     $wpdb->queries = [];
-    thean_ous_board_candidate_ids();
-    $q = $wpdb->queries[0];
-    check(strpos($q, $hpos ? 'wp_wc_orders_meta' : 'wp_postmeta') !== false && strpos($q, "'wc-completed'") !== false && strpos($q, '_spx_date') !== false && strpos($q, 'LIMIT 400') !== false, 'board candidates SQL ' . ($hpos ? 'HPOS' : 'legacy'));
+    thean_ops_step_unsynced_ids(20);
+    check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '1'") !== false && strpos($wpdb->queries[0], 'LIMIT 20') !== false, 'unsynced = no meta for current version ' . ($hpos ? 'HPOS' : 'legacy'));
 }
 
 echo "OK ({$checks} checks)\n";

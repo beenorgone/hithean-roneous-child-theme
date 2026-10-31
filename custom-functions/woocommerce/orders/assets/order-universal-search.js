@@ -240,7 +240,7 @@
         boardState.page = page;
         rememberTab(data.tab);
         renderTabs(data.tabs, data.tab);
-        board.querySelector('.thean-ous-modal__status').textContent = '— cập nhật ' + data.at + (data.capped ? ' · xét 400 đơn mở mới nhất' : '');
+        board.querySelector('.thean-ous-modal__status').textContent = '— cập nhật ' + data.at + (data.pending ? ' · còn đơn chưa được phân bước, bấm Làm mới để tính tiếp' : '');
         if (!data.total) { notice(body(board), 'Không có đơn nào ở bước này 🎉'); return; }
         fillTable(board, data, page);
     }

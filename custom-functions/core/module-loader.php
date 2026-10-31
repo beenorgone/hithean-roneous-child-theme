@@ -82,6 +82,7 @@ $general_includes = [
 
     // checkout-page.php → conditional (tpc_loader_modules)
     'custom-functions/woocommerce/orders/order-auto-tasks.php',
+    'custom-functions/woocommerce/orders/order-ops-step.php', // bước vận hành lưu sẵn (meta) cho board "Cần xử lý"
     'custom-functions/woocommerce/checkout/thank-you-page.php', // order admin page, thank you page, and emails can use this
     'custom-functions/auth/firebase-sms-login.php',
     'custom-functions/auth/email-issue.php',
