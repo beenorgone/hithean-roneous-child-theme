@@ -13,8 +13,8 @@ if (!defined('ABSPATH')) exit;
  * Kết quả trong modal dạng bảng (mobile: dạng thẻ); bấm dòng để xem nhanh đơn kèm các nút
  * thao tác (dùng chung modal thao tác nhanh ở orders-admin.php qua class .wc-action-button-*).
  *
- * "Ẩn thông báo": ô tích trên thanh tìm ẩn mọi .notice / .update-nag ở danh sách đơn, lưu theo
- * user (user meta THEAN_OUS_ALERTS_META) nên phiên sau vẫn giữ.
+ * "Ẩn thông báo": ô tích trên thanh tìm ẩn mọi .notice / .update-nag ở danh sách đơn — MẶC ĐỊNH BẬT
+ * cho mọi user; bỏ tích thì lưu '0' vào user meta THEAN_OUS_ALERTS_META, phiên sau vẫn giữ.
  *
  * AJAX: thean_order_usearch, thean_order_usearch_preview, thean_order_usearch_alerts.
  */
@@ -859,7 +859,7 @@ function thean_ous_ajax_alerts(): void
         wp_send_json_error(['message' => 'Không có quyền.'], 403);
     }
     $off = !empty($_POST['off']);
-    update_user_meta(get_current_user_id(), THEAN_OUS_ALERTS_META, $off ? '1' : '');
+    update_user_meta(get_current_user_id(), THEAN_OUS_ALERTS_META, $off ? '1' : '0');
     wp_send_json_success(['off' => $off]);
 }
 
@@ -875,7 +875,8 @@ function thean_ous_is_list_ui(): bool
 
 function thean_ous_alerts_off(): bool
 {
-    return get_user_meta(get_current_user_id(), THEAN_OUS_ALERTS_META, true) === '1';
+    // Mặc định ẩn cho mọi user; chỉ hiện lại khi user bỏ tích (lưu '0').
+    return get_user_meta(get_current_user_id(), THEAN_OUS_ALERTS_META, true) !== '0';
 }
 
 // Class + CSS in sẵn ở <head> để thông báo không chớp hiện rồi mới ẩn.
