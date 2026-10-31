@@ -102,6 +102,22 @@
         fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd }).catch(function () {});
     });
 
+    /* ---------- Ẩn thanh admin + menu trái (menu ⋯, mặc định bật, lưu user meta — what=chrome) ---------- */
+    var chromeBox = bar.elements.chrome_off;
+    if (chromeBox) {
+        chromeBox.checked = cfg.chromeOff !== false;
+        chromeBox.addEventListener('change', function () {
+            document.body.classList.toggle('thean-ous-chrome-off', chromeBox.checked);
+            stickyTop();
+            var fd = new FormData();
+            fd.append('action', 'thean_order_usearch_alerts');
+            fd.append('nonce', cfg.nonce);
+            fd.append('what', 'chrome');
+            if (chromeBox.checked) fd.append('off', '1');
+            fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd }).catch(function () {});
+        });
+    }
+
     function post(action, data, ctl) {
         var fd = new FormData();
         fd.append('action', action);

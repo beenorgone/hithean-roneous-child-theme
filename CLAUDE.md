@@ -111,6 +111,9 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   option `thean_internal_email_domains`, trống = dùng danh sách của eim; hoặc cờ `_eim_internal`) — board lọc thẳng bằng SQL
   nên đổi domain có hiệu lực ngay; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.
   **Đổi luồng vận hành → tăng `THEAN_OPS_STEP_VERSION`** để mọi đơn mở được tính lại.
+- "Ẩn thanh admin + menu trái" (menu ⋯): ẩn `#wpadminbar` + `#adminmenumain` ở danh sách đơn, **mặc định bật**; bỏ tích lưu `'0'` vào user meta
+  `thean_ous_chrome_off` (AJAX `thean_order_usearch_alerts` với `what=chrome`), class `thean-ous-chrome-off` ở `admin_body_class`.
+  Popup Thao tác / Xem nhanh / Hóa đơn có z-index trên `#wpadminbar` (99999) để không bị che đầu.
 - Mobile (≤782px): board có thanh ‹ [chọn bước ▾] › trên dải tab (‹ › nhảy tab kề có đơn); mỗi đơn chỉ hiện nút "⚡ Thao tác"
   (ô `td.thean-ous__c-mact`, cột Thao tác tiếp theo + Thao tác ẩn) → popup `#thean-ous-acts` 2 nhóm: "Thao tác tiếp theo" (bản sao cột
   tiếp theo) và "Tổng quan" (`<template data-thean-ous-acts-all>` = `thean_ous_render_actions($order, false)`). Nút trong popup dùng

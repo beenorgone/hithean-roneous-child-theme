@@ -34,6 +34,8 @@ const THEAN_OUS_CAP       = 500;  // tối đa số đơn khớp giữ trong cac
 const THEAN_OUS_SOURCE    = 1000; // tối đa ứng viên lấy từ mỗi nguồn
 const THEAN_OUS_CACHE_TTL = 180;
 const THEAN_OUS_ALERTS_META = 'thean_ous_alerts_off';
+// "Ẩn thanh admin + menu trái" (menu ⋯): mặc định ẩn; bỏ tích lưu '0'.
+const THEAN_OUS_CHROME_META = 'thean_ous_chrome_off';
 const THEAN_OUS_PREVIEW_TTL = 120; // HTML xem nhanh trong object cache (Redis)
 const THEAN_OUS_RL_MAX      = 4;   // tối đa lượt tìm thật (không trúng cache) …
 const THEAN_OUS_RL_WINDOW   = 30;  // … trong 30 giây; lượt thứ 5 bị chặn
@@ -1287,7 +1289,9 @@ function thean_ous_ajax_alerts(): void
         wp_send_json_error(['message' => 'Không có quyền.'], 403);
     }
     $off = !empty($_POST['off']);
-    update_user_meta(get_current_user_id(), THEAN_OUS_ALERTS_META, $off ? '1' : '0');
+    // what=chrome: ô "Ẩn thanh admin + menu trái"; mặc định: ô "Ẩn thông báo".
+    $meta = sanitize_key(wp_unslash($_POST['what'] ?? '')) === 'chrome' ? THEAN_OUS_CHROME_META : THEAN_OUS_ALERTS_META;
+    update_user_meta(get_current_user_id(), $meta, $off ? '1' : '0');
     wp_send_json_success(['off' => $off]);
 }
 
@@ -1307,9 +1311,18 @@ function thean_ous_alerts_off(): bool
     return get_user_meta(get_current_user_id(), THEAN_OUS_ALERTS_META, true) !== '0';
 }
 
+function thean_ous_chrome_off(): bool
+{
+    // Mặc định ẩn thanh admin + menu trái ở danh sách đơn; chỉ hiện lại khi user bỏ tích (lưu '0').
+    return get_user_meta(get_current_user_id(), THEAN_OUS_CHROME_META, true) !== '0';
+}
+
 // Class gắn sẵn ở <body>; CSS ẩn nằm trong assets/order-universal-search.css (nạp ở <head>) nên không chớp.
 add_filter('admin_body_class', function ($classes) {
-    return thean_ous_is_list_ui() && thean_ous_alerts_off() ? $classes . ' thean-ous-alerts-off' : $classes;
+    if (!thean_ous_is_list_ui()) {
+        return $classes;
+    }
+    return $classes . (thean_ous_alerts_off() ? ' thean-ous-alerts-off' : '') . (thean_ous_chrome_off() ? ' thean-ous-chrome-off' : '');
 });
 
 /** Config cho assets/order-universal-search.js (window.theanOusCfg). */
@@ -1328,6 +1341,7 @@ function thean_ous_ui_config(): array
         'aliases'        => thean_ous_command_aliases(),
         'statuses'       => thean_ous_statuses(),
         'alertsOff'      => thean_ous_alerts_off(),
+        'chromeOff'      => thean_ous_chrome_off(),
         // Modal thao tác nhanh của orders-admin.php — Esc nhường chúng đóng trước.
         'canChangeStatus' => function_exists('thean_can_change_any_status') && thean_can_change_any_status(), // order-ops-step.php
         'canSkipProof'   => function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof(),
@@ -1401,6 +1415,9 @@ function thean_ous_render_ui(): void
                 <div class="thean-ous-menu__list" role="menu" hidden>
                     <label class="thean-ous-menu__item thean-ous-menu__toggle" role="menuitemcheckbox" title="Ẩn mọi thông báo (notice) ở trang danh sách đơn — nhớ cho lần sau">
                         <input type="checkbox" name="alerts_off"> <span>Ẩn thông báo</span><b data-thean-ous-alert-count hidden></b>
+                    </label>
+                    <label class="thean-ous-menu__item thean-ous-menu__toggle" role="menuitemcheckbox" title="Ẩn thanh admin (trên cùng) và menu trái của WordPress ở trang danh sách đơn — nhớ cho lần sau">
+                        <input type="checkbox" name="chrome_off"> <span>Ẩn thanh admin + menu trái</span>
                     </label>
                 </div>
             </div>

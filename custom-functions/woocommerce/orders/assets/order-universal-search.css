@@ -4,6 +4,12 @@ body.thean-ous-alerts-off #wpbody-content .notice,
 body.thean-ous-alerts-off #wpbody-content .update-nag,
 body.thean-ous-alerts-off .woocommerce-layout__notice-list { display:none !important; }
 
+/* "Ẩn thanh admin + menu trái" (menu ⋯ — class ở admin_body_class, mặc định bật). */
+body.thean-ous-chrome-off #wpadminbar, body.thean-ous-chrome-off #adminmenumain { display:none !important; }
+html.wp-toolbar:has(> body.thean-ous-chrome-off) { padding-top:0 !important; }
+body.thean-ous-chrome-off #wpcontent, body.thean-ous-chrome-off #wpfooter { margin-left:0 !important; }
+body.thean-ous-chrome-off .woocommerce-layout__header { top:0 !important; width:100% !important; }
+
 /* Bảng danh sách của Woo tắt mặc định (order-list-lazy.php) — ẩn vùng bảng ngay từ <head>. */
 body.thean-wc-list-off #posts-filter,
 body.thean-wc-list-off #wc-orders-filter,
@@ -43,8 +49,8 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 
 .thean-ous-modal[hidden] { display:none; }
 .thean-ous-modal { position:fixed; inset:0; z-index:99000; display:grid; grid-template-rows:minmax(0,1fr); place-items:center; padding:24px; }
-.thean-ous-modal--preview { z-index:99500; }
-.thean-ous-modal--invoice { z-index:99600; }
+.thean-ous-modal--preview { z-index:100060; } /* trên #wpadminbar */
+.thean-ous-modal--invoice { z-index:100070; }
 .thean-ous-modal--invoice .thean-ous-modal__dialog { display:flex; flex-direction:column; width:min(820px,100%); height:100%; }
 .thean-ous-invoice__head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:0 40px 10px 0; }
 .thean-ous-invoice__head .thean-ous-modal__title { margin:0; }
@@ -145,7 +151,7 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous__table td.thean-ous__c-mact { display:none; }
 .thean-ous__mact-btn { justify-content:center; gap:6px; }
 .thean-ous__mact-dot { width:8px; height:8px; border-radius:50%; background:#fbbf24; }
-.thean-ous-modal--acts { z-index:99300; }
+.thean-ous-modal--acts { z-index:100050; } /* trên #wpadminbar (99999) — không bị che phần đầu */
 .thean-ous-modal--acts .thean-ous-modal__dialog { width:min(560px,100%); }
 .thean-ous-acts-pop__meta { margin:-2px 40px 8px 0; color:#64748b; }
 .thean-ous-acts-pop__sec { margin:12px 0 0; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px; background:#fafcff; }
