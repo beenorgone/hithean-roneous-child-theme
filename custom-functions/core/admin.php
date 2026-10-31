@@ -25,6 +25,7 @@ function load_custom_admin_files()
     ) {
         require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/orders-admin.php';
         require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/order-search.php';
+        require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/order-universal-search.php'; // ô tìm đơn sticky ở danh sách đơn
 
         if (in_array($screen_id, ['shop_order', 'woocommerce_page_wc-orders'], true)) {
             require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/edit-order-page.php';

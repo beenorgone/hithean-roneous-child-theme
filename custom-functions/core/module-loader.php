@@ -463,6 +463,12 @@ function tpc_loader_modules()
             'ajax_actions' => ['thean_order_workspace'],
         ],
         [
+            // Tìm đơn nhanh ở danh sách đơn admin (UI nạp qua core/admin.php) — HPOS + legacy.
+            'id' => 'order_universal_search',
+            'file' => 'custom-functions/woocommerce/orders/order-universal-search.php',
+            'ajax_actions' => ['thean_order_usearch', 'thean_order_usearch_preview'],
+        ],
+        [
             'id' => 'bulk_order_status_change',
             'file' => 'custom-functions/woocommerce/orders/shortcode-order-status-change.php',
             'shortcodes' => ['bulk_change_order_status_form'],

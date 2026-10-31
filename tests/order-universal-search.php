@@ -1,0 +1,141 @@
+<?php
+/**
+ * Run with php tests/order-universal-search.php. No WordPress bootstrap needed —
+ * tests helper tìm đơn nhanh + câu SQL ở cả HPOS lẫn lưu trữ cũ (wpdb giả).
+ */
+namespace Automattic\WooCommerce\Utilities {
+    class OrderUtil
+    {
+        public static bool $hpos = false;
+        public static function custom_orders_table_usage_is_enabled(): bool { return self::$hpos; }
+    }
+}
+
+namespace {
+define('ABSPATH', __DIR__);
+function add_action(...$a) {}
+function wp_strip_all_tags($s) { return strip_tags((string) $s); }
+function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
+function esc_sql($s) { return addslashes($s); }
+function remove_accents($s)
+{
+    // Đủ cho tên trạng thái trong test (không cần ext-intl).
+    $from = ['à','á','ả','ã','ạ','ă','ằ','ắ','ẳ','ẵ','ặ','â','ầ','ấ','ẩ','ẫ','ậ','è','é','ẻ','ẽ','ẹ','ê','ề','ế','ể','ễ','ệ','ì','í','ỉ','ĩ','ị','ò','ó','ỏ','õ','ọ','ô','ồ','ố','ổ','ỗ','ộ','ơ','ờ','ớ','ở','ỡ','ợ','ù','ú','ủ','ũ','ụ','ư','ừ','ứ','ử','ữ','ự','ỳ','ý','ỷ','ỹ','ỵ','đ','Đ'];
+    $to   = ['a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','a','e','e','e','e','e','e','e','e','e','e','e','i','i','i','i','i','o','o','o','o','o','o','o','o','o','o','o','o','o','o','o','o','o','u','u','u','u','u','u','u','u','u','u','u','y','y','y','y','y','d','D'];
+    return str_replace($from, $to, $s);
+}
+function sanitize_title($s) { return trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($s)), '-'); }
+function wc_get_order_statuses() { return ['wc-pending' => 'Chờ thanh toán', 'wc-processing' => 'Đang xử lý', 'wc-cancelled' => 'Đã hủy', 'wc-da-ghi-nhan' => 'Đã ghi nhận']; }
+function thean_change_woocommerce_order_number($order_id)
+{
+    $nums1 = str_split($order_id, 2);
+    $nums2 = str_split(strrev($order_id), 2);
+    return $order_id . ceil(($nums1[0] + $nums2[0]) / 2);
+}
+
+class FakeWpdb
+{
+    public string $prefix = 'wp_';
+    public string $posts = 'wp_posts';
+    public string $postmeta = 'wp_postmeta';
+    public array $queries = [];
+    public function esc_like($s) { return addcslashes($s, '_%\\'); }
+    public function prepare($query, ...$args)
+    {
+        if (isset($args[0]) && is_array($args[0])) $args = $args[0];
+        if (substr_count($query, '%s') !== count($args)) throw new RuntimeException('placeholder mismatch: ' . $query);
+        if (preg_match('/%(?!s)/', str_replace('%s', '', $query))) throw new RuntimeException('stray % in prepare: ' . $query);
+        return vsprintf(str_replace('%s', "'%s'", $query), array_map('addslashes', $args));
+    }
+    public function get_col($sql)
+    {
+        $this->queries[] = $sql;
+        // Lọc cuối (IN (...)) trả lại đúng danh sách ứng viên, mới nhất trước.
+        if (preg_match('/\b(?:id|ID) IN \(([\d,]+)\)/', $sql, $m)) {
+            $ids = array_map('intval', explode(',', $m[1]));
+            rsort($ids);
+            return $ids;
+        }
+        if (strpos($sql, 'order_item_name') !== false) return ['300', '120'];
+        return [];
+    }
+}
+$GLOBALS['wpdb'] = new FakeWpdb();
+
+require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-universal-search.php';
+
+$checks = 0;
+function check($cond, string $msg): void
+{
+    global $checks;
+    $checks++;
+    if (!$cond) throw new RuntimeException('FAIL: ' . $msg);
+}
+
+// Mã đơn hiển thị = ID + hậu tố → nhận lại ID.
+$display = thean_change_woocommerce_order_number('10276');
+check(in_array(10276, thean_ous_candidate_ids($display), true), 'display number maps back to ID');
+check(thean_ous_candidate_ids('#10276**') === [10276], 'masked ID');
+check(thean_ous_candidate_ids('Nguyen') === [], 'text is not an ID');
+
+// SĐT.
+check(thean_ous_phone_needle('0901 234 567') === '901234567', 'phone strips 0 and spaces');
+check(thean_ous_phone_needle('+84 901234567') === '901234567', 'phone strips +84');
+check(thean_ous_phone_needle('12345') === '', 'too short for phone');
+check(thean_ous_phone_needle('Q1 0901234567') === '', 'mixed text not phone');
+
+// Highlight: escape trước, đánh dấu không phân biệt hoa thường (unicode).
+check(thean_ous_highlight('Nguyễn <b>Văn</b>', ['văn']) === 'Nguyễn &lt;b&gt;<mark>Văn</mark>&lt;/b&gt;', 'highlight escapes + marks');
+check(thean_ous_tokens('  Whey   gold whey ') === ['Whey', 'gold', 'whey'], 'tokens split');
+
+// Lệnh lọc.
+$f = thean_ous_parse_query('/tt dang-xu-ly nguyen /sp whey gold /sdt 0901 234');
+check($f['statuses'] === ['processing'], 'status by accent-free name');
+check($f['text'] === 'nguyen', 'words after /tt status go back to free text');
+check($f['product'] === 'whey gold' && $f['phone'] === '0901 234', 'multi-word args');
+check(thean_ous_validate($f) === '', 'valid combined query');
+check(thean_ous_parse_query('/tt huy')['statuses'] === ['cancelled'], 'status partial match');
+check(thean_ous_parse_query('/status wc-processing /tt pending')['statuses'] === ['processing', 'pending'], 'alias + wc- prefix + repeat = OR');
+check(thean_ous_validate(thean_ous_parse_query('/tt xyz')) !== '', 'unknown status errors');
+check(thean_ous_parse_query('/abc def')['text'] === '/abc def', 'unknown command stays free text');
+check(thean_ous_parse_query('/id 90433 thêm')['id'] === '90433', '/id takes one word');
+check(thean_ous_validate(thean_ous_parse_query('ab')) !== '', 'free text needs 3 chars');
+check(thean_ous_validate(thean_ous_parse_query('/sdt 12')) !== '', 'phone needs 4 digits');
+check(thean_ous_validate(thean_ous_parse_query('/sp ')) !== '', 'empty command rejected');
+
+$empty = thean_ous_parse_query('');
+
+// Legacy.
+\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = false;
+$wpdb->queries = [];
+$ids = thean_ous_find_order_ids(array_merge($empty, ['text' => 'Whey Gold']));
+check($ids === [300, 120], 'legacy returns filtered ids newest first');
+$sql = implode("\n", $wpdb->queries);
+check(strpos($sql, '_billing_address_index') !== false && strpos($sql, 'wp_posts') !== false, 'legacy uses postmeta/posts');
+check(strpos($sql, 'wc_orders') === false, 'legacy does not touch HPOS tables');
+check(strpos($sql, "meta_value LIKE '%Whey%' AND meta_value LIKE '%Gold%'") !== false, 'legacy token AND');
+
+// HPOS.
+\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = true;
+$wpdb->queries = [];
+$ids = thean_ous_find_order_ids(array_merge($empty, ['text' => '0901 234 567']));
+$sql = implode("\n", $wpdb->queries);
+check(strpos($sql, 'wp_wc_order_addresses') !== false && strpos($sql, 'wp_wc_orders_meta') !== false, 'HPOS tables used');
+check(strpos($sql, 'wp_postmeta') === false, 'HPOS does not touch postmeta');
+check(strpos($sql, "LIKE '%901234567%'") !== false, 'HPOS phone normalized');
+check(strpos($sql, "type = 'shop_order'") !== false, 'HPOS filters order type');
+
+// Chỉ trạng thái → 1 truy vấn trên bảng đơn, không IN (...).
+$wpdb->queries = [];
+thean_ous_find_order_ids(array_merge($empty, ['statuses' => ['processing']]));
+check(count($wpdb->queries) === 1 && strpos($wpdb->queries[0], "status IN ('wc-processing')") !== false, 'status-only query');
+
+// SP + trạng thái: giao tập SP với lọc trạng thái.
+\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = false;
+$wpdb->queries = [];
+thean_ous_find_order_ids(array_merge($empty, ['product' => 'whey', 'statuses' => ['processing']]));
+$last = end($wpdb->queries);
+check(strpos($last, 'ID IN (300,120)') !== false && strpos($last, "post_status IN ('wc-processing')") !== false, 'product AND status (legacy)');
+
+echo "OK ({$checks} checks)\n";
+}
