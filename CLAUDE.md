@@ -61,6 +61,13 @@ Ngoài ra: `pages/` (landing tĩnh: an-new-chapter*, doi-tac-yeast-hero, uu-dai,
 Mã đơn hiển thị giống nhau: ID + hậu tố (`thean_change_woocommerce_order_number()` ở order-number.php).
 Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_map` / `eim_order_shipper_label` trong bootstrap.php.
 
+## Khóa đơn cũ (`woocommerce/orders/order-age-lock.php`, dùng chung theanmarket)
+
+Đơn tạo hơn 365 ngày: người dùng chỉ admin (thao tác tay) đổi được trạng thái; **mọi tiến trình tự động** (cron, WP-CLI, REST — kể cả
+hub eim đổi trạng thái / đối soát, Action Scheduler, request không đăng nhập như webhook) bị chặn ở `woocommerce_before_order_object_save`
+và ghi chú vào đơn. `order-auto-tasks.php` không chạy dây chuyền trên đơn cũ. Tạm nới có thời hạn (1 giờ … 3 ngày) ở Cài đặt ERP →
+Xử lý đơn → "Khóa đơn cũ" (option `thean_order_age_lock_relax`). Board "Tải đơn cần xử lý" luôn bỏ đơn tạo >365 ngày. Test: `php tests/order-age-lock.php`.
+
 ## Màu
 
 - Thương hiệu: **xanh dương đậm `#0047ba`** (`--default-color-dark-blue` ở `css/custom.css`), navy `#001f3f`,

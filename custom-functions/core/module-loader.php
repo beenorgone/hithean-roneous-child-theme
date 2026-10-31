@@ -81,6 +81,7 @@ $general_includes = [
     'custom-functions/woocommerce/orders/order-creator/create-order-for-customer.php', // Trang /tao-don/ — tạo đơn hộ khách
 
     // checkout-page.php → conditional (tpc_loader_modules)
+    'custom-functions/woocommerce/orders/order-age-lock.php', // khóa đổi trạng thái đơn tạo >365 ngày (người dùng không phải admin + mọi tiến trình tự động)
     'custom-functions/woocommerce/orders/order-auto-tasks.php',
     'custom-functions/woocommerce/orders/order-ops-step.php', // bước vận hành lưu sẵn (meta) cho board "Cần xử lý"
     'custom-functions/woocommerce/checkout/thank-you-page.php', // order admin page, thank you page, and emails can use this

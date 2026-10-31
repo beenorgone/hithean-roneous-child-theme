@@ -90,6 +90,12 @@ function order_auto_tasks_is_expired_final_order($order, $status_transition = nu
         return false;
     }
 
+    // Đơn tạo hơn 365 ngày: không chạy dây chuyền tự động (order-age-lock.php cũng chặn mọi tiến trình tự động đổi trạng thái),
+    // trừ khi đang tạm nới khóa ở Cài đặt ERP.
+    if (function_exists('thean_order_is_old') && thean_order_is_old($order) && !thean_order_age_lock_relaxed_until()) {
+        return true;
+    }
+
     $cutoff = current_time('timestamp', true) - (365 * DAY_IN_SECONDS);
     $completed_date = $order->get_date_completed();
     if ($completed_date && $completed_date->getTimestamp() <= $cutoff) {

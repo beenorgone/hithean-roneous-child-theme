@@ -973,13 +973,15 @@ function thean_ous_board_sql(): string
 {
     $t = thean_ops_step_tables();
     $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_excluded_statuses())) . "'";
+    // Điều kiện cuối: đơn nội bộ (domain email / _eim_internal — đổi cài đặt có hiệu lực ngay), đơn tạo quá 365 ngày.
     return "FROM {$t['orders']} o
             JOIN {$t['meta']} s ON s.{$t['fk']} = o.{$t['id']} AND s.meta_key = '" . THEAN_OPS_STEP_META . "' AND s.meta_value <> 'none'
             WHERE o.{$t['type']} = 'shop_order'
               AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
               AND (o.{$t['status']} NOT IN ({$excluded}) OR s.meta_value IN ('return', 'proof'))
               AND NOT EXISTS (SELECT 1 FROM {$t['meta']} x WHERE x.{$t['fk']} = o.{$t['id']} AND x.meta_key = '_spx_date' AND x.meta_value <> '')
-              AND " . thean_ops_internal_sql($t); // đơn nội bộ (domain email / _eim_internal) — đổi cài đặt có hiệu lực ngay
+              AND " . thean_ops_internal_sql($t) . "
+              AND " . thean_ops_age_sql($t);
 }
 
 /** Số đơn mỗi tab (1 truy vấn GROUP BY). */

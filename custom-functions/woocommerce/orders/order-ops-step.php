@@ -29,6 +29,7 @@ if (!defined('ABSPATH')) exit;
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
 const THEAN_OPS_STEP_VERSION = '3'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK)
+const THEAN_OPS_MAX_AGE_DAYS = 365; // luồng vận hành / board bỏ qua đơn tạo quá 365 ngày
 const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu chứng từ XK: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
 const THEAN_OPS_SWEEP     = 50;
@@ -210,7 +211,9 @@ function thean_ops_step_compute(WC_Order $order): array
     if (!function_exists('thean_ow_flow')) {
         require_once __DIR__ . '/order-workspace.php';
     }
-    if ($order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '' || thean_order_is_internal($order)) {
+    $created = $order->get_date_created();
+    $too_old = !$created || $created->getTimestamp() < time() - THEAN_OPS_MAX_AGE_DAYS * DAY_IN_SECONDS;
+    if ($too_old || $order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '' || thean_order_is_internal($order)) {
         return ['step' => '', 'hint' => ''];
     }
     $missing = thean_ops_missing_proof($order);
@@ -346,6 +349,12 @@ foreach (['added_post_meta', 'updated_post_meta', 'deleted_post_meta'] as $thean
 }
 unset($thean_ops_hook);
 
+/** Điều kiện SQL: đơn tạo trong THEAN_OPS_MAX_AGE_DAYS ngày (alias đơn = o). */
+function thean_ops_age_sql(array $t): string
+{
+    return "o.{$t['date']} >= '" . gmdate('Y-m-d H:i:s', time() - THEAN_OPS_MAX_AGE_DAYS * DAY_IN_SECONDS) . "'";
+}
+
 /** Bảng / cột đơn + meta theo kiểu lưu trữ (HPOS hoặc legacy). */
 function thean_ops_step_tables(): array
 {
@@ -357,7 +366,10 @@ function thean_ops_step_tables(): array
         : ['orders' => $wpdb->posts, 'meta' => $wpdb->postmeta, 'id' => 'ID', 'status' => 'post_status', 'type' => 'post_type', 'fk' => 'post_id', 'email_col' => '', 'date' => 'post_date_gmt'];
 }
 
-/** FROM … WHERE chung: đơn mở thuộc luồng vận hành + đơn đã giao / xong trong THEAN_OPS_PROOF_DAYS ngày (soát chứng từ XK). */
+/**
+ * FROM … WHERE chung: đơn mở thuộc luồng vận hành + đơn đã giao / xong trong THEAN_OPS_PROOF_DAYS ngày (soát chứng từ XK);
+ * bỏ đơn tạo quá THEAN_OPS_MAX_AGE_DAYS ngày.
+ */
 function thean_ops_step_open_sql(array $t): string
 {
     $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_excluded_statuses())) . "'";
@@ -365,7 +377,8 @@ function thean_ops_step_open_sql(array $t): string
     $since    = gmdate('Y-m-d H:i:s', time() - THEAN_OPS_PROOF_DAYS * DAY_IN_SECONDS);
     return "FROM {$t['orders']} o WHERE o.{$t['type']} = 'shop_order'
              AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
-             AND (o.{$t['status']} NOT IN ({$excluded}) OR (o.{$t['status']} IN ({$proof}) AND o.{$t['date']} >= '{$since}'))";
+             AND (o.{$t['status']} NOT IN ({$excluded}) OR (o.{$t['status']} IN ({$proof}) AND o.{$t['date']} >= '{$since}'))
+             AND " . thean_ops_age_sql($t);
 }
 
 /** Đơn mở chưa được tính bước theo logic hiện tại (THEAN_OPS_STEP_VERSION), mới nhất trước. @return int[] */
@@ -419,12 +432,15 @@ add_action(THEAN_OPS_CRON, function () {
 
 /**
  * Các mục của luồng vận hành trong Cài đặt ERP → tab Xử lý đơn (gọi từ core/ai-settings.php của mỗi theme):
- * "Đơn nội bộ" + "Quyền đổi trạng thái tùy ý".
+ * "Đơn nội bộ" + "Quyền đổi trạng thái tùy ý" + "Khóa đơn cũ" (tạm nới).
  */
 function thean_order_ops_settings_section(): void
 {
     thean_internal_domains_settings_section();
     thean_status_change_settings_section();
+    if (function_exists('thean_order_age_lock_settings_section')) {
+        thean_order_age_lock_settings_section(); // order-age-lock.php
+    }
 }
 
 /** Mục "Quyền đổi trạng thái tùy ý": danh sách user (email / tên đăng nhập / ID) → option thean_status_change_users. */

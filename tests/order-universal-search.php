@@ -186,6 +186,7 @@ foreach ([true, false] as $hpos) {
     check(strpos($q, $hpos ? 'wp_wc_orders_meta' : 'wp_postmeta') !== false && strpos($q, "'_thean_ops_step'") !== false
         && strpos($q, "'wc-chua-ghi-nhan'") !== false && strpos($q, '_spx_date') !== false
         && strpos($q, "s.meta_value IN ('return', 'proof')") !== false, 'board SQL ' . ($hpos ? 'HPOS' : 'legacy'));
+    check(strpos($q, '//') === false && preg_match("/o\\.(date_created_gmt|post_date_gmt) >= '\\d{4}-/", $q), 'board SQL: no stray comment, skips orders older than 365 days');
     $wpdb->queries = [];
     thean_ops_step_unsynced_ids(20);
     check(strpos($wpdb->queries[0], "'_thean_ops_step_v' AND a.meta_value = '3'") !== false
