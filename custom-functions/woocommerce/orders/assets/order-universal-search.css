@@ -183,7 +183,7 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-board__head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-right:40px; }
 .thean-ous-board__head .thean-ous-modal__title { margin:0; }
 .thean-ous-board__head .thean-ous__more-btn { padding:4px 12px; font-size:13px; }
-.thean-ous-tabs { display:flex; gap:6px; margin:12px 0 10px; padding-bottom:4px; overflow-x:auto; scrollbar-width:thin; }
+.thean-ous-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0 10px; } /* xuống dòng thay vì thanh cuộn ngang */
 .thean-ous-tab { display:inline-flex; flex:0 0 auto; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--ous-border); border-radius:999px; background:#fff; color:#334155; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; }
 .thean-ous-tab b { min-width:20px; padding:0 6px; border-radius:999px; background:var(--ous-primary-light); color:var(--ous-primary); font-size:12px; text-align:center; }
 .thean-ous-tab:hover { border-color:var(--ous-primary); }
