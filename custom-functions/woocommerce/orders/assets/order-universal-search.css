@@ -33,10 +33,6 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-bar__brand { display:flex; flex:0 0 auto; align-items:center; margin-right:4px; color:var(--ous-primary); font-weight:700; text-decoration:none; }
 .thean-ous-bar__brand img { display:block; height:28px; width:auto; max-width:140px; object-fit:contain; }
 .thean-ous-bar .dashicons-search { color:var(--ous-primary); }
-.thean-ous-bar__toggle { display:inline-flex; flex:0 0 auto; align-items:center; gap:5px; margin:0; padding:5px 9px; border:1px solid var(--ous-border); border-radius:8px; background:#fff; color:#334155; font-size:13px; white-space:nowrap; cursor:pointer; user-select:none; }
-.thean-ous-bar__toggle input { margin:0 !important; }
-.thean-ous-bar__toggle b { min-width:18px; padding:0 5px; border-radius:999px; background:#fde68a; color:#78350f; font-size:11px; text-align:center; }
-.thean-ous-bar__toggle:has(input:checked) { border-color:var(--ous-primary); background:var(--ous-primary-light); color:var(--ous-primary); }
 .thean-ous-suggest[hidden] { display:none; }
 .thean-ous-suggest { position:absolute; left:0; right:0; top:100%; z-index:95; max-height:min(360px, 60vh); overflow:auto; margin-top:4px; padding:4px; border:1px solid var(--ous-border); border-radius:10px; background:#fff; box-shadow:0 12px 28px rgba(15,23,42,.18); }
 .thean-ous-suggest__item { display:flex; gap:10px; align-items:baseline; width:100%; padding:7px 10px; border:0; border-radius:7px; background:none; text-align:left; cursor:pointer; color:#1e293b; font-size:13px; }
@@ -131,6 +127,34 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-menu__list { position:absolute; right:0; top:calc(100% + 4px); z-index:96; min-width:200px; padding:4px; border:1px solid var(--ous-border); border-radius:10px; background:#fff; box-shadow:0 12px 28px rgba(15,23,42,.18); }
 .thean-ous-menu__item { display:block; padding:8px 10px; border-radius:7px; color:#1e293b; font-size:13px; text-decoration:none; white-space:nowrap; }
 .thean-ous-menu__item:hover { background:var(--ous-primary-light); color:var(--ous-primary); }
+/* "Ẩn thông báo" nằm trong menu ⋯; chấm vàng trên nút ⋯ khi đang ẩn thông báo. */
+.thean-ous-menu__toggle { display:flex; align-items:center; gap:7px; cursor:pointer; user-select:none; }
+.thean-ous-menu__toggle input { margin:0 !important; }
+.thean-ous-menu__toggle b { min-width:18px; margin-left:auto; padding:0 5px; border-radius:999px; background:#fde68a; color:#78350f; font-size:11px; text-align:center; }
+.thean-ous-menu__toggle b[hidden], .thean-ous-menu__btn b[hidden] { display:none; }
+.thean-ous-menu__btn { position:relative; }
+.thean-ous-menu__btn b { position:absolute; top:3px; right:3px; width:7px; height:7px; border-radius:50%; background:#f59e0b; }
+
+/* Board: thanh chuyển bước ‹ [chọn] › — chỉ màn hẹp (xem @media). */
+.thean-ous-tabnav { display:none; align-items:center; gap:6px; margin:10px 0 0; }
+.thean-ous-tabnav__btn { flex:0 0 40px; height:38px; margin:0; padding:0; border:1px solid var(--ous-primary); border-radius:8px; background:#fff; color:var(--ous-primary); font-size:22px; line-height:1; cursor:pointer; }
+.thean-ous-tabnav__btn:disabled { border-color:#cbd5e1; color:#cbd5e1; cursor:default; }
+.thean-ous-tabnav__select { flex:1; min-width:0; max-width:none !important; height:38px; padding:0 8px; border:1px solid var(--ous-primary); border-radius:8px; background:var(--ous-primary-light); color:var(--ous-primary); font-size:15px; font-weight:600; }
+
+/* Ô "⚡ Thao tác" (mobile) — desktop ẩn. Popup thao tác: nhóm Tiếp theo / Tổng quan. */
+.thean-ous__table td.thean-ous__c-mact { display:none; }
+.thean-ous__mact-btn { justify-content:center; gap:6px; }
+.thean-ous__mact-dot { width:8px; height:8px; border-radius:50%; background:#fbbf24; }
+.thean-ous-modal--acts { z-index:99300; }
+.thean-ous-modal--acts .thean-ous-modal__dialog { width:min(560px,100%); }
+.thean-ous-acts-pop__meta { margin:-2px 40px 8px 0; color:#64748b; }
+.thean-ous-acts-pop__sec { margin:12px 0 0; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px; background:#fafcff; }
+.thean-ous-acts-pop__sec.is-next { border-color:var(--ous-primary); background:var(--ous-primary-lighter); }
+.thean-ous-acts-pop__sec h3 { margin:0 0 8px; color:#334155; font-size:13px; text-transform:uppercase; letter-spacing:.03em; }
+.thean-ous-acts-pop__sec .thean-ous__hint { margin:0 0 8px; }
+.thean-ous-acts-pop__sec .thean-ous-acts { gap:8px; margin-top:8px; }
+.thean-ous-acts-pop__sec .thean-ous-acts__g { gap:6px; }
+.thean-ous-acts-pop__sec .thean-ous-btn { padding:8px 12px !important; font-size:14px; }
 .thean-ous-board__head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-right:40px; }
 .thean-ous-board__head .thean-ous-modal__title { margin:0; }
 .thean-ous-board__head .thean-ous__more-btn { padding:4px 12px; font-size:13px; }
@@ -175,7 +199,6 @@ body.thean-ous-open { overflow:hidden; }
     .thean-ous-bar .dashicons-search { display:none; }
     .thean-ous-bar__row { flex-wrap:wrap; }
     .thean-ous-bar__row input[type="search"] { flex-basis:calc(100% - 110px); }
-    .thean-ous-bar__toggle { order:5; }
     .thean-ous-bar__board { order:4; }
     .thean-ous-menu { order:6; }
     .thean-ous-board { padding:12px 10px; }
@@ -186,7 +209,12 @@ body.thean-ous-open { overflow:hidden; }
     .thean-ous__table thead, .thean-ous__table colgroup { display:none; }
     .thean-ous__table tr { margin-bottom:10px; padding:10px; border:1px solid #e2e8f0; border-radius:10px; }
     .thean-ous__table td { padding:4px 0; border:0; }
-    .thean-ous__table td.thean-ous__c-acts, .thean-ous__table td.thean-ous__c-next { margin-top:6px; padding-top:8px; border-top:1px dashed #e2e8f0; }
+    /* Mobile: cột Thao tác tiếp theo + Thao tác gom vào nút "⚡ Thao tác" (popup). */
+    .thean-ous__table td.thean-ous__c-acts, .thean-ous__table td.thean-ous__c-next { display:none; }
+    .thean-ous__table td.thean-ous__c-mact { display:block; margin-top:8px; padding-top:8px; border-top:1px dashed #e2e8f0; }
+    .thean-ous__table .thean-ous__mact-btn { width:100% !important; padding:10px 12px !important; font-size:15px; }
+    .thean-ous-tabnav { display:flex; }
+    .thean-ous-modal--acts .thean-ous-modal__dialog { min-height:100%; }
     .thean-ous__table tr { position:relative; }
     .thean-ous__table td.thean-ous__c-check { position:absolute; top:8px; right:8px; padding:0; }
     .thean-ous-bulk { top:-14px; }

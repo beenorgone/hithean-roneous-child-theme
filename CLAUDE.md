@@ -96,7 +96,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 - Bảng 4 cột; mobile dạng thẻ. Nút theo nhóm màu: Xem (Xem nhanh / Chỉnh → `/tao-don/?order_id=` / Chi tiết),
   Thanh toán, Kho, Hoàn, Khác. Nút thao tác nhanh giữ class `.wc-action-button-hithean-order-*` để dùng modal của orders-admin.php.
 - Vị trí sticky tính bằng JS theo `#wpadminbar` + `.woocommerce-layout__header` (header WC Admin cố định, render muộn).
-- "Ẩn thông báo": ô tích trên thanh tìm ẩn mọi `.notice` / `.update-nag` ở danh sách đơn, **mặc định bật cho mọi user**; bỏ tích lưu `'0'` vào user meta
+- "Ẩn thông báo": ô tích trong menu ⋯ của thanh tìm (chấm vàng trên nút ⋯ khi đang ẩn) ẩn mọi `.notice` / `.update-nag` ở danh sách đơn, **mặc định bật cho mọi user**; bỏ tích lưu `'0'` vào user meta
   `thean_ous_alerts_off` (nhớ cho phiên sau, mọi thiết bị); class `thean-ous-alerts-off` gắn ở `admin_body_class` để không chớp.
 - CSS/JS: `orders/assets/order-universal-search.{css,js}` — **giống hệt bản theanmarket**, sửa thì chép sang cả 2 site;
   khác biệt truyền qua `window.theanOusCfg` (`thean_ous_ui_config()`, vd `blockingModals`). Màu: biến `--ous-*` đầu file CSS.
@@ -111,6 +111,10 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   option `thean_internal_email_domains`, trống = dùng danh sách của eim; hoặc cờ `_eim_internal`) — board lọc thẳng bằng SQL
   nên đổi domain có hiệu lực ngay; đơn đóng còn hoàn dở vẫn vào tab Hoàn hàng.
   **Đổi luồng vận hành → tăng `THEAN_OPS_STEP_VERSION`** để mọi đơn mở được tính lại.
+- Mobile (≤782px): board có thanh ‹ [chọn bước ▾] › trên dải tab (‹ › nhảy tab kề có đơn); mỗi đơn chỉ hiện nút "⚡ Thao tác"
+  (ô `td.thean-ous__c-mact`, cột Thao tác tiếp theo + Thao tác ẩn) → popup `#thean-ous-acts` 2 nhóm: "Thao tác tiếp theo" (bản sao cột
+  tiếp theo) và "Tổng quan" (`<template data-thean-ous-acts-all>` = `thean_ous_render_actions($order, false)`). Nút trong popup dùng
+  chung handler toàn trang (modal thao tác nhanh, popup luồng, VAT…).
 - Tab "Thiếu chứng từ XK" lọc theo **cờ** `_thean_ops_proof` (không theo bước): đơn **Đang giao** thiếu chứng từ nằm ở cả tab
   "Đang giao" (bước chính, để theo dõi — không về "Lấy hàng") lẫn "Thiếu chứng từ XK"; đơn Đã giao / Giao 1 phần / Hoàn thành tạo trong `THEAN_OPS_PROOF_DAYS` (60) ngày mà thiếu ảnh xuất kho
   hoặc xác nhận xuất kho (`thean_ops_missing_proof()`, ưu tiên trên mọi bước khác). Nút "⏭️ Bỏ qua" (đơn lẻ + hàng loạt) → meta

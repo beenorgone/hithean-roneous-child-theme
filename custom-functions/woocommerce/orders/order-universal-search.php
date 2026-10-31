@@ -863,6 +863,11 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): st
                 <?php echo thean_ous_next_actions($order, $flow['step'], !empty($flow['proof'])); ?>
             </td>
             <td class="thean-ous__c-acts"><?php echo thean_ous_render_actions($order, true); ?></td>
+            <td class="thean-ous__c-mact">
+                <?php // Mobile: mọi thao tác gom vào 1 nút → popup (Tiếp theo = bản sao cột "Thao tác tiếp theo", Tổng quan = template dưới). ?>
+                <button type="button" class="thean-ous-btn thean-ous-btn--primary thean-ous__mact-btn" data-thean-ous-acts="<?php echo esc_attr($id); ?>">⚡ Thao tác<?php echo $flow['step'] !== '' ? ' <span class="thean-ous__mact-dot" aria-hidden="true"></span>' : ''; ?></button>
+                <template data-thean-ous-acts-all><?php echo thean_ous_render_actions($order, false); ?></template>
+            </td>
         </tr>
         <?php
     }
@@ -1391,12 +1396,13 @@ function thean_ous_render_ui(): void
             <kbd>/</kbd>
             <button type="submit" class="thean-ous-bar__submit">Tìm</button>
             <button type="button" class="thean-ous-bar__board" data-thean-ous-board title="Tải đơn cần xử lý ngay trên trang, chia tab theo bước (giống bảng điều phối)">📋 <span>Tải đơn cần xử lý</span></button>
-            <label class="thean-ous-bar__toggle" title="Ẩn mọi thông báo (notice) ở trang danh sách đơn — nhớ cho lần sau">
-                <input type="checkbox" name="alerts_off"> <span>Ẩn thông báo</span><b data-thean-ous-alert-count hidden></b>
-            </label>
-            <div class="thean-ous-menu" data-thean-ous-menu hidden>
-                <button type="button" class="thean-ous-menu__btn" aria-haspopup="menu" aria-expanded="false" title="Thêm" aria-label="Thêm">⋯</button>
-                <div class="thean-ous-menu__list" role="menu" hidden></div>
+            <div class="thean-ous-menu" data-thean-ous-menu>
+                <button type="button" class="thean-ous-menu__btn" aria-haspopup="menu" aria-expanded="false" title="Thêm" aria-label="Thêm">⋯<b data-thean-ous-alert-dot hidden></b></button>
+                <div class="thean-ous-menu__list" role="menu" hidden>
+                    <label class="thean-ous-menu__item thean-ous-menu__toggle" role="menuitemcheckbox" title="Ẩn mọi thông báo (notice) ở trang danh sách đơn — nhớ cho lần sau">
+                        <input type="checkbox" name="alerts_off"> <span>Ẩn thông báo</span><b data-thean-ous-alert-count hidden></b>
+                    </label>
+                </div>
             </div>
         </div>
         <div class="thean-ous-suggest" id="thean-ous-suggest" role="listbox" hidden></div>

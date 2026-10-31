@@ -58,7 +58,6 @@
             });
         }
         menuList.appendChild(link);
-        menu.hidden = false;
     }());
     menuBtn.addEventListener('click', function () { setMenu(menuList.hidden); });
     document.addEventListener('click', function (e) { if (!menuList.hidden && !menu.contains(e.target)) setMenu(false); });
@@ -87,6 +86,8 @@
         alertCount.textContent = n;
         alertCount.hidden = !(alertBox.checked && n);
         alertCount.title = n + ' thông báo đang ẩn';
+        var dot = bar.querySelector('[data-thean-ous-alert-dot]');
+        if (dot) { dot.hidden = alertCount.hidden; dot.title = alertCount.title; }
     }
     alertBox.checked = !!cfg.alertsOff;
     countAlerts();
@@ -117,7 +118,7 @@
         }
         modal.hidden = !open;
         if (modal === invoice && !open) invoice.querySelector('iframe').src = 'about:blank';
-        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden || !invoice.hidden);
+        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden || !invoice.hidden || (typeof acts !== 'undefined' && !acts.hidden));
     }
     function body(modal) { return modal.querySelector('.thean-ous-modal__body'); }
     function notice(el, text) {
@@ -413,6 +414,41 @@
         });
         var on = nav.querySelector('.is-active');
         if (on) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        renderTabNav(tabs, current);
+    }
+    // Mobile: dải tab tràn ngang → tab khuất không thấy. Thanh ‹ [chọn bước ▾] › chuyển qua mọi tab (CSS chỉ hiện ở màn hẹp).
+    function renderTabNav(tabs, current) {
+        var nav = board.querySelector('.thean-ous-tabnav');
+        if (!nav) {
+            nav = document.createElement('div');
+            nav.className = 'thean-ous-tabnav';
+            nav.innerHTML = '<button type="button" class="thean-ous-tabnav__btn" data-dir="-1" aria-label="Bước trước">‹</button>'
+                + '<select class="thean-ous-tabnav__select" aria-label="Chọn bước" data-thean-ous-tabnav></select>'
+                + '<button type="button" class="thean-ous-tabnav__btn" data-dir="1" aria-label="Bước sau">›</button>';
+            var strip = board.querySelector('.thean-ous-tabs');
+            strip.parentNode.insertBefore(nav, strip);
+        }
+        var select = nav.querySelector('select');
+        select.replaceChildren();
+        var idx = 0;
+        tabs.forEach(function (t, i) {
+            var o = document.createElement('option');
+            o.value = t.key;
+            o.textContent = t.label + ' (' + t.count + ')';
+            if (t.key === current) { o.selected = true; idx = i; }
+            select.appendChild(o);
+        });
+        // ‹ › nhảy sang tab kề có đơn (bỏ tab trống); không còn thì giữ tab kề bất kỳ.
+        nav.querySelectorAll('.thean-ous-tabnav__btn').forEach(function (b) {
+            var dir = +b.dataset.dir, target = null;
+            for (var i = idx + dir; i >= 0 && i < tabs.length; i += dir) {
+                if (tabs[i].count) { target = tabs[i]; break; }
+            }
+            if (!target) target = tabs[idx + dir] || null;
+            b.disabled = !target;
+            if (target) { b.dataset.theanOusTab = target.key; b.title = target.label + ' (' + target.count + ')'; }
+            else delete b.dataset.theanOusTab;
+        });
     }
     function renderBoard(data, page) {
         boardState.tab = data.tab;
@@ -513,6 +549,59 @@
         else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeSuggest(); }
     });
 
+    /* ---------- Mobile: mọi thao tác của 1 đơn gom vào nút "⚡ Thao tác" → popup ---------- */
+    // Nhóm "Tiếp theo" = bản sao cột Thao tác tiếp theo; "Tổng quan" = <template data-thean-ous-acts-all> (mọi action, theo nhóm).
+    // Nút trong popup dùng chung handler toàn trang (modal thao tác nhanh, popup luồng, VAT, hóa đơn…).
+    var acts = document.createElement('div');
+    acts.className = 'thean-ous-modal thean-ous-modal--acts';
+    acts.id = 'thean-ous-acts';
+    acts.hidden = true;
+    acts.innerHTML = '<div class="thean-ous-modal__backdrop" data-thean-ous-close></div>'
+        + '<div class="thean-ous-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="thean-ous-acts-title">'
+        + '<button type="button" class="thean-ous-modal__close" data-thean-ous-close aria-label="Đóng">&times;</button>'
+        + '<h2 class="thean-ous-modal__title" id="thean-ous-acts-title"></h2><div class="thean-ous-acts-pop__meta"></div>'
+        + '<div class="thean-ous-modal__body"></div></div>';
+    document.body.appendChild(acts);
+    function openActs(row) {
+        var id = row.getAttribute('data-order-id');
+        var head = row.querySelector('.thean-ous__order-head');
+        var title = acts.querySelector('.thean-ous-modal__title');
+        title.replaceChildren(document.createTextNode('⚡ Thao tác đơn #' + id + ' '));
+        var badge = head && head.querySelector('mark.order-status');
+        if (badge) title.appendChild(badge.cloneNode(true));
+        var cus = row.querySelector('.thean-ous__c-cus strong');
+        acts.querySelector('.thean-ous-acts-pop__meta').textContent = cus ? cus.textContent.trim() : '';
+        var out = document.createDocumentFragment();
+        function section(label, nodes, cls) {
+            if (!nodes.length) return;
+            var sec = document.createElement('section');
+            sec.className = 'thean-ous-acts-pop__sec ' + cls;
+            var h = document.createElement('h3'); h.textContent = label;
+            sec.appendChild(h);
+            nodes.forEach(function (n) { sec.appendChild(n); });
+            out.appendChild(sec);
+        }
+        var next = row.querySelector('.thean-ous__c-next');
+        section('👉 Thao tác tiếp theo', next ? Array.prototype.map.call(next.children, function (n) { return n.cloneNode(true); }) : [], 'is-next');
+        var all = row.querySelector('template[data-thean-ous-acts-all]');
+        var quick = document.createElement('div');
+        quick.className = 'thean-ous-acts__g';
+        quick.innerHTML = '<button type="button" class="thean-ous-btn thean-ous-btn--primary" data-thean-ous-preview="' + id + '">Xem nhanh</button>';
+        section('📋 Tổng quan', [quick].concat(all ? [all.content.cloneNode(true)] : []), 'is-all');
+        body(acts).replaceChildren(out);
+        acts.dataset.orderId = id;
+        setOpen(acts, true);
+    }
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-thean-ous-acts]');
+        if (btn) { e.preventDefault(); var row = btn.closest('tr[data-order-id]'); if (row) openActs(row); return; }
+        if (acts.hidden || !acts.contains(e.target)) return;
+        var pv = e.target.closest('[data-thean-ous-preview]');
+        if (pv) { e.preventDefault(); setOpen(acts, false); openPreview(pv.getAttribute('data-thean-ous-preview')); }
+    });
+    // Đơn vừa đổi (popup luồng / thao tác nhanh) → đóng popup thao tác, board tự tải lại.
+    document.addEventListener('thean:order-updated', function () { if (!acts.hidden) setOpen(acts, false); });
+
     // Bảng đơn (kết quả tìm + board): Xem nhanh / bấm dòng → modal xem nhanh.
     function tableClick(e) {
         var btn = e.target.closest('[data-thean-ous-preview]');
@@ -531,7 +620,10 @@
         tableClick(e);
     });
     results.addEventListener('change', function (e) { onCheck(results, e); });
-    board.addEventListener('change', function (e) { onCheck(board, e); });
+    board.addEventListener('change', function (e) {
+        if (e.target.matches('[data-thean-ous-tabnav]')) { loadBoard(e.target.value, 1, false); return; }
+        onCheck(board, e);
+    });
     board.addEventListener('click', function (e) {
         var tab = e.target.closest('[data-thean-ous-tab]');
         if (tab) { if (!boardState.loading || tab.dataset.theanOusTab !== boardState.tab) loadBoard(tab.dataset.theanOusTab, 1, false); return; }
@@ -566,6 +658,7 @@
             if (cfg.blockingModals && document.querySelector(cfg.blockingModals)) return;
             if (!invoice.hidden) setOpen(invoice, false);
             else if (!preview.hidden) setOpen(preview, false);
+            else if (!acts.hidden) setOpen(acts, false);
             else if (!results.hidden) setOpen(results, false);
             return;
         }
