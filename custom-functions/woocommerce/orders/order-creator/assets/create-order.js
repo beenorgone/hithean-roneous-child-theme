@@ -868,7 +868,7 @@
                 editInline.className = 'oc-btn oc-btn--primary';
                 editInline.textContent = 'Chỉnh trên trang tạo đơn';
                 editInline.addEventListener('click', function () {
-                    if (o.id) { closeModals(); loadOrder(o.id); }
+                    if (o.id) { closeModals(true); loadOrder(o.id); }
                 });
                 var editAdmin = document.createElement('a');
                 editAdmin.className = 'oc-btn oc-btn--ghost';
@@ -1768,7 +1768,7 @@
                     ' <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-ai-act="guest-address">Dùng địa chỉ đơn này</button></div>';
             }
             html += '<label class="oc-ai-newcust"><input type="checkbox" data-ai-act="create-customer"' + (state.aiCreateCustomer ? ' checked' : '') + '> ' + (state.aiGuest ? 'Tạo tài khoản cho khách khi tạo đơn' : 'Khách mới — tạo tài khoản khách hàng khi tạo đơn') + '</label>' +
-                '<small class="oc-muted">Khách đã có tài khoản với SĐT khác? Chuyển sang giao diện thủ công để tìm khách.</small>';
+                '<small class="oc-muted">Khách đã có tài khoản với SĐT khác? Bấm “Chỉnh đơn” để tìm khách trong popup.</small>';
         }
         var field = function (label, id, span) {
             return '<div' + (span ? ' class="oc-form-span"' : '') + '><label>' + label + '</label><input type="text" data-bind="' + id + '" value="' + escapeHtml($('#' + id).value) + '"></div>';
@@ -1783,8 +1783,8 @@
             '<div class="oc-form-span oc-ai-area">' +
                 '<span>' + (area ? '📍 ' + escapeHtml(area) : '⚠️ Chưa có Tỉnh/Thành, Phường/Xã') + '</span>' +
                 ($('#oc-ship-diff').checked ? '<small class="oc-muted">Giao đến địa chỉ khác: ' + escapeHtml([$('#oc-ship-name').value, $('#oc-ship-address').value].filter(Boolean).join(' — ')) + '</small>' : '') +
-                (warn.length ? '<small class="oc-ai-warn">⚠️ Không khớp danh mục: ' + escapeHtml(warn.join(', ')) + ' — chọn lại trên giao diện thủ công.</small>' : '') +
-                '<button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-mode-switch="manual">Sửa Tỉnh/Phường, địa chỉ giao</button>' +
+                (warn.length ? '<small class="oc-ai-warn">⚠️ Không khớp danh mục: ' + escapeHtml(warn.join(', ')) + ' — mở popup để chọn lại.</small>' : '') +
+                '<button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-ai-edit="address">Sửa Tỉnh/Phường, địa chỉ giao</button>' +
             '</div>' +
         '</div>';
         box.innerHTML = html;
@@ -2042,13 +2042,21 @@
         document.querySelectorAll('.oc-mode-btn').forEach(function (b) {
             b.addEventListener('click', function () { setMode(b.dataset.mode); });
         });
-        // Nút "Sửa trên giao diện thủ công" (kể cả nút render động trong form AI).
+        // Giữ chế độ AI, dùng lại form gốc trong popup để không tạo dữ liệu trùng.
         $('#oc-ai-order').addEventListener('click', function (e) {
-            var sw = e.target.closest('[data-mode-switch]');
+            var sw = e.target.closest('[data-ai-edit]');
             if (sw) {
-                setMode(sw.dataset.modeSwitch);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                openAiEditor(sw.dataset.aiEdit, sw);
             }
+        });
+        $('#oc-ai-edit-modal').addEventListener('keydown', function (e) {
+            if (e.key !== 'Tab' || document.querySelector('.oc-modal:not([hidden]):not(#oc-ai-edit-modal)')) { return; }
+            var controls = Array.prototype.filter.call(this.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]'), function (el) {
+                return !el.disabled && el.getClientRects().length;
+            });
+            var first = controls[0], last = controls[controls.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
         });
         $('#oc-ai-run').addEventListener('click', function () { aiRun(false); });
         $('#oc-ai-rerun').addEventListener('click', function () { aiRun(true); });
@@ -2634,11 +2642,53 @@
         $('#oc-pay-codnote-wrap').style.display = !hubPayOn() && (v === 'shipper' || v === 'self') ? 'block' : 'none';
     }
 
+    var aiEditorHome = null;
+    var aiEditorTrigger = null;
+
+    function openAiEditor(section, trigger) {
+        var grid = $('#oc-pane-create .oc-grid');
+        if (!grid || aiEditorHome) { return; }
+        aiEditorTrigger = trigger;
+        aiEditorHome = document.createComment('oc-editor-home');
+        grid.parentNode.insertBefore(aiEditorHome, grid);
+        $('#oc-ai-edit-body').appendChild(grid);
+        openModal('#oc-ai-edit-modal');
+        var target = section === 'address' ? $('#oc-bill-name') : $('#oc-product-search');
+        target.focus();
+        target.scrollIntoView({ block: 'center' });
+    }
+
+    function restoreAiEditor() {
+        if (!aiEditorHome) { return; }
+        var grid = $('#oc-ai-edit-body .oc-grid');
+        aiEditorHome.parentNode.replaceChild(grid, aiEditorHome);
+        aiEditorHome = null;
+        state.aiUnmatched = {
+            state: $('#oc-bill-state').value ? '' : state.aiUnmatched.state,
+            city: $('#oc-bill-city').value ? '' : state.aiUnmatched.city
+        };
+        aiRenderReview();
+        recalc();
+        if (aiEditorTrigger && aiEditorTrigger.isConnected) { aiEditorTrigger.focus(); }
+        else { $('#oc-ai-edit-open').focus(); }
+        aiEditorTrigger = null;
+    }
+
     // ---------- modals ----------
     function openModal(sel) { $(sel).hidden = false; document.body.classList.add('oc-modal-open'); }
-    function closeModals() {
-        document.querySelectorAll('.oc-modal').forEach(function (m) { m.hidden = true; });
+    // Popup "Chỉnh đơn" (AI) có thể mở modal con (khách mới, lịch sử, mã ưu đãi...): đóng modal con
+    // thì giữ popup Chỉnh đơn; closeModals(true) đóng hết (vd. chuyển sang đơn khác).
+    function closeModals(all) {
+        var editor = $('#oc-ai-edit-modal');
+        var keepEditor = !all && editor && !editor.hidden &&
+            !!document.querySelector('.oc-modal:not([hidden]):not(#oc-ai-edit-modal)');
+        document.querySelectorAll('.oc-modal').forEach(function (m) {
+            if (keepEditor && m === editor) { return; }
+            m.hidden = true;
+        });
+        if (keepEditor) { return; }
         document.body.classList.remove('oc-modal-open');
+        restoreAiEditor();
     }
 
     // ---------- bind ----------
@@ -2753,7 +2803,7 @@
         });
         $('#oc-pay-confirm').addEventListener('click', confirmPayment);
         $('#oc-pay-payer').addEventListener('change', togglePayCodNote);
-        document.querySelectorAll('[data-oc-close]').forEach(function (el) { el.addEventListener('click', closeModals); });
+        document.querySelectorAll('[data-oc-close]').forEach(function (el) { el.addEventListener('click', function () { closeModals(); }); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModals(); });
     }
 

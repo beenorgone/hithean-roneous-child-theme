@@ -1,0 +1,43 @@
+// Run: node tests/create-order-ai-ui.cjs (requires jsdom).
+const { JSDOM } = require('jsdom');
+const fs = require('fs');
+const base=require('path').join(__dirname, '../custom-functions/woocommerce/orders/order-creator/');
+let php=fs.readFileSync(base+'create-order-for-customer.php','utf8');
+let html=php.slice(php.indexOf('<!DOCTYPE html>')).replace(/<\?php[\s\S]*?\?>/g,'').replace(/<script\b[\s\S]*?<\/script>/g,'');
+const dom=new JSDOM(html,{url:'https://example.test/tao-don/',runScripts:'outside-only'});
+const w=dom.window;
+w.OrderCreator={isAdmin:true, settings:{}, gateways:[{id:'cod',title:'COD'}],statuses:[{key:'on-hold',label:'Hold'}]};
+w.HTMLElement.prototype.scrollIntoView=function(){};
+w.fetch=async()=>({text:async()=>JSON.stringify({success:true,data:{}})});
+w.eval(fs.readFileSync(base+'assets/create-order.js','utf8'));
+w.document.querySelector('[data-mode="ai"]').click();
+const grid=w.document.querySelector('.oc-grid');
+const input=w.document.querySelector('#oc-bill-name');
+input.value='Modal edit';
+w.document.querySelector('#oc-ai-edit-open').click();
+function check(ok,msg){if(!ok)throw Error(msg); console.log('PASS '+msg)}
+check(w.document.body.classList.contains('oc-mode-ai'),'AI mode retained');
+check(grid.parentNode.id==='oc-ai-edit-body','original form moved into modal');
+check(!w.document.querySelector('#oc-ai-edit-modal').hidden,'modal opened');
+input.value='Updated customer';
+w.document.querySelector('#oc-ai-edit-modal [data-oc-close]').click();
+check(w.document.querySelector('#oc-ai-edit-modal').hidden,'modal closed');
+check(grid.parentNode.id==='oc-pane-create','original form restored');
+check(input.value==='Updated customer','edited value retained');
+check(w.localStorage.getItem('oc_create_mode')==='ai','stored mode retained');
+check(w.document.querySelector('[data-bind="oc-bill-name"]').value==='Updated customer','AI review synchronized');
+w.document.querySelector('[data-ai-edit="address"]').click();
+check(w.document.activeElement===input,'address editor receives focus');
+w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape'}));
+check(grid.parentNode.id==='oc-pane-create','Escape restores form');
+check(w.document.querySelectorAll('#oc-bill-name').length===1,'no duplicate form fields');
+// Modal con mở từ popup Chỉnh đơn: đóng modal con thì popup Chỉnh đơn vẫn mở.
+w.document.querySelector('#oc-ai-edit-open').click();
+w.document.querySelector('#oc-customer-new-toggle').click();
+check(!w.document.querySelector('#oc-customer-modal').hidden,'nested customer modal opened');
+w.document.querySelector('#oc-customer-modal [data-oc-close]').click();
+check(w.document.querySelector('#oc-customer-modal').hidden,'nested modal closed');
+check(!w.document.querySelector('#oc-ai-edit-modal').hidden && grid.parentNode.id==='oc-ai-edit-body','editor stays open after nested modal');
+w.document.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape'}));
+check(grid.parentNode.id==='oc-pane-create','Escape closes editor after nested modal');
+w.close();

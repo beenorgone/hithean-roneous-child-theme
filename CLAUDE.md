@@ -158,6 +158,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
+- `create-order-ai-address.php` (quy đổi địa chỉ AI tạo đơn); UI popup "Chỉnh đơn" chế độ AI: `node tests/create-order-ai-ui.cjs` (cần jsdom).
 
 ## Quy ước
 

@@ -22,6 +22,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once __DIR__ . '/ai-address.php';
+
 if (!defined('ORDER_CREATOR_ROUTE')) {
     define('ORDER_CREATOR_ROUTE', 'tao-don');
 }
@@ -2276,7 +2278,7 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     require_once get_stylesheet_directory() . '/custom-functions/core/ai-providers.php';
     require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php';
 
-    [$address_rules, $search_rules] = order_creator_ai_address_rules($convert_old_address);
+    [$address_rules, $search_rules] = order_creator_ai_address_rules(false);
     $system_head = 'Bạn là công cụ bóc tách thông tin khách hàng cho cửa hàng online Việt Nam. '
         . 'Từ dữ liệu được cung cấp (tin nhắn, comment, ảnh chụp màn hình chat, phiếu ship...), trích xuất thông tin khách và trả về DUY NHẤT một JSON object với đúng các khóa: '
         . 'first_name, last_name, email, phone, address_1, address_2, city, state. '
@@ -2290,12 +2292,12 @@ add_action('wp_ajax_order_creator_ai_extract_customer', function () {
     }
 
     $used = null;
-    $data = order_creator_ai_run($system_head, $search_rules, $system_tail, $prompt, $images, 1024, $convert_old_address, $used);
+    $data = order_creator_ai_run($system_head, $search_rules, $system_tail, $prompt, $images, 1024, false, $used);
     if (is_wp_error($data)) {
         wp_send_json_error(['message' => $data->get_error_message()]);
     }
 
-    $normalized = order_creator_ai_normalize_customer($data);
+    $normalized = order_creator_ai_prepare_customer($data, $convert_old_address, $used);
 
     wp_send_json_success([
         'fields'             => $normalized['fields'],
@@ -2772,7 +2774,7 @@ add_action('wp_ajax_order_creator_ai_extract_order', function () {
         }
     }
 
-    [$address_rules, $search_rules] = order_creator_ai_address_rules($convert_old_address);
+    [$address_rules, $search_rules] = order_creator_ai_address_rules(false);
     $system_head = 'Bạn là trợ lý lên đơn cho cửa hàng online Việt Nam. Từ dữ liệu (tin nhắn, comment, ảnh chụp chat, ảnh phiếu/ghi chú...) hãy bóc tách đơn hàng và trả về DUY NHẤT một JSON object dạng: '
         . '{"customer":{"first_name":"","last_name":"","email":"","phone":"","address_1":"","address_2":"","city":"","state":""},'
         . '"items":[{"product_id":0,"sku":"","name":"","qty":1,"confident":true,"candidate_ids":[],"note":""}],'
@@ -2800,12 +2802,12 @@ add_action('wp_ajax_order_creator_ai_extract_order', function () {
     }
 
     $used = null;
-    $data = order_creator_ai_run($system_head, $search_rules, $system_tail, $prompt, $images, 4096, $convert_old_address, $used);
+    $data = order_creator_ai_run($system_head, $search_rules, $system_tail, $prompt, $images, 4096, false, $used);
     if (is_wp_error($data)) {
         wp_send_json_error(['message' => $data->get_error_message()]);
     }
 
-    $customer = order_creator_ai_normalize_customer(isset($data['customer']) && is_array($data['customer']) ? $data['customer'] : []);
+    $customer = order_creator_ai_prepare_customer(isset($data['customer']) && is_array($data['customer']) ? $data['customer'] : [], $convert_old_address, $used);
     $customer += order_creator_find_existing_customers($customer['fields']['phone'], $customer['fields']['email']);
 
     $items = [];
@@ -3442,14 +3444,14 @@ function order_creator_render_page(): void
         <div class="oc-card oc-ai-input">
             <div class="oc-card-head">
                 <h2 id="oc-ai-input-title">✨ AI tạo đơn</h2>
-                <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" data-mode-switch="manual">Sửa trên giao diện thủ công</button>
+                <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" id="oc-ai-edit-open" data-ai-edit="all">Chỉnh đơn</button>
             </div>
             <details class="oc-ai-source" id="oc-ai-source" hidden>
                 <summary>Nội dung đã dùng để lên đơn</summary>
                 <pre id="oc-ai-source-text"></pre>
             </details>
             <label for="oc-ai-text" id="oc-ai-text-label">Dán tin nhắn / comment đặt hàng của khách — hoặc dán (Ctrl+V) / chọn ảnh chụp màn hình (tối đa 4 ảnh)</label>
-            <textarea id="oc-ai-text" rows="6" placeholder="VD: Chị Hằng 0912345678, 25 Lê Lợi, P. Bến Nghé, TP.HCM. Lấy 2 hộp SKU ABC-01 + 1 chai dầu gội 500ml, có mã LW-XXXX, chuyển khoản."></textarea>
+            <textarea id="oc-ai-text" rows="12" placeholder="VD: Chị Hằng 0912345678, 25 Lê Lợi, P. Bến Nghé, TP.HCM. Lấy 2 hộp SKU ABC-01 + 1 chai dầu gội 500ml, có mã LW-XXXX, chuyển khoản."></textarea>
             <div class="oc-ai-thumbs" id="oc-ai-thumbs" hidden></div>
             <label class="oc-ai-convert-option" for="oc-ai-convert-address">
                 <input type="checkbox" id="oc-ai-convert-address" checked>
@@ -3729,6 +3731,19 @@ function order_creator_render_page(): void
             </section>
         </aside>
     </div>
+
+    <?php if ($oc_ai_order) : ?>
+    <div class="oc-modal" id="oc-ai-edit-modal" hidden>
+        <div class="oc-modal__backdrop" data-oc-close></div>
+        <div class="oc-modal__dialog oc-modal__dialog--editor" role="dialog" aria-modal="true" aria-labelledby="oc-ai-edit-title">
+            <button type="button" class="oc-modal__close" data-oc-close aria-label="Đóng">&times;</button>
+            <h2 id="oc-ai-edit-title">Chỉnh đơn</h2>
+            <p class="oc-muted">Thay đổi được áp dụng vào đơn đang soạn. Đóng popup để tiếp tục kiểm tra đơn bằng AI.</p>
+            <div id="oc-ai-edit-body"></div>
+            <div class="oc-modal__actions"><button type="button" class="oc-btn oc-btn--primary" data-oc-close>Xong — kiểm tra đơn</button></div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Thanh nút thao tác (sticky) — hiển thị theo chế độ: create / edit / result -->
     <div class="oc-actionbar mode-create" id="oc-create-actions">

@@ -577,6 +577,17 @@ body.oc-modal-open { overflow: hidden; }
 #oc-ai-order .oc-cc-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
 #oc-ai-order .oc-ai-guest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; background: #eff6ff; color: #1e3a8a; }
 
+/* Chỉnh form gốc trong popup và tiếp tục quy trình AI. */
+.oc-mode-ai #oc-ai-edit-body .oc-grid { display: grid; }
+.oc-modal__dialog--editor { width: min(1200px, calc(100vw - 32px)); }
+#oc-ai-edit-body .oc-grid { margin: 16px 0; }
+#oc-ai-text { min-height: 280px; resize: vertical; }
+#oc-ai-order .oc-ai-input > label { font-size: 12px; line-height: 1.5; }
+#oc-ai-order .oc-ai-convert-option strong,
+#oc-cust-ai-panel .oc-ai-convert-option strong { font-size: 12px; }
+#oc-ai-order .oc-ai-convert-option small,
+#oc-cust-ai-panel .oc-ai-convert-option small { font-size: 11px; line-height: 1.45; }
+
 /* ---------- Layout chế độ Thủ công: bước ①–④ ở cột chính, ⑤ Chốt đơn sticky bên phải ---------- */
 .oc-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
 .oc-order-search { position: relative; flex: 1 1 360px; min-width: 0; }
@@ -644,3 +655,5 @@ body.oc-modal-open { overflow: hidden; }
 .oc-actionbar.mode-result .oc-actionbar__missing { display: none; }
 .oc-mode-ai .oc-actionbar__missing { display: none; }
 @media (max-width: 640px) { .oc-actionbar__sum { flex-basis: 100%; } }
+/* khi khối form nằm trong popup "Chỉnh đơn" của chế độ AI: cột Chốt đơn không sticky */
+#oc-ai-edit-body .oc-side { position: static; max-height: none; overflow: visible; }
