@@ -2143,6 +2143,61 @@
         keys.forEach(function (k) {
             document.querySelectorAll('[data-total="' + k + '"]').forEach(function (el) { el.textContent = money(snap ? snap[k] : 0); });
         });
+        updateFlowState();
+    }
+
+    // ---------- trạng thái các bước (chế độ Thủ công) ----------
+    // Bước đủ thông tin → ✓ trên menu + tiêu đề card; mục bắt buộc còn thiếu hiện ở thanh nút.
+    function flowMissing() {
+        var missing = [];
+        var cust = [['oc-bill-name', 'họ tên'], ['oc-bill-phone', 'SĐT'], ['oc-bill-address', 'địa chỉ'], ['oc-bill-state', 'tỉnh/thành'], ['oc-bill-city', 'phường/xã']];
+        cust.forEach(function (f) { var el = $('#' + f[0]); if (el && !el.value.trim()) { missing.push(f[1]); } });
+        var custMissing = missing.length;
+        if (!state.items.length) { missing.push('sản phẩm'); }
+        var pay = $('#oc-payment');
+        if (pay && !pay.value) { missing.push('thanh toán'); }
+        return { list: missing, customer: custMissing === 0 };
+    }
+
+    function updateFlowState() {
+        var nav = $('#oc-section-nav');
+        if (!nav) { return; }
+        var m = flowMissing();
+        var sel = $('#oc-shipping-method');
+        var hasRate = sel && Array.prototype.some.call(sel.options, function (o) { return o.value !== ''; });
+        var done = {
+            customer: m.customer,
+            cart: state.items.length > 0,
+            promo: state.coupons.length > 0 || state.fees.length > 0,
+            shipping: !!(sel && sel.value) || $('#oc-shipping-cost').value.trim() !== '' || (state.items.length > 0 && !!state.lastSnap && !hasRate),
+            summary: !!($('#oc-status').value && $('#oc-payment').value)
+        };
+        Object.keys(done).forEach(function (step) {
+            document.querySelectorAll('[data-step="' + step + '"]').forEach(function (el) { el.classList.toggle('is-done', done[step]); });
+        });
+        var box = $('#oc-flow-missing');
+        if (box) {
+            box.hidden = !m.list.length;
+            box.textContent = m.list.length ? 'Thiếu: ' + m.list.join(', ') : '';
+        }
+    }
+
+    // Menu bước tự sáng theo phần đang xem khi cuộn.
+    function bindScrollSpy() {
+        if (!('IntersectionObserver' in window)) { return; }
+        var links = document.querySelectorAll('.oc-section-nav a[data-jump]');
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (!e.isIntersecting) { return; }
+                links.forEach(function (a) { a.classList.toggle('is-active', a.dataset.jump === e.target.id); });
+            });
+        }, { rootMargin: '-25% 0px -65% 0px' });
+        links.forEach(function (a) { var t = document.getElementById(a.dataset.jump); if (t) { io.observe(t); } });
+    }
+
+    function jumpToStep(id) {
+        var t = document.getElementById(id);
+        if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     }
 
     function updateShippingOptions(snap) {
@@ -2199,7 +2254,14 @@
             $('#oc-ai-items').scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
-        if (!state.items.length) { alert('Chưa có sản phẩm.'); return; }
+        if (!state.items.length) { alert('Chưa có sản phẩm.'); jumpToStep('oc-section-cart'); return; }
+        if (!isDraft && currentMode() === 'manual') {
+            var miss = flowMissing();
+            if (!miss.customer && !window.confirm('Đơn còn thiếu: ' + miss.list.join(', ') + '.\nVẫn ' + (state.editOrderId ? 'cập nhật' : 'tạo') + ' đơn?')) {
+                jumpToStep('oc-section-customer');
+                return;
+            }
+        }
         var btn = isDraft ? $('#oc-draft') : $('#oc-create');
         btn.disabled = true;
         aiEnsureCustomer().then(function () {
@@ -2595,6 +2657,12 @@
         $('#oc-coupon-input').addEventListener('blur', function () { setTimeout(hideCouponSuggestions, 160); });
         $('#oc-coupon-add').addEventListener('click', function () { addCoupon($('#oc-coupon-input').value); $('#oc-coupon-input').value = ''; hideCouponSuggestions(); });
         $('#oc-fee-add').addEventListener('click', addFee);
+        ['#oc-fee-name', '#oc-fee-amount'].forEach(function (sel) {
+            $(sel).addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addFee(); } });
+        });
+        ['input', 'change'].forEach(function (ev) {
+            $('#oc-pane-create').addEventListener(ev, function (e) { if (e.target.closest('.oc-grid')) { updateFlowState(); } });
+        });
         $('#oc-shipping-method').addEventListener('change', function () { state.shipping_method = this.value; recalc(); });
         $('#oc-shipping-title-choice').addEventListener('change', function () {
             if (this.value === 'Miễn phí vận chuyển') {
@@ -2694,6 +2762,8 @@
     document.body.classList.toggle('oc-hide-line-discount', !!SET.hide_line_discount);
     initSelects();
     bind();
+    bindScrollSpy();
+    updateFlowState();
     if ($('#oc-ai-order')) { setMode(storedMode()); }
     if (state.editOrderId) { loadOrder(state.editOrderId); }
 })();

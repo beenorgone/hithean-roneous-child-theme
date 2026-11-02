@@ -3419,11 +3419,24 @@ function order_creator_render_page(): void
     require_once get_stylesheet_directory() . '/custom-functions/core/ai-settings.php';
     $oc_ai_order = theme_ai_feature_enabled('order_creator_ai_create_order');
     ?>
-    <?php if ($oc_ai_order) : ?>
-    <div class="oc-mode-switch" id="oc-mode-switch" role="group" aria-label="Chế độ tạo đơn">
-        <button type="button" class="oc-mode-btn is-active" data-mode="manual" aria-pressed="true">Thủ công</button>
-        <button type="button" class="oc-mode-btn" data-mode="ai" aria-pressed="false">✨ AI tạo đơn</button>
+    <!-- Hàng công cụ: chế độ tạo đơn + tìm đơn cũ để sửa / copy (tách khỏi luồng lên đơn) -->
+    <div class="oc-toolbar">
+        <?php if ($oc_ai_order) : ?>
+        <div class="oc-mode-switch" id="oc-mode-switch" role="group" aria-label="Chế độ tạo đơn">
+            <button type="button" class="oc-mode-btn is-active" data-mode="manual" aria-pressed="true">Thủ công</button>
+            <button type="button" class="oc-mode-btn" data-mode="ai" aria-pressed="false">✨ AI tạo đơn</button>
+        </div>
+        <?php endif; ?>
+        <div class="oc-order-search" id="oc-section-orders">
+            <input type="text" id="oc-order-search" placeholder="🔍 Tìm đơn để sửa / copy: mã đơn, tên, SĐT, email..." aria-label="Tìm đơn">
+            <div class="oc-search-results" id="oc-order-results" hidden></div>
+        </div>
     </div>
+
+    <!-- Kết quả sau khi tạo đơn — đặt đầu trang để thấy ngay -->
+    <div class="oc-result" id="oc-result" hidden></div>
+
+    <?php if ($oc_ai_order) : ?>
 
     <section class="oc-ai-order" id="oc-ai-order" hidden>
         <div class="oc-card oc-ai-input">
@@ -3493,27 +3506,103 @@ function order_creator_render_page(): void
     </section>
     <?php endif; ?>
 
-    <nav class="oc-section-nav" id="oc-section-nav">
+    <nav class="oc-section-nav" id="oc-section-nav" aria-label="Các bước lên đơn">
         <?php if ($oc_logo_url) : ?><img class="oc-section-nav__logo" src="<?php echo esc_url($oc_logo_url); ?>" alt="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php endif; ?>
-        <a href="#oc-section-cart" data-jump="oc-section-cart" class="is-active">Chỉnh giỏ hàng</a>
-        <a href="#oc-section-promo" data-jump="oc-section-promo">Ưu đãi / Giảm giá</a>
-        <a href="#oc-section-notes" data-jump="oc-section-notes">Ghi chú</a>
-        <a href="#oc-section-orders" data-jump="oc-section-orders">Tìm đơn</a>
-        <a href="#oc-section-customer" data-jump="oc-section-customer">Khách hàng</a>
+        <a href="#oc-section-customer" data-jump="oc-section-customer" data-step="customer" class="is-active"><span class="oc-step-dot">1</span>Khách hàng</a>
+        <a href="#oc-section-cart" data-jump="oc-section-cart" data-step="cart"><span class="oc-step-dot">2</span>Sản phẩm</a>
+        <a href="#oc-section-promo" data-jump="oc-section-promo" data-step="promo"><span class="oc-step-dot">3</span>Ưu đãi &amp; phí</a>
+        <a href="#oc-section-shipping" data-jump="oc-section-shipping" data-step="shipping"><span class="oc-step-dot">4</span>Vận chuyển</a>
+        <a href="#oc-section-notes" data-jump="oc-section-notes" data-step="summary"><span class="oc-step-dot">5</span>Chốt đơn</a>
     </nav>
     <div class="oc-grid">
         <main class="oc-main">
-            <section class="oc-card" id="oc-section-cart">
+            <!-- ① Khách hàng + địa chỉ -->
+            <section class="oc-card oc-step" id="oc-section-customer" data-step="customer">
                 <div class="oc-card-head">
-                    <h2>Chỉnh giỏ hàng</h2>
+                    <h2><span class="oc-step-dot">1</span>Khách hàng</h2>
+                    <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" id="oc-customer-new-toggle">Khách hàng mới</button>
+                </div>
+                <div class="oc-field oc-search-field">
+                    <input type="text" id="oc-customer-search" placeholder="Tìm khách: SĐT / Email / #ID / Tên..." aria-label="Tìm khách hàng">
+                    <div class="oc-search-results" id="oc-customer-results" hidden></div>
+                </div>
+                <div class="oc-customer-box">
+                    <div class="oc-customer-card" id="oc-customer-card" hidden></div>
+                    <div class="oc-customer-actions">
+                        <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" id="oc-customer-edit" hidden>Chỉnh thông tin khách</button>
+                        <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" id="oc-customer-history" hidden>Lịch sử đặt hàng</button>
+                        <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" id="oc-customer-products" hidden>Sản phẩm đã đặt</button>
+                    </div>
+                </div>
+
+                <h3 class="oc-subhead">Địa chỉ đặt hàng</h3>
+                <?php require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php'; ?>
+                <div class="oc-addr-grid">
+                    <div><label for="oc-bill-name">Họ tên</label><input type="text" id="oc-bill-name" placeholder="Họ tên"></div>
+                    <div><label for="oc-bill-phone">SĐT</label><input type="text" id="oc-bill-phone" placeholder="SĐT"></div>
+                    <div><label for="oc-bill-email">Email</label><input type="text" id="oc-bill-email" placeholder="Email"></div>
+                    <div><label for="oc-bill-address">Địa chỉ</label><input type="text" id="oc-bill-address" placeholder="Số nhà, đường/thôn xóm"></div>
+                    <div><label for="oc-bill-state">Tỉnh/Thành</label>
+                        <select id="oc-bill-state">
+                            <option value="">— Tỉnh/Thành —</option>
+                            <?php foreach (theme_vn_address_provinces() as $vn_matp => $vn_province) : ?>
+                                <option value="<?php echo esc_attr($vn_matp); ?>"><?php echo esc_html($vn_province); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div><label for="oc-bill-city">Phường/Xã</label>
+                        <select id="oc-bill-city">
+                            <option value="">— Chọn Tỉnh/Thành trước —</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="oc-customer-info" id="oc-customer-info" hidden></div>
+                <div class="oc-field oc-check oc-addr-opts">
+                    <label><input type="checkbox" id="oc-save-customer-addresses"> Lưu địa chỉ này vào thông tin mặc định của khách</label>
+                    <button type="button" class="oc-btn oc-btn--primary" id="oc-save-customer-addresses-confirm" hidden>Xác nhận lưu địa chỉ</button>
+                    <small class="oc-muted" id="oc-save-customer-addresses-status" aria-live="polite"></small>
+                    <label><input type="checkbox" id="oc-ship-diff"> Giao đến địa chỉ khác?</label>
+                </div>
+                <div id="oc-ship-fields" hidden>
+                    <h3 class="oc-subhead">Địa chỉ giao hàng</h3>
+                    <div class="oc-inline">
+                        <input type="text" id="oc-ship-load-order" placeholder="Mã đơn để tải địa chỉ giao">
+                        <button type="button" class="oc-btn oc-btn--ghost" id="oc-ship-load-btn">Tải địa chỉ từ đơn</button>
+                    </div>
+                    <small class="oc-muted" id="oc-ship-load-status" aria-live="polite"></small>
+                    <div class="oc-addr-grid">
+                        <div><label for="oc-ship-name">Họ tên người nhận</label><input type="text" id="oc-ship-name" placeholder="Họ tên người nhận"></div>
+                        <div><label for="oc-ship-phone">SĐT</label><input type="text" id="oc-ship-phone" placeholder="SĐT"></div>
+                        <div class="oc-form-span"><label for="oc-ship-address">Địa chỉ</label><input type="text" id="oc-ship-address" placeholder="Số nhà, đường/thôn xóm"></div>
+                        <div><label for="oc-ship-state">Tỉnh/Thành</label>
+                            <select id="oc-ship-state">
+                                <option value="">— Tỉnh/Thành —</option>
+                                <?php foreach (theme_vn_address_provinces() as $vn_matp => $vn_province) : ?>
+                                    <option value="<?php echo esc_attr($vn_matp); ?>"><?php echo esc_html($vn_province); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div><label for="oc-ship-city">Phường/Xã</label>
+                            <select id="oc-ship-city">
+                                <option value="">— Chọn Tỉnh/Thành trước —</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ② Sản phẩm -->
+            <section class="oc-card oc-step" id="oc-section-cart" data-step="cart">
+                <div class="oc-card-head">
+                    <h2><span class="oc-step-dot">2</span>Sản phẩm</h2>
                     <button type="button" class="oc-btn oc-btn--ghost oc-btn--sm" id="oc-clear-cart">Xóa giỏ hàng</button>
                 </div>
-                <div class="oc-field">
-                    <label>Tìm sản phẩm</label>
-                    <input type="text" id="oc-product-search" placeholder="Tên sản phẩm hoặc SKU...">
+                <div class="oc-field oc-search-field">
+                    <input type="text" id="oc-product-search" placeholder="Tìm sản phẩm: tên hoặc SKU..." aria-label="Tìm sản phẩm">
                     <div class="oc-search-results" id="oc-product-results" hidden></div>
                 </div>
 
+                <div class="oc-lines-wrap">
                 <table class="oc-lines" id="oc-lines">
                     <thead>
                         <tr>
@@ -3530,59 +3619,74 @@ function order_creator_render_page(): void
                         <tr class="oc-empty"><td colspan="7">Chưa có sản phẩm.</td></tr>
                     </tbody>
                 </table>
+                </div>
             </section>
 
-            <section class="oc-card oc-adjustments" id="oc-section-promo" style="display: flex; flex-wrap: wrap; gap: 14px 30px;">
+            <!-- ③ Ưu đãi & phí -->
+            <section class="oc-card oc-step oc-adjustments" id="oc-section-promo" data-step="promo">
+                <div class="oc-card-head">
+                    <h2><span class="oc-step-dot">3</span>Ưu đãi &amp; phí</h2>
+                </div>
                 <div class="oc-field">
-                    <label>Mã ưu đãi (coupon)</label>
+                    <label for="oc-coupon-input">Mã ưu đãi (coupon)</label>
                     <div class="oc-inline">
                         <div class="oc-coupon-search">
-                            <input type="text" id="oc-coupon-input" placeholder="Tìm theo mã hoặc mô tả...">
+                            <input type="text" id="oc-coupon-input" placeholder="Tìm theo mã hoặc mô tả (≥2 ký tự)...">
                             <div class="oc-search-results oc-coupon-results" id="oc-coupon-results" hidden></div>
                         </div>
                         <button type="button" class="oc-btn oc-btn--ghost" id="oc-coupon-add">Áp dụng</button>
                         <a class="oc-btn oc-btn--ghost" id="oc-coupon-create" href="<?php echo esc_url(admin_url('post-new.php?post_type=shop_coupon')); ?>" target="_blank" rel="noopener">Tạo mã ưu đãi</a>
                     </div>
-                    <p class="oc-muted">Gõ ít nhất 2 ký tự để tìm theo mã hoặc mô tả coupon. Chọn mã trong danh sách gợi ý, sau đó bấm <em>Áp dụng</em>; nếu không thấy kết quả vẫn có thể nhập mã thủ công.</p>
                     <ul class="oc-chips" id="oc-coupon-list"></ul>
                     <div class="oc-customer-coupons" id="oc-customer-coupons" hidden></div>
                 </div>
 
-                <div class="oc-field" style="width: 100%;">
-                    <label>Phí / giảm giá thủ công</label>
-                    <div class="oc-inline">
-                        <input type="text" id="oc-fee-name" placeholder="Tên (vd: Phí ship, Giảm giá)">
+                <div class="oc-field">
+                    <label for="oc-fee-name">Phí / giảm giá thủ công</label>
+                    <div class="oc-inline oc-fee-row">
+                        <input type="text" id="oc-fee-name" placeholder="Tên (vd: Phụ phí đóng gói, Giảm giá)">
                         <input type="number" id="oc-fee-amount" step="1000" placeholder="Số tiền (âm = giảm)">
-                        <button type="button" class="oc-btn oc-btn--ghost" id="oc-fee-add" style="height:46px;">Thêm</button>
+                        <button type="button" class="oc-btn oc-btn--ghost" id="oc-fee-add">Thêm</button>
                     </div>
                     <ul class="oc-chips" id="oc-fee-list"></ul>
                 </div>
+            </section>
 
-                <div class="oc-field">
-                    <label>Phương thức vận chuyển</label>
-                    <select id="oc-shipping-method"><option value="">— Tính lại để xem —</option></select>
+            <!-- ④ Vận chuyển -->
+            <section class="oc-card oc-step" id="oc-section-shipping" data-step="shipping">
+                <div class="oc-card-head">
+                    <h2><span class="oc-step-dot">4</span>Vận chuyển</h2>
                 </div>
-                <div class="oc-field">
-                    <label>Phí ship điều chỉnh</label>
-                    <input type="number" id="oc-shipping-cost" min="0" step="1000" placeholder="Để trống để dùng phí WooCommerce">
-                </div>
-                <div class="oc-field">
-                    <label for="oc-shipping-title-choice">Tên phương thức vận chuyển</label>
-                    <select id="oc-shipping-title-choice">
-                        <option value="">— Theo WooCommerce / tên tùy chỉnh —</option>
-                        <option value="Miễn phí vận chuyển">Miễn phí vận chuyển</option>
-                        <option value="Giao nhanh Ahamove/Grab">Giao nhanh Ahamove/Grab</option>
-                    </select>
-                    <label for="oc-shipping-title" style="margin-top:8px;">Hoặc nhập tên tùy chỉnh</label>
-                    <input type="text" id="oc-shipping-title" placeholder="Tên hiển thị trên đơn hàng">
+                <div class="oc-addr-grid">
+                    <div>
+                        <label for="oc-shipping-method">Phương thức vận chuyển</label>
+                        <select id="oc-shipping-method"><option value="">— Tính lại để xem —</option></select>
+                    </div>
+                    <div>
+                        <label for="oc-shipping-cost">Phí ship điều chỉnh</label>
+                        <input type="number" id="oc-shipping-cost" min="0" step="1000" placeholder="Để trống = phí WooCommerce">
+                    </div>
+                    <div>
+                        <label for="oc-shipping-title-choice">Tên hiển thị có sẵn</label>
+                        <select id="oc-shipping-title-choice">
+                            <option value="">— Theo WooCommerce / tên tùy chỉnh —</option>
+                            <option value="Miễn phí vận chuyển">Miễn phí vận chuyển</option>
+                            <option value="Giao nhanh Ahamove/Grab">Giao nhanh Ahamove/Grab</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="oc-shipping-title">Hoặc tên tùy chỉnh</label>
+                        <input type="text" id="oc-shipping-title" placeholder="Tên hiển thị trên đơn hàng">
+                    </div>
                 </div>
             </section>
 
             <?php $order_fields = order_creator_order_field_defs(); $enabled_order_fields = array_flip(order_creator_get_settings()['order_fields']); ?>
             <section class="oc-card oc-order-handling" id="oc-order-handling"<?php echo $enabled_order_fields ? '' : ' hidden'; ?>>
                 <h2>Xử lý đơn</h2>
+                <div class="oc-addr-grid">
                 <?php foreach ($order_fields as $key => $field) : if (!isset($enabled_order_fields[$key])) { continue; } ?>
-                    <div class="oc-field" data-order-field="<?php echo esc_attr($key); ?>">
+                    <div class="oc-field<?php echo $field['type'] === 'checkboxes' ? ' oc-form-span' : ''; ?>" data-order-field="<?php echo esc_attr($key); ?>">
                         <label><?php echo esc_html($field['label']); ?></label>
                         <?php if ($field['type'] === 'checkboxes') : ?>
                             <div class="oc-check-grid" id="oc-order-<?php echo esc_attr($key); ?>">
@@ -3596,118 +3700,42 @@ function order_creator_render_page(): void
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
-            </section>
-
-            <section class="oc-card oc-totals" id="oc-totals">
-                <div class="oc-total-row"><span>Tạm tính</span><b data-total="subtotal">0</b></div>
-                <div class="oc-total-row"><span>Giảm giá</span><b data-total="discount_total">0</b></div>
-                <div class="oc-total-row"><span>Phí</span><b data-total="fee_total">0</b></div>
-                <div class="oc-total-row"><span>Vận chuyển</span><b data-total="shipping_total">0</b></div>
-                <div class="oc-total-row"><span>Thuế</span><b data-total="tax_total">0</b></div>
-                <div class="oc-total-row oc-total-row--grand"><span>Tổng đơn</span><b data-total="total">0</b></div>
+                </div>
             </section>
         </main>
 
+        <!-- ⑤ Chốt đơn — cột phải sticky: tổng luôn nhìn thấy -->
         <aside class="oc-side">
-            <section class="oc-card" id="oc-section-orders">
-                <h2>Tìm đơn</h2>
-                <input type="text" id="oc-order-search" placeholder="Mã đơn, tên, SĐT hoặc email...">
-                <div class="oc-search-results" id="oc-order-results" hidden></div>
-            </section>
-
-            <section class="oc-card" id="oc-section-customer">
-                <h2>Khách hàng</h2>
-                <input type="text" id="oc-customer-search" placeholder="SĐT / Email / #ID / Tên...">
-                <div class="oc-search-results" id="oc-customer-results" hidden></div>
-                <div class="oc-customer-card" id="oc-customer-card" hidden></div>
-                <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-edit" hidden>Chỉnh thông tin khách</button>
-                <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-history" hidden>Lịch sử đặt hàng</button>
-                <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-products" hidden>Sản phẩm đã đặt</button>
-                <button type="button" class="oc-btn oc-btn--ghost oc-btn--block" id="oc-customer-new-toggle">Khách hàng mới</button>
-            </section>
-
-            <section class="oc-card">
-                <h2>Địa chỉ đặt hàng</h2>
-                <input type="text" id="oc-bill-name" placeholder="Họ tên">
-                <input type="text" id="oc-bill-phone" placeholder="SĐT">
-                <input type="text" id="oc-bill-email" placeholder="Email">
-                <input type="text" id="oc-bill-address" placeholder="Địa chỉ (số nhà, đường/thôn xóm)">
-                <?php require_once get_stylesheet_directory() . '/custom-functions/core/vn-address.php'; ?>
-                <select id="oc-bill-state">
-                    <option value="">— Tỉnh/Thành —</option>
-                    <?php foreach (theme_vn_address_provinces() as $vn_matp => $vn_province) : ?>
-                        <option value="<?php echo esc_attr($vn_matp); ?>"><?php echo esc_html($vn_province); ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <select id="oc-bill-city">
-                    <option value="">— Chọn Tỉnh/Thành trước —</option>
-                </select>
-                <div class="oc-customer-info" id="oc-customer-info" hidden></div>
-                <div class="oc-field oc-check">
-                    <label><input type="checkbox" id="oc-save-customer-addresses"> Lưu địa chỉ này vào thông tin mặc định của khách</label>
-                    <button type="button" class="oc-btn oc-btn--primary" id="oc-save-customer-addresses-confirm" hidden>Xác nhận lưu địa chỉ</button>
-                    <small class="oc-muted" id="oc-save-customer-addresses-status" aria-live="polite"></small>
+            <section class="oc-card oc-step" id="oc-section-notes" data-step="summary">
+                <div class="oc-card-head">
+                    <h2><span class="oc-step-dot">5</span>Chốt đơn</h2>
                 </div>
-
-                <div class="oc-field oc-check" style="margin-top:10px;">
-                    <label><input type="checkbox" id="oc-ship-diff"> Giao đến địa chỉ khác?</label>
+                <div class="oc-totals" id="oc-totals">
+                    <div class="oc-total-row"><span>Tạm tính</span><b data-total="subtotal">0</b></div>
+                    <div class="oc-total-row"><span>Giảm giá</span><b data-total="discount_total">0</b></div>
+                    <div class="oc-total-row"><span>Phí</span><b data-total="fee_total">0</b></div>
+                    <div class="oc-total-row"><span>Vận chuyển</span><b data-total="shipping_total">0</b></div>
+                    <div class="oc-total-row"><span>Thuế</span><b data-total="tax_total">0</b></div>
+                    <div class="oc-total-row oc-total-row--grand"><span>Tổng đơn</span><b data-total="total">0</b></div>
                 </div>
-                <div id="oc-ship-fields" hidden>
-                    <h3 class="oc-subhead">Địa chỉ giao hàng</h3>
-                    <div class="oc-inline">
-                        <input type="text" id="oc-ship-load-order" placeholder="Mã đơn để tải địa chỉ giao">
-                        <button type="button" class="oc-btn oc-btn--ghost" id="oc-ship-load-btn">Tải địa chỉ từ đơn</button>
-                    </div>
-                    <small class="oc-muted" id="oc-ship-load-status" aria-live="polite"></small>
-                    <input type="text" id="oc-ship-name" placeholder="Họ tên người nhận">
-                    <input type="text" id="oc-ship-phone" placeholder="SĐT">
-                    <input type="text" id="oc-ship-address" placeholder="Địa chỉ (số nhà, đường/thôn xóm)">
-                    <select id="oc-ship-state">
-                        <option value="">— Tỉnh/Thành —</option>
-                        <?php foreach (theme_vn_address_provinces() as $vn_matp => $vn_province) : ?>
-                            <option value="<?php echo esc_attr($vn_matp); ?>"><?php echo esc_html($vn_province); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <select id="oc-ship-city">
-                        <option value="">— Chọn Tỉnh/Thành trước —</option>
-                    </select>
-                </div>
-            </section>
-
-            <section class="oc-card" id="oc-section-notes">
-                <h2>Thông tin đơn</h2>
-                <div class="oc-field">
-                    <label>Ngày đặt</label>
-                    <input type="datetime-local" id="oc-order-date" value="<?php echo esc_attr(current_time('Y-m-d\TH:i')); ?>">
-                </div>
-                <div class="oc-field">
-                    <label>Trạng thái</label>
-                    <select id="oc-status"></select>
-                </div>
-                <div class="oc-field">
-                    <label>Thanh toán</label>
-                    <select id="oc-payment"></select>
-                </div>
-                <div class="oc-field">
-                    <label>Ghi chú khách (hiện trên đơn)</label>
-                    <textarea id="oc-customer-note" rows="2"></textarea>
-                </div>
-                <div class="oc-field">
-                    <label>Ghi chú nội bộ</label>
-                    <textarea id="oc-internal-note" rows="2"></textarea>
-                </div>
-                <div class="oc-field oc-check">
-                    <label><input type="checkbox" id="oc-suppress-email" checked> Không gửi email khi tạo đơn</label>
+                <div class="oc-addr-grid oc-summary-fields">
+                    <div><label for="oc-status">Trạng thái</label><select id="oc-status"></select></div>
+                    <div><label for="oc-payment">Thanh toán</label><select id="oc-payment"></select></div>
+                    <div class="oc-form-span"><label for="oc-order-date">Ngày đặt</label><input type="datetime-local" id="oc-order-date" value="<?php echo esc_attr(current_time('Y-m-d\TH:i')); ?>"></div>
+                    <div class="oc-form-span"><label for="oc-customer-note">Ghi chú khách (hiện trên đơn)</label><textarea id="oc-customer-note" rows="2"></textarea></div>
+                    <div class="oc-form-span"><label for="oc-internal-note">Ghi chú nội bộ</label><textarea id="oc-internal-note" rows="2"></textarea></div>
+                    <div class="oc-form-span oc-check"><label><input type="checkbox" id="oc-suppress-email" checked> Không gửi email khi tạo đơn</label></div>
                 </div>
             </section>
         </aside>
     </div>
 
-    <!-- Kết quả sau khi tạo đơn -->
-    <div class="oc-result" id="oc-result" hidden></div>
-
     <!-- Thanh nút thao tác (sticky) — hiển thị theo chế độ: create / edit / result -->
     <div class="oc-actionbar mode-create" id="oc-create-actions">
+        <div class="oc-actionbar__sum">
+            <span>Tổng đơn <b data-total="total">0</b></span>
+            <span class="oc-actionbar__missing" id="oc-flow-missing" aria-live="polite" hidden></span>
+        </div>
         <button type="button" class="oc-btn oc-btn--ghost" id="oc-cancel-edit" data-act="cancel">Hủy chỉnh sửa</button>
         <button type="button" class="oc-btn oc-btn--ghost" id="oc-recalc" data-act="recalc">Tính lại</button>
         <button type="button" class="oc-btn oc-btn--ghost" id="oc-copy-order" data-act="copy">Copy</button>
@@ -3764,13 +3792,14 @@ function order_creator_render_page(): void
 <div class="oc-pane oc-hdsd" id="oc-pane-hdsd" hidden>
         <div class="oc-card">
             <h2>📋 Quy trình đăng đơn chuẩn</h2>
+            <p class="oc-muted">Trang xếp theo đúng thứ tự các bước ①–⑤. Menu bước bám đầu trang, bước nào đủ thông tin sẽ hiện ✓; thanh nút dưới cùng luôn hiện <em>Tổng đơn</em> và các mục bắt buộc còn thiếu.</p>
             <ol>
-                <li><strong>Chọn khách hàng</strong> — tìm theo SĐT / email / tên ở mục <em>Khách hàng</em>. Khách chưa có trong hệ thống → bấm <em>Khách hàng mới</em>.</li>
-                <li><strong>Kiểm tra địa chỉ</strong> — mục <em>Địa chỉ đặt hàng</em> tự điền theo hồ sơ khách. Giao nơi khác → tick <em>Giao đến địa chỉ khác?</em> và điền địa chỉ giao.</li>
-                <li><strong>Thêm sản phẩm</strong> — gõ tên hoặc SKU vào ô <em>Tìm sản phẩm</em>, chỉnh số lượng / giá nếu cần.</li>
-                <li><strong>Ưu đãi &amp; phí</strong> — gõ mã hoặc từ khóa mô tả để tìm coupon, chọn mã phù hợp rồi bấm <em>Áp dụng</em>; thêm phí phát sinh nếu có.</li>
-                <li><strong>Kiểm tra tổng</strong> — bấm <em>Tính lại</em>, đối chiếu tạm tính, giảm giá, phí vận chuyển, tổng đơn.</li>
-                <li><strong>Tạo đơn</strong> — chọn Trạng thái + Thanh toán ở mục <em>Thông tin đơn</em>, rồi bấm <em>Tạo đơn</em> (hoặc <em>Lưu nháp</em> nếu khách chưa chốt).</li>
+                <li><strong>① Khách hàng</strong> — tìm theo SĐT / email / tên. Khách chưa có trong hệ thống → bấm <em>Khách hàng mới</em>. Kiểm tra <em>Địa chỉ đặt hàng</em> (tự điền theo hồ sơ khách); giao nơi khác → tick <em>Giao đến địa chỉ khác?</em>.</li>
+                <li><strong>② Sản phẩm</strong> — gõ tên hoặc SKU vào ô tìm, chỉnh số lượng / giá nếu cần.</li>
+                <li><strong>③ Ưu đãi &amp; phí</strong> — tìm mã theo mã hoặc mô tả rồi bấm <em>Áp dụng</em>; thêm phí phát sinh (Enter để thêm nhanh).</li>
+                <li><strong>④ Vận chuyển</strong> — chọn phương thức, sửa phí ship hoặc tên hiển thị nếu cần.</li>
+                <li><strong>⑤ Chốt đơn</strong> (cột phải) — đối chiếu bảng tổng, chọn Trạng thái + Thanh toán, ghi chú, rồi bấm <em>Tạo đơn</em> (hoặc <em>Lưu nháp</em> nếu khách chưa chốt). Thiếu thông tin khách thì hệ thống hỏi lại trước khi tạo.</li>
+                <li><strong>Sửa / copy đơn cũ</strong> — dùng ô <em>🔍 Tìm đơn</em> ở đầu trang, cạnh nút chọn chế độ.</li>
             </ol>
         </div>
 
@@ -3847,7 +3876,7 @@ function order_creator_render_page(): void
             <h2>💾 Tạo đơn, sửa đơn &amp; thanh toán</h2>
             <ul>
                 <li><strong>Tạo đơn</strong> = đơn chính thức theo trạng thái đã chọn. <strong>Lưu nháp</strong> = giữ đơn ở trạng thái nháp để chốt sau.</li>
-                <li><strong>Sửa đơn:</strong> tìm đơn ở mục <em>Tìm đơn</em> (mã đơn / tên / SĐT / email) rồi mở để chỉnh — nhớ bấm lưu thay đổi; <em>Hủy chỉnh sửa</em> để thoát không lưu.</li>
+                <li><strong>Sửa đơn:</strong> tìm đơn ở ô <em>🔍 Tìm đơn</em> đầu trang (mã đơn / tên / SĐT / email) rồi mở để chỉnh — nhớ bấm lưu thay đổi; <em>Hủy chỉnh sửa</em> để thoát không lưu.</li>
                 <li><strong>Copy:</strong> nhân bản đơn hiện tại thành đơn mới (giữ khách + giỏ hàng) — dùng cho khách đặt lại y hệt.</li>
                 <li><strong>Khách đã xác nhận:</strong> bấm khi khách chốt COD — trạng thái đơn tự chuyển bước tiếp theo.</li>
                 <li><strong>Xác nhận thanh toán:</strong> mở popup nhập tài khoản nhận, ngày nhận, số tiền, người chuyển — dùng khi khách đã chuyển khoản.</li>

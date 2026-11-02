@@ -61,8 +61,7 @@ button {
 }
 .oc-section-nav a:hover,
 .oc-section-nav a.is-active { border-bottom-color: var(--oc-primary); color: var(--oc-primary-dark); }
-#oc-section-cart, #oc-section-promo, #oc-section-notes,
-#oc-section-orders, #oc-section-customer { scroll-margin-top: 64px; }
+.oc-step { scroll-margin-top: 64px; }
 
 @media (max-width: 782px) {
     .oc-app { padding: 10px; }
@@ -100,8 +99,7 @@ button {
     }
     .oc-section-nav a:hover,
     .oc-section-nav a.is-active { border-bottom-color: var(--oc-primary); color: var(--oc-primary-dark); }
-    #oc-section-cart, #oc-section-promo, #oc-section-notes,
-    #oc-section-orders, #oc-section-customer { scroll-margin-top: 44px; }
+    .oc-step { scroll-margin-top: 44px; }
 
     /* khớp lại margin âm với padding 10px của .oc-app ở mobile (gốc tính theo 16px desktop) để thanh nút span đúng hết chiều rộng màn hình */
     .oc-actionbar { padding: 12px 10px; margin: 16px -10px -10px; }
@@ -112,8 +110,8 @@ button {
 .oc-card-head h2 { margin: 0; }
 .oc-btn--sm { padding: 5px 10px; font-size: 12px; }
 
-.oc-grid { display: grid; grid-template-columns: 1fr 360px; gap: 16px; align-items: start; }
-@media (max-width: 980px) { .oc-grid { grid-template-columns: 1fr; } }
+.oc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+@media (max-width: 980px) { .oc-grid { grid-template-columns: minmax(0, 1fr); } }
 
 .oc-card {
     background: #fff; border: 1px solid var(--oc-border); border-radius: 10px;
@@ -372,7 +370,6 @@ body.oc-hide-line-discount .oc-lines td:nth-child(4) { display: none; }
 .oc-customer-info { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--oc-border); font-size: 13px; }
 .oc-customer-info__row { margin: 5px 0; white-space: pre-wrap; }
 .oc-customer-info__link { padding: 4px 9px; font-size: 12px; white-space: nowrap; }
-.oc-side input { margin-bottom: 10px; }
 .oc-history-list article { padding: 12px 0; border-bottom: 1px solid var(--oc-border); }
 .oc-history-list article:last-child { border-bottom: 0; }
 .oc-history-list small { color: var(--oc-muted); }
@@ -455,8 +452,7 @@ body.oc-modal-open { overflow: hidden; }
 /* ---------- Combobox địa chỉ có tìm kiếm ---------- */
 .oc-combo { position: relative; }
 .oc-combo > select { display: none; }
-.oc-side .oc-combo { margin-bottom: 10px; }
-.oc-side .oc-combo .oc-combo__input { margin-bottom: 0; }
+.oc-combo .oc-combo__input { margin-bottom: 0; }
 .oc-combo__list {
     position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 2px);
     background: #fff; border: 1px solid var(--oc-border); border-radius: 6px;
@@ -468,7 +464,7 @@ body.oc-modal-open { overflow: hidden; }
 .oc-combo__empty { padding: 8px 10px; font-size: 13px; color: var(--oc-muted); }
 
 /* ---------- Chế độ tạo đơn: Thủ công / ✨ AI ---------- */
-.oc-mode-switch { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px; background: #fff; border: 1px solid var(--oc-border); border-radius: 10px; }
+.oc-mode-switch { display: inline-flex; gap: 4px; padding: 4px; margin: 0; background: #fff; border: 1px solid var(--oc-border); border-radius: 10px; }
 .oc-mode-btn { height: 36px; padding: 0 16px; border: 0; border-radius: 7px; background: transparent; color: var(--oc-muted); font-weight: 600; cursor: pointer; }
 .oc-mode-btn.is-active { background: var(--oc-primary); color: #fff; }
 .oc-mode-ai #oc-section-nav,
@@ -580,3 +576,71 @@ body.oc-modal-open { overflow: hidden; }
 #oc-ai-order .oc-subhead { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--oc-muted); }
 #oc-ai-order .oc-cc-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
 #oc-ai-order .oc-ai-guest { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; background: #eff6ff; color: #1e3a8a; }
+
+/* ---------- Layout chế độ Thủ công: bước ①–④ ở cột chính, ⑤ Chốt đơn sticky bên phải ---------- */
+.oc-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.oc-order-search { position: relative; flex: 1 1 360px; min-width: 0; }
+.oc-order-search input { margin: 0; }
+.oc-order-search .oc-search-results {
+    position: absolute; left: 0; right: 0; top: 100%; z-index: 30;
+    max-height: 60vh; margin-top: 2px; border-top: 1px solid var(--oc-border); border-radius: 6px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, .14);
+}
+.oc-result { margin-bottom: 12px; }
+.oc-result-head { margin-bottom: 0; }
+
+/* số bước: ở menu sticky + tiêu đề card; đủ thông tin → nền xanh + ✓ */
+.oc-step-dot {
+    display: inline-grid; place-items: center; flex: 0 0 auto;
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1.5px solid currentColor; font-size: 11px; font-weight: 700; line-height: 1;
+}
+.oc-section-nav a { display: inline-flex; align-items: center; gap: 6px; }
+.oc-section-nav a .oc-step-dot { width: 18px; height: 18px; font-size: 10px; }
+.oc-card-head h2 { display: flex; align-items: center; gap: 8px; }
+.oc-card-head h2 .oc-step-dot { color: var(--oc-muted); border-color: var(--oc-border); background: var(--oc-surface); }
+.oc-section-nav a.is-done .oc-step-dot,
+.oc-step.is-done .oc-card-head h2 .oc-step-dot { background: var(--oc-primary); border-color: var(--oc-primary); color: #002b1c; font-size: 0; }
+.oc-section-nav a.is-done .oc-step-dot::before,
+.oc-step.is-done .oc-card-head h2 .oc-step-dot::before { content: "✓"; font-size: 11px; }
+
+/* lưới 2 cột cho địa chỉ / vận chuyển / chốt đơn */
+.oc-addr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.oc-addr-grid label { display: block; font-size: 12px; font-weight: 600; color: var(--oc-muted); margin-bottom: 4px; }
+.oc-addr-grid .oc-check label { font-size: 13px; color: var(--oc-text); margin: 0; }
+.oc-addr-grid input, .oc-addr-grid select, .oc-addr-grid textarea { margin: 0; }
+@media (max-width: 560px) { .oc-addr-grid { grid-template-columns: minmax(0, 1fr); } }
+.oc-search-field { position: relative; margin-bottom: 0; }
+.oc-search-field input { margin: 0; }
+.oc-customer-box { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.oc-customer-box .oc-customer-card { flex: 1 1 240px; margin: 10px 0 0; }
+.oc-customer-box .oc-customer-card[hidden] { display: none; }
+.oc-customer-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.oc-customer-actions:not(:has(> :not([hidden]))) { display: none; }
+.oc-addr-opts { display: grid; gap: 8px; margin-top: 12px; }
+.oc-addr-opts .oc-btn { justify-self: start; }
+#oc-ship-fields .oc-inline { margin-bottom: 6px; }
+#oc-ship-fields .oc-addr-grid { margin-top: 10px; }
+.oc-adjustments { display: grid; gap: 16px; }
+.oc-adjustments .oc-muted { margin: 6px 0 0; }
+.oc-fee-row input[type="text"] { flex: 2 1 200px; }
+.oc-fee-row input[type="number"] { flex: 1 1 140px; }
+.oc-lines-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.oc-lines-wrap .oc-lines { min-width: 600px; }
+.oc-order-handling .oc-field { margin: 0; }
+
+/* cột phải: ⑤ Chốt đơn bám theo khi cuộn */
+.oc-side { position: sticky; top: 52px; max-height: calc(100vh - 130px); overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 980px) { .oc-side { position: static; max-height: none; overflow: visible; } }
+.oc-side .oc-totals .oc-total-row { display: flex; justify-content: space-between; padding: 4px 0; font-variant-numeric: tabular-nums; }
+.oc-side .oc-totals { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--oc-border); }
+.oc-side .oc-total-row--grand { font-size: 17px; }
+
+/* thanh nút: tổng đơn + việc còn thiếu ở bên trái */
+.oc-actionbar { align-items: center; }
+.oc-actionbar__sum { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-right: auto; min-width: 0; }
+.oc-actionbar__sum b { font-size: 16px; color: var(--oc-primary-dark); font-variant-numeric: tabular-nums; }
+.oc-actionbar__missing { padding: 1px 10px; border-radius: 999px; background: #fffbeb; color: #b45309; font-size: 12px; font-weight: 600; }
+.oc-actionbar.mode-result .oc-actionbar__missing { display: none; }
+.oc-mode-ai .oc-actionbar__missing { display: none; }
+@media (max-width: 640px) { .oc-actionbar__sum { flex-basis: 100%; } }
