@@ -90,8 +90,9 @@ body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__
 body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__status { margin: 6px 0 0; font: 400 12px/1.5 Arial, sans-serif; color: var(--purchase-muted); }
 body.hithean-product-purchase .hithean-purchase-utilities { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 body.hithean-product-purchase .hithean-purchase-utilities button { min-height: 44px; padding: 10px 12px; margin: 0; border: 1px solid var(--purchase-line); border-radius: 8px; background: transparent; color: var(--purchase-blue); font: 500 13px/1.4 Arial, sans-serif; text-transform: none; letter-spacing: 0; }
-body.hithean-product-purchase .product-single .summary .product-trust-ctas { margin-top: 18px; }
+body.hithean-product-purchase .product-single .summary .product-trust-ctas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 10px; margin-top: 18px; }
 body.hithean-product-purchase .product-single .summary .product-trust-ctas__embed { justify-content: flex-start; }
+body.hithean-product-purchase .product-single .summary .product-trust-ctas .product-nutrition-label { grid-column: 1 / -1; }
 body.hithean-product-purchase .product-single .summary .b-greenspark-revenue-percentage-widget { align-items: flex-start; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--purchase-line); }
 body.hithean-product-purchase .hithean-purchase-impact { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--purchase-line); font-size: 13px; line-height: 1.5; color: #285239; }
 body.hithean-product-purchase .hithean-purchase-impact > summary { padding: 6px 0; cursor: pointer; }
