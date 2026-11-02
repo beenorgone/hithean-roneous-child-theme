@@ -9,6 +9,22 @@
         var price = summary && summary.querySelector('p.price');
         if (!summary) return;
 
+        // Keep the nutrition dialog and its chat action together in the flow.
+        // The dialog uses delegated document events, so moving its wrapper is safe.
+        var nutritionAction = summary.querySelector('.product-nutrition-label');
+        var chatActions = summary.querySelector('.b-single-product-ctas');
+        var chatAction = chatActions && chatActions.querySelector('a[href*="m.me/"]');
+        if (nutritionAction && chatAction) {
+            var contactActions = document.createElement('div');
+            contactActions.className = 'hithean-purchase-contact-actions';
+            contactActions.appendChild(nutritionAction);
+            contactActions.appendChild(chatAction);
+            var trustWidgets = summary.querySelector('.product-trust-ctas');
+            if (trustWidgets) trustWidgets.insertAdjacentElement('afterend', contactActions);
+            else chatActions.insertAdjacentElement('beforebegin', contactActions);
+            if (!chatActions.children.length && !chatActions.textContent.trim()) chatActions.hidden = true;
+        }
+
         var impact = summary.querySelector('.b-greenspark-revenue-percentage-widget');
         var impactText = impact && impact.querySelector('.b-greenspark-revenue-percentage-widget__subtitle');
         if (impactText && impactText.textContent.trim()) {

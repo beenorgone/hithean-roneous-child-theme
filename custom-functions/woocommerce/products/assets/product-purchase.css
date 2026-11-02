@@ -36,7 +36,8 @@ body.hithean-product-purchase .product-single .summary > form.cart { order: 6; }
 body.hithean-product-purchase .product-single .summary > .hithean-purchase-utilities { order: 7; }
 body.hithean-product-purchase .product-single .summary > .hithean-sales-count { order: 8; margin: 14px 0; }
 body.hithean-product-purchase .product-single .summary > .product-trust-ctas { order: 9; }
-body.hithean-product-purchase .product-single .summary > .b-single-product-ctas { order: 10; }
+body.hithean-product-purchase .product-single .summary > .hithean-purchase-contact-actions { order: 10; }
+body.hithean-product-purchase .product-single .summary > .b-single-product-ctas { order: 11; }
 body.hithean-product-purchase .product-single .summary > .b-greenspark-revenue-percentage-widget,
 body.hithean-product-purchase .product-single .summary > .hithean-purchase-impact { order: 11; }
 body.hithean-product-purchase .product-single .summary > .product_meta { order: 12; }
@@ -47,7 +48,7 @@ body.hithean-product-purchase .product-single .summary .price ins { text-decorat
 body.hithean-product-purchase .product-single .summary .price .hithean-sale-price-date-notice { margin-left: 0; margin-right: 0; text-align: left; font-style: normal; }
 body.hithean-product-purchase .product-single .summary .woocommerce-product-details__short-description { font-size: 14px; line-height: 1.6; margin: 0 0 18px; text-align: left; }
 body.hithean-product-purchase .product-single .summary .woocommerce-product-details__short-description p { margin: 0 0 8px; }
-body.hithean-product-purchase .product-single .summary > section.hithean-product-linking { padding: 0; margin: 0 0 18px; }
+body.hithean-product-purchase .product-single .summary > section.hithean-product-linking { padding: 0; margin: 0 0 18px !important; }
 body.hithean-product-purchase .hithean-product-linking__group { margin-bottom: 0; }
 body.hithean-product-purchase .hithean-product-linking__option { min-height: 44px; border-radius: 8px; }
 body.hithean-product-purchase .hithean-product-linking .hithean-product-linking__option.is-out-of-stock:not(.is-active) { text-decoration: none; color: #686b64; flex-direction: column; gap: 2px; }
@@ -93,6 +94,10 @@ body.hithean-product-purchase .hithean-purchase-utilities button { min-height: 4
 body.hithean-product-purchase .product-single .summary .product-trust-ctas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 10px; margin-top: 18px; }
 body.hithean-product-purchase .product-single .summary .product-trust-ctas__embed { justify-content: flex-start; }
 body.hithean-product-purchase .product-single .summary .product-trust-ctas .product-nutrition-label { grid-column: 1 / -1; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-contact-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 10px; margin: 0 0 10px; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-contact-actions > * { display: flex; align-items: center; justify-content: center; width: 100% !important; min-width: 0; min-height: 44px; margin: 0 !important; box-sizing: border-box; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-contact-actions .product-nutrition-label__trigger { width: 100% !important; max-width: 100%; }
+body.hithean-product-purchase .product-single .summary > .b-single-product-ctas[hidden] { display: none !important; }
 body.hithean-product-purchase .product-single .summary .b-greenspark-revenue-percentage-widget { align-items: flex-start; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--purchase-line); }
 body.hithean-product-purchase .hithean-purchase-impact { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--purchase-line); font-size: 13px; line-height: 1.5; color: #285239; }
 body.hithean-product-purchase .hithean-purchase-impact > summary { padding: 6px 0; cursor: pointer; }
@@ -127,7 +132,8 @@ body.hithean-product-purchase .sticky-atc-bar .quantity[hidden] { display: none 
     body.hithean-product-purchase .product-single .summary > .hithean-purchase-utilities { order: 55; }
     body.hithean-product-purchase .product-single .summary > .hithean-sales-count { order: 58; }
     body.hithean-product-purchase .product-single .summary > .product-trust-ctas { order: 60; }
-    body.hithean-product-purchase .product-single .summary > .b-single-product-ctas { order: 65; }
+    body.hithean-product-purchase .product-single .summary > .hithean-purchase-contact-actions { order: 65; }
+    body.hithean-product-purchase .product-single .summary > .b-single-product-ctas { order: 66; }
     body.hithean-product-purchase .product-single .summary > .b-greenspark-revenue-percentage-widget,
     body.hithean-product-purchase .product-single .summary > .hithean-purchase-impact { order: 70; }
     body.hithean-product-purchase .product-single .summary > .product_meta { order: 80; }
