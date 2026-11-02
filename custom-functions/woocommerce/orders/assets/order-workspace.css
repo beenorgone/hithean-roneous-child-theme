@@ -44,7 +44,7 @@
 .tow-chip--solid:hover, .tow-chip--solid:focus { color: var(--tow-navy); filter: brightness(.95); }
 
 /* Stepper = tab: chỉ hiện box của bước đang chọn */
-.tow-steps { display: flex; gap: 4px; margin: 10px 0 0; overflow-x: auto; scrollbar-width: none; }
+.tow-steps { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 0; overflow-x: auto; scrollbar-width: none; }
 .tow-steps::-webkit-scrollbar { display: none; }
 .tow-tab { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 6px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--tow-border); color: var(--tow-muted); font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .tow-tab:hover { border-color: var(--tow-navy); color: var(--tow-navy); }

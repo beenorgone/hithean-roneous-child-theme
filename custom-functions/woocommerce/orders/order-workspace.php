@@ -798,12 +798,12 @@ function thean_ow_render_inner(WC_Order $order): void
 }
 
 /**
- * Trạng thái xuất HĐ VAT (meta eim — plugin vn-einvoice-manager). [] khi chưa bật eim → không hiện tab VAT.
+ * Trạng thái xuất HĐ VAT (đọc thẳng meta eim — plugin vn-einvoice-manager). Không phụ thuộc eim đã nạp: Freesoul
+ * (eos-deactivate-plugins) có thể tắt eim ở trang sửa đơn mà tab vẫn phải hiện.
  * Tab VAT đứng ngoài luồng vận hành: không tính vào "Việc tiếp theo" / bước board (thean_ow_flow).
  */
 function thean_ow_vat_state(WC_Order $order): array
 {
-    if (!function_exists('eim_order_vat_status_label')) return [];
     $st  = (string) $order->get_meta('_eim_status') ?: 'none';
     $inv = (string) $order->get_meta('_eim_invoice_no');
     if ($inv === '') $inv = (string) $order->get_meta('acc_vat_invoice_code');
@@ -827,6 +827,7 @@ function thean_ow_vat_state(WC_Order $order): array
         'done'   => in_array($st, ['issued', 'excluded'], true),
         'locked' => in_array($st, ['issued', 'in_batch'], true),
         'inv'    => $inv,
+        'batch'  => $batch,
     ];
 }
 
@@ -840,7 +841,10 @@ function thean_ow_box_vat(WC_Order $order, array $vat): void
     $muted   = function (string $text): string { return '<span class="tow-muted">' . esc_html($text) . '</span>'; };
 
     thean_ow_box_open('vat', '🧾 Hóa đơn VAT', thean_ow_badge($vat['short'], $vat['tone']), true);
-    echo thean_ow_row('Tình trạng', wp_kses_post(eim_order_vat_status_label($order)));
+    $label = function_exists('eim_order_vat_status_label')
+        ? wp_kses_post(eim_order_vat_status_label($order))
+        : esc_html($vat['short'] . ($vat['batch'] ? ' · lô #' . $vat['batch'] : ''));
+    echo thean_ow_row('Tình trạng', $label);
     if ($vat['inv'] !== '') {
         $symbol = (string) $order->get_meta('_eim_invoice_symbol');
         $date   = (string) $order->get_meta('_eim_invoice_date');
@@ -879,6 +883,8 @@ function thean_ow_box_vat(WC_Order $order, array $vat): void
     } elseif (function_exists('thean_vat_request_button') && ($btn = thean_vat_request_button($order, 'button button-primary')) !== '') {
         echo '<div class="tow-btns">' . $btn . '</div>';
         echo '<p class="tow-hint">ⓘ Bắt buộc up ảnh tin nhắn khách. Lưu xong hub nhận khi đồng bộ và đưa vào "VAT chờ khớp". Trống MST → HĐ máy tính tiền.</p>';
+    } elseif (!function_exists('eim_set_order_buyer')) {
+        echo '<p class="tow-hint">⚠️ Plugin hóa đơn (eim) không chạy ở trang này nên không mở được popup Nhập VAT — kiểm tra Freesoul / plugin vn-einvoice-manager.</p>';
     }
     thean_ow_box_close();
 }
