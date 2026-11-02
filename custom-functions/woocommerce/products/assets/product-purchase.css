@@ -5,7 +5,7 @@ body.hithean-product-purchase {
     --purchase-line: #dfE3da;
     --purchase-surface: #f7f7f1;
     --purchase-blue: var(--default-color-dark-blue, #0047ba);
-    --purchase-bottom-space: calc(72px + env(safe-area-inset-bottom, 0px));
+    --purchase-bottom-space: calc(64px + env(safe-area-inset-bottom, 0px));
 }
 body.hithean-product-purchase .main-container > section:has(.product-single) { padding: 16px 0 40px; }
 body.hithean-product-purchase .product-single > .product {
@@ -161,7 +161,7 @@ body.hithean-product-purchase .sticky-atc-bar .quantity[hidden] { display: none 
     body.hithean-product-purchase .pcn-mobile__detail { display: inline-flex !important; flex: 1 1 0; min-width: 0; min-height: 44px; align-items: center; justify-content: center; padding: 10px 14px; white-space: nowrap; }
     body.hithean-product-purchase .pcn-mobile__cluster #thean-lw-root { display: contents; }
     body.hithean-product-purchase .pcn-mobile__cluster .thean-lw-trigger { position: static !important; flex: 1 1 0; min-width: 0; justify-content: center; transform: none !important; }
-    body.hithean-product-purchase.hithean-purchase-has-sticky { --purchase-bottom-space: calc(72px + env(safe-area-inset-bottom, 0px)); padding-bottom: var(--purchase-bottom-space); }
+    body.hithean-product-purchase.hithean-purchase-has-sticky { --purchase-bottom-space: calc(64px + env(safe-area-inset-bottom, 0px)); padding-bottom: var(--purchase-bottom-space); }
     body.hithean-product-purchase.hithean-purchase-has-sticky .sticky-atc-bar { position: fixed !important; inset: auto 0 0; bottom: 0 !important; z-index: 9999; display: flex; align-items: center !important; box-sizing: border-box; width: 100%; height: auto; min-height: 56px; padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
     /* Ô số lượng và nút cùng cao 48px, canh giữa theo trục dọc. Theme cha / WC / custom.css ép height, line-height,
        padding, display cho button & input (.woocommerce button.button, input[type=number]…) nên các thuộc tính
