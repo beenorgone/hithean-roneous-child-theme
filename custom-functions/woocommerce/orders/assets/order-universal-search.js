@@ -441,6 +441,19 @@
     /* ---------- Board "Cần xử lý" (tab theo bước của bảng điều phối) ---------- */
     function rememberTab(tab) { try { localStorage.setItem('theanOusBoardTab', tab); } catch (e) {} }
     function savedTab() { try { return localStorage.getItem('theanOusBoardTab') || ''; } catch (e) { return ''; } }
+    // Link thẳng tới 1 tab: ?thean_board=<tab> (confirm, payment, picking, export, delivery, shipping, cod, proof,
+    // return, preorder — thean_ops_step_tabs()). URL trên thanh địa chỉ đi theo tab đang xem → sao chép là gửi được.
+    var URL_TAB = 'thean_board';
+    function urlTab() { try { return new URLSearchParams(location.search).get(URL_TAB) || ''; } catch (e) { return ''; } }
+    function tabUrl(tab) {
+        var u = new URL(location.href);
+        if (tab) u.searchParams.set(URL_TAB, tab); else u.searchParams.delete(URL_TAB);
+        u.hash = '';
+        return u.toString();
+    }
+    function syncUrlTab(tab) {
+        try { if (urlTab() !== tab) history.replaceState(history.state, '', tabUrl(tab)); } catch (e) {}
+    }
     function renderTabs(tabs, current) {
         var nav = board.querySelector('.thean-ous-tabs');
         nav.replaceChildren();
@@ -499,6 +512,7 @@
         boardState.page = page;
         boardState.shown = data.shown || 0;
         rememberTab(data.tab);
+        syncUrlTab(data.tab);
         renderTabs(data.tabs, data.tab);
         board.querySelector('.thean-ous-modal__status').textContent = '— cập nhật ' + data.at + (data.pending ? ' · còn đơn chưa được phân bước, bấm Làm mới để tính tiếp' : '');
         if (!data.total) { notice(body(board), 'Không có đơn nào ở bước này 🎉'); return; }
@@ -669,7 +683,8 @@
         var tab = e.target.closest('[data-thean-ous-tab]');
         if (tab) { if (!boardState.loading || tab.dataset.theanOusTab !== boardState.tab) loadBoard(tab.dataset.theanOusTab, 1, false); return; }
         if (e.target.closest('[data-thean-ous-board-refresh]')) { loadBoard(boardState.tab, 1, true); return; }
-        if (e.target.closest('[data-thean-ous-board-close]')) { board.hidden = true; return; }
+        if (e.target.closest('[data-thean-ous-board-close]')) { board.hidden = true; syncUrlTab(''); return; }
+        if (e.target.closest('[data-thean-ous-board-link]')) { copyTabLink(); return; }
         if (onBulkClick(board, e)) return;
         if (e.target.closest('[data-thean-ous-more]')) { if (!boardState.loading) loadBoard(boardState.tab, boardState.page + 1, false); return; }
         tableClick(e);
@@ -686,9 +701,19 @@
         closeSuggest();
         loadBoard(boardState.tab || savedTab(), 1, false);
     });
-    // cfg.boardAutoload: mở trang danh sách đơn là tải board luôn (tab đã xem lần trước). Bỏ qua khi người dùng
-    // vừa chủ động mở bảng Woo (?thean_wc_list=1).
-    if (cfg.boardAutoload && !(cfg.wcList && !cfg.wcList.off)) loadBoard(savedTab(), 1, false);
+    function copyTabLink() {
+        var link = tabUrl(boardState.tab);
+        var done = function () { toast('🔗 Đã sao chép link tab đang xem.'); };
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(link).then(done, function () { window.prompt('Sao chép link tab:', link); });
+        } else {
+            window.prompt('Sao chép link tab:', link);
+        }
+    }
+    // ?thean_board=<tab>: luôn mở board đúng tab đó. Không có → cfg.boardAutoload: tải board luôn (tab đã xem lần
+    // trước), trừ khi người dùng vừa chủ động mở bảng Woo (?thean_wc_list=1).
+    if (urlTab()) loadBoard(urlTab(), 1, false);
+    else if (cfg.boardAutoload && !(cfg.wcList && !cfg.wcList.off)) loadBoard(savedTab(), 1, false);
 
     /* ---------- 🧹 Xoá cache: bỏ cache trình duyệt + server (version cache orders), tính lại bước flow các đơn mở ---------- */
     var flushBtn = bar.querySelector('[data-thean-ous-flush]');

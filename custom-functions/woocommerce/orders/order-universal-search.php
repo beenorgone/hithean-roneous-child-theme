@@ -1578,6 +1578,7 @@ function thean_ous_render_ui(): void
         <div class="thean-ous-board__head">
             <h2 class="thean-ous-modal__title" id="thean-ous-board-title">Đơn cần xử lý <span class="thean-ous-modal__status"></span></h2>
             <button type="button" class="thean-ous__more-btn" data-thean-ous-board-refresh>↻ Làm mới</button>
+            <button type="button" class="thean-ous__more-btn" data-thean-ous-board-link title="Sao chép link mở thẳng tab đang xem (?thean_board=…)">🔗 Link tab</button>
             <button type="button" class="thean-ous__more-btn" data-thean-ous-board-close>Ẩn</button>
         </div>
         <div class="thean-ous-tabs" role="tablist" aria-label="Bước xử lý"></div>

@@ -56,6 +56,20 @@ function thean_ops_step_tabs(): array
 }
 
 /**
+ * Link mở thẳng board "Đơn cần xử lý" ở 1 tab (danh sách đơn admin + ?thean_board=<tab>, xử lý ở
+ * assets/order-universal-search.js). Tab không hợp lệ / trống → board mở tab có đơn đầu tiên.
+ * Dùng cho thông báo, email nội bộ, bookmark…
+ */
+function thean_ops_board_url(string $tab = ''): string
+{
+    $hpos = class_exists('\Automattic\WooCommerce\Utilities\OrderUtil')
+        && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+    $url  = $hpos ? admin_url('admin.php?page=wc-orders') : admin_url('edit.php?post_type=shop_order');
+    $tab  = sanitize_key($tab);
+    return isset(thean_ops_step_tabs()[$tab]) ? add_query_arg('thean_board', $tab, $url) : $url;
+}
+
+/**
  * Trạng thái không thuộc luồng vận hành: đã đóng / xong, và "Chưa ghi nhận" / "Đã ghi nhận" (đơn kế toán /
  * nội bộ). Đơn đóng còn hoàn hàng dở vẫn vào tab Hoàn hàng.
  */
