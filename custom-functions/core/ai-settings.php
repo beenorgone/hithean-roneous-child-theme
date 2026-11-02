@@ -295,6 +295,10 @@ function theme_erp_settings_render_page(): void
                     'enabled'     => !empty($_POST['hithean_export_lark_enabled']) ? '1' : '0',
                     'only_alerts' => !empty($_POST['hithean_export_lark_only_alerts']) ? '1' : '0',
                     'webhook_url' => $lark_webhook,
+                'stop_reminder_user_ids' => array_values(array_intersect(
+                    array_map('absint', (array) ($_POST['hithean_export_lark_stop_users'] ?? [])),
+                    array_map(static fn($user) => (int) $user->ID, get_users(['capability' => 'manage_woocommerce', 'fields' => ['ID']]))
+                )),
                 ], false);
             }
             $saved = true;
@@ -334,6 +338,15 @@ function theme_erp_settings_render_page(): void
         'woocommerce'  => 'WooCommerce',
         'company-info' => 'Thông tin doanh nghiệp',
     ];
+    $tab_groups = [
+        'system' => ['label' => 'AI & hệ thống', 'tabs' => ['ai', 'woocommerce', 'company-info']],
+        'sales' => ['label' => 'Bán hàng', 'tabs' => ['nut-ecom', 'luot-ban']],
+        'orders' => ['label' => 'Đơn hàng', 'tabs' => ['xu-ly-don']],
+    ];
+    $active_group = 'system';
+    foreach ($tab_groups as $group_key => $group) {
+        if (in_array($active_tab, $group['tabs'], true)) { $active_group = $group_key; break; }
+    }
 
     $settings = theme_erp_settings();
 
@@ -351,11 +364,13 @@ function theme_erp_settings_render_page(): void
             <div class="notice notice-error"><p><?php echo esc_html($lark_error); ?></p></div>
         <?php endif; ?>
         <nav class="nav-tab-wrapper" style="margin-bottom:20px;">
-            <?php foreach ($tabs as $slug => $label): ?>
-                <a href="<?php echo esc_url($page_url . '&tab=' . $slug); ?>"
-                   class="nav-tab <?php echo $active_tab === $slug ? 'nav-tab-active' : ''; ?>">
-                    <?php echo esc_html($label); ?>
-                </a>
+            <?php foreach ($tab_groups as $group_slug => $group): ?>
+                <a href="<?php echo esc_url($page_url . '&tab=' . $group['tabs'][0]); ?>" class="nav-tab <?php echo $active_group === $group_slug ? 'nav-tab-active' : ''; ?>"><?php echo esc_html($group['label']); ?></a>
+            <?php endforeach; ?>
+        </nav>
+        <nav class="nav-tab-wrapper" aria-label="Nhóm cài đặt <?php echo esc_attr($tab_groups[$active_group]['label']); ?>" style="margin-bottom:20px;border-bottom:1px solid #c3c4c7;">
+            <?php foreach ($tab_groups[$active_group]['tabs'] as $slug): ?>
+                <a href="<?php echo esc_url($page_url . '&tab=' . $slug); ?>" class="nav-tab <?php echo $active_tab === $slug ? 'nav-tab-active' : ''; ?>"><?php echo esc_html($tabs[$slug]); ?></a>
             <?php endforeach; ?>
         </nav>
 
@@ -446,6 +461,13 @@ function theme_erp_settings_render_page(): void
                             <label><input type="checkbox" name="hithean_export_lark_enabled" value="1" <?php checked(!empty($lark_settings['enabled'])); ?>> Bật thông báo Lark: AI không khớp báo ngay; xác nhận xuất kho gom lô 30 phút</label>
                             <p><label><input type="checkbox" name="hithean_export_lark_only_alerts" value="1" <?php checked(!empty($lark_settings['only_alerts'])); ?>> Chỉ gửi cảnh báo khi AI không đạt</label></p>
                             <p><input type="url" class="large-text" style="max-width:600px" name="hithean_export_lark_webhook" value="<?php echo esc_attr((string) $lark_settings['webhook_url']); ?>" placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/..."></p>
+                            <?php $lark_stop_users = array_map('absint', (array) ($lark_settings['stop_reminder_user_ids'] ?? [])); ?>
+                            <fieldset><legend><strong>User được dừng nhắc Lark</strong></legend>
+                                <?php foreach (get_users(['capability' => 'manage_woocommerce', 'orderby' => 'display_name', 'order' => 'ASC']) as $lark_user): ?>
+                                    <label style="display:block;margin:5px 0"><input type="checkbox" name="hithean_export_lark_stop_users[]" value="<?php echo (int) $lark_user->ID; ?>" <?php checked(in_array((int) $lark_user->ID, $lark_stop_users, true)); ?>> <?php echo esc_html($lark_user->display_name . ' (' . $lark_user->user_login . ')'); ?></label>
+                                <?php endforeach; ?>
+                                <p class="description">Chỉ các user được chọn mới kết thúc nhắc tự động khi xác nhận đã xử lý. User khác có thể ghi nhận việc xử lý nhưng nhắc vẫn tiếp tục.</p>
+                            </fieldset>
                             <p class="description">AI không khớp: báo ngay kèm nhận định, người xử lý, link đơn và ảnh; tự động nhắc mỗi 30 phút cho đến khi ảnh hiện tại được AI xác nhận khớp. Nút “Xác nhận đã xử lý” mở trang xác nhận có đăng nhập; không thay cho xác nhận xuất kho và không dừng nhắc khi chưa có ảnh khớp. Xác nhận xuất kho gom lô 30 phút từ lần đầu, không kéo dài hạn. “Chỉ gửi cảnh báo” lọc đơn AI đạt khỏi tin tổng hợp. Cần WP-Cron hoạt động. Ảnh dùng link mở trực tiếp; nhúng ảnh cần API ứng dụng Lark. Bot có từ khóa phải chấp nhận “Xuất kho” / “AI”; chưa hỗ trợ ký bằng secret.</p>
                             <?php $lark_delivery = get_option('hithean_export_lark_last_delivery', []); ?>
                             <?php if (is_array($lark_delivery) && !empty($lark_delivery['state'])): ?>

@@ -3,7 +3,7 @@ defined('ABSPATH') || exit;
 
 function hithean_export_lark_reminder_notice(): string
 {
-    return '⏰ Tự động nhắc lại sau 30 phút nếu chưa có ảnh xuất kho tải lên được AI xác nhận khớp sản phẩm và số lượng của đơn. Xác nhận đã xử lý cảnh báo không dừng lịch nhắc; cần ảnh hiện tại được AI kiểm tra khớp.';
+    return '⏰ Tự động nhắc lại sau 30 phút nếu chưa có ảnh xuất kho được AI xác nhận khớp sản phẩm và số lượng. Chỉ user được ủy quyền trong Cài đặt ERP mới có thể dừng nhắc bằng nút xác nhận; user khác xác nhận đã xử lý nhưng nhắc vẫn tiếp tục.';
 }
 
 function hithean_export_lark_schedule_reminder(int $order_id): void
@@ -24,10 +24,22 @@ function hithean_export_lark_stop_reminders(int $order_id, string $state = 'comp
     hithean_export_lark_status($order_id, 'warehouse_export_lark_reminder_status', $state);
 }
 
+function hithean_export_lark_user_can_stop_reminders(int $user_id): bool
+{
+    $settings = hithean_export_lark_settings();
+    return $user_id > 0 && in_array($user_id, array_map('absint', (array) ($settings['stop_reminder_user_ids'] ?? [])), true);
+}
+
 add_action('hithean_export_lark_remind_async', function ($order_id, $attempt = 0): void {
     $order_id = absint($order_id);
     $attempt = absint($attempt);
     if (!$order_id || !($order = wc_get_order($order_id))) return;
+    $resolution = get_post_meta($order_id, 'warehouse_export_ai_resolution', true);
+    $review = get_post_meta($order_id, 'warehouse_export_ai_check', true);
+    if (is_array($resolution) && !empty($resolution['stop_reminders']) && is_array($review) && ($resolution['hash'] ?? '') === hithean_export_lark_alert_hash($order_id, $review)) {
+        hithean_export_lark_stop_reminders($order_id, 'acknowledged');
+        return;
+    }
     if (hithean_export_lark_current_pass($order_id)) {
         hithean_export_lark_stop_reminders($order_id);
         return;
@@ -69,11 +81,24 @@ function hithean_export_lark_acknowledge(int $order_id, string $hash, string $no
     if (!hithean_export_lark_lock($lock)) return new WP_Error('busy', 'Đơn đang được xác nhận. Vui lòng thử lại.');
     try {
         $saved = get_post_meta($order_id, 'warehouse_export_ai_resolution', true);
-        if (is_array($saved) && ($saved['hash'] ?? '') === $hash) return $saved;
-        $saved = ['hash' => $hash, 'resolved_by' => get_current_user_id(), 'resolved_at' => current_time('mysql')];
+        $user_id = get_current_user_id();
+        $can_stop = hithean_export_lark_user_can_stop_reminders($user_id);
+        if (is_array($saved) && ($saved['hash'] ?? '') === $hash) {
+            if ($can_stop && empty($saved['stop_reminders'])) {
+                $saved['stop_reminders'] = true;
+                $saved['stopped_by'] = $user_id;
+                $saved['stopped_at'] = current_time('mysql');
+                thean_order_meta_set($order_id, 'warehouse_export_ai_resolution', $saved);
+                hithean_export_lark_stop_reminders($order_id, 'acknowledged');
+            }
+            return $saved;
+        }
+        $saved = ['hash' => $hash, 'resolved_by' => $user_id, 'resolved_at' => current_time('mysql'), 'stop_reminders' => $can_stop];
+        if ($can_stop) { $saved['stopped_by'] = $user_id; $saved['stopped_at'] = $saved['resolved_at']; }
         thean_order_meta_set($order_id, 'warehouse_export_ai_resolution', $saved);
+        if ($can_stop) hithean_export_lark_stop_reminders($order_id, 'acknowledged');
         $user = wp_get_current_user();
-        $order->add_order_note('✓ ' . hithean_export_lark_clean_text($user->display_name, 120) . ' xác nhận đã xử lý cảnh báo AI qua Lark. Vẫn nhắc sau mỗi 30 phút cho đến khi ảnh hiện tại được AI kiểm tra khớp.');
+        $order->add_order_note('✓ ' . hithean_export_lark_clean_text($user->display_name, 120) . ' xác nhận đã xử lý cảnh báo AI qua Lark.' . ($can_stop ? ' User được cấp quyền dừng nhắc tự động.' : ' Lark vẫn nhắc sau mỗi 30 phút cho đến khi user được cấp quyền dừng hoặc ảnh hiện tại được AI kiểm tra khớp.'));
         return $saved;
     } finally {
         delete_option($lock);
@@ -107,11 +132,17 @@ add_action('admin_post_hithean_export_lark_review', function (): void {
     $html .= '<p>' . esc_html(hithean_export_lark_reminder_notice()) . '</p>';
     if ($resolved) {
         $user = get_userdata(absint($saved['resolved_by']));
-        $html .= '<p role="status"><strong>✓ Đã xử lý: ' . esc_html($user ? $user->display_name : 'Nhân viên') . '</strong> — ' . esc_html($saved['resolved_at']) . '</p>';
+        $html .= '<p role="status"><strong>✓ Đã xử lý: ' . esc_html($user ? $user->display_name : 'Nhân viên') . '</strong> — ' . esc_html($saved['resolved_at']) . ($saved['stop_reminders'] ?? false ? ' — đã dừng nhắc' : ' — nhắc vẫn tiếp tục') . '</p>';
+        if (empty($saved['stop_reminders'])) {
+            $html .= '<p>User được ủy quyền dừng nhắc có thể xác nhận lại tại đây.</p>';
+            $html .= '<form method="post" action="' . esc_url(hithean_export_lark_review_url($id, $hash)) . '">'
+                . wp_nonce_field('hithean_export_lark_resolve_' . $id . '_' . $hash, '_wpnonce', true, false)
+                . '<button type="submit">✓ Xác nhận và dừng nhắc (user được ủy quyền)</button></form>';
+        }
     } else {
         $html .= '<form method="post" action="' . esc_url(hithean_export_lark_review_url($id, $hash)) . '">'
             . wp_nonce_field('hithean_export_lark_resolve_' . $id . '_' . $hash, '_wpnonce', true, false)
-            . '<button type="submit" style="background:#0047ba;color:#fff;border:0;border-radius:6px;padding:12px 18px;cursor:pointer;font-size:15px">✓ Xác nhận đã xử lý</button></form>';
+            . '<button type="submit" style="background:#0047ba;color:#fff;border:0;border-radius:6px;padding:12px 18px;cursor:pointer;font-size:15px">✓ ' . (hithean_export_lark_user_can_stop_reminders(get_current_user_id()) ? 'Xác nhận đã xử lý và dừng nhắc' : 'Xác nhận đã xử lý') . '</button></form>';
     }
     $html .= '<p><a href="' . esc_url(thean_order_edit_url($id)) . '">Mở đơn hàng và ảnh xuất kho →</a></p>';
     wp_die($html, 'Xác nhận xử lý cảnh báo AI', ['response' => 200]);
