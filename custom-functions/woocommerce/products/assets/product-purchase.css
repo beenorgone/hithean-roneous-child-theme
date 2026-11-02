@@ -71,24 +71,22 @@ body.hithean-product-purchase .hithean-purchase-tiers tr.bulk_table_row { displa
 body.hithean-product-purchase .hithean-purchase-tiers .wdr_bulk_table_td { border: 0; padding: 0; text-align: left; font-size: 13px; line-height: 1.5; }
 body.hithean-product-purchase .hithean-purchase-tiers .wdr_bulk_table_discount { margin-top: 0; }
 body.hithean-product-purchase .hithean-purchase-tiers .wdr_table_discounted_price .amount { font: 600 18px/1.4 Arial, sans-serif; }
-body.hithean-product-purchase .hithean-purchase-tier-action { display: flex; justify-content: center; border: 0; margin-top: 0; padding: 0; }
-body.hithean-product-purchase .hithean-purchase-tier-action button { width: fit-content; min-width: 140px; max-width: 100%; min-height: 44px; margin: 0; padding: 6px 12px; border: 1px solid var(--purchase-line); border-radius: 6px; color: var(--purchase-blue); background: #fff; font: 500 13px/1.3 Arial, sans-serif; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+/* Thẻ bậc giá bấm được (không có nút "Chọn số lượng" riêng) — product-purchase.js gắn role=button + aria-pressed. */
+body.hithean-product-purchase .hithean-purchase-tiers tr.bulk_table_row[data-purchase-quantity] { cursor: pointer; transition: border-color .15s, background-color .15s; }
+body.hithean-product-purchase .hithean-purchase-tiers tr.bulk_table_row[aria-disabled="true"] { cursor: default; }
+body.hithean-product-purchase .hithean-purchase-tiers tr.bulk_table_row[aria-pressed="true"] { border-color: var(--purchase-blue) !important; background: #edf3ff; box-shadow: inset 0 0 0 1px var(--purchase-blue); }
+body.hithean-product-purchase .hithean-purchase-tiers tr.bulk_table_row[data-purchase-quantity]:focus-visible { outline: 2px solid var(--purchase-blue); outline-offset: 2px; }
 @container (min-width: 280px) {
     body.hithean-product-purchase .hithean-purchase-tiers tr.bulk_table_row { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; }
     body.hithean-product-purchase .hithean-purchase-tiers .wdr_bulk_title { grid-column: 1; grid-row: 1; min-width: 0; }
     body.hithean-product-purchase .hithean-purchase-tiers .wdr_bulk_table_discount { grid-column: 2; grid-row: 1; text-align: right; }
-    body.hithean-product-purchase .hithean-purchase-tier-action { grid-column: 1 / -1; grid-row: 2; }
 }
 @media (min-width: 360px) and (max-width: 767px) {
     body.hithean-product-purchase .hithean-purchase-tiers--short-copy tbody { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     body.hithean-product-purchase .hithean-purchase-tiers--short-copy tr.bulk_table_row { grid-template-columns: minmax(0, 1fr); column-gap: 0; row-gap: 4px; }
     body.hithean-product-purchase .hithean-purchase-tiers--short-copy .wdr_bulk_title { grid-column: 1; grid-row: 1; text-align: center; font-size: 12px; line-height: 1.35; }
     body.hithean-product-purchase .hithean-purchase-tiers--short-copy .wdr_bulk_table_discount { grid-column: 1; grid-row: 2; text-align: center; }
-    body.hithean-product-purchase .hithean-purchase-tiers--short-copy .hithean-purchase-tier-action { grid-column: 1; grid-row: 3; }
-    body.hithean-product-purchase .hithean-purchase-tiers--short-copy .hithean-purchase-tier-action button { min-width: 112px; padding: 6px 8px; font-size: 11px; line-height: 1.2; white-space: normal; }
 }
-body.hithean-product-purchase .hithean-purchase-tier-action button[aria-pressed="true"] { border-color: var(--purchase-blue); background: #edf3ff; }
-body.hithean-product-purchase .hithean-purchase-tier-action button:disabled { opacity: .5; cursor: not-allowed; }
 body.hithean-product-purchase .product-single .summary form.cart { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%; margin: 0; padding: 0; text-align: left; }
 body.hithean-product-purchase .product-single .summary form.cart > .variations,
 body.hithean-product-purchase .product-single .summary form.cart > .single_variation_wrap,
@@ -165,12 +163,18 @@ body.hithean-product-purchase .sticky-atc-bar .quantity[hidden] { display: none 
     body.hithean-product-purchase .pcn-mobile__cluster .thean-lw-trigger { position: static !important; flex: 1 1 0; min-width: 0; justify-content: center; transform: none !important; }
     body.hithean-product-purchase.hithean-purchase-has-sticky { --purchase-bottom-space: calc(72px + env(safe-area-inset-bottom, 0px)); padding-bottom: var(--purchase-bottom-space); }
     body.hithean-product-purchase.hithean-purchase-has-sticky .sticky-atc-bar { position: fixed !important; inset: auto 0 0; bottom: 0 !important; z-index: 9999; display: flex; align-items: center !important; box-sizing: border-box; width: 100%; height: auto; min-height: 56px; padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
-    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty { display: flex; flex: 0 0 auto; align-items: center; margin: 0; }
-    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn { display: flex; flex: 1 1 auto; align-self: center; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: auto; min-height: 44px; margin: 0; padding: 5px 12px; border-radius: 8px; font: 600 14px/1.25 Arial, sans-serif; text-transform: none; letter-spacing: 0; }
-    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn small { font-size: 13px; }
-    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input { display: block; width: 56px; min-height: 44px; height: 44px; margin: 0 !important; border-radius: 8px; font-size: 16px; }
+    /* Ô số lượng và nút cùng cao 48px, canh giữa theo trục dọc. Theme cha / WC / custom.css ép height, line-height,
+       padding, display cho button & input (.woocommerce button.button, input[type=number]…) nên các thuộc tính
+       quyết định bố cục ở đây dùng !important. Nút: 2 dòng (chữ "Thêm vào giỏ" + tạm tính) canh giữa. */
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty { display: flex !important; flex: 0 0 auto; align-items: center; align-self: center; height: 48px; margin: 0 !important; padding: 0 !important; float: none; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn { display: flex !important; flex: 1 1 auto; align-self: center; flex-direction: column; align-items: center; justify-content: center; gap: 2px; box-sizing: border-box; height: 48px !important; min-height: 48px; margin: 0 !important; padding: 4px 12px !important; overflow: hidden; border-radius: 8px; font: 600 14px/1.2 Arial, sans-serif; line-height: 1.2 !important; text-align: center; text-transform: none; letter-spacing: 0; vertical-align: middle; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn > span,
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn > small { display: block !important; position: static; max-width: 100%; margin: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2 !important; transform: none; color: inherit !important; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn > small { font-size: 13px; font-weight: 500; opacity: .95; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn > small * { color: inherit !important; font: inherit; background: none; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn > small:empty { display: none !important; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input { display: block; box-sizing: border-box; width: 56px; height: 48px !important; min-height: 48px; margin: 0 !important; padding: 0 4px !important; border-radius: 8px; font-size: 16px; line-height: normal; text-align: center; vertical-align: middle; }
     body.hithean-product-purchase .pcn-mobile { bottom: var(--purchase-bottom-space); }
 }
-body.hithean-product-purchase .hithean-purchase-tier-action button:focus-visible,
 body.hithean-product-purchase .hithean-purchase-utilities button:focus-visible,
 body.hithean-product-purchase .product-single .summary form.cart button:focus-visible { outline: 2px solid var(--purchase-blue); outline-offset: 3px; }

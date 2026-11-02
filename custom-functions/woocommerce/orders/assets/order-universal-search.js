@@ -686,6 +686,9 @@
         closeSuggest();
         loadBoard(boardState.tab || savedTab(), 1, false);
     });
+    // cfg.boardAutoload: mở trang danh sách đơn là tải board luôn (tab đã xem lần trước). Bỏ qua khi đang tìm
+    // bằng ô tìm mặc định của Woo (?s=) — người dùng đang xem kết quả bảng Woo.
+    if (cfg.boardAutoload && !new URLSearchParams(location.search).get('s')) loadBoard(savedTab(), 1, false);
 
     /* ---------- 🧹 Xoá cache: bỏ cache trình duyệt + server (version cache orders), tính lại bước flow các đơn mở ---------- */
     var flushBtn = bar.querySelector('[data-thean-ous-flush]');

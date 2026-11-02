@@ -200,45 +200,54 @@
                 });
                 table.classList.toggle('hithean-purchase-tiers--short-copy', shortDescriptions);
             });
+            // Không chèn nút "Chọn số lượng" — cả thẻ bậc giá là vùng bấm để chọn số lượng.
             summary.querySelectorAll('.awdr-bulk-customizable-table tr.bulk_table_row').forEach(function (row) {
-                if (row.querySelector('[data-purchase-quantity]')) return;
+                if (row.hasAttribute('data-purchase-quantity')) return;
                 var range = row.querySelector('.wdr_bulk_range');
                 var text = range ? range.textContent.replace(/\s+/g, ' ').trim() : '';
                 var match = text.match(/^([1-9]\d{0,3})(?:\s*(\+)|\s*[-–]\s*([1-9]\d{0,3}))?$/);
                 if (!match || (match[3] && Number(match[3]) < Number(match[1]))) return;
-                var cell = document.createElement('td');
-                cell.className = 'hithean-purchase-tier-action';
-                var button = document.createElement('button');
-                button.type = 'button';
-                button.dataset.purchaseQuantity = match[1];
-                button.dataset.purchaseMaximum = match[3] || (match[2] ? '' : match[1]);
-                button.textContent = config.chooseQuantity + ': ' + text;
-                button.setAttribute('aria-pressed', 'false');
-                cell.appendChild(button);
-                row.appendChild(cell);
+                row.dataset.purchaseQuantity = match[1];
+                row.dataset.purchaseMaximum = match[3] || (match[2] ? '' : match[1]);
+                row.setAttribute('role', 'button');
+                row.setAttribute('tabindex', '0');
+                row.setAttribute('aria-label', config.chooseQuantity + ': ' + text);
+                row.setAttribute('aria-pressed', 'false');
                 row.closest('.awdr-bulk-customizable-table').classList.add('hithean-purchase-tiers');
             });
             updateTierActions();
         }
         function updateTierActions() {
-            summary.querySelectorAll('[data-purchase-quantity]').forEach(function (button) {
-                var minimum = Number(button.dataset.purchaseQuantity);
-                var maximum = Number(button.dataset.purchaseMaximum) || Infinity;
+            summary.querySelectorAll('tr[data-purchase-quantity]').forEach(function (row) {
+                var minimum = Number(row.dataset.purchaseQuantity);
+                var maximum = Number(row.dataset.purchaseMaximum) || Infinity;
                 var probe = quantity.cloneNode(false);
                 probe.value = String(minimum);
                 var allowed = !quantity.readOnly && probe.checkValidity()
                     && (!quantity.max || minimum <= Number(quantity.max))
                     && (!quantity.min || minimum >= Number(quantity.min))
                     && (quantity.type !== 'hidden' || minimum === Number(quantity.value));
-                button.disabled = !allowed || quantity.disabled || (!!form.querySelector('[name="variation_id"]') && !selectedVariation);
-                button.setAttribute('aria-pressed', String(Number(quantity.value) >= minimum && Number(quantity.value) <= maximum));
+                var disabled = !allowed || quantity.disabled || (!!form.querySelector('[name="variation_id"]') && !selectedVariation);
+                row.setAttribute('aria-disabled', String(disabled));
+                row.setAttribute('tabindex', disabled ? '-1' : '0');
+                row.setAttribute('aria-pressed', String(Number(quantity.value) >= minimum && Number(quantity.value) <= maximum));
             });
         }
-        summary.addEventListener('click', function (event) {
-            var button = event.target.closest('[data-purchase-quantity]');
-            if (!button || button.disabled) return;
-            quantity.value = button.dataset.purchaseQuantity;
+        function chooseTier(row) {
+            if (!row || row.getAttribute('aria-disabled') === 'true') return;
+            quantity.value = row.dataset.purchaseQuantity;
             $(quantity).trigger('input').trigger('change');
+        }
+        summary.addEventListener('click', function (event) {
+            if (event.target.closest('a, button, input, select, textarea')) return;
+            chooseTier(event.target.closest('tr[data-purchase-quantity]'));
+        });
+        summary.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            var row = event.target.matches && event.target.matches('tr[data-purchase-quantity]') ? event.target : null;
+            if (!row) return;
+            event.preventDefault();
+            chooseTier(row);
         });
         $(quantity).on('input.hitheanPurchase change.hitheanPurchase', function () { updateTierActions(); refreshQuote(false); });
         $form.on('change.hitheanPurchase', 'input:not([name="quantity"]):not([name="variation_id"]), select, textarea', function () {
