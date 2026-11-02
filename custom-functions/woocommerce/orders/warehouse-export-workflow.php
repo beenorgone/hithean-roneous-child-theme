@@ -198,6 +198,12 @@ add_action('hithean_warehouse_export_confirmed', function ($order): void {
 add_action('hithean_export_ai_check_completed', function ($order, $result = []): void {
     if (!($order instanceof WC_Order)) return;
     hithean_export_lark_queue_alert($order->get_id(), is_array($result) ? $result : []);
+    if (is_array($result) && ($result['overall'] ?? '') === 'pass'
+        && ($result['order_match'] ?? '') === 'match' && ($result['items_match'] ?? '') === 'match'
+        && hithean_export_lark_current_images($order->get_id())
+        && ($result['images_hash'] ?? '') === hithean_export_lark_images_hash(hithean_export_lark_current_images($order->get_id()))) {
+        hithean_export_lark_stop_reminders($order->get_id());
+    }
     $confirmed = (bool) get_post_meta($order->get_id(), 'export_confirmed_by', true);
     // AI khớp → lưu ngay; AI chạy xong sau khi đã xác nhận xuất kho → lưu theo xác nhận.
     if (is_array($result) && ($result['overall'] ?? '') === 'pass') {

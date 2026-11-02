@@ -1,5 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
+require_once __DIR__ . '/warehouse-export-lark-content.php';
+require_once __DIR__ . '/warehouse-export-lark-follow-up.php';
 
 function hithean_export_lark_settings(): array
 {
@@ -42,15 +44,18 @@ function hithean_export_lark_response_error($response): string
     return '';
 }
 
-function hithean_export_lark_send(string $text): string
+function hithean_export_lark_send($message): string
 {
     $settings = hithean_export_lark_settings();
     $url = hithean_export_lark_sanitize_webhook($settings['webhook_url']);
     if (empty($settings['enabled']) || $url === '') return 'Lark chưa bật hoặc webhook không hợp lệ.';
+    $payload = is_array($message) ? $message : ['msg_type' => 'text', 'content' => ['text' => $message]];
+    $body = wp_json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($body) || strlen($body) > 19000) return 'Nội dung Lark vượt giới hạn hoặc không hợp lệ.';
     $error = hithean_export_lark_response_error(wp_remote_post($url, [
         'timeout' => 8, 'redirection' => 0,
         'headers' => ['Content-Type' => 'application/json; charset=utf-8'],
-        'body' => wp_json_encode(['msg_type' => 'text', 'content' => ['text' => $text]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        'body' => $body,
     ]));
     update_option('hithean_export_lark_last_delivery', ['state' => $error === '' ? 'sent' : 'failed', 'error' => $error, 'updated_at' => current_time('mysql')], false);
     return $error;
@@ -82,6 +87,7 @@ function hithean_export_lark_queue_alert(int $order_id, array $review): void
 {
     $settings = hithean_export_lark_settings();
     if (($review['overall'] ?? '') !== 'review' || empty($settings['enabled']) || hithean_export_lark_sanitize_webhook($settings['webhook_url']) === '') return;
+    hithean_export_lark_schedule_reminder($order_id);
     $hash = hithean_export_lark_alert_hash($order_id, $review);
     if (get_post_meta($order_id, 'warehouse_export_lark_alert_hash', true) === $hash) return;
     for ($attempt = 0; $attempt <= 2; $attempt++) {
@@ -107,8 +113,9 @@ add_action('hithean_export_lark_alert_async', function ($order_id, $hash, $attem
     try {
         // Recheck after acquiring the lock in case another worker just delivered it.
         if (get_post_meta($order_id, 'warehouse_export_lark_alert_hash', true) === $hash) return;
-        $text = '⚠️ Xuất kho #' . $order->get_order_number() . ' — AI: Không khớp. Cần kiểm tra thủ công.';
-        $error = hithean_export_lark_send($text);
+        $elements = hithean_export_lark_order_elements($order, $review);
+        $elements[] = ['tag' => 'div', 'text' => ['tag' => 'plain_text', 'content' => hithean_export_lark_reminder_notice()]];
+        $error = hithean_export_lark_send(hithean_export_lark_card('⚠️ Xuất kho — AI không khớp, cần kiểm tra', $elements));
         hithean_export_lark_status($order_id, 'warehouse_export_lark_alert_status', $error === '' ? 'sent' : 'failed', $error);
         if ($error === '') {
             thean_order_meta_set($order_id, 'warehouse_export_lark_alert_hash', $hash);
@@ -184,9 +191,10 @@ add_action('hithean_export_lark_batch_async', function ($batch_id, $attempt = 0)
             delete_option($queue_lock);
         }
         // Save a stable payload for bounded delivery retries.
-        if (!isset($batch['text'])) {
+        if (!isset($batch['text']) && !isset($batch['message'])) {
             $settings = hithean_export_lark_settings();
-            $lines = [];
+            $elements = [];
+            $shown = 0;
             $included = [];
             foreach ($batch['orders'] as $order_id) {
                 $order = wc_get_order($order_id);
@@ -198,15 +206,24 @@ add_action('hithean_export_lark_batch_async', function ($batch_id, $attempt = 0)
                     continue;
                 }
                 $included[] = $order_id;
-                $verdict = !is_array($review) ? 'Chưa có kết quả' : ($passed ? 'Đạt' : 'Không khớp');
-                if (count($lines) < 150) $lines[] = '#' . $order->get_order_number() . ' — AI: ' . $verdict;
+                $candidate = array_merge($elements, hithean_export_lark_order_elements($order, is_array($review) ? $review : []), [['tag' => 'hr']]);
+                if (strlen(wp_json_encode($candidate, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) < 17000) {
+                    $elements = $candidate;
+                    $shown++;
+                }
             }
             $batch['included'] = $included;
-            $batch['text'] = $included ? '📦 Xuất kho — lô xác nhận 30 phút: ' . count($included) . " đơn\n" . implode("\n", $lines) : '';
-            if (count($included) > count($lines)) $batch['text'] .= "\nVà " . (count($included) - count($lines)) . ' đơn khác (xem danh sách xuất kho).';
+            if (count($included) > $shown) {
+                $elements[] = ['tag' => 'div', 'text' => ['tag' => 'plain_text', 'content' => 'Còn ' . (count($included) - $shown) . ' đơn khác; xem đầy đủ kết quả AI và ảnh trong danh sách đơn hàng.']];
+                $elements[] = ['tag' => 'action', 'actions' => [hithean_export_lark_button('Mở danh sách đơn', thean_order_list_url())]];
+            }
+            $batch['message'] = $included ? hithean_export_lark_card('📦 Xuất kho — lô xác nhận 30 phút: ' . count($included) . ' đơn', $elements, 'blue') : '';
         }
-        $error = $batch['text'] !== '' ? hithean_export_lark_send($batch['text']) : '';
-        $state = $error !== '' ? 'failed' : ($batch['text'] === '' ? 'skipped' : 'sent');
+        $message = $batch['message'] ?? $batch['text'];
+        // Persist the exact payload before HTTP so a crashed/retried worker uses the same snapshot.
+        update_option($key, $batch, false);
+        $error = $message !== '' ? hithean_export_lark_send($message) : '';
+        $state = $error !== '' ? 'failed' : ($message === '' ? 'skipped' : 'sent');
         $batch['state'] = $state;
         $batch['error'] = $error;
         update_option($key, $batch, false);

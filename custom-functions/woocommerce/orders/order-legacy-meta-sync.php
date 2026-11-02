@@ -30,6 +30,7 @@ function thean_legacy_meta_keys(): array
         'warehouse_export_images', 'warehouse_export_uploaded_by', 'warehouse_export_ai_check', 'warehouse_export_ai_review_status',
         'warehouse_export_ship_codes_log', 'warehouse_export_lark_status', 'warehouse_export_lark_notified_at',
         'warehouse_export_lark_alert_hash', 'warehouse_export_lark_alert_status',
+        'warehouse_export_ai_resolution', 'warehouse_export_lark_reminder_status',
         'export_confirmed_by', 'export_by', 'order_export_by', 'export_date', 'order_export_date',
         'shipper', 'ship_code', 'order_shipper', 'order_ship_code',
         'paid_date', 'order_paid_date', 'bank_account_received', 'order_bank_account_received', '_order_payment_confirmation_audit',

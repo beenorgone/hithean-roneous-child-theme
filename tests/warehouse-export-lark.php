@@ -16,11 +16,26 @@ function esc_url_raw($url) { return trim($url); }
 function wp_json_encode($value, $flags = 0) { return json_encode($value, $flags); }
 function absint($value) { return abs((int) $value); }
 function current_time($format) { return '2026-11-02 14:00:00'; }
-function get_userdata($id) { return false; }
+function get_userdata($id) { return $GLOBALS['users'][$id] ?? false; }
+function get_user_by($field, $value) { foreach ($GLOBALS['users'] ?? [] as $user) if (($user->user_login ?? '') === $value) return $user; return false; }
+function wp_strip_all_tags($text) { return strip_tags($text); }
+function admin_url($path = '') { return 'https://example.test/wp-admin/' . $path; }
+function add_query_arg($args, $url) { return $url . '?' . http_build_query($args); }
+function thean_order_edit_url($id) { return admin_url('admin.php?page=wc-orders&action=edit&id=' . $id); }
+function thean_order_list_url() { return admin_url('admin.php?page=wc-orders'); }
+function is_user_logged_in() { return $GLOBALS['logged_in'] ?? true; }
+function current_user_can($capability) { return $GLOBALS['can_manage'] ?? true; }
+function wp_verify_nonce($nonce, $action) { return $nonce === 'valid:' . $action; }
+function get_current_user_id() { return 7; }
+function wp_get_current_user() { return get_userdata(7); }
 function wp_generate_uuid4() { static $id = 0; return 'batch-' . ++$id; }
 function wp_next_scheduled($hook, $args) { foreach ($GLOBALS['events'] as $event) if ($event['hook'] === $hook && $event['args'] === $args) return $event['at']; return false; }
 function wp_schedule_single_event($at, $hook, $args) { if ($GLOBALS['queue_fail']) return false; $GLOBALS['events'][] = compact('at', 'hook', 'args'); return true; }
-class WP_Error {}
+function wp_clear_scheduled_hook($hook, $args) { $GLOBALS['events'] = array_values(array_filter($GLOBALS['events'], fn($e) => $e['hook'] !== $hook || $e['args'] !== $args)); }
+class WP_Error {
+    public function __construct(public string $code = '', private string $message = '') {}
+    public function get_error_message() { return $this->message; }
+}
 function is_wp_error($response) { return $response instanceof WP_Error; }
 function wp_remote_retrieve_response_code($response) { return $response['http']; }
 function wp_remote_retrieve_body($response) { return $response['body']; }
@@ -33,6 +48,7 @@ class WC_Order {
     public function __construct(private int $id) {}
     public function get_id() { return $this->id; }
     public function get_order_number() { return $this->id . '.1'; }
+    public function add_order_note($text) { $GLOBALS['notes'][] = $text; }
 }
 function wc_get_order($id) { return $id > 0 ? new WC_Order($id) : false; }
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/warehouse-export-workflow.php';
@@ -42,18 +58,25 @@ function check($condition, $message) { global $checks; ++$checks; if (!$conditio
 function reset_state($only_alerts = '0') {
     $GLOBALS['options'] = ['hithean_export_lark_settings' => ['enabled' => '1', 'only_alerts' => $only_alerts, 'webhook_url' => 'https://open.larksuite.com/open-apis/bot/v2/hook/test-token']];
     $GLOBALS['meta'] = $GLOBALS['events'] = $GLOBALS['requests'] = [];
+    $GLOBALS['users'] = [7 => (object) ['ID' => 7, 'user_login' => 'staff', 'display_name' => 'Nhân viên xử lý']];
+    $GLOBALS['notes'] = [];
+    $GLOBALS['logged_in'] = $GLOBALS['can_manage'] = true;
     $GLOBALS['queue_fail'] = false;
     unset($GLOBALS['on_send']);
     $GLOBALS['response'] = ['http' => 200, 'body' => '{"code":0,"StatusCode":0}'];
 }
-function run_hook($hook, ...$args) { foreach ($GLOBALS['hooks'][$hook] as $callback) $callback(...$args); }
+function run_hook($hook, ...$args) {
+    wp_clear_scheduled_hook($hook, $args);
+    foreach ($GLOBALS['hooks'][$hook] as $callback) $callback(...$args);
+}
 function review($id, $verdict = 'review') {
-    $r = ['overall' => $verdict, 'order_match' => $verdict === 'pass' ? 'match' : 'mismatch', 'items_match' => 'match'];
+    if (!isset($GLOBALS['meta'][$id]['warehouse_export_images'])) $GLOBALS['meta'][$id]['warehouse_export_images'] = 'https://example.test/order-' . $id . '.jpg';
+    $r = ['overall' => $verdict, 'order_match' => $verdict === 'pass' ? 'match' : 'mismatch', 'items_match' => 'match', 'images_hash' => hithean_export_lark_images_hash(hithean_export_lark_current_images($id))];
     $GLOBALS['meta'][$id]['warehouse_export_ai_check'] = $r;
     return $r;
 }
 function close_batch($id) { $key = 'hithean_export_lark_batch_' . $id; $GLOBALS['options'][$key]['due_at'] = time() - 1; }
-function last_text() { $r = end($GLOBALS['requests']); return json_decode($r['args']['body'], true)['content']['text']; }
+function last_text() { $r = end($GLOBALS['requests']); return $r['args']['body']; }
 
 reset_state();
 foreach (['open.larksuite.com', 'open.feishu.cn', 'open.larkoffice.com'] as $host) {
@@ -71,7 +94,8 @@ check(hithean_export_lark_response_error(new WP_Error) !== '', 'transport error'
 // Mismatch before confirmation sends immediately, without marking confirmation sent.
 $r = review(1);
 run_hook('hithean_export_ai_check_completed', wc_get_order(1), $r);
-check(count($GLOBALS['events']) === 1 && $GLOBALS['events'][0]['at'] <= time(), 'mismatch queues immediately before confirmation');
+check(wp_next_scheduled('hithean_export_lark_alert_async', [1, hithean_export_lark_alert_hash(1, $r), 0]) <= time(), 'mismatch queues immediately before confirmation');
+check(wp_next_scheduled('hithean_export_lark_remind_async', [1, 0]) >= time() + 1799, 'mismatch also schedules reminder');
 $hash = hithean_export_lark_alert_hash(1, $r);
 run_hook('hithean_export_lark_alert_async', 1, $hash, 0);
 check(count($GLOBALS['requests']) === 1 && strpos(last_text(), 'Không khớp') !== false, 'immediate mismatch delivered');
@@ -133,7 +157,7 @@ run_hook('hithean_export_lark_batch_async', $id, 1);
 check(last_text() === $text, 'retries preserve batch payload');
 run_hook('hithean_export_lark_batch_async', $id, 2);
 check(!get_option('hithean_export_lark_batch_' . $id), 'terminal failure cleans batch option');
-check(count(array_filter($GLOBALS['events'], fn($e) => $e['hook'] === 'hithean_export_lark_batch_async')) === 3, 'initial delivery plus two retry events only');
+check(count($GLOBALS['requests']) === 3 && !array_filter($GLOBALS['events'], fn($e) => $e['hook'] === 'hithean_export_lark_batch_async'), 'initial delivery plus two retries only');
 
 reset_state(); $GLOBALS['options']['hithean_lark_batch_queue_lock'] = time() + 60;
 hithean_export_lark_queue_notification(1);
@@ -159,12 +183,111 @@ run_hook('hithean_export_lark_alert_async', 1, $hash, 0);
 check(!get_post_meta(1, 'warehouse_export_lark_alert_hash', true), 'failed immediate alert can retry');
 check(get_post_meta(1, 'warehouse_export_lark_alert_status', true)['state'] === 'failed', 'immediate alert failure retained');
 hithean_export_lark_queue_alert(1, $r);
-check(count($GLOBALS['events']) === 1, 'repeated AI completion does not bypass pending alert retry');
+check(count(array_filter($GLOBALS['events'], fn($e) => $e['hook'] === 'hithean_export_lark_alert_async')) === 1, 'repeated AI completion does not bypass pending alert retry');
 $GLOBALS['response'] = ['http' => 200, 'body' => '{"code":0}'];
 run_hook('hithean_export_lark_alert_async', 1, $hash, 1);
 check(get_post_meta(1, 'warehouse_export_lark_alert_hash', true) === $hash, 'successful alert retry marks only alert sent');
 reset_state(); $GLOBALS['options']['hithean_export_lark_settings']['enabled'] = '0';
 hithean_export_lark_queue_alert(1, review(1)); hithean_export_lark_queue_notification(1);
 check(!$GLOBALS['events'] && !$GLOBALS['requests'], 'master toggle disables both flows');
+
+// Structured cards include findings, staff, safe photo links and a protected URL action.
+reset_state();
+$r = review(4);
+$r += ['confidence' => 'high', 'reason' => '<script>alert(1)</script>Thiếu một sản phẩm', 'visible_order_reference' => '4.1',
+    'missing_or_suspected_missing' => ['Bột mì 1kg'], 'unexpected_or_suspected_extra' => ['Men'], 'shipping_codes' => ['SHIP123']];
+$GLOBALS['meta'][4]['warehouse_export_ai_check'] = $r;
+$GLOBALS['meta'][4]['order_export_by'] = [['staff', 'staff']];
+$GLOBALS['meta'][4]['warehouse_export_uploaded_by'] = [7];
+$GLOBALS['meta'][4]['export_confirmed_by'] = 7;
+$GLOBALS['meta'][4]['warehouse_export_images'] = "https://example.test/a.jpg\njavascript:alert(1)\nhttps://example.test/a.jpg\nhttps://example.test/b.jpg";
+$hash = hithean_export_lark_alert_hash(4, $r);
+run_hook('hithean_export_lark_alert_async', 4, $hash, 0);
+$payload = json_decode(last_text(), true);
+check($payload['msg_type'] === 'interactive', 'alerts use structured Lark cards');
+check(strpos(last_text(), 'Thiếu một sản phẩm') !== false && strpos(last_text(), 'Bột mì 1kg') !== false && strpos(last_text(), 'SHIP123') !== false, 'card includes detailed AI findings');
+check(strpos(last_text(), '<script>') === false, 'AI markup is stripped');
+$elements = $payload['card']['elements'];
+$buttons = [];
+foreach ($elements as $el) foreach ($el['actions'] ?? [] as $button) $buttons[] = $button;
+check(count($buttons) === 4, 'order, resolve and two unique safe photo links');
+check($buttons[0]['url'] === thean_order_edit_url(4), 'order link uses HPOS helper');
+check(strpos($buttons[1]['url'], 'hithean_export_lark_review') !== false && strpos($buttons[1]['url'], $hash) !== false, 'resolve URL is bound to evidence');
+check(strpos($elements[0]['text']['content'], 'Người xử lý / xuất kho: Nhân viên xử lý') !== false, 'staff display name included');
+check(strpos(last_text(), 'Tự động nhắc lại sau 30 phút') !== false, 'initial alert explicitly promises automatic reminder');
+check($elements[0]['text']['tag'] === 'plain_text', 'AI cannot inject card markup or mentions');
+
+// Acknowledgment requires login, capability, nonce and current evidence; double clicks are safe.
+$nonce = 'valid:hithean_export_lark_resolve_4_' . $hash;
+$GLOBALS['logged_in'] = false;
+check(is_wp_error(hithean_export_lark_acknowledge(4, $hash, $nonce)), 'anonymous acknowledgment denied');
+$GLOBALS['logged_in'] = true; $GLOBALS['can_manage'] = false;
+check(is_wp_error(hithean_export_lark_acknowledge(4, $hash, $nonce)), 'nonstaff acknowledgment denied');
+$GLOBALS['can_manage'] = true;
+check(is_wp_error(hithean_export_lark_acknowledge(4, $hash, 'invalid')), 'CSRF acknowledgment denied');
+check(!get_post_meta(4, 'warehouse_export_ai_resolution', true), 'unauthorized requests never save a resolution');
+hithean_export_lark_schedule_reminder(4);
+$resolved = hithean_export_lark_acknowledge(4, $hash, $nonce);
+check(!is_wp_error($resolved) && $resolved['resolved_by'] === 7, 'acknowledgment records actor and timestamp');
+check(get_post_meta(4, 'warehouse_export_ai_check', true)['overall'] === 'review' && get_post_meta(4, 'export_confirmed_by', true) === 7, 'acknowledgment preserves AI and shipping state');
+check(wp_next_scheduled('hithean_export_lark_remind_async', [4, 0]) !== false, 'acknowledgment does not cancel reminders');
+$note_count = count($GLOBALS['notes']);
+hithean_export_lark_acknowledge(4, $hash, $nonce);
+check(count($GLOBALS['notes']) === $note_count, 'double acknowledgment does not duplicate audit notes');
+$GLOBALS['meta'][4]['warehouse_export_images'] .= "\nhttps://example.test/new.jpg";
+check(is_wp_error(hithean_export_lark_acknowledge(4, $hash, $nonce)), 'old action cannot acknowledge new evidence');
+check(get_post_meta(4, 'warehouse_export_ai_resolution', true)['hash'] === $hash, 'stale action preserves existing resolution');
+
+// Reminder cadence is fixed; it stops only for a passing review of the current evidence.
+reset_state(); $r = review(1);
+hithean_export_lark_schedule_reminder(1);
+$due = wp_next_scheduled('hithean_export_lark_remind_async', [1, 0]);
+hithean_export_lark_schedule_reminder(1);
+check(count($GLOBALS['events']) === 1 && abs($due - time() - 1800) <= 1, 'reminder schedules once at 30 minutes');
+run_hook('hithean_export_lark_remind_async', 1, 0);
+check(count($GLOBALS['requests']) === 1 && strpos(last_text(), 'Tự động nhắc lại sau 30 phút') !== false, 'unresolved mismatch triggers a reminder with the cadence');
+check(wp_next_scheduled('hithean_export_lark_remind_async', [1, 0]) >= time() + 1799, 'each reminder schedules the next 30 minute reminder');
+$GLOBALS['meta'][1]['warehouse_export_ai_resolution'] = ['hash' => hithean_export_lark_alert_hash(1, $r), 'resolved_by' => 7, 'resolved_at' => current_time('mysql')];
+run_hook('hithean_export_lark_remind_async', 1, 0);
+check(count($GLOBALS['requests']) === 2 && strpos(last_text(), 'Đã xử lý cảnh báo') !== false, 'acknowledged mismatch still reminds and shows actor');
+review(1, 'pass');
+check(hithean_export_lark_current_pass(1), 'passing review binds to current images');
+run_hook('hithean_export_lark_remind_async', 1, 0);
+check(count($GLOBALS['requests']) === 2 && !$GLOBALS['events'], 'current matching images stop reminder without sending');
+check(get_post_meta(1, 'warehouse_export_lark_reminder_status', true)['state'] === 'completed', 'completed reminder state is saved');
+$GLOBALS['meta'][1]['warehouse_export_images'] = 'https://example.test/changed.jpg';
+check(!hithean_export_lark_current_pass(1), 'old pass never proves newly uploaded images match');
+hithean_export_lark_schedule_reminder(1); run_hook('hithean_export_lark_remind_async', 1, 0);
+check(count($GLOBALS['requests']) === 3 && strpos(last_text(), 'Chưa có kết quả khớp ảnh hiện tại') !== false, 'stale pass still reminds with truthful status');
+review(1, 'pass'); $GLOBALS['meta'][1]['warehouse_export_ai_review_status'] = ['state' => 'queued'];
+check(!hithean_export_lark_current_pass(1), 'queued review cannot stop reminders');
+unset($GLOBALS['meta'][1]['warehouse_export_ai_review_status']);
+$r = get_post_meta(1, 'warehouse_export_ai_check', true);
+run_hook('hithean_export_ai_check_completed', wc_get_order(1), $r);
+check(!wp_next_scheduled('hithean_export_lark_remind_async', [1, 0]), 'matching completion cancels future reminders immediately');
+check(hithean_export_lark_images_hash(['b', 'a', 'a']) === hithean_export_lark_images_hash(['a', 'b']), 'image identity normalizes duplicate URLs and ordering');
+
+reset_state(); review(1);
+$GLOBALS['response'] = ['http' => 503, 'body' => '{}'];
+run_hook('hithean_export_lark_remind_async', 1, 0);
+check(wp_next_scheduled('hithean_export_lark_remind_async', [1, 1]) !== false, 'failed reminder retries in background');
+run_hook('hithean_export_lark_remind_async', 1, 1);
+run_hook('hithean_export_lark_remind_async', 1, 2);
+check(count($GLOBALS['requests']) === 3 && wp_next_scheduled('hithean_export_lark_remind_async', [1, 0]) >= time() + 1799, 'reminder retries stop at two then resume the 30 minute cadence');
+$GLOBALS['options']['hithean_export_lark_settings']['enabled'] = '0';
+run_hook('hithean_export_lark_remind_async', 1, 0);
+check(count($GLOBALS['requests']) === 3 && !$GLOBALS['events'], 'master toggle stops reminders');
+
+// Large batches remain one payload within Lark limits and offer access to remaining orders.
+reset_state();
+for ($id = 1; $id <= 30; $id++) {
+    $r = review($id); $r['reason'] = str_repeat('Kiểm tra sản phẩm. ', 60);
+    $GLOBALS['meta'][$id]['warehouse_export_ai_check'] = $r;
+    hithean_export_lark_queue_notification($id);
+}
+$id = get_option('hithean_export_lark_active_batch'); close_batch($id);
+run_hook('hithean_export_lark_batch_async', $id, 0);
+check(count($GLOBALS['requests']) === 1 && strlen(last_text()) <= 19000, 'large batch remains one bounded message');
+check(strpos(last_text(), 'Mở danh sách đơn') !== false, 'oversize details link to full order list');
 
 echo "OK: $checks checks\n";

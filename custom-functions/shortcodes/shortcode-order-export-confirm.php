@@ -222,7 +222,7 @@ function hithean_export_ai_documents(int $order_id, array $urls)
         $path = get_attached_file($attachment_id);
         $mime = get_post_mime_type($attachment_id);
         if (!$path || !is_readable($path) || strpos((string) $mime, 'image/') !== 0 || filesize($path) > 6 * MB_IN_BYTES) continue;
-        $documents[] = ['path' => $path, 'mime_type' => $mime, 'title' => basename($path)];
+        $documents[] = ['path' => $path, 'mime_type' => $mime, 'title' => basename($path), 'source_url' => wp_get_attachment_url($attachment_id)];
     }
     return $documents ?: new WP_Error('hithean_export_ai_no_images', 'Không tìm được ảnh xuất kho hợp lệ để AI kiểm tra.');
 }
@@ -289,6 +289,8 @@ function hithean_export_ai_check_order(WC_Order $order, int $requested_by = 0)
         $result['unexpected_or_suspected_extra'] = hithean_export_ai_clean_list($data['unexpected_or_suspected_extra'] ?? []);
         $result['shipping_codes'] = hithean_export_ship_codes_sanitize($data['shipping_codes'] ?? [], $order);
         $result['checked_at'] = current_time('mysql');
+        // Bind the verdict to the images actually sent to the provider, including fallback attachments.
+        $result['images_hash'] = hithean_export_lark_images_hash(array_column($documents, 'source_url'));
         $result['checked_by'] = $requested_by ?: get_current_user_id();
         $result['provider'] = sanitize_key((string) $cfg['provider']);
         thean_order_meta_set((int) $order_id, 'warehouse_export_ai_check', $result);
@@ -341,6 +343,15 @@ function hithean_render_export_ai_check(int $order_id): string
         $html .= '<small style="display:block;margin-top:7px;color:#64748b;">Lần kiểm tra: ' . esc_html($result['checked_at'] ?? '') . '</small></div>';
     }
     $html .= hithean_render_export_ship_codes_notice($order_id);
+    $resolution = get_post_meta($order_id, 'warehouse_export_ai_resolution', true);
+    if ($result && is_array($resolution) && ($resolution['hash'] ?? '') === hithean_export_lark_alert_hash($order_id, $result)) {
+        $user = get_userdata(absint($resolution['resolved_by'] ?? 0));
+        $html .= '<p role="status" style="color:#166534;">✓ Đã xử lý cảnh báo: ' . esc_html(($user ? $user->display_name : 'Nhân viên') . ' — ' . ($resolution['resolved_at'] ?? '')) . '</p>';
+    }
+    $reminder = get_post_meta($order_id, 'warehouse_export_lark_reminder_status', true);
+    if (is_array($reminder) && ($reminder['state'] ?? '') === 'queued' && !hithean_export_lark_current_pass($order_id)) {
+        $html .= '<p style="color:#92400e;">Lark sẽ nhắc lại lúc ' . esc_html(wp_date('H:i d/m/Y', (int) ($reminder['due_at'] ?? 0))) . ' nếu chưa có ảnh được AI kiểm tra khớp.</p>';
+    }
     return $html . '</section>';
 }
 
