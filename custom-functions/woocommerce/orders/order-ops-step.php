@@ -30,8 +30,9 @@ if (!defined('ABSPATH')) exit;
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '6'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK; 4: cờ chứng từ cho đơn đang giao;
-                                    // 5: bắt save_meta_data trên HPOS; 6: lưu bước thật cả đơn nội bộ / đơn cũ + đọc đơn bỏ qua cache)
+const THEAN_OPS_STEP_VERSION = '7'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK; 4: cờ chứng từ cho đơn đang giao;
+                                    // 5: bắt save_meta_data trên HPOS; 6: lưu bước thật cả đơn nội bộ / đơn cũ + đọc đơn bỏ qua cache;
+                                    // 7: tính lại cả đơn đóng còn hoàn hàng, kể cả bước đã lưu sai / chưa tính)
 const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu chứng từ XK" (đơn đang giao: kèm tab Đang giao)
 const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu chứng từ XK: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
@@ -453,7 +454,7 @@ function thean_ops_step_tables(): array
 }
 
 /**
- * FROM … WHERE chung: đơn mở thuộc luồng vận hành + đơn đã giao / xong trong THEAN_OPS_PROOF_DAYS ngày (soát chứng từ XK);
+ * FROM … WHERE chung: đơn mở + đơn đóng còn hoàn hàng + đơn đã giao / xong trong THEAN_OPS_PROOF_DAYS ngày (soát chứng từ XK);
  * bỏ đơn cũ (trước mốc khóa đơn cũ).
  */
 function thean_ops_step_open_sql(array $t): string
@@ -461,9 +462,15 @@ function thean_ops_step_open_sql(array $t): string
     $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_excluded_statuses())) . "'";
     $proof    = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_proof_statuses())) . "'";
     $since    = gmdate('Y-m-d H:i:s', time() - THEAN_OPS_PROOF_DAYS * DAY_IN_SECONDS);
+    // Đọc yêu cầu hoàn gốc: bước lưu sẵn có thể thiếu / sai nên không đủ để tìm đơn cần backfill.
+    // Giữ cả bước return đã lưu để cron dọn bước cũ khi yêu cầu hoàn vừa kết thúc / bị xóa ngoài hook.
+    $returns  = "EXISTS (SELECT 1 FROM {$t['meta']} r WHERE r.{$t['fk']} = o.{$t['id']}
+                    AND ((r.meta_key = 'return_status' AND TRIM(r.meta_value) <> ''
+                          AND TRIM(r.meta_value) <> 'Hủy yêu cầu' AND TRIM(r.meta_value) NOT LIKE 'Đã nhận%')
+                         OR (r.meta_key = '" . THEAN_OPS_STEP_META . "' AND r.meta_value = 'return')))";
     return "FROM {$t['orders']} o WHERE o.{$t['type']} = 'shop_order'
              AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
-             AND (o.{$t['status']} NOT IN ({$excluded}) OR (o.{$t['status']} IN ({$proof}) AND o.{$t['date']} >= '{$since}'))
+             AND (o.{$t['status']} NOT IN ({$excluded}) OR {$returns} OR (o.{$t['status']} IN ({$proof}) AND o.{$t['date']} >= '{$since}'))
              AND " . thean_ops_age_sql($t);
 }
 
