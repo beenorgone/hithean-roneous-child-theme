@@ -5,6 +5,27 @@ then remembered tab, then first nonempty tab). It does not preload other tabs
 or automatically fetch another page. Load more requests up to 20 further orders
 using the number of rows already shown as the offset.
 
+## Date ranges
+
+The shared **Ngày tạo** selector applies to both search and the board. It defaults
+to **Mặc định: 30 / 90 ngày**: 30 rolling days from order creation (UTC), except
+return/preorder steps use 90 days. General search also recognizes the pre-order
+status. Select 7, 30, 90 days, or all time to override this default; explicit
+selections apply equally to every tab. The proof tab retains its existing
+60-day business limit, and all board ranges retain the existing age lock and
+operational exclusions. All-time search is not subject to the board age lock.
+
+In default mode, exact ID/display-number candidates can match older orders;
+other free-text matches remain date-limited. Explicit ranges apply to IDs too.
+The selected range is included in requests and server cache keys. Changing it
+clears browser caches, cancels obsolete requests, and restarts the visible board
+and search from page one. The URL parameter `thean_range` preserves explicit
+selections for shared links; a fresh URL without it uses the default.
+
+Date restrictions are applied to each search source before its candidate LIMIT.
+Search result chips and the board status show the effective range. Empty search
+results offer **Tìm trong toàn bộ thời gian** to expand the shared range.
+
 ## Data and cache behavior
 
 - Board counts and first-page IDs use a 10-second transient. Empty results are
@@ -42,6 +63,7 @@ the worker finishes to see newly classified orders.
 ```sh
 php tests/order-universal-search.php
 node tests/order-universal-search-board.cjs
+python3 tests/order-universal-search-ranges.py
 php tests/order-hpos-compat.php
 php -l custom-functions/woocommerce/orders/order-universal-search.php
 php -l custom-functions/woocommerce/orders/order-ops-step.php
@@ -49,7 +71,7 @@ node --check custom-functions/woocommerce/orders/assets/order-universal-search.j
 git diff --check
 ```
 
-These are helper/SQL and controlled network/DOM tests, not a running WordPress,
+These are helper/SQL, SQLite date-boundary fixtures, and controlled network/DOM tests, not a running WordPress,
 real-browser, database query-plan, cron execution, or server-latency benchmark.
 
 ## Live acceptance measurements
@@ -84,7 +106,9 @@ tab intentionally does not produce the first-orders-visible measure.
    Refresh, and concurrent staff sessions. Do not use Clear cache to simulate
    a cold cache: it also performs a workflow rebuild. Use an isolated staging
    cache or wait for expiry without changing orders.
-5. Verify an order moved by another session appears in the correct tab after
+5. Change ranges while requests are pending, check shared URLs, and verify
+   30/90-day boundaries for ordinary, return/preorder, and proof tabs.
+6. Verify an order moved by another session appears in the correct tab after
    Refresh; check proof-overlap orders, internal/old-order exclusions, stale-step
    repair, empty tabs, and roles with different action permissions. Check that
    existing search commands and bulk actions still behave as before.

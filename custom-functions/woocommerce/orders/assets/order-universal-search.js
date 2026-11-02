@@ -5,6 +5,13 @@
     if (!document.getElementById('thean-ous-bar')) return;
     var bar = document.getElementById('thean-ous-bar');
     var input = bar.elements.q;
+    var rangeSelect = bar.elements.range;
+    var currentRange = 'auto';
+    try {
+        var linkedRange = new URLSearchParams(location.search).get('thean_range');
+        if (['auto', '7', '30', '90', 'all'].indexOf(linkedRange) !== -1) currentRange = linkedRange;
+    } catch (e) {}
+    if (rangeSelect) rangeSelect.value = currentRange;
     var suggest = document.getElementById('thean-ous-suggest');
     var results = document.getElementById('thean-ous-results');
     var preview = document.getElementById('thean-ous-preview');
@@ -280,22 +287,36 @@
         chips.replaceChildren();
         (data.summary || []).forEach(function (txt) { var s = document.createElement('span'); s.textContent = txt; chips.appendChild(s); });
         status.textContent = '— ' + (data.capped ? cfg.cap + '+' : data.total) + ' đơn' + (data.total ? ', đang hiện ' + data.shown : '');
-        if (!data.total) { notice(body(results), 'Không tìm thấy đơn nào khớp.'); return; }
+        if (!data.total) {
+            notice(body(results), 'Không tìm thấy đơn nào khớp trong khoảng đang chọn.');
+            if (currentRange !== 'all') {
+                var expand = document.createElement('button');
+                expand.type = 'button';
+                expand.className = 'thean-ous-btn thean-ous-btn--primary';
+                expand.textContent = 'Tìm trong toàn bộ thời gian';
+                expand.dataset.theanOusAllDates = '1';
+                body(results).appendChild(expand);
+            }
+            return;
+        }
         fillTable(results, data, page);
     }
     function search(q, page) {
         var key = q + '|' + page, hit = cache.get(key);
         if (page === 1 && q === state.q && state.page >= 1 && !results.hidden) return;
         if (searchCtl) searchCtl.abort();
+        var ctl = new AbortController();
+        searchCtl = ctl;
         state.q = q;
+        state.loading = false;
         setOpen(results, true);
         if (hit && Date.now() - hit.at < 60000) { state.page = page; render(hit.data, page); return; }
-        searchCtl = new AbortController();
         state.loading = true;
         var moreBtn = body(results).querySelector('[data-thean-ous-more]');
         if (page === 1) { results.querySelector('.thean-ous-modal__status').textContent = '— đang tìm…'; notice(body(results), 'Đang tìm “' + q + '”…'); }
         else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
-        post('thean_order_usearch', { q: q, page: page }, searchCtl).then(function (res) {
+        post('thean_order_usearch', { q: q, page: page, range: currentRange }, ctl).then(function (res) {
+            if (searchCtl !== ctl) return;
             if (!res.success) {
                 if (res.data && res.data.retry_after) blockedUntil = Date.now() + res.data.retry_after * 1000;
                 throw new Error(message(res, 'Không tìm được.'));
@@ -304,12 +325,12 @@
             state.page = page;
             render(res.data, page);
         }).catch(function (err) {
-            if (err.name === 'AbortError') return;
+            if (searchCtl !== ctl || err.name === 'AbortError') return;
             state.page = 0;
             results.querySelector('.thean-ous-modal__status').textContent = '';
             results.querySelector('.thean-ous-chips').replaceChildren();
             notice(body(results), err.message || 'Lỗi kết nối.');
-        }).finally(function () { state.loading = false; if (moreBtn) moreBtn.disabled = false; });
+        }).finally(function () { if (searchCtl !== ctl) return; state.loading = false; if (moreBtn) moreBtn.disabled = false; });
     }
 
     /* ---------- Chọn nhiều đơn + thao tác hàng loạt (kết quả tìm + board) ---------- */
@@ -514,7 +535,7 @@
         rememberTab(data.tab);
         syncUrlTab(data.tab);
         renderTabs(data.tabs, data.tab);
-        board.querySelector('.thean-ous-modal__status').textContent = '— cập nhật ' + data.at + (data.pending ? ' · đang chờ kiểm tra phân bước ở nền' : '');
+        board.querySelector('.thean-ous-modal__status').textContent = '— ' + (data.range_label || '') + ' · cập nhật ' + data.at + (data.pending ? ' · đang chờ kiểm tra phân bước ở nền' : '');
         if (!data.total) { notice(body(board), data.pending ? 'Chưa có đơn ở bước này. Hệ thống đang chờ kiểm tra phân bước ở nền; bấm Làm mới sau ít giây.' : 'Không có đơn nào ở bước này 🎉'); return; }
         fillTable(board, data, page);
         // Lượt đầu kết thúc tại đây; chỉ đọc thêm khi người dùng bấm "Xem thêm".
@@ -548,7 +569,7 @@
         var moreBtn = body(board).querySelector('[data-thean-ous-more]');
         if (page === 1) notice(body(board), 'Đang tải đơn cần xử lý…');
         else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
-        var data = { tab: tab, offset: page === 1 ? 0 : boardState.shown, limit: page === 1 ? 10 : (limit || BOARD_MORE) };
+        var data = { tab: tab, range: currentRange, offset: page === 1 ? 0 : boardState.shown, limit: page === 1 ? 10 : (limit || BOARD_MORE) };
         if (refresh) data.refresh = 1;
         post('thean_order_usearch_board', data, ctl).then(function (res) {
             if (boardCtl !== ctl) return;
@@ -577,6 +598,30 @@
             if (moreBtn) { moreBtn.disabled = false; moreBtn.textContent = 'Xem thêm'; }
         });
     }
+
+    function changeRange() {
+        currentRange = rangeSelect.value;
+        clearTimeout(timer);
+        if (searchCtl) searchCtl.abort();
+        searchCtl = null;
+        state.loading = false;
+        state.page = 0;
+        cache.clear();
+        boardCache.clear();
+        try {
+            var url = new URL(location.href);
+            if (currentRange === 'auto') url.searchParams.delete('thean_range');
+            else url.searchParams.set('thean_range', currentRange);
+            history.replaceState(history.state, '', url.toString());
+        } catch (e) {}
+        if (!board.hidden) loadBoard(boardState.tab || savedTab(), 1, false);
+        var q = input.value.trim();
+        if (!results.hidden) {
+            if (ready(q)) search(q, 1);
+            else setOpen(results, false);
+        }
+    }
+    if (rangeSelect) rangeSelect.addEventListener('change', changeRange);
 
     function openPreview(orderId) {
         if (previewCtl) previewCtl.abort();
@@ -685,6 +730,7 @@
         if (row && e.target === row && e.key === 'Enter') openPreview(row.getAttribute('data-order-id'));
     }
     results.addEventListener('click', function (e) {
+        if (e.target.closest('[data-thean-ous-all-dates]')) { rangeSelect.value = 'all'; changeRange(); return; }
         if (e.target.closest('[data-thean-ous-more]')) { if (!state.loading) search(state.q, state.page + 1); return; }
         if (onBulkClick(results, e)) return;
         tableClick(e);

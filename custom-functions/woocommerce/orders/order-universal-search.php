@@ -302,24 +302,75 @@ function thean_ous_like(string $term): string
     return '%' . $wpdb->esc_like($term) . '%';
 }
 
-function thean_ous_ids_product(array $tokens): array
+/** Khoảng theo ngày tạo đơn (UTC), dùng chung UI, SQL và cache. */
+function thean_ous_range(string $range): string
+{
+    return in_array($range, ['auto', '7', '30', '90', 'all'], true) ? $range : 'auto';
+}
+
+function thean_ous_range_label(string $range, string $tab = ''): string
+{
+    $range = thean_ous_range($range);
+    if ($range === 'all') {
+        return $tab === '' ? 'Toàn bộ thời gian' : 'Toàn bộ trong phạm vi xử lý';
+    }
+    if ($range === 'auto' && $tab === '') {
+        return '30 ngày; Hoàn hàng / Đặt trước: 90 ngày';
+    }
+    $days = $range === 'auto' ? (in_array($tab, ['return', 'preorder'], true) ? 90 : 30) : (int) $range;
+    if ($tab === 'proof') {
+        $days = min($days, THEAN_OPS_PROOF_DAYS);
+    }
+    return $days . ' ngày gần nhất';
+}
+
+/** $alias / $step_column chỉ do code nội bộ truyền, không nhận tên cột từ request. */
+function thean_ous_range_sql(string $range, string $alias = 'o', ?string $step_column = null, ?int $now = null): string
+{
+    $range = thean_ous_range($range);
+    if ($range === 'all') {
+        return '1=1';
+    }
+    $t = thean_ops_step_tables();
+    $date = $alias . '.' . $t['date'];
+    $now = $now ?? time();
+    $since = static fn(int $days) => "'" . gmdate('Y-m-d H:i:s', $now - $days * DAY_IN_SECONDS) . "'";
+    if ($range !== 'auto') {
+        return $date . ' >= ' . $since((int) $range);
+    }
+    $special = $step_column !== null ? $step_column . " IN ('return','preorder')"
+        : "({$alias}.{$t['status']} = 'wc-pre-order' OR EXISTS (SELECT 1 FROM {$t['meta']} drs WHERE drs.{$t['fk']} = {$alias}.{$t['id']} AND drs.meta_key = '" . THEAN_OPS_STEP_META . "' AND drs.meta_value IN ('return','preorder')))";
+    return "({$date} >= " . $since(30) . " OR ({$date} >= " . $since(90) . " AND {$special}))";
+}
+
+/** Áp dụng giới hạn ngay ở từng nguồn, trước LIMIT ứng viên. */
+function thean_ous_source_range_sql(string $column, string $range): string
+{
+    if (thean_ous_range($range) === 'all') {
+        return '';
+    }
+    $t = thean_ops_step_tables();
+    return " AND {$column} IN (SELECT dr.{$t['id']} FROM {$t['orders']} dr WHERE dr.{$t['type']} = 'shop_order' AND " . thean_ous_range_sql($range, 'dr') . ')';
+}
+
+function thean_ous_ids_product(array $tokens, string $range = 'all'): array
 {
     global $wpdb;
     return $wpdb->get_col(
         "SELECT DISTINCT order_id FROM {$wpdb->prefix}woocommerce_order_items
-         WHERE order_item_type = 'line_item' AND " . thean_ous_tokens_like('order_item_name', $tokens) . "
+         WHERE order_item_type = 'line_item' AND " . thean_ous_tokens_like('order_item_name', $tokens) . thean_ous_source_range_sql('order_id', $range) . "
          ORDER BY order_id DESC LIMIT " . THEAN_OUS_SOURCE
     );
 }
 
-function thean_ous_ids_customer(array $tokens, string $like): array
+function thean_ous_ids_customer(array $tokens, string $like, string $range = 'all'): array
 {
     global $wpdb;
     if (thean_ous_hpos_enabled()) {
         $concat = "CONCAT_WS(' ', first_name, last_name, company, address_1, address_2, city, state, postcode, email, phone)";
         return $wpdb->get_col(
             "SELECT DISTINCT order_id FROM {$wpdb->prefix}wc_order_addresses
-             WHERE " . thean_ous_tokens_like($concat, $tokens) . " ORDER BY order_id DESC LIMIT " . THEAN_OUS_SOURCE
+             WHERE " . thean_ous_tokens_like($concat, $tokens) . thean_ous_source_range_sql('order_id', $range) . " ORDER BY order_id DESC LIMIT " . THEAN_OUS_SOURCE
         );
     }
 
@@ -327,66 +378,66 @@ function thean_ous_ids_customer(array $tokens, string $like): array
     $ids = $wpdb->get_col(
         "SELECT DISTINCT post_id FROM {$wpdb->postmeta}
          WHERE meta_key IN ('_billing_address_index', '_shipping_address_index')
-           AND " . thean_ous_tokens_like('meta_value', $tokens) . "
+           AND " . thean_ous_tokens_like('meta_value', $tokens) . thean_ous_source_range_sql('post_id', $range) . "
          ORDER BY post_id DESC LIMIT " . THEAN_OUS_SOURCE
     );
     // Đơn cũ thiếu address_index: tìm thêm theo từng trường tên / địa chỉ.
     return array_merge($ids, $wpdb->get_col($wpdb->prepare(
         "SELECT DISTINCT post_id FROM {$wpdb->postmeta}
          WHERE meta_key IN ('_billing_first_name', '_billing_last_name', '_shipping_first_name', '_shipping_last_name', '_billing_address_1', '_shipping_address_1')
-           AND meta_value LIKE %s
+           AND meta_value LIKE %s" . thean_ous_source_range_sql('post_id', $range) . "
          ORDER BY post_id DESC LIMIT " . THEAN_OUS_SOURCE,
         $like
     )));
 }
 
-function thean_ous_ids_phone(string $needle): array
+function thean_ous_ids_phone(string $needle, string $range = 'all'): array
 {
     global $wpdb;
     $like = thean_ous_like($needle);
     if (thean_ous_hpos_enabled()) {
         return $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT order_id FROM {$wpdb->prefix}wc_order_addresses
-             WHERE " . thean_ous_phone_sql('phone') . " LIKE %s ORDER BY order_id DESC LIMIT " . THEAN_OUS_SOURCE,
+             WHERE " . thean_ous_phone_sql('phone') . " LIKE %s" . thean_ous_source_range_sql('order_id', $range) . " ORDER BY order_id DESC LIMIT " . THEAN_OUS_SOURCE,
             $like
         ));
     }
     return $wpdb->get_col($wpdb->prepare(
         "SELECT DISTINCT post_id FROM {$wpdb->postmeta}
-         WHERE meta_key IN ('_billing_phone', '_shipping_phone') AND " . thean_ous_phone_sql('meta_value') . " LIKE %s
+         WHERE meta_key IN ('_billing_phone', '_shipping_phone') AND " . thean_ous_phone_sql('meta_value') . " LIKE %s" . thean_ous_source_range_sql('post_id', $range) . "
          ORDER BY post_id DESC LIMIT " . THEAN_OUS_SOURCE,
         $like
     ));
 }
 
-function thean_ous_ids_email(string $like): array
+function thean_ous_ids_email(string $like, string $range = 'all'): array
 {
     global $wpdb;
     if (thean_ous_hpos_enabled()) {
         return $wpdb->get_col($wpdb->prepare(
-            "SELECT id FROM {$wpdb->prefix}wc_orders WHERE billing_email LIKE %s ORDER BY id DESC LIMIT " . THEAN_OUS_SOURCE,
+            "SELECT id FROM {$wpdb->prefix}wc_orders WHERE billing_email LIKE %s" . thean_ous_source_range_sql('id', $range) . " ORDER BY id DESC LIMIT " . THEAN_OUS_SOURCE,
             $like
         ));
     }
     return $wpdb->get_col($wpdb->prepare(
-        "SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_billing_email' AND meta_value LIKE %s ORDER BY post_id DESC LIMIT " . THEAN_OUS_SOURCE,
+        "SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_billing_email' AND meta_value LIKE %s" . thean_ous_source_range_sql('post_id', $range) . " ORDER BY post_id DESC LIMIT " . THEAN_OUS_SOURCE,
         $like
     ));
 }
 
-function thean_ous_ids_ship(string $like): array
+function thean_ous_ids_ship(string $like, string $range = 'all'): array
 {
     global $wpdb;
     $keys  = thean_ous_tracking_meta_keys();
     $in    = implode(',', array_fill(0, count($keys), '%s'));
     if (thean_ous_hpos_enabled()) {
         return $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT order_id FROM {$wpdb->prefix}wc_orders_meta WHERE meta_key IN ({$in}) AND meta_value LIKE %s ORDER BY order_id DESC LIMIT " . THEAN_OUS_SOURCE,
+            "SELECT DISTINCT order_id FROM {$wpdb->prefix}wc_orders_meta WHERE meta_key IN ({$in}) AND meta_value LIKE %s" . thean_ous_source_range_sql('order_id', $range) . " ORDER BY order_id DESC LIMIT " . THEAN_OUS_SOURCE,
             array_merge($keys, [$like])
         ));
     }
     return $wpdb->get_col($wpdb->prepare(
-        "SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key IN ({$in}) AND meta_value LIKE %s ORDER BY post_id DESC LIMIT " . THEAN_OUS_SOURCE,
+        "SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key IN ({$in}) AND meta_value LIKE %s" . thean_ous_source_range_sql('post_id', $range) . " ORDER BY post_id DESC LIMIT " . THEAN_OUS_SOURCE,
         array_merge($keys, [$like])
     ));
 }
@@ -402,24 +453,26 @@ function thean_ous_int_ids(array $ids): array
  *
  * @return int[]
  */
-function thean_ous_find_order_ids(array $f, int $cap = THEAN_OUS_CAP): array
+function thean_ous_find_order_ids(array $f, int $cap = THEAN_OUS_CAP, string $range = 'auto'): array
 {
     global $wpdb;
 
+    $range = thean_ous_range($range);
+    $source_range = $range === 'auto' && $f['id'] !== '' ? 'all' : $range;
     $sets = [];
     if ($f['text'] !== '') {
         $tokens = thean_ous_tokens($f['text']);
         $like   = thean_ous_like($f['text']);
         $set    = array_merge(
             thean_ous_candidate_ids($f['text']),
-            thean_ous_ids_product($tokens),
-            thean_ous_ids_customer($tokens, $like),
-            thean_ous_ids_email($like),
-            thean_ous_ids_ship($like)
+            thean_ous_ids_product($tokens, $source_range),
+            thean_ous_ids_customer($tokens, $like, $source_range),
+            thean_ous_ids_email($like, $source_range),
+            thean_ous_ids_ship($like, $source_range)
         );
         $phone = thean_ous_phone_needle($f['text']);
         if ($phone !== '') {
-            $set = array_merge($set, thean_ous_ids_phone($phone));
+            $set = array_merge($set, thean_ous_ids_phone($phone, $source_range));
         }
         $sets[] = $set;
     }
@@ -427,19 +480,19 @@ function thean_ous_find_order_ids(array $f, int $cap = THEAN_OUS_CAP): array
         $sets[] = thean_ous_candidate_ids($f['id']);
     }
     if ($f['phone'] !== '') {
-        $sets[] = thean_ous_ids_phone(thean_ous_phone_needle($f['phone'], 4));
+        $sets[] = thean_ous_ids_phone(thean_ous_phone_needle($f['phone'], 4), $source_range);
     }
     if ($f['product'] !== '') {
-        $sets[] = thean_ous_ids_product(thean_ous_tokens($f['product']));
+        $sets[] = thean_ous_ids_product(thean_ous_tokens($f['product']), $source_range);
     }
     if ($f['customer'] !== '') {
-        $sets[] = thean_ous_ids_customer(thean_ous_tokens($f['customer']), thean_ous_like($f['customer']));
+        $sets[] = thean_ous_ids_customer(thean_ous_tokens($f['customer']), thean_ous_like($f['customer']), $source_range);
     }
     if ($f['ship'] !== '') {
-        $sets[] = thean_ous_ids_ship(thean_ous_like($f['ship']));
+        $sets[] = thean_ous_ids_ship(thean_ous_like($f['ship']), $source_range);
     }
     if ($f['email'] !== '') {
-        $sets[] = thean_ous_ids_email(thean_ous_like($f['email']));
+        $sets[] = thean_ous_ids_email(thean_ous_like($f['email']), $source_range);
     }
 
     $ids = null;
@@ -465,9 +518,12 @@ function thean_ous_find_order_ids(array $f, int $cap = THEAN_OUS_CAP): array
         $where[] = "{$st_col} IN ('" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), $f['statuses'])) . "')";
     }
 
+    $window = thean_ous_range_sql($range);
+    $exact = $range === 'auto' ? thean_ous_candidate_ids($f['id'] !== '' ? $f['id'] : $f['text']) : [];
+    $where[] = $exact ? '(' . $window . " OR o.{$id_col} IN (" . implode(',', $exact) . '))' : $window;
     $table = $hpos ? "{$wpdb->prefix}wc_orders" : $wpdb->posts;
     return array_map('intval', $wpdb->get_col(
-        "SELECT {$id_col} FROM {$table} WHERE " . implode(' AND ', $where) . " ORDER BY {$id_col} DESC LIMIT " . (int) $cap
+        "SELECT {$id_col} FROM {$table} o WHERE " . implode(' AND ', $where) . " ORDER BY {$id_col} DESC LIMIT " . (int) $cap
     ));
 }
 
@@ -478,10 +534,10 @@ function thean_ous_orders_version(): string
 }
 
 /** Khóa transient cho danh sách ID khớp (Redis nếu có object cache). Phân trang chỉ cắt mảng này. */
-function thean_ous_ids_cache_key(array $f): string
+function thean_ous_ids_cache_key(array $f, string $range = 'auto'): string
 {
     unset($f['errors']);
-    return 'thean_ous_' . md5(wp_json_encode([$f, thean_ous_hpos_enabled(), thean_ous_orders_version()]));
+    return 'thean_ous_' . md5(wp_json_encode([$f, thean_ous_range($range), 'date-window-v1', gmdate('Y-m-d-H-i'), thean_ous_hpos_enabled(), thean_ous_orders_version()]));
 }
 
 /** Còn bị khóa tìm kiếm bao nhiêu giây (0 = không). */
@@ -1065,11 +1121,11 @@ function thean_ous_preview_html(WC_Order $order): string
 }
 
 /** FROM … WHERE board: đơn có bước (≠ none) thuộc luồng vận hành; đơn đóng chỉ còn tab Hoàn hàng; bỏ đơn gộp Shopee + đơn nội bộ. */
-function thean_ous_board_sql(): string
+function thean_ous_board_sql(string $range = 'auto'): string
 {
     $t = thean_ops_step_tables();
     $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_excluded_statuses())) . "'";
-    // Điều kiện cuối: đơn nội bộ (domain email / _eim_internal — đổi cài đặt có hiệu lực ngay), đơn tạo quá 365 ngày.
+    // Điều kiện cuối: đơn nội bộ (domain email / _eim_internal — đổi cài đặt có hiệu lực ngay), mốc khóa đơn cũ và khoảng ngày tạo đang chọn.
     return "FROM {$t['orders']} o
             JOIN {$t['meta']} s ON s.{$t['fk']} = o.{$t['id']} AND s.meta_key = '" . THEAN_OPS_STEP_META . "' AND s.meta_value <> 'none'
             WHERE o.{$t['type']} = 'shop_order'
@@ -1078,20 +1134,22 @@ function thean_ous_board_sql(): string
               AND (s.meta_value <> 'proof' OR " . thean_ous_proof_since_sql($t) . ")
               AND NOT EXISTS (SELECT 1 FROM {$t['meta']} x WHERE x.{$t['fk']} = o.{$t['id']} AND x.meta_key = '_spx_date' AND x.meta_value <> '')
               AND " . thean_ops_internal_sql($t) . "
-              AND " . thean_ops_age_sql($t);
+              AND " . thean_ops_age_sql($t) . "
+              AND " . thean_ous_range_sql($range, 'o', 's.meta_value');
 }
 
 /**
  * Điều kiện SQL chọn đơn của 1 tab: tab "Thiếu chứng từ XK" theo cờ THEAN_OPS_PROOF_META (gồm cả đơn đang giao — bước
  * chính vẫn là Đang giao), các tab khác theo bước `_thean_ops_step` (alias s).
  */
-function thean_ous_board_tab_sql(string $tab): string
+function thean_ous_board_tab_sql(string $tab, string $range = 'auto'): string
 {
     global $wpdb;
     if ($tab === 'proof') {
         $t = thean_ops_step_tables();
         return "EXISTS (SELECT 1 FROM {$t['meta']} pf WHERE pf.{$t['fk']} = o.{$t['id']} AND pf.meta_key = '" . THEAN_OPS_PROOF_META . "' AND pf.meta_value = '1')"
-            . ' AND ' . thean_ous_proof_since_sql($t);
+            . ' AND ' . thean_ous_proof_since_sql($t)
+            . ' AND ' . thean_ous_range_sql($range === 'auto' ? '30' : $range);
     }
     return $wpdb->prepare('s.meta_value = %s', $tab);
 }
@@ -1114,11 +1172,11 @@ function thean_ous_board_in_tab(array $res, string $tab): bool
 /** Cache dữ liệu dùng chung, khóa gồm cấu hình lọc và revision; HTML luôn render theo user hiện tại.
  * Làm tròn giây trong mốc tuổi chỉ cho khóa cache: SQL vẫn dùng mốc chính xác, TTL tối đa 10s.
  */
-function thean_ous_board_cache_key(string $part): string
+function thean_ous_board_cache_key(string $part, string $range = 'auto'): string
 {
-    $scope = preg_replace("/(:[0-9]{2})'/", ":00'", thean_ous_board_sql());
+    $scope = preg_replace("/(:[0-9]{2})'/", ":00'", thean_ous_board_sql($range));
     return 'thean_ous_board_' . md5(wp_json_encode([
-        $part, $scope, THEAN_OPS_STEP_VERSION, thean_ous_orders_version(),
+        $part, thean_ous_range($range), $scope, THEAN_OPS_STEP_VERSION, thean_ous_orders_version(),
         get_option('thean_ops_board_revision', '0'),
     ]));
 }
@@ -1136,15 +1194,15 @@ function thean_ous_timing_header(array $timings): void
 }
 
 /** Số đơn mỗi tab (GROUP BY theo bước + đếm riêng tab "Thiếu chứng từ XK" theo cờ). */
-function thean_ous_board_counts(): array
+function thean_ous_board_counts(string $range = 'auto'): array
 {
     global $wpdb;
-    $key = thean_ous_board_cache_key('counts');
+    $key = thean_ous_board_cache_key('counts', $range);
     $cached = get_transient($key);
     if (is_array($cached)) {
         return $cached;
     }
-    $rows   = $wpdb->get_results('SELECT s.meta_value AS tab, COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') AS n ' . thean_ous_board_sql() . ' GROUP BY s.meta_value', ARRAY_A);
+    $rows   = $wpdb->get_results('SELECT s.meta_value AS tab, COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') AS n ' . thean_ous_board_sql($range) . ' GROUP BY s.meta_value', ARRAY_A);
     $counts = array_fill_keys(array_keys(thean_ops_step_tabs()), 0);
     foreach ((array) $rows as $row) {
         if (isset($counts[$row['tab']])) {
@@ -1152,24 +1210,24 @@ function thean_ous_board_counts(): array
         }
     }
     if (isset($counts['proof'])) {
-        $counts['proof'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') ' . thean_ous_board_sql() . ' AND ' . thean_ous_board_tab_sql('proof'));
+        $counts['proof'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('proof', $range));
     }
     set_transient($key, $counts, THEAN_OUS_BOARD_CACHE_TTL);
     return $counts;
 }
 
 /** ID đơn trong tab từ vị trí $offset, tối đa $limit đơn, mới nhất trước. */
-function thean_ous_board_page_ids(string $tab, int $offset, int $limit): array
+function thean_ous_board_page_ids(string $tab, int $offset, int $limit, string $range = 'auto'): array
 {
     global $wpdb;
-    $key = $offset === 0 ? thean_ous_board_cache_key('ids:' . $tab . ':' . $limit) : '';
+    $key = $offset === 0 ? thean_ous_board_cache_key('ids:' . $tab . ':' . $limit, $range) : '';
     $cached = $key ? get_transient($key) : false;
     if (is_array($cached)) {
         return $cached;
     }
     $id = thean_ops_step_tables()['id'];
     $ids = array_map('intval', $wpdb->get_col($wpdb->prepare(
-        "SELECT DISTINCT o.{$id} " . thean_ous_board_sql() . ' AND ' . thean_ous_board_tab_sql($tab) . " ORDER BY o.{$id} DESC LIMIT %d OFFSET %d",
+        "SELECT DISTINCT o.{$id} " . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql($tab, $range) . " ORDER BY o.{$id} DESC LIMIT %d OFFSET %d",
         $limit, $offset
     )));
     if ($key) {
@@ -1186,6 +1244,7 @@ function thean_ous_ajax_board(): void
         wp_send_json_error(['message' => 'Không có quyền.'], 403);
     }
 
+    $range = thean_ous_range((string) wp_unslash($_POST['range'] ?? 'auto'));
     $started = microtime(true);
     $pending = thean_ops_step_request_backfill();
     // Làm mới chủ động phải bỏ cache server, kể cả khi không có đơn đổi bước.
@@ -1197,7 +1256,7 @@ function thean_ous_ajax_board(): void
     $offset = absint($_POST['offset'] ?? 0); // "Xem thêm": số đơn đang hiện của tab
     $limit  = min(50, max(1, absint($_POST['limit'] ?? ($offset === 0 ? THEAN_OUS_BOARD_FIRST : THEAN_OUS_BOARD_MORE))));
     $tab    = sanitize_key(wp_unslash($_POST['tab'] ?? ''));
-    $counts = thean_ous_board_counts();
+    $counts = thean_ous_board_counts($range);
     if (!isset($labels[$tab])) {
         $tab = (string) (array_key_first(array_filter($counts)) ?? array_key_first($labels));
     }
@@ -1211,8 +1270,8 @@ function thean_ous_ajax_board(): void
     $ids_by = [];
     foreach ($load as $t) {
         $ids_by[$t] = $all
-            ? thean_ous_board_page_ids($t, 0, THEAN_OUS_BOARD_FIRST)
-            : thean_ous_board_page_ids($t, $offset, $limit);
+            ? thean_ous_board_page_ids($t, 0, THEAN_OUS_BOARD_FIRST, $range)
+            : thean_ous_board_page_ids($t, $offset, $limit, $range);
     }
 
     // Tính lại tại chỗ các đơn sẽ hiện (đọc gộp 1 lần): lệch thì ghi lại, đơn đã sang bước khác thì không hiện ở tab đó.
@@ -1229,14 +1288,14 @@ function thean_ous_ajax_board(): void
     }
     if ($moved) {
         thean_ops_board_invalidate();
-        $counts = thean_ous_board_counts();
+        $counts = thean_ous_board_counts($range);
         $load   = $all ? array_keys(array_filter($counts)) : [];
         if (!in_array($tab, $load, true)) {
             $load[] = $tab;
         }
         $ids_by = [];
         foreach ($load as $t) {
-            $ids_by[$t] = $all ? thean_ous_board_page_ids($t, 0, THEAN_OUS_BOARD_FIRST) : thean_ous_board_page_ids($t, $offset, $limit);
+            $ids_by[$t] = $all ? thean_ous_board_page_ids($t, 0, THEAN_OUS_BOARD_FIRST, $range) : thean_ous_board_page_ids($t, $offset, $limit, $range);
         }
         $new = array_diff(array_merge([], ...array_values($ids_by)), array_keys($fresh));
         $new_orders = [];
@@ -1258,7 +1317,7 @@ function thean_ous_ajax_board(): void
         }
     }
     if ($recount) {
-        $counts = thean_ous_board_counts();
+        $counts = thean_ous_board_counts($range);
     }
 
     $synced = microtime(true);
@@ -1269,6 +1328,7 @@ function thean_ous_ajax_board(): void
         $shown = min($total, ($all ? 0 : $offset) + count($show));
         $panes[$t] = [
             'tab'      => $t,
+            'range_label' => thean_ous_range_label($range, $t),
             'rows'     => thean_ous_render_rows($show, [], array_intersect_key($hints, array_flip($show)), array_map(static fn($id) => $orders[$id], $show), $fresh),
             'total'    => $total,
             'shown'    => $shown,
@@ -1376,6 +1436,7 @@ function thean_ous_ajax_search(): void
         wp_send_json_error(['message' => 'Không có quyền.'], 403);
     }
 
+    $range = thean_ous_range((string) wp_unslash($_POST['range'] ?? 'auto'));
     $started = microtime(true);
     $query   = sanitize_text_field(wp_unslash($_POST['q'] ?? ''));
     $page    = max(1, absint($_POST['page'] ?? 1));
@@ -1388,7 +1449,7 @@ function thean_ous_ajax_search(): void
     // Đang bị khóa thì chặn mọi lượt tìm mới (trang 1); "Xem thêm" vẫn đọc từ cache.
     $user_id = get_current_user_id();
     $wait    = $page === 1 ? thean_ous_rate_blocked($user_id) : 0;
-    $key     = thean_ous_ids_cache_key($filters);
+    $key     = thean_ous_ids_cache_key($filters, $range);
     $ids     = $wait ? false : get_transient($key);
     if (!is_array($ids)) {
         // Chỉ lượt tìm thật (không trúng cache) mới tính vào giới hạn.
@@ -1399,7 +1460,7 @@ function thean_ous_ajax_search(): void
                 'retry_after' => $wait,
             ], 429);
         }
-        $ids = thean_ous_find_order_ids($filters);
+        $ids = thean_ous_find_order_ids($filters, THEAN_OUS_CAP, $range);
         set_transient($key, $ids, THEAN_OUS_CACHE_TTL);
     }
     $queried = microtime(true);
@@ -1420,7 +1481,7 @@ function thean_ous_ajax_search(): void
         'shown'    => min($total, $page * THEAN_OUS_PER_PAGE),
         'page'     => $page,
         'has_more' => $page * THEAN_OUS_PER_PAGE < $total,
-        'summary'  => thean_ous_filter_summary($filters),
+        'summary'  => array_merge([thean_ous_range_label($range) . ($range === 'auto' ? ' · ID/mã đơn: toàn bộ' : '')], thean_ous_filter_summary($filters)),
     ]);
 }
 
@@ -1615,6 +1676,15 @@ function thean_ous_render_ui(): void
             <a class="thean-ous-bar__brand" href="<?php echo esc_url(function_exists('thean_erp_get_home_url') ? thean_erp_get_home_url() : home_url('/')); ?>" target="_blank" rel="noopener" title="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php echo thean_ous_logo_html(); ?></a>
             <span class="dashicons dashicons-search" aria-hidden="true"></span>
             <input type="search" name="q" placeholder="Tìm đơn: ID, tên, SĐT, email, địa chỉ, SP, vận đơn… — gõ / để lọc (/tt, /sdt, /id, /sp)" aria-label="Tìm đơn hàng" aria-autocomplete="list" aria-controls="thean-ous-suggest">
+            <label class="thean-ous-bar__range">Ngày tạo
+                <select name="range" aria-label="Khoảng ngày tạo đơn" title="Áp dụng cho tìm kiếm và board. Toàn bộ vẫn giữ điều kiện nghiệp vụ và mốc khóa đơn của board.">
+                    <option value="auto" title="30 ngày; riêng Hoàn hàng và Đặt trước: 90 ngày">Mặc định: 30 / 90 ngày</option>
+                    <option value="7">7 ngày gần nhất</option>
+                    <option value="30">30 ngày gần nhất</option>
+                    <option value="90">90 ngày gần nhất</option>
+                    <option value="all">Toàn bộ thời gian</option>
+                </select>
+            </label>
             <kbd>/</kbd>
             <button type="submit" class="thean-ous-bar__submit">Tìm</button>
             <button type="button" class="thean-ous-bar__board" data-thean-ous-board title="Tải đơn cần xử lý ngay trên trang, chia tab theo bước (giống bảng điều phối)">📋 <span>Tải đơn cần xử lý</span></button>

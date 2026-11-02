@@ -12,7 +12,16 @@ function fixture() {
     const more = { disabled: false, textContent: 'Xem thêm' };
     const status = { textContent: '' };
     const ctx = {
-        Map, Date, AbortController, window: {},
+        Map, Date, AbortController, URL, window: {},
+        currentRange: 'auto', rangeSelect: { value: 'auto' },
+        searchCtl: null, state: { q: '', page: 0, loading: false },
+        timer: 0, clearTimeout() {}, cache: new Map(),
+        location: { href: 'https://example.test/wp-admin/admin.php?page=wc-orders' },
+        history: { state: null, replaceState(_, __, url) { this.url = url; } },
+        setOpen: (el, open) => { el.hidden = !open; },
+        results: { hidden: true, querySelector: () => status }, input: { value: '' },
+        savedTab: () => 'picking', ready: q => q.length >= 3,
+        search: (q, page) => { ctx.lastSearch = { q, page, range: ctx.currentRange }; },
         boardCache: new Map(), boardCtl: null,
         boardState: { tab: '', page: 0, shown: 0, loading: false },
         BOARD_TTL: 10000, BOARD_MORE: 20, blockedUntil: 0,
@@ -26,7 +35,8 @@ function fixture() {
     };
     vm.createContext(ctx);
     vm.runInContext(section('    function renderBoard(', '    // Chỉ tải 10 đơn'), ctx);
-    vm.runInContext(section('    function loadBoard(', '\n    function openPreview('), ctx);
+    vm.runInContext(section('    function loadBoard(', '\n    function changeRange('), ctx);
+    vm.runInContext(section('    function changeRange(', '    if (rangeSelect)'), ctx);
     return { ctx, requests, rendered, notices, more, status };
 }
 function response(tab, shown = 10, total = 40) {
@@ -36,7 +46,7 @@ async function settle() { for (let i = 0; i < 6; i++) await Promise.resolve(); }
 (async () => {
     const f = fixture(), c = f.ctx;
     c.loadBoard('picking', 1, false);
-    check(f.requests.length === 1 && f.requests[0].data.limit === 10 && f.requests[0].data.offset === 0 && !f.requests[0].data.all, 'first request loads only 10 rows of active tab');
+    check(f.requests.length === 1 && f.requests[0].data.limit === 10 && f.requests[0].data.offset === 0 && f.requests[0].data.range === 'auto' && !f.requests[0].data.all, 'first request loads only 10 rows of active tab');
     f.requests[0].resolve(response('picking'));
     await settle();
     check(f.rendered.length === 1 && f.requests.length === 1 && c.boardState.shown === 10, 'first render does not auto-fetch another page');
@@ -82,5 +92,50 @@ async function settle() { for (let i = 0; i < 6; i++) await Promise.resolve(); }
     r.requests[3].reject(new Error('offline'));
     await settle();
     check(r.notices.at(-1) === 'offline' && !r.ctx.boardState.loading, 'current failure remains visible and retryable');
+    const w = fixture();
+    w.ctx.loadBoard('picking', 1, false);
+    w.ctx.boardCache.set('shipping|1', { at: Date.now(), data: response('shipping').data });
+    w.ctx.cache.set('old-search', {});
+    const oldSearch = new AbortController();
+    w.ctx.searchCtl = oldSearch;
+    w.ctx.rangeSelect.value = '90';
+    w.ctx.results.hidden = false;
+    w.ctx.input.value = 'nguyen';
+    w.ctx.changeRange();
+    check(w.ctx.currentRange === '90' && !w.ctx.boardCache.size && !w.ctx.cache.size, 'range change clears both caches');
+    check(w.requests[0].ctl.signal.aborted && oldSearch.signal.aborted, 'range change cancels in-flight board and search');
+    check(w.requests[1].data.range === '90' && w.requests[1].data.offset === 0, 'range change reloads first page in new scope');
+    check(w.ctx.lastSearch.range === '90' && w.ctx.lastSearch.page === 1, 'open search reruns with new range');
+    check(w.ctx.history.url.includes('thean_range=90'), 'selected range preserved in shareable URL');
+    w.requests[0].resolve(response('picking'));
+    await settle();
+    check(!w.rendered.length, 'old-range response cannot render');
+    const current = response('picking'); current.data.range_label = '90 ngày gần nhất';
+    w.requests[1].resolve(current);
+    await settle();
+    check(w.status.textContent.includes('90 ngày gần nhất'), 'board displays effective date range');
+    w.ctx.rangeSelect.value = 'auto';
+    w.ctx.changeRange();
+    check(!w.ctx.history.url.includes('thean_range='), 'default range removes URL override');
+    const q = fixture();
+    const searchRendered = [];
+    q.ctx.render = (data, page) => searchRendered.push({ data, page });
+    vm.runInContext(section('    function search(', '    /* ---------- Chọn nhiều đơn'), q.ctx);
+    q.ctx.input.value = 'nguyen';
+    q.ctx.search('nguyen', 1);
+    check(q.requests[0].data.range === 'auto', 'search sends selected date scope');
+    q.ctx.rangeSelect.value = '90';
+    q.ctx.changeRange();
+    check(q.requests[0].ctl.signal.aborted && q.requests[1].data.range === '90', 'new range restarts actual search and cancels old one');
+    q.requests[0].resolve(response('picking'));
+    await settle();
+    check(!searchRendered.length && q.ctx.state.loading, 'old-range search cannot paint or clear loading');
+    q.requests[1].resolve(response('picking'));
+    await settle();
+    check(searchRendered.length === 1 && q.ctx.state.page === 1 && !q.ctx.state.loading, 'current-range search is rendered');
+    q.ctx.input.value = '';
+    q.ctx.rangeSelect.value = '7';
+    q.ctx.changeRange();
+    check(q.ctx.results.hidden, 'changing range with incomplete query hides old results');
     console.log(`OK (${checks} checks)`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

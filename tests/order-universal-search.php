@@ -406,6 +406,40 @@ foreach ([true, false] as $hpos) {
 }
 $GLOBALS['__caps'] = []; $_POST = [];
 
+// Khoảng ngày tạo: chuẩn hóa, tách cache, lọc ngay trước LIMIT nguồn.
+check(thean_ous_range('500') === 'auto' && thean_ous_range("30 OR 1=1") === 'auto', 'unknown ranges cannot alter SQL policy');
+check(thean_ous_range_label('auto', 'return') === '90 ngày gần nhất' && thean_ous_range_label('auto', 'preorder') === '90 ngày gần nhất', 'return and preorder default to 90 days');
+check(thean_ous_range_label('auto', 'picking') === '30 ngày gần nhất' && thean_ous_range_label('7', 'return') === '7 ngày gần nhất', 'ordinary default 30; explicit selection overrides exception');
+foreach ([true, false] as $hpos) {
+    \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
+    $wpdb->queries = [];
+    thean_ous_find_order_ids(array_merge($empty, ['text' => 'Whey Gold']), THEAN_OUS_CAP, '7');
+    $queries = $wpdb->queries;
+    foreach (array_slice($queries, 0, -1) as $sql) {
+        check(strpos($sql, 'SELECT dr.') !== false && strpos($sql, 'SELECT dr.') < strpos($sql, 'ORDER BY'), 'source query restricts dates before LIMIT');
+    }
+    $final = end($queries);
+    check(strpos($final, $hpos ? 'o.date_created_gmt' : 'o.post_date_gmt') !== false && strpos($final, 'drs.') === false, 'explicit final date range uses correct storage column');
+    $wpdb->queries = [];
+    thean_ous_find_order_ids(array_merge($empty, ['text' => 'Whey Gold']), THEAN_OUS_CAP, 'all');
+    check(strpos(implode("\n", $wpdb->queries), 'SELECT dr.') === false && strpos(end($wpdb->queries), 'AND 1=1') !== false, 'all-time removes source/final date restriction');
+    $wpdb->queries = [];
+    thean_ous_find_order_ids(array_merge($empty, ['id' => '10276']));
+    check(strpos(end($wpdb->queries), 'OR o.') !== false, 'exact ID bypasses default dates');
+    $wpdb->queries = [];
+    thean_ous_find_order_ids(array_merge($empty, ['id' => '10276']), THEAN_OUS_CAP, '30');
+    check(strpos(end($wpdb->queries), 'OR o.') === false, 'exact ID respects explicitly selected date range');
+    check(thean_ous_ids_cache_key($empty, '30') !== thean_ous_ids_cache_key($empty, 'all'), 'search range scopes cache');
+    check(thean_ous_board_cache_key('counts', '30') !== thean_ous_board_cache_key('counts', '90'), 'board range scopes counts cache');
+    thean_ops_board_invalidate(); $wpdb->queries = [];
+    thean_ous_board_counts('7'); thean_ous_board_counts('90');
+    check(count($wpdb->queries) === 4, 'counts for different ranges do not collide');
+    $wpdb->queries = [];
+    thean_ous_board_page_ids('return', 0, 10, '7');
+    thean_ous_board_page_ids('return', 0, 10, 'all');
+    check(count($wpdb->queries) === 2, 'first-page ID cache separates ranges');
+}
+
 // Nhập VAT: bóc JSON trả lời của AI.
 $ai = thean_vat_request_parse_ai("Đây là kết quả:\n```json\n{\"tax_code\":\"MST: 0312 345 678\",\"company\":\" Công ty TNHH An \",\"address\":\"12 Lê Lợi, Q1\",\"email\":\"ketoan@an.vn\",\"note\":\"\"}\n```");
 check($ai['tax_code'] === '0312345678' && $ai['company'] === 'Công ty TNHH An' && $ai['email'] === 'ketoan@an.vn', 'AI JSON in code fence, MST cleaned');
