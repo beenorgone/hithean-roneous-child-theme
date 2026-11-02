@@ -210,9 +210,15 @@ function hithean_export_ai_documents(int $order_id, array $urls)
     $attachment_ids = [];
     foreach ($urls as $url) {
         $attachment_id = attachment_url_to_postid($url);
-        if ($attachment_id && (int) get_post_field('post_parent', $attachment_id) === $order_id) $attachment_ids[] = (int) $attachment_id;
+        if (!$attachment_id || (int) get_post_field('post_parent', $attachment_id) !== $order_id) {
+            return new WP_Error('hithean_export_ai_unmatched_image', 'Có ảnh xuất kho không khớp với tệp đính kèm của đơn. AI dừng để tránh kiểm tra nhầm ảnh cũ.');
+        }
+        $attachment_ids[] = (int) $attachment_id;
     }
-    if (!$attachment_ids) {
+    // Only discover legacy attachments when there is no URL list at all.
+    // If the supplied URLs are stale/unresolvable, never silently review other
+    // (older) attachments belonging to the same order.
+    if (!$urls) {
         $attachment_ids = get_posts([
             'post_type' => 'attachment', 'post_status' => 'inherit', 'post_parent' => $order_id,
             'post_mime_type' => 'image', 'fields' => 'ids', 'posts_per_page' => 10, 'orderby' => 'date', 'order' => 'DESC',
@@ -798,7 +804,9 @@ add_action('wp_ajax_ajax_upload_images', function () {
 
     if ($uploaded_urls) {
         $existing = get_post_meta($order_id, 'warehouse_export_images', true);
-        $all = array_filter(array_merge(explode("\n", $existing), $uploaded_urls));
+        // New evidence goes first because AI intentionally limits each review
+        // to ten images; appending would keep old evidence at the front.
+        $all = array_values(array_unique(array_filter(array_merge($uploaded_urls, explode("\n", (string) $existing)))));
         thean_order_meta_set((int) $order_id, 'warehouse_export_images', implode("\n", $all));
         hithean_export_record_uploader($order_id, get_current_user_id());
         thean_order_meta_delete((int) $order_id, 'warehouse_export_ai_check');
