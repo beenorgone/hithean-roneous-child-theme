@@ -727,6 +727,7 @@ function thean_ow_render_inner(WC_Order $order): void
             <div class="tow-head__total"><?php echo wp_kses_post(wc_price($order->get_total())); ?> · <?php echo esc_html($order->get_payment_method_title() ?: strtoupper($order->get_payment_method())); ?></div>
         </div>
 
+        <?php $vat = thean_ow_vat_state($order); ?>
         <div class="tow-steps" role="tablist" aria-label="Các bước xử lý đơn">
             <?php $i = 0; foreach ($steps as $key => $step) :
                 $i++;
@@ -736,6 +737,11 @@ function thean_ow_render_inner(WC_Order $order): void
                     <span class="tow-tab__n"><?php echo $step[1] && !$step[2] ? '✓' : (int) $i; ?></span><?php echo esc_html($step[0]); ?><?php if ($step[2]) echo ' <small>· không cần</small>'; ?>
                 </button>
             <?php endforeach; ?>
+            <?php if ($vat) : $on = $active === 'vat'; ?>
+                <button type="button" role="tab" class="tow-tab <?php echo esc_attr(($vat['done'] ? 'is-done' : '') . ($on ? ' is-active' : '')); ?>" data-tab="vat" aria-selected="<?php echo $on ? 'true' : 'false'; ?>">
+                    <span class="tow-tab__n"><?php echo $vat['done'] ? '✓' : '🧾'; ?></span>VAT <small>· <?php echo esc_html($vat['short']); ?></small>
+                </button>
+            <?php endif; ?>
         </div>
         <?php if ($next_hint) : ?>
             <button type="button" class="tow-next" data-goto="<?php echo esc_attr($next_goto); ?>">👉 <strong>Việc tiếp theo:</strong> <?php echo esc_html($next_hint); ?></button>
@@ -764,6 +770,9 @@ function thean_ow_render_inner(WC_Order $order): void
                         thean_ow_box_return($order, $return_status, $return_code, $compensate, $refund, $return_images);
                     });
                 }
+                if ($vat) {
+                    $panel('vat', function () use ($order, $vat) { thean_ow_box_vat($order, $vat); });
+                }
                 ?>
             </div>
             <aside class="tow-side">
@@ -786,6 +795,92 @@ function thean_ow_render_inner(WC_Order $order): void
         </div>
     </div>
     <?php
+}
+
+/**
+ * Trạng thái xuất HĐ VAT (meta eim — plugin vn-einvoice-manager). [] khi chưa bật eim → không hiện tab VAT.
+ * Tab VAT đứng ngoài luồng vận hành: không tính vào "Việc tiếp theo" / bước board (thean_ow_flow).
+ */
+function thean_ow_vat_state(WC_Order $order): array
+{
+    if (!function_exists('eim_order_vat_status_label')) return [];
+    $st  = (string) $order->get_meta('_eim_status') ?: 'none';
+    $inv = (string) $order->get_meta('_eim_invoice_no');
+    if ($inv === '') $inv = (string) $order->get_meta('acc_vat_invoice_code');
+    $batch = (int) $order->get_meta('_eim_batch_id');
+    // Suy trạng thái từ dữ liệu thật như eim_order_vat_status_label (có số HĐ ⇒ đã xuất, có lô ⇒ trong lô).
+    if ($inv !== '') $st = 'issued';
+    elseif (!in_array($st, ['in_batch', 'excluded'], true) && $batch > 0
+        && (!function_exists('eim_batch_is_live') || eim_batch_is_live($batch))) $st = 'in_batch';
+    $map = [
+        'issued'   => ['Đã xuất', 'success'],
+        'in_batch' => ['Trong lô', 'info'],
+        'queued'   => ['Hàng đợi', 'warning'],
+        'excluded' => ['Bỏ qua', 'neutral'],
+        'none'     => ['Chưa xử lý', 'neutral'],
+    ];
+    [$short, $tone] = $map[$st] ?? $map['none'];
+    return [
+        'status' => $st,
+        'short'  => $short,
+        'tone'   => $tone,
+        'done'   => in_array($st, ['issued', 'excluded'], true),
+        'locked' => in_array($st, ['issued', 'in_batch'], true),
+        'inv'    => $inv,
+    ];
+}
+
+/** Tab VAT: tình trạng HĐ, số HĐ, người mua (MST / công ty / địa chỉ / email), yêu cầu xuất VAT + ảnh tin nhắn khách. */
+function thean_ow_box_vat(WC_Order $order, array $vat): void
+{
+    $tax     = (string) $order->get_meta('_eim_buyer_tax_code');
+    $company = (string) $order->get_meta('_eim_buyer_company');
+    $address = (string) $order->get_meta('_eim_buyer_address');
+    $email   = (string) $order->get_meta('_eim_buyer_email');
+    $muted   = function (string $text): string { return '<span class="tow-muted">' . esc_html($text) . '</span>'; };
+
+    thean_ow_box_open('vat', '🧾 Hóa đơn VAT', thean_ow_badge($vat['short'], $vat['tone']), true);
+    echo thean_ow_row('Tình trạng', wp_kses_post(eim_order_vat_status_label($order)));
+    if ($vat['inv'] !== '') {
+        $symbol = (string) $order->get_meta('_eim_invoice_symbol');
+        $date   = (string) $order->get_meta('_eim_invoice_date');
+        echo thean_ow_row('Số HĐ', ($symbol !== '' ? '<code>' . esc_html($symbol) . '</code> · ' : '') . '<strong>' . esc_html($vat['inv']) . '</strong>' . ($date !== '' ? ' ' . $muted('(' . $date . ')') : ''));
+    }
+    if ($vat['status'] === 'excluded') {
+        $reason = (string) $order->get_meta('_eim_excluded_reason');
+        echo thean_ow_row('Lý do bỏ qua', $reason !== '' ? esc_html($reason) : $muted('—'));
+    }
+    echo thean_ow_row('Mẫu HĐ', $tax !== '' ? 'Doanh nghiệp (có MST)' : 'Máy tính tiền ' . $muted('· "Bán cho người tiêu dùng"'));
+    echo thean_ow_row('MST', $tax !== '' ? '<code>' . esc_html($tax) . '</code>' : $muted('Chưa có'));
+    if ($tax !== '' || $company !== '') echo thean_ow_row('Công ty', $company !== '' ? esc_html($company) : $muted('Chưa có'));
+    if ($tax !== '' || $address !== '') echo thean_ow_row('Địa chỉ', $address !== '' ? esc_html($address) : $muted('Chưa có'));
+    echo thean_ow_row('Email nhận HĐ', $email !== '' ? esc_html($email) : $muted(($order->get_billing_email() ?: 'Chưa có') . ' (email đơn)'));
+
+    $request = json_decode((string) $order->get_meta('_eim_vat_request'), true);
+    if (is_array($request)) {
+        $who = trim((string) ($request['by'] ?? ''));
+        $at  = (string) ($request['at'] ?? '');
+        echo thean_ow_row('Yêu cầu VAT', esc_html(trim(($at !== '' ? $at : '') . ($who !== '' ? ' · ' . $who : ''), ' ·')) ?: $muted('Đã nhập'));
+        if (!empty($request['note'])) echo thean_ow_row('Ghi chú', esc_html((string) $request['note']));
+    }
+    $proof = [];
+    if (function_exists('thean_vat_request_proof_ids')) {
+        foreach (thean_vat_request_proof_ids($order) as $id) {
+            if ($url = wp_get_attachment_url($id)) $proof[] = $url;
+        }
+    }
+    if (!$proof && is_array($request) && !empty($request['proof'])) $proof = array_values(array_filter(array_map('strval', (array) $request['proof'])));
+    if ($proof) {
+        echo '<p class="tow-hint">Ảnh tin nhắn khách yêu cầu xuất VAT:</p>' . thean_ow_gallery($proof);
+    }
+
+    if ($vat['locked']) {
+        echo '<p class="tow-hint">🔒 Đơn đã vào lô / đã xuất HĐ — khóa sửa thông tin người mua (sửa qua Điều chỉnh hóa đơn trên hub).</p>';
+    } elseif (function_exists('thean_vat_request_button') && ($btn = thean_vat_request_button($order, 'button button-primary')) !== '') {
+        echo '<div class="tow-btns">' . $btn . '</div>';
+        echo '<p class="tow-hint">ⓘ Bắt buộc up ảnh tin nhắn khách. Lưu xong hub nhận khi đồng bộ và đưa vào "VAT chờ khớp". Trống MST → HĐ máy tính tiền.</p>';
+    }
+    thean_ow_box_close();
 }
 
 function thean_ow_box_open(string $id, string $title, string $badge_html = '', bool $open = true): void
