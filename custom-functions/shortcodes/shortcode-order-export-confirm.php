@@ -417,7 +417,7 @@ function shortcode_upload_export_images_form()
     <h2>Upload ảnh đơn hàng</h2>
     <form id="upload-export-form" enctype="multipart/form-data">
         <p style="max-width:500px;">
-            <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
+            <label class="ueif-checkbox-label" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
                 <input type="checkbox" id="ueif_bulk" style="margin-top:3px;">
                 <span><strong>Nhiều đơn — AI tự tách</strong> (tối đa 60 ảnh)<br><small>Chụp lần lượt từng đơn, chọn hết ảnh 1 lần. AI đọc mã đơn trên phiếu / nhãn giao vận để tự tách và gắn ảnh vào đúng đơn.</small></span>
             </label>
@@ -436,7 +436,7 @@ function shortcode_upload_export_images_form()
                 ❌ Bạn đã chọn quá 5 ảnh! Vui lòng chọn lại tối đa 5 ảnh.
             </span>
         </p>
-        <p style="max-width:500px;padding:10px 12px;border:1px solid #b7e4d5;border-radius:6px;background:#f0fdf8;"><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" name="ueif_ai_check" value="1" checked style="margin-top:3px;"><span><strong>Gọi AI kiểm tra ảnh sau khi upload</strong><br><small>Ảnh sẽ được gửi tới AI provider đã cấu hình để đối chiếu mã đơn, sản phẩm và số lượng; kết quả chỉ hỗ trợ kiểm tra, không tự xác nhận xuất kho.</small></span></label></p>
+        <p style="max-width:500px;padding:10px 12px;border:1px solid #b7e4d5;border-radius:6px;background:#f0fdf8;"><label class="ueif-checkbox-label" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" name="ueif_ai_check" value="1" checked style="margin-top:3px;"><span><strong>Gọi AI kiểm tra ảnh sau khi upload</strong><br><small>Ảnh sẽ được gửi tới AI provider đã cấu hình để đối chiếu mã đơn, sản phẩm và số lượng; kết quả chỉ hỗ trợ kiểm tra, không tự xác nhận xuất kho.</small></span></label></p>
         <p>
             <button type="submit" class="button button-primary">Upload ảnh xuất kho</button>
         </p>
@@ -881,6 +881,19 @@ add_action('wp_footer', function () {
     </div>
     <?php endif; ?>
     <style>
+        #upload-export-form .ueif-checkbox-label,
+        #upload-export-form .ueif-checkbox-label span,
+        #upload-export-form .ueif-checkbox-label strong,
+        #upload-export-form .ueif-checkbox-label small {
+            font-family: Arial, "Helvetica Neue", sans-serif !important;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.5;
+            letter-spacing: normal;
+            text-transform: none;
+        }
+        #upload-export-form .ueif-checkbox-label strong { font-weight: 600; }
+        #upload-export-form .ueif-checkbox-label small { font-size: 12px; }
         .uexe-gallery-modal { position: fixed; inset: 0; z-index: 1000000; display: none; align-items: center; justify-content: center; background: rgba(17, 24, 39, 0.88); padding: 18px; }
         .uexe-gallery-modal.is-open { display: flex; }
         .uexe-gallery-dialog { position: relative; width: min(1100px, 96vw); height: min(760px, 90vh); display: grid; grid-template-rows: auto 1fr auto; gap: 10px; }
