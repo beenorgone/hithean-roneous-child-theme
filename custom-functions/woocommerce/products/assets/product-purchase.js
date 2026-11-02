@@ -9,20 +9,24 @@
         var price = summary && summary.querySelector('p.price');
         if (!summary) return;
 
-        // Keep the nutrition dialog and its chat action together in the flow.
-        // The dialog uses delegated document events, so moving its wrapper is safe.
+        // Keep product help and marketplace actions together in the flow.
+        // Nutrition dialog events are delegated; moving its launcher is safe.
         var nutritionAction = summary.querySelector('.product-nutrition-label');
         var chatActions = summary.querySelector('.b-single-product-ctas');
         var chatAction = chatActions && chatActions.querySelector('a[href*="m.me/"]');
-        if (nutritionAction && chatAction) {
+        var shopeeAction = summary.querySelector('.ecom-buy-trigger');
+        var shopeeModal = shopeeAction && summary.querySelector('.ecom-buy-modal');
+        if (shopeeModal && shopeeModal.parentNode !== document.body) document.body.appendChild(shopeeModal);
+        var contactActionItems = [nutritionAction, chatAction, shopeeAction].filter(Boolean);
+        if (contactActionItems.length) {
             var contactActions = document.createElement('div');
             contactActions.className = 'hithean-purchase-contact-actions';
-            contactActions.appendChild(nutritionAction);
-            contactActions.appendChild(chatAction);
+            contactActionItems.forEach(function (action) { contactActions.appendChild(action); });
             var trustWidgets = summary.querySelector('.product-trust-ctas');
             if (trustWidgets) trustWidgets.insertAdjacentElement('afterend', contactActions);
-            else chatActions.insertAdjacentElement('beforebegin', contactActions);
-            if (!chatActions.children.length && !chatActions.textContent.trim()) chatActions.hidden = true;
+            else if (chatActions) chatActions.insertAdjacentElement('beforebegin', contactActions);
+            else summary.appendChild(contactActions);
+            if (chatActions && !chatActions.children.length && !chatActions.textContent.trim()) chatActions.hidden = true;
         }
 
         var impact = summary.querySelector('.b-greenspark-revenue-percentage-widget');
