@@ -657,3 +657,20 @@ body.oc-modal-open { overflow: hidden; }
 @media (max-width: 640px) { .oc-actionbar__sum { flex-basis: 100%; } }
 /* khi khối form nằm trong popup "Chỉnh đơn" của chế độ AI: cột Chốt đơn không sticky */
 #oc-ai-edit-body .oc-side { position: static; max-height: none; overflow: visible; }
+
+/* Ô tìm đơn nổi bật: viền màu chính, cao hơn, có bóng + vòng focus rõ */
+.oc-app .oc-order-search input[type="text"] {
+    height: 48px; padding: 10px 16px;
+    font-size: 15px; font-weight: 500; color: var(--oc-text);
+    background: #fff; border: 2px solid var(--oc-primary); border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 122, 82, .14);
+    transition: border-color .15s, box-shadow .15s;
+}
+.oc-app .oc-order-search input[type="text"]::placeholder { color: var(--oc-muted); font-weight: 500; opacity: 1; }
+.oc-app .oc-order-search input[type="text"]:hover { border-color: var(--oc-primary-dark); }
+.oc-app .oc-order-search input[type="text"]:focus {
+    outline: none; border-color: var(--oc-primary-dark);
+    box-shadow: 0 0 0 4px rgba(8, 224, 151, .25), 0 2px 10px rgba(0, 122, 82, .14);
+}
+.oc-order-search .oc-search-results { margin-top: 6px; border: 1px solid var(--oc-border); border-radius: 10px; }
+@media (prefers-reduced-motion: reduce) { .oc-app .oc-order-search input[type="text"] { transition: none; } }
