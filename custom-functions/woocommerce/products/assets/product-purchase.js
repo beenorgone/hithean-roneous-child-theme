@@ -80,6 +80,13 @@
         if (bar && stickyQuantity && stickyButton) {
             if (bar.parentNode !== document.body) document.body.appendChild(bar);
             document.body.classList.add('hithean-purchase-has-sticky');
+            function syncStickyMenuOffset() {
+                var barHeight = Math.ceil(bar.getBoundingClientRect().height);
+                if (barHeight > 0) document.body.style.setProperty('--purchase-bottom-space', (barHeight + 16) + 'px');
+            }
+            syncStickyMenuOffset();
+            if ('ResizeObserver' in window) new ResizeObserver(syncStickyMenuOffset).observe(bar);
+            window.addEventListener('resize', syncStickyMenuOffset, { passive: true });
         }
 
         function syncQuantity() {

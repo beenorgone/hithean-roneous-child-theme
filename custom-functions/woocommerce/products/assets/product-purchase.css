@@ -164,10 +164,11 @@ body.hithean-product-purchase .sticky-atc-bar .quantity[hidden] { display: none 
     body.hithean-product-purchase .pcn-mobile__cluster #thean-lw-root { display: contents; }
     body.hithean-product-purchase .pcn-mobile__cluster .thean-lw-trigger { position: static !important; flex: 1 1 0; min-width: 0; justify-content: center; transform: none !important; }
     body.hithean-product-purchase.hithean-purchase-has-sticky { --purchase-bottom-space: calc(72px + env(safe-area-inset-bottom, 0px)); padding-bottom: var(--purchase-bottom-space); }
-    body.hithean-product-purchase.hithean-purchase-has-sticky .sticky-atc-bar { position: fixed !important; inset: auto 0 0; bottom: 0 !important; z-index: 9999; display: flex; box-sizing: border-box; width: 100%; height: auto; min-height: 56px; padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
-    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn { display: flex; flex: 1 1 auto; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: auto; min-height: 44px; margin: 0; padding: 5px 12px; border-radius: 8px; font: 600 14px/1.25 Arial, sans-serif; text-transform: none; letter-spacing: 0; }
+    body.hithean-product-purchase.hithean-purchase-has-sticky .sticky-atc-bar { position: fixed !important; inset: auto 0 0; bottom: 0 !important; z-index: 9999; display: flex; align-items: center !important; box-sizing: border-box; width: 100%; height: auto; min-height: 56px; padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty { display: flex; flex: 0 0 auto; align-items: center; margin: 0; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn { display: flex; flex: 1 1 auto; align-self: center; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: auto; min-height: 44px; margin: 0; padding: 5px 12px; border-radius: 8px; font: 600 14px/1.25 Arial, sans-serif; text-transform: none; letter-spacing: 0; }
     body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn small { font-size: 13px; }
-    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input { width: 56px; height: 44px; border-radius: 8px; font-size: 16px; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input { display: block; width: 56px; min-height: 44px; height: 44px; margin: 0 !important; border-radius: 8px; font-size: 16px; }
     body.hithean-product-purchase .pcn-mobile { bottom: var(--purchase-bottom-space); }
 }
 body.hithean-product-purchase .hithean-purchase-tier-action button:focus-visible,
