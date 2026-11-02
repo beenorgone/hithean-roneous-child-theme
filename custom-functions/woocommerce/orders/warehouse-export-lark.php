@@ -74,12 +74,14 @@ function hithean_export_lark_status(int $order_id, string $key, string $state, s
     thean_order_meta_set($order_id, $key, array_merge(['state' => $state, 'updated_at' => current_time('mysql'), 'error' => $error], $extra));
 }
 
-/** A mismatch for the same evidence and verdict alerts once; new photos may alert again. */
+/** Send once per AI review, including after upgrading the alert format. */
 function hithean_export_lark_alert_hash(int $order_id, array $review): string
 {
     return hash('sha256', wp_json_encode([
+        'lark-review-card-v2',
         get_post_meta($order_id, 'warehouse_export_images', true),
         $review['overall'] ?? '', $review['order_match'] ?? '', $review['items_match'] ?? '',
+        $review['checked_at'] ?? '',
     ]));
 }
 

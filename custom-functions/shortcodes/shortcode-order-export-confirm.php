@@ -349,8 +349,15 @@ function hithean_render_export_ai_check(int $order_id): string
         $html .= '<p role="status" style="color:#166534;">✓ Đã xử lý cảnh báo: ' . esc_html(($user ? $user->display_name : 'Nhân viên') . ' — ' . ($resolution['resolved_at'] ?? '')) . '</p>';
     }
     $reminder = get_post_meta($order_id, 'warehouse_export_lark_reminder_status', true);
+    $alert_status = get_post_meta($order_id, 'warehouse_export_lark_alert_status', true);
+    if (is_array($alert_status) && !empty($alert_status['state'])) {
+        $alert_labels = ['queued' => 'Đang chờ gửi, chưa có xác nhận từ Lark', 'sent' => 'Lark đã chấp nhận cảnh báo', 'failed' => 'Gửi cảnh báo lỗi'];
+        $alert_text = ($alert_labels[$alert_status['state']] ?? 'Chưa xác định') . ' — ' . ($alert_status['updated_at'] ?? '');
+        if (!empty($alert_status['error'])) $alert_text .= '. ' . $alert_status['error'];
+        $html .= '<p role="status" style="color:' . (($alert_status['state'] ?? '') === 'failed' ? '#b91c1c' : '#475569') . ';">' . esc_html($alert_text) . '</p>';
+    }
     if (is_array($reminder) && ($reminder['state'] ?? '') === 'queued' && !hithean_export_lark_current_pass($order_id)) {
-        $html .= '<p style="color:#92400e;">Lark sẽ nhắc lại lúc ' . esc_html(wp_date('H:i d/m/Y', (int) ($reminder['due_at'] ?? 0))) . ' nếu chưa có ảnh được AI kiểm tra khớp.</p>';
+        $html .= '<p style="color:#92400e;">Lịch nhắc tiếp theo: ' . esc_html(wp_date('H:i d/m/Y', (int) ($reminder['due_at'] ?? 0))) . ' nếu chưa có ảnh được AI kiểm tra khớp. Đây là lịch chờ, chưa phải xác nhận đã gửi tin.</p>';
     }
     return $html . '</section>';
 }

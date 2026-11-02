@@ -12,3 +12,8 @@
 2. Add a URL button that opens an authenticated confirmation form. Require staff capability, a fresh review identity and a POST nonce; record actor/time without confirming shipment or changing the AI verdict.
 3. Remind every 30 minutes until AI has passed the current photo set. Acknowledgment alone does not stop reminders; bind new AI results to the photos actually reviewed.
 4. Verify card safety/size, evidence freshness, reminder scheduling, acknowledgment authorization/idempotency and existing batching behavior.
+
+## Delivery diagnosis
+
+- Deduplicate by AI review timestamp and message format, in addition to photo identity and verdict. A new AI check on unchanged photos must send a fresh alert.
+- Display alert delivery separately from the next reminder deadline; a queued reminder is not evidence of a delivered message.

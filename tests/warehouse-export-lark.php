@@ -290,4 +290,22 @@ run_hook('hithean_export_lark_batch_async', $id, 0);
 check(count($GLOBALS['requests']) === 1 && strlen(last_text()) <= 19000, 'large batch remains one bounded message');
 check(strpos(last_text(), 'Mở danh sách đơn') !== false, 'oversize details link to full order list');
 
+// Rechecking the same photos is a new review, not a duplicate delivery.
+reset_state(); $r = review(1); $r['checked_at'] = '2026-11-02 11:46:50';
+$GLOBALS['meta'][1]['warehouse_export_ai_check'] = $r;
+$old_hash = hithean_export_lark_alert_hash(1, $r);
+run_hook('hithean_export_lark_alert_async', 1, $old_hash, 0);
+check(count($GLOBALS['requests']) === 1, 'first review delivered');
+$r['checked_at'] = '2026-11-02 11:58:29';
+$GLOBALS['meta'][1]['warehouse_export_ai_check'] = $r;
+$new_hash = hithean_export_lark_alert_hash(1, $r);
+check($new_hash !== $old_hash, 'new AI run gets its own alert identity on identical photos');
+hithean_export_lark_queue_alert(1, $r);
+check(wp_next_scheduled('hithean_export_lark_alert_async', [1, $new_hash, 0]) !== false, 'new review is not suppressed by previous delivery');
+run_hook('hithean_export_lark_alert_async', 1, $new_hash, 0);
+check(count($GLOBALS['requests']) === 2, 'new mismatch sends immediately on the same photos');
+run_hook('hithean_export_lark_alert_async', 1, $new_hash, 0);
+check(count($GLOBALS['requests']) === 2, 'duplicate execution of the same review still sends once');
+check(count(array_filter($GLOBALS['events'], fn($e) => $e['hook'] === 'hithean_export_lark_remind_async')) === 1, 'rechecking does not extend or duplicate the reminder');
+
 echo "OK: $checks checks\n";
