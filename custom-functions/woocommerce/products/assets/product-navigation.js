@@ -324,7 +324,7 @@
     var lwRoot = document.getElementById('thean-lw-root');
     var cluster = document.querySelector('[data-pcn-lw-slot]');
 
-    if (lwRoot && cluster) {
+    if (lwRoot && cluster && !document.body.classList.contains('hithean-product-purchase')) {
         var lwOriginalParent = null;
         var lwOriginalNext = null;
         var lwSlotted = false;

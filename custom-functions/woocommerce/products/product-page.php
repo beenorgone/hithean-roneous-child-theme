@@ -414,11 +414,8 @@ function hithean_sticky_atc_js()
         return;
     }
 
-    global $product;
-    if (!$product instanceof WC_Product) {
-        $product = wc_get_product(get_the_ID());
-    }
-    if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) {
+    $product = wc_get_product((int) get_queried_object_id());
+    if (!$product instanceof WC_Product || !$product->is_type(['simple', 'variable']) || !$product->is_purchasable() || !$product->is_in_stock()) {
         return;
     }
 
@@ -428,43 +425,11 @@ function hithean_sticky_atc_js()
     ?>
     <div class="woocommerce sticky-atc-bar" aria-label="Thêm vào giỏ hàng">
         <div class="quantity sticky-atc-bar__qty">
-            <input class="input-text qty text sticky-atc-bar__qty-input" type="number" step="1" value="1" min="1" max="<?php echo esc_attr($max_attr); ?>" />
+            <input class="input-text qty text sticky-atc-bar__qty-input" type="number" inputmode="numeric" aria-label="<?php esc_attr_e('Số lượng sản phẩm', 'hithean.com'); ?>" step="1" value="1" min="1" max="<?php echo esc_attr($max_attr); ?>" />
         </div>
-        <button class="single_add_to_cart_button button alt sticky-atc-bar__btn" type="button" style="margin-bottom: 0 !important;"><?php echo $btn_text; ?></button>
+        <button class="single_add_to_cart_button button alt sticky-atc-bar__btn" type="button"><span><?php echo $btn_text; ?></span><small data-purchase-sticky-subtotal></small></button>
     </div>
-    <script>
-    jQuery(function($) {
-        var $bar = $('.sticky-atc-bar');
-        if (!$bar.length) return;
-
-        var $qtyInput   = $bar.find('.sticky-atc-bar__qty-input');
-        var $stickyBtn  = $bar.find('.sticky-atc-bar__btn');
-        var $origBtn    = $('form.cart button.single_add_to_cart_button').first();
-
-        // Gửi form.cart qua add-to-cart-popup.php, số lượng lấy từ sticky bar.
-        $stickyBtn.on('click', function() {
-            if ($stickyBtn.hasClass('disabled') || $stickyBtn.prop('disabled')) return;
-            var form = $('form.cart')[0];
-            if (!form || !window.hitheanAtcPopup) return;
-
-            window.hitheanAtcPopup.submit(form, {
-                quantity: parseInt($qtyInput.val(), 10) || 1,
-                button: $stickyBtn[0]
-            });
-        });
-
-        // Mirror disabled state from original button (e.g. variable product, no variation selected)
-        function syncDisabled() {
-            var isDisabled = $origBtn.prop('disabled') || $origBtn.hasClass('disabled');
-            $stickyBtn.toggleClass('disabled', isDisabled).prop('disabled', isDisabled);
-        }
-
-        if ($origBtn.length && window.MutationObserver) {
-            new MutationObserver(syncDisabled).observe($origBtn[0], { attributes: true });
-        }
-        syncDisabled();
-    });
-    </script>
+    <?php // Quantity/validation synchronization is in assets/product-purchase.js. ?>
     <?php
 }
 

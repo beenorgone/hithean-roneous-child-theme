@@ -408,6 +408,12 @@ function tpc_loader_modules()
             'condition' => 'tpc_cond_is_product',
         ],
         [
+            'id' => 'product_purchase',
+            'file' => 'custom-functions/woocommerce/products/product-purchase.php',
+            'condition' => 'tpc_cond_is_product',
+            'ajax_actions' => ['hithean_product_purchase_quote'],
+        ],
+        [
             'id' => 'add_to_cart_popup',
             'file' => 'custom-functions/woocommerce/products/add-to-cart-popup.php',
             // Trang sản phẩm + mọi trang có product loop (trừ giỏ hàng / thanh toán, tự kiểm trong module).

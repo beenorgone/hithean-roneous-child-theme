@@ -777,12 +777,13 @@ function hithean_product_linking_render_group($options, $product_id, $field, $la
         }
 
         printf(
-            '<a class="%1$s" href="%2$s" role="listitem" aria-label="%3$s"%4$s>%5$s</a>',
+            '<a class="%1$s" href="%2$s" role="listitem" aria-label="%3$s"%4$s>%5$s%6$s</a>',
             esc_attr(implode(' ', $classes)),
             esc_url($option['url']),
-            esc_attr(sprintf(__('Xem sản phẩm %1$s: %2$s', 'roneous'), $label, $option[$field])),
+            esc_attr(sprintf(__('Xem sản phẩm %1$s: %2$s', 'roneous'), $label, $option[$field]) . (!$option['in_stock'] ? ' · ' . __('Tạm hết', 'roneous') : '')),
             (int) $option['id'] === (int) $product_id ? ' aria-current="page"' : '',
-            esc_html($option[$field])
+            esc_html($option[$field]),
+            !$option['in_stock'] ? '<span class="hithean-product-linking__stock">' . esc_html__('Tạm hết', 'roneous') . '</span>' : ''
         );
     }
 

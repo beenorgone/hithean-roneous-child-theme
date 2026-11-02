@@ -1,0 +1,147 @@
+/* Product hero only. Prices, tiers and promotional text remain plugin-owned. */
+body.hithean-product-purchase {
+    --purchase-ink: #33291f;
+    --purchase-muted: #5f625a;
+    --purchase-line: #dfE3da;
+    --purchase-surface: #f7f7f1;
+    --purchase-blue: var(--default-color-dark-blue, #0047ba);
+    --purchase-bottom-space: 0px;
+}
+body.hithean-product-purchase .main-container > section:has(.product-single) { padding: 16px 0 40px; }
+body.hithean-product-purchase .product-single > .product {
+    display: grid;
+    grid-template-columns: minmax(16px, 1fr) minmax(0, 600px) minmax(0, 600px) minmax(16px, 1fr);
+    gap: 28px clamp(16px, 2.8vw, 40px);
+    width: 100%;
+    margin: 0 auto;
+}
+body.hithean-product-purchase .product-single > .product::before,
+body.hithean-product-purchase .product-single > .product::after { display: none; }
+body.hithean-product-purchase .product-single > .product > * { min-width: 0; }
+body.hithean-product-purchase .product-single > .product > .woocommerce-product-gallery { grid-column: 2; grid-row: 1; }
+body.hithean-product-purchase .product-single > .product > .summary { grid-column: 3; grid-row: 1; color: var(--purchase-ink); }
+body.hithean-product-purchase .product-single > .product > .onsale { position: relative; grid-column: 2; grid-row: 1; align-self: start; justify-self: start; top: 12px; left: 12px; margin: 0; z-index: 3; }
+body.hithean-product-purchase .product-single > .product > :not(.summary):not(.woocommerce-product-gallery):not(.onsale) { grid-column: 1 / -1; }
+body.hithean-product-purchase .product-single > .product > .summary,
+body.hithean-product-purchase .product-single > .product > .woocommerce-product-gallery { float: none; width: 100%; margin: 0; padding: 0; }
+body.hithean-product-purchase .product-single .summary > * { order: 4; }
+body.hithean-product-purchase .product-single .summary > .mt32:empty { display: none; }
+body.hithean-product-purchase .product-single .summary > .product_title { order: 0; }
+body.hithean-product-purchase .product-single .summary > .price { order: 1; }
+body.hithean-product-purchase .product-single .summary > .woocommerce-product-details__short-description { order: 2; }
+body.hithean-product-purchase .product-single .summary > .hithean-product-linking { order: 3; }
+body.hithean-product-purchase .product-single .summary > .awdr-bulk-customizable-table { order: 4; }
+body.hithean-product-purchase .product-single .summary > .awdr_discount_bar { order: 5; }
+body.hithean-product-purchase .product-single .summary > form.cart { order: 6; }
+body.hithean-product-purchase .product-single .summary > .hithean-purchase-utilities { order: 7; }
+body.hithean-product-purchase .product-single .summary > .hithean-sales-count { order: 8; margin: 14px 0; }
+body.hithean-product-purchase .product-single .summary > .product-trust-ctas { order: 9; }
+body.hithean-product-purchase .product-single .summary > .b-single-product-ctas { order: 10; }
+body.hithean-product-purchase .product-single .summary > .b-greenspark-revenue-percentage-widget,
+body.hithean-product-purchase .product-single .summary > .hithean-purchase-impact { order: 11; }
+body.hithean-product-purchase .product-single .summary > .product_meta { order: 12; }
+body.hithean-product-purchase .product-single .summary .product_title { padding: 0; margin: 0 0 12px; font: 600 clamp(26px, 2.5vw, 34px)/1.2 Arial, sans-serif; letter-spacing: -.6px; text-transform: none; text-align: left; color: var(--purchase-ink); }
+body.hithean-product-purchase .product-single .summary > .price { margin: 0 0 12px; text-align: left; font: 600 28px/1.4 Arial, sans-serif; }
+body.hithean-product-purchase .product-single .summary .price del { font-size: .7em; color: var(--purchase-muted); }
+body.hithean-product-purchase .product-single .summary .price ins { text-decoration: none; background: none; }
+body.hithean-product-purchase .product-single .summary .price .hithean-sale-price-date-notice { margin-left: 0; margin-right: 0; text-align: left; font-style: normal; }
+body.hithean-product-purchase .product-single .summary .woocommerce-product-details__short-description { font-size: 14px; line-height: 1.6; margin: 0 0 18px; text-align: left; }
+body.hithean-product-purchase .product-single .summary .woocommerce-product-details__short-description p { margin: 0 0 8px; }
+body.hithean-product-purchase .product-single .summary > section.hithean-product-linking { padding: 0; margin: 0 0 18px; }
+body.hithean-product-purchase .hithean-product-linking__group { margin-bottom: 0; }
+body.hithean-product-purchase .hithean-product-linking__option { min-height: 44px; border-radius: 8px; }
+body.hithean-product-purchase .hithean-product-linking .hithean-product-linking__option.is-out-of-stock:not(.is-active) { text-decoration: none; color: #686b64; flex-direction: column; gap: 2px; }
+body.hithean-product-purchase .hithean-product-linking .hithean-product-linking__option.is-out-of-stock:not(.is-active)::after { display: none; }
+body.hithean-product-purchase .hithean-product-linking__stock { font-size: 12px; font-weight: 400; }
+body.hithean-product-purchase .woocommerce-product-gallery { display: block; }
+body.hithean-product-purchase .woocommerce-product-gallery .flex-viewport { border-radius: 12px; background: var(--purchase-surface); }
+body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs { display: flex; flex-wrap: nowrap; gap: 8px; max-width: 100%; margin: 10px 0 0; padding: 0 0 6px; overflow-x: auto; }
+body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs li { flex: 0 0 64px; float: none; width: 64px !important; margin: 0; border-radius: 8px; overflow: hidden; }
+body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs img { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
+body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs img.flex-active { outline: 2px solid var(--purchase-blue); outline-offset: -2px; opacity: 1; }
+body.hithean-product-purchase div.product .woocommerce-product-gallery .woocommerce-product-gallery__trigger { top: 10px; bottom: auto; right: 10px; }
+body.hithean-product-purchase .product-single .summary .awdr_discount_bar { max-width: none; margin: 0 0 14px !important; padding: 12px !important; border: 1px solid var(--purchase-line); border-radius: 8px !important; background: #edf5ec !important; color: #285239 !important; text-align: left; font-size: 13px; line-height: 1.5; }
+body.hithean-product-purchase .product-single .summary .awdr_discount_bar_content { background: transparent !important; color: inherit !important; }
+body.hithean-product-purchase .hithean-purchase-tiers { margin-bottom: 14px; }
+body.hithean-product-purchase .hithean-purchase-tiers table { display: block; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; border: 0; }
+body.hithean-product-purchase .hithean-purchase-tiers tbody { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+body.hithean-product-purchase .hithean-purchase-tiers tr.bulk_table_row { display: flex; flex-direction: column; align-items: stretch !important; border: 1px solid var(--purchase-line) !important; border-radius: 10px; margin: 0 !important; padding: 12px !important; background: #fff; }
+body.hithean-product-purchase .hithean-purchase-tiers .wdr_bulk_table_td { border: 0; padding: 0; text-align: left; font-size: 13px; line-height: 1.5; }
+body.hithean-product-purchase .hithean-purchase-tiers .wdr_bulk_table_discount { margin-top: 6px; }
+body.hithean-product-purchase .hithean-purchase-tiers .wdr_table_discounted_price .amount { font: 600 18px/1.4 Arial, sans-serif; }
+body.hithean-product-purchase .hithean-purchase-tier-action { display: block; border: 0; margin-top: 10px; padding: 0; }
+body.hithean-product-purchase .hithean-purchase-tier-action button { width: 100%; min-height: 44px; margin: 0; padding: 8px; border: 1px solid var(--purchase-line); border-radius: 6px; color: var(--purchase-blue); background: #fff; font: 500 13px/1.3 Arial, sans-serif; text-transform: none; letter-spacing: 0; }
+body.hithean-product-purchase .hithean-purchase-tier-action button[aria-pressed="true"] { border-color: var(--purchase-blue); background: #edf3ff; }
+body.hithean-product-purchase .hithean-purchase-tier-action button:disabled { opacity: .5; cursor: not-allowed; }
+body.hithean-product-purchase .product-single .summary form.cart { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%; margin: 0; padding: 0; text-align: left; }
+body.hithean-product-purchase .product-single .summary form.cart > .variations,
+body.hithean-product-purchase .product-single .summary form.cart > .single_variation_wrap,
+body.hithean-product-purchase .product-single .summary form.cart > .group_table { flex: 0 0 100%; width: 100%; }
+body.hithean-product-purchase .product-single .summary .woocommerce-variation-add-to-cart { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+body.hithean-product-purchase.hithean-purchase-with-price .product-single .summary .variations_form .woocommerce-variation-price { display: none; }
+body.hithean-product-purchase .product-single .summary form.cart div.quantity { display: flex; float: none; margin: 0; }
+body.hithean-product-purchase .product-single .summary form.cart .single_add_to_cart_button { display: inline-flex; align-items: center; justify-content: center; flex: 1; min-height: 48px; height: auto; margin: 0 !important; border-radius: 8px; padding: 12px 16px; font: 600 15px/1.4 Arial, sans-serif; text-transform: none; letter-spacing: 0; white-space: normal; }
+body.hithean-product-purchase .product-single .summary form.cart .quantity input.qty { height: 48px; border-radius: 8px; margin: 0; font-size: 16px; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote { flex: 0 0 100%; width: 100%; margin: 0 0 4px; text-align: left; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote[hidden] { display: none; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__total { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; font: 400 13px/1.5 Arial, sans-serif; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__total strong { font-size: 22px; font-weight: 600; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__status { margin: 6px 0 0; font: 400 12px/1.5 Arial, sans-serif; color: var(--purchase-muted); }
+body.hithean-product-purchase .hithean-purchase-utilities { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+body.hithean-product-purchase .hithean-purchase-utilities button { min-height: 44px; padding: 10px 12px; margin: 0; border: 1px solid var(--purchase-line); border-radius: 8px; background: transparent; color: var(--purchase-blue); font: 500 13px/1.4 Arial, sans-serif; text-transform: none; letter-spacing: 0; }
+body.hithean-product-purchase .product-single .summary .product-trust-ctas { margin-top: 18px; }
+body.hithean-product-purchase .product-single .summary .product-trust-ctas__embed { justify-content: flex-start; }
+body.hithean-product-purchase .product-single .summary .b-greenspark-revenue-percentage-widget { align-items: flex-start; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--purchase-line); }
+body.hithean-product-purchase .hithean-purchase-impact { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--purchase-line); font-size: 13px; line-height: 1.5; color: #285239; }
+body.hithean-product-purchase .hithean-purchase-impact > summary { padding: 6px 0; cursor: pointer; }
+body.hithean-product-purchase .hithean-purchase-impact .b-greenspark-revenue-percentage-widget { margin-top: 12px; padding-top: 0; border-top: 0; }
+body.hithean-product-purchase .product-single .summary .product_meta { text-align: left; margin: 16px 0 0; font-size: 12px; color: var(--purchase-muted); }
+body.hithean-product-purchase:not(.hithean-purchase-past-form) #pcn-root { visibility: hidden; pointer-events: none; }
+/* The existing modal roots stay on body. Utilities above launch their controls. */
+body.hithean-product-purchase.hithean-purchase-utilities-ready #thean-lw-root > .thean-lw-trigger,
+body.hithean-product-purchase.hithean-purchase-utilities-ready .pcn-mobile__detail { display: none !important; }
+body.hithean-product-purchase .sticky-atc-bar { display: none; }
+body.hithean-product-purchase .sticky-atc-bar .quantity[hidden] { display: none !important; }
+@media (min-width: 768px) {
+    body.hithean-product-purchase .nav-container .nav-utility { height: 64px; line-height: 64px; }
+    body.hithean-product-purchase .nav-container .nav-utility .logo { max-height: 44px; }
+}
+@media (max-width: 767px) {
+    body.hithean-product-purchase .main-container > section:has(.product-single) { padding: 20px 0 32px; }
+    body.hithean-product-purchase .product-single > .product { display: flex; flex-direction: column; gap: 0; width: 100%; }
+    body.hithean-product-purchase .product-single > .product > .summary { display: contents; }
+    body.hithean-product-purchase .product-single > .product > .summary > * { order: 35; width: calc(100% - 32px) !important; margin-left: 16px !important; margin-right: 16px !important; }
+    body.hithean-product-purchase .product-single > .product > .onsale { position: static; order: -1; align-self: flex-start; width: auto; min-width: 0; min-height: 0; margin: 0 16px 12px; padding: 6px 12px; border-radius: 999px; line-height: 1.4; }
+    body.hithean-product-purchase .product-single .summary > .product_title { order: 0; font-size: 27px; line-height: 1.2; }
+    body.hithean-product-purchase .product-single .summary > .price { order: 5; font-size: 26px; }
+    body.hithean-product-purchase .product-single .summary > .woocommerce-product-details__short-description { order: 10; margin-bottom: 16px; }
+    body.hithean-product-purchase .product-single > .product > .woocommerce-product-gallery { order: 20; width: calc(100% - 32px); margin: 0 16px 22px; }
+    body.hithean-product-purchase .product-single .summary > .hithean-product-linking { order: 30; }
+    body.hithean-product-purchase .hithean-product-linking__options { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
+    body.hithean-product-purchase .hithean-product-linking .hithean-product-linking__option { min-width: 0; padding: 10px 8px; }
+    body.hithean-product-purchase .product-single .summary > .awdr-bulk-customizable-table { order: 40; }
+    body.hithean-product-purchase .product-single .summary > .awdr_discount_bar { order: 45; }
+    body.hithean-product-purchase .product-single .summary > form.cart { order: 50; }
+    body.hithean-product-purchase .product-single .summary > .hithean-purchase-utilities { order: 55; }
+    body.hithean-product-purchase .product-single .summary > .hithean-sales-count { order: 58; }
+    body.hithean-product-purchase .product-single .summary > .product-trust-ctas { order: 60; }
+    body.hithean-product-purchase .product-single .summary > .b-single-product-ctas { order: 65; }
+    body.hithean-product-purchase .product-single .summary > .b-greenspark-revenue-percentage-widget,
+    body.hithean-product-purchase .product-single .summary > .hithean-purchase-impact { order: 70; }
+    body.hithean-product-purchase .product-single .summary > .product_meta { order: 80; }
+    body.hithean-product-purchase .product-single > .product > .woocommerce-tabs { order: 90; }
+    body.hithean-product-purchase .product-single > .product > .upsells,
+    body.hithean-product-purchase .product-single > .product > .related { order: 100; }
+    body.hithean-product-purchase .hithean-purchase-tiers tbody { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+    body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs li { flex-basis: 52px; width: 52px !important; }
+    body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs img { width: 52px; height: 52px; }
+    body.hithean-product-purchase.hithean-purchase-has-sticky { --purchase-bottom-space: calc(80px + env(safe-area-inset-bottom, 0px)); padding-bottom: var(--purchase-bottom-space); }
+    body.hithean-product-purchase.hithean-purchase-has-sticky .sticky-atc-bar { display: flex; height: auto; min-height: 72px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: auto; min-height: 50px; margin: 0; padding: 8px 12px; border-radius: 8px; font: 600 14px/1.25 Arial, sans-serif; text-transform: none; letter-spacing: 0; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn small { font-size: 13px; }
+    body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input { height: 50px; border-radius: 8px; font-size: 16px; }
+    body.hithean-product-purchase .pcn-mobile { bottom: var(--purchase-bottom-space); }
+}
+body.hithean-product-purchase .hithean-purchase-tier-action button:focus-visible,
+body.hithean-product-purchase .hithean-purchase-utilities button:focus-visible,
+body.hithean-product-purchase .product-single .summary form.cart button:focus-visible { outline: 2px solid var(--purchase-blue); outline-offset: 3px; }
