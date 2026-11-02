@@ -12,7 +12,7 @@
     var invoice = document.getElementById('thean-ous-invoice');
     var searchCtl = null, previewCtl = null, boardCtl = null, timer = 0;
     var boardState = { tab: '', page: 0, shown: 0, loading: false };
-    var boardCache = new Map(); // "tab|page" → {at, data}; trang 1 của mọi tab nạp sẵn khi mở board (BOARD_TTL)
+    var boardCache = new Map(); // "tab|page" → {at, data}; chỉ giữ các tab đã xem (BOARD_TTL)
     var blockedUntil = 0; // server khóa tìm kiếm (quá nhiều lượt) — không tự gửi tới khi hết hạn
     var state = { q: '', page: 0, loading: false };
     var cache = new Map(); // "q|page" → {at, data}; 60s, tránh gọi lại khi mở/đóng modal
@@ -514,33 +514,44 @@
         rememberTab(data.tab);
         syncUrlTab(data.tab);
         renderTabs(data.tabs, data.tab);
-        board.querySelector('.thean-ous-modal__status').textContent = '— cập nhật ' + data.at + (data.pending ? ' · còn đơn chưa được phân bước, bấm Làm mới để tính tiếp' : '');
-        if (!data.total) { notice(body(board), 'Không có đơn nào ở bước này 🎉'); return; }
+        board.querySelector('.thean-ous-modal__status').textContent = '— cập nhật ' + data.at + (data.pending ? ' · đang chờ kiểm tra phân bước ở nền' : '');
+        if (!data.total) { notice(body(board), data.pending ? 'Chưa có đơn ở bước này. Hệ thống đang chờ kiểm tra phân bước ở nền; bấm Làm mới sau ít giây.' : 'Không có đơn nào ở bước này 🎉'); return; }
         fillTable(board, data, page);
-        // Lần tải đầu chỉ 5 đơn / tab cho nhẹ — tab đang xem tự tải thêm cho đủ BOARD_MORE (20) đơn.
-        if (page === 1 && data.has_more && data.shown < BOARD_MORE) {
-            loadBoard(data.tab, 2, false, BOARD_MORE - data.shown);
+        // Lượt đầu kết thúc tại đây; chỉ đọc thêm khi người dùng bấm "Xem thêm".
+        if (page === 1 && window.performance && performance.mark && !performance.getEntriesByName('thean-board-first-visible').length) {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    if (performance.getEntriesByName('thean-board-first-visible').length) return;
+                    performance.mark('thean-board-rendered');
+                    performance.measure('thean-board-first-visible', { start: 0, end: 'thean-board-rendered' });
+                });
+            });
         }
     }
-    // Trang 1 (mở board / Làm mới / sau thao tác): server trả luôn 5 đơn đầu của MỌI tab (all = 1) → đổi tab lấy từ
-    // boardCache, không gọi lại server. "Xem thêm" trong 1 tab tải tiếp từ vị trí đang hiện (offset).
-    var BOARD_TTL = 60000; // 1 phút: đơn mới vào tab (đặt hàng, đổi trạng thái ở nơi khác) hiện ra khi đổi tab mà không cần Làm mới
+    // Chỉ tải 10 đơn của tab đang xem; cache ngắn cho các tab đã mở.
+    // "Xem thêm" tiếp tục từ số dòng thực tế đang hiển thị.
+    var BOARD_TTL = 10000; // 10 giây: đơn mới vào tab (đặt hàng, đổi trạng thái ở nơi khác) hiện ra khi đổi tab mà không cần Làm mới
     var BOARD_MORE = 20; // = THEAN_OUS_BOARD_MORE
     function loadBoard(tab, page, refresh, limit) {
         var key = tab + '|' + page, hit = boardCache.get(key);
         board.hidden = false;
-        if (!refresh && tab && hit && Date.now() - hit.at < BOARD_TTL) { renderBoard(hit.data, page); return; }
-        if (page === 1) boardCache.clear();
         if (boardCtl) boardCtl.abort();
-        boardCtl = new AbortController();
+        var ctl = new AbortController();
+        boardCtl = ctl;
+        boardState.loading = false;
+        if (!refresh && tab && hit && Date.now() - hit.at < BOARD_TTL) { renderBoard(hit.data, page); return; }
+        if (page === 1) {
+            // Giữ cache tab khác; bỏ các trang cũ của tab sắp tải lại.
+            boardCache.forEach(function (_, k) { if (k.indexOf(tab + '|') === 0) boardCache.delete(k); });
+        }
         boardState.loading = true;
         var moreBtn = body(board).querySelector('[data-thean-ous-more]');
         if (page === 1) notice(body(board), 'Đang tải đơn cần xử lý…');
         else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
-        var data = { tab: tab };
-        if (page === 1) data.all = 1;
-        else { data.offset = boardState.shown; data.limit = limit || BOARD_MORE; }
-        post('thean_order_usearch_board', data, boardCtl).then(function (res) {
+        var data = { tab: tab, offset: page === 1 ? 0 : boardState.shown, limit: page === 1 ? 10 : (limit || BOARD_MORE) };
+        if (refresh) data.refresh = 1;
+        post('thean_order_usearch_board', data, ctl).then(function (res) {
+            if (boardCtl !== ctl) return;
             if (!res.success) {
                 if (res.data && res.data.retry_after) blockedUntil = Date.now() + res.data.retry_after * 1000;
                 throw new Error(message(res, 'Không tải được board.'));
@@ -559,8 +570,12 @@
             if (page > 1 && d.tab !== boardState.tab) return;
             renderBoard(d, page);
         }).catch(function (err) {
-            if (err.name !== 'AbortError') notice(body(board), err.message || 'Lỗi kết nối.');
-        }).finally(function () { boardState.loading = false; if (moreBtn) moreBtn.disabled = false; });
+            if (boardCtl === ctl && err.name !== 'AbortError') notice(body(board), err.message || 'Lỗi kết nối.');
+        }).finally(function () {
+            if (boardCtl !== ctl) return;
+            boardState.loading = false;
+            if (moreBtn) { moreBtn.disabled = false; moreBtn.textContent = 'Xem thêm'; }
+        });
     }
 
     function openPreview(orderId) {

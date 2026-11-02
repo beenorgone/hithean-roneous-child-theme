@@ -20,7 +20,8 @@ if (!defined('ABSPATH')) exit;
  *
  * Board "Cần xử lý": nút "Tải đơn cần xử lý" trên thanh tìm hiện board NGAY TRÊN TRANG (dưới thanh tìm), chia tab theo bước vận hành của đơn. Bước được lưu sẵn ở meta
  * `_thean_ops_step` (order-ops-step.php, tính bằng thean_ow_flow() — cùng logic bảng điều phối) nên board chỉ
- * đếm + phân trang bằng SQL rồi đọc 10 đơn của trang; 10 đơn đó được tính lại tại chỗ (tự sửa nếu lệch).
+ * đếm + phân trang bằng SQL (cache ID/số đếm 10s), chỉ đọc tab đang xem; đơn hiện được tính lại tại chỗ.
+ * Backfill đơn chưa phân bước chạy qua WP-Cron, không nằm trên request mở board.
  *
  * Chọn nhiều đơn (kết quả tìm + board) → thao tác hàng loạt: Tạm giữ / Tiếp tục / Đặt trước / Hủy (thean_ow_apply_flow của
  * order-workspace.php), Đổi trạng thái, Bỏ qua thiếu chứng từ XK (tab board); tối đa THEAN_OUS_BULK_MAX đơn / lần.
@@ -41,11 +42,11 @@ const THEAN_OUS_RL_MAX      = 4;   // tối đa lượt tìm thật (không trú
 const THEAN_OUS_RL_WINDOW   = 30;  // … trong 30 giây; lượt thứ 5 bị chặn
 const THEAN_OUS_RL_BLOCK    = 120; // khóa 2 phút
 const THEAN_OUS_BULK_MAX = 50; // thao tác hàng loạt: tối đa 50 đơn / lần
-const THEAN_OUS_BOARD_FIRST = 5;  // board: lần tải đầu (mọi tab) lấy 5 đơn / tab …
-const THEAN_OUS_BOARD_MORE  = 20; // … tab đang xem tự tải thêm cho đủ 20; "Xem thêm" tải 20 đơn / lần (client gửi limit ≤ 50)
+const THEAN_OUS_BOARD_FIRST = 10; // lần đầu chỉ tải tab đang xem
+const THEAN_OUS_BOARD_MORE  = 20; // "Xem thêm" tải 20 đơn / lần (client gửi limit ≤ 50)
 const THEAN_OUS_FLUSH_BATCH = 50;   // nút 🧹 Xoá cache: tính lại bước 50 đơn mở / request …
 const THEAN_OUS_FLUSH_MAX   = 2000; // … tối đa 2000 đơn mới nhất (còn lại cron quét dần)
-const THEAN_OUS_BOARD_BACKFILL = 20; // board: mỗi lần mở tính bù tối đa 20 đơn chưa có bước
+const THEAN_OUS_BOARD_CACHE_TTL = 10; // ID/số đếm; không cache HTML/quyền thao tác
 
 /**
  * Meta vận đơn / hoàn hàng được tìm theo chuỗi con. Hithean: field Meta Box có tiền tố
@@ -872,14 +873,18 @@ function thean_ous_ship_code_short(string $code): string
     return preg_match('/^S\d+\..*\.(\d+)$/i', $code, $m) ? $m[1] : $code;
 }
 
-function thean_ous_render_rows(array $ids, array $tokens, array $hints = []): string
+function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?array $orders = null, array $flows = []): string
 {
     ob_start();
-    foreach (thean_ous_load_orders($ids) as $order) {
+    foreach ($orders ?? thean_ous_load_orders($ids) as $order) {
         $id = $order->get_id();
         // Bước tiếp theo (board đã tính sẵn thì dùng gợi ý của board).
-        $flow = function_exists('thean_ops_step_compute') ? thean_ops_step_compute($order) : ['step' => '', 'hint' => '', 'proof' => false];
-        if (!empty($hints[$id])) {
+        $flow = $flows[$id] ?? (function_exists('thean_ops_step_compute') ? thean_ops_step_compute($order) : ['step' => '', 'hint' => '', 'proof' => false]);
+        // sync lưu bước không gated; render vẫn loại đơn vừa trở thành nội bộ/cũ.
+        if (isset($flows[$id]) && thean_ops_step_excluded($order)) {
+            $flow = ['step' => '', 'hint' => '', 'proof' => false];
+        }
+        if (!empty($hints[$id]) && $flow['step'] !== '') {
             $flow['hint'] = $hints[$id];
         }
         $shipper = thean_ous_shipper($order);
@@ -1106,10 +1111,39 @@ function thean_ous_board_in_tab(array $res, string $tab): bool
     return $tab === 'proof' ? !empty($res['proof']) : ($res['step'] ?? '') === $tab;
 }
 
+/** Cache dữ liệu dùng chung, khóa gồm cấu hình lọc và revision; HTML luôn render theo user hiện tại.
+ * Làm tròn giây trong mốc tuổi chỉ cho khóa cache: SQL vẫn dùng mốc chính xác, TTL tối đa 10s.
+ */
+function thean_ous_board_cache_key(string $part): string
+{
+    $scope = preg_replace("/(:[0-9]{2})'/", ":00'", thean_ous_board_sql());
+    return 'thean_ous_board_' . md5(wp_json_encode([
+        $part, $scope, THEAN_OPS_STEP_VERSION, thean_ous_orders_version(),
+        get_option('thean_ops_board_revision', '0'),
+    ]));
+}
+
+/** Server-Timing hiển thị trong DevTools, không chứa dữ liệu khách hàng. */
+function thean_ous_timing_header(array $timings): void
+{
+    if (!headers_sent()) {
+        $parts = [];
+        foreach ($timings as $name => $ms) {
+            $parts[] = $name . ';dur=' . number_format(max(0, $ms), 1, '.', '');
+        }
+        header('Server-Timing: ' . implode(', ', $parts));
+    }
+}
+
 /** Số đơn mỗi tab (GROUP BY theo bước + đếm riêng tab "Thiếu chứng từ XK" theo cờ). */
 function thean_ous_board_counts(): array
 {
     global $wpdb;
+    $key = thean_ous_board_cache_key('counts');
+    $cached = get_transient($key);
+    if (is_array($cached)) {
+        return $cached;
+    }
     $rows   = $wpdb->get_results('SELECT s.meta_value AS tab, COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') AS n ' . thean_ous_board_sql() . ' GROUP BY s.meta_value', ARRAY_A);
     $counts = array_fill_keys(array_keys(thean_ops_step_tabs()), 0);
     foreach ((array) $rows as $row) {
@@ -1120,6 +1154,7 @@ function thean_ous_board_counts(): array
     if (isset($counts['proof'])) {
         $counts['proof'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') ' . thean_ous_board_sql() . ' AND ' . thean_ous_board_tab_sql('proof'));
     }
+    set_transient($key, $counts, THEAN_OUS_BOARD_CACHE_TTL);
     return $counts;
 }
 
@@ -1127,11 +1162,20 @@ function thean_ous_board_counts(): array
 function thean_ous_board_page_ids(string $tab, int $offset, int $limit): array
 {
     global $wpdb;
+    $key = $offset === 0 ? thean_ous_board_cache_key('ids:' . $tab . ':' . $limit) : '';
+    $cached = $key ? get_transient($key) : false;
+    if (is_array($cached)) {
+        return $cached;
+    }
     $id = thean_ops_step_tables()['id'];
-    return array_map('intval', $wpdb->get_col($wpdb->prepare(
+    $ids = array_map('intval', $wpdb->get_col($wpdb->prepare(
         "SELECT DISTINCT o.{$id} " . thean_ous_board_sql() . ' AND ' . thean_ous_board_tab_sql($tab) . " ORDER BY o.{$id} DESC LIMIT %d OFFSET %d",
         $limit, $offset
     )));
+    if ($key) {
+        set_transient($key, $ids, THEAN_OUS_BOARD_CACHE_TTL);
+    }
+    return $ids;
 }
 
 add_action('wp_ajax_thean_order_usearch_board', 'thean_ous_ajax_board');
@@ -1142,20 +1186,23 @@ function thean_ous_ajax_board(): void
         wp_send_json_error(['message' => 'Không có quyền.'], 403);
     }
 
-    // Đơn chưa có bước (mới bật tính năng / vừa tăng THEAN_OPS_STEP_VERSION): bù dần mỗi lần mở board.
-    $pending = thean_ops_step_unsynced_ids(THEAN_OUS_BOARD_BACKFILL + 1);
-    thean_ops_step_sync_ids(array_slice($pending, 0, THEAN_OUS_BOARD_BACKFILL));
+    $started = microtime(true);
+    $pending = thean_ops_step_request_backfill();
+    // Làm mới chủ động phải bỏ cache server, kể cả khi không có đơn đổi bước.
+    if (!empty($_POST['refresh'])) {
+        thean_ops_board_invalidate();
+    }
 
     $labels = thean_ops_step_tabs();
     $offset = absint($_POST['offset'] ?? 0); // "Xem thêm": số đơn đang hiện của tab
-    $limit  = min(50, max(1, absint($_POST['limit'] ?? THEAN_OUS_BOARD_MORE)));
+    $limit  = min(50, max(1, absint($_POST['limit'] ?? ($offset === 0 ? THEAN_OUS_BOARD_FIRST : THEAN_OUS_BOARD_MORE))));
     $tab    = sanitize_key(wp_unslash($_POST['tab'] ?? ''));
     $counts = thean_ous_board_counts();
     if (!isset($labels[$tab])) {
         $tab = (string) (array_key_first(array_filter($counts)) ?? array_key_first($labels));
     }
 
-    // all = 1 (mở board / Làm mới): trả luôn THEAN_OUS_BOARD_FIRST đơn đầu của mọi tab có đơn → đổi tab không gọi lại server.
+    // Giữ all=1 cho client cũ; client mới chỉ yêu cầu tab đang xem.
     $all  = !empty($_POST['all']);
     $load = $all ? array_keys(array_filter($counts)) : [];
     if (!in_array($tab, $load, true)) {
@@ -1169,7 +1216,9 @@ function thean_ous_ajax_board(): void
     }
 
     // Tính lại tại chỗ các đơn sẽ hiện (đọc gộp 1 lần): lệch thì ghi lại, đơn đã sang bước khác thì không hiện ở tab đó.
-    $fresh = thean_ops_step_sync_ids(array_merge([], ...array_values($ids_by)));
+    $queried = microtime(true);
+    $orders = [];
+    $fresh = thean_ops_step_sync_ids(array_merge([], ...array_values($ids_by)), $orders);
     // Có đơn vừa đổi tab (meta cũ) → lấy lại danh sách: đơn chuyển SANG tab khác không bị kẹt ngoài trang đầu của tab đó
     // ("Xem thêm" tính tiếp theo offset nên sẽ nhảy qua nó).
     $moved = false;
@@ -1179,6 +1228,7 @@ function thean_ous_ajax_board(): void
         }
     }
     if ($moved) {
+        thean_ops_board_invalidate();
         $counts = thean_ous_board_counts();
         $load   = $all ? array_keys(array_filter($counts)) : [];
         if (!in_array($tab, $load, true)) {
@@ -1189,7 +1239,9 @@ function thean_ous_ajax_board(): void
             $ids_by[$t] = $all ? thean_ous_board_page_ids($t, 0, THEAN_OUS_BOARD_FIRST) : thean_ous_board_page_ids($t, $offset, $limit);
         }
         $new = array_diff(array_merge([], ...array_values($ids_by)), array_keys($fresh));
-        $fresh += thean_ops_step_sync_ids(array_values($new));
+        $new_orders = [];
+        $fresh += thean_ops_step_sync_ids(array_values($new), $new_orders);
+        $orders += $new_orders;
     }
     $show_by = [];
     $hints   = [];
@@ -1209,6 +1261,7 @@ function thean_ous_ajax_board(): void
         $counts = thean_ous_board_counts();
     }
 
+    $synced = microtime(true);
     $panes = [];
     foreach ($show_by as $t => $show) {
         $total = $counts[$t] ?? 0;
@@ -1216,7 +1269,7 @@ function thean_ous_ajax_board(): void
         $shown = min($total, ($all ? 0 : $offset) + count($show));
         $panes[$t] = [
             'tab'      => $t,
-            'rows'     => thean_ous_render_rows($show, [], array_intersect_key($hints, array_flip($show))),
+            'rows'     => thean_ous_render_rows($show, [], array_intersect_key($hints, array_flip($show)), array_map(static fn($id) => $orders[$id], $show), $fresh),
             'total'    => $total,
             'shown'    => $shown,
             'has_more' => $shown < $total,
@@ -1226,10 +1279,16 @@ function thean_ous_ajax_board(): void
     foreach ($labels as $k => $label) {
         $tabs[] = ['key' => $k, 'label' => $label, 'count' => $counts[$k] ?? 0];
     }
+    thean_ous_timing_header([
+        'board_query' => ($queried - $started) * 1000,
+        'board_sync' => ($synced - $queried) * 1000,
+        'board_render' => (microtime(true) - $synced) * 1000,
+        'board_total' => (microtime(true) - $started) * 1000,
+    ]);
     wp_send_json_success($panes[$tab] + [
         'tabs'    => $tabs,
         'panes'   => $all ? $panes : null,
-        'pending' => max(0, count($pending) - THEAN_OUS_BOARD_BACKFILL) > 0,
+        'pending' => $pending,
         'at'      => wp_date('H:i:s'),
         'ver'     => thean_ous_build_ver(),
     ]);
@@ -1317,6 +1376,7 @@ function thean_ous_ajax_search(): void
         wp_send_json_error(['message' => 'Không có quyền.'], 403);
     }
 
+    $started = microtime(true);
     $query   = sanitize_text_field(wp_unslash($_POST['q'] ?? ''));
     $page    = max(1, absint($_POST['page'] ?? 1));
     $filters = thean_ous_parse_query($query);
@@ -1342,12 +1402,19 @@ function thean_ous_ajax_search(): void
         $ids = thean_ous_find_order_ids($filters);
         set_transient($key, $ids, THEAN_OUS_CACHE_TTL);
     }
+    $queried = microtime(true);
     $total = count($ids);
     $slice = array_slice($ids, ($page - 1) * THEAN_OUS_PER_PAGE, THEAN_OUS_PER_PAGE);
 
+    $rows = thean_ous_render_rows($slice, thean_ous_highlight_tokens($filters));
+    thean_ous_timing_header([
+        'search_query' => ($queried - $started) * 1000,
+        'search_render' => (microtime(true) - $queried) * 1000,
+        'search_total' => (microtime(true) - $started) * 1000,
+    ]);
     wp_send_json_success([
         'ver'      => thean_ous_build_ver(),
-        'rows'     => thean_ous_render_rows($slice, thean_ous_highlight_tokens($filters)),
+        'rows'     => $rows,
         'total'    => $total,
         'capped'   => $total >= THEAN_OUS_CAP,
         'shown'    => min($total, $page * THEAN_OUS_PER_PAGE),
@@ -1387,6 +1454,9 @@ function thean_ous_ajax_flush(): void
     }
     global $wpdb;
     $offset = absint($_POST['offset'] ?? 0);
+    if ($offset === 0) {
+        thean_ops_board_invalidate();
+    }
     if ($offset === 0 && class_exists('WC_Cache_Helper')) {
         WC_Cache_Helper::get_transient_version('orders', true);
     }

@@ -14,14 +14,15 @@ namespace Automattic\WooCommerce\Utilities {
 namespace {
 define('ABSPATH', __DIR__);
 define('DAY_IN_SECONDS', 86400);
-function add_action(...$a) {}
+define('ARRAY_A', 'ARRAY_A');
+function add_action($hook, $callback, ...$a) { $GLOBALS['__actions'][$hook][] = $callback; }
 function wp_strip_all_tags($s) { return strip_tags((string) $s); }
 function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
 function get_user_meta() { return ''; }
 function add_filter(...$a) {}
 $GLOBALS['__transients'] = [];
 function get_transient($k) { return $GLOBALS['__transients'][$k] ?? false; }
-function set_transient($k, $v, $ttl = 0) { $GLOBALS['__transients'][$k] = $v; return true; }
+function set_transient($k, $v, $ttl = 0) { $GLOBALS['__transients'][$k] = $v; $GLOBALS['__ttls'][$k] = $ttl; return true; }
 function delete_transient($k) { unset($GLOBALS['__transients'][$k]); return true; }
 function apply_filters($tag, $value) { return $value; }
 $GLOBALS['__options'] = [];
@@ -30,6 +31,33 @@ $GLOBALS['__caps'] = []; $GLOBALS['__uid'] = 0;
 function current_user_can($cap) { return in_array($cap, $GLOBALS['__caps'], true); }
 function get_current_user_id() { return $GLOBALS['__uid']; }
 function esc_sql($s) { return addslashes($s); }
+function update_option($k, $v, $autoload = null) { $GLOBALS['__options'][$k] = $v; return true; }
+function wp_json_encode($v) { return json_encode($v); }
+function wp_unslash($v) { return $v; }
+function sanitize_key($v) { return preg_replace('/[^a-z0-9_-]/', '', strtolower($v)); }
+function absint($v) { return abs((int) $v); }
+function wp_date($format) { return gmdate($format); }
+$GLOBALS['__scheduled'] = [];
+function wp_next_scheduled($hook) { return $GLOBALS['__scheduled'][$hook] ?? false; }
+function wp_schedule_single_event($at, $hook) {
+    $GLOBALS['__schedule_calls'] = ($GLOBALS['__schedule_calls'] ?? 0) + 1;
+    if (!empty($GLOBALS['__schedule_fail'])) return false;
+    $GLOBALS['__scheduled'][$hook] = $at;
+    return true;
+}
+function wc_get_orders($args) { $GLOBALS['__order_queries'][] = $args; return []; }
+class JsonResponse extends RuntimeException {
+    public array $data;
+    public bool $success;
+    public function __construct($data, $success) { $this->data = $data; $this->success = $success; }
+}
+function check_ajax_referer(...$a) {
+    $GLOBALS['__nonce_checks'] = ($GLOBALS['__nonce_checks'] ?? 0) + 1;
+    if (!empty($GLOBALS['__bad_nonce'])) throw new RuntimeException('Invalid nonce');
+}
+function wp_send_json_success($data) { throw new JsonResponse($data, true); }
+function wp_send_json_error($data, $status = null) { throw new JsonResponse($data, false); }
+
 function remove_accents($s)
 {
     // Đủ cho tên trạng thái trong test (không cần ext-intl).
@@ -46,23 +74,52 @@ function thean_change_woocommerce_order_number($order_id)
     return $order_id . ceil(($nums1[0] + $nums2[0]) / 2);
 }
 
+class WC_Order {
+    public array $meta = [];
+    public string $email = '';
+    public ?DateTimeImmutable $created = null;
+    public function get_date_created() { return $this->created; }
+    public function get_type() { return 'shop_order'; }
+    public function get_meta($key) { return $this->meta[$key] ?? ''; }
+    public function get_billing_email() { return $this->email; }
+}
+
 class FakeWpdb
 {
     public string $prefix = 'wp_';
     public string $posts = 'wp_posts';
     public string $postmeta = 'wp_postmeta';
     public array $queries = [];
+    public array $board_counts = [];
+    public array $board_ids = [];
+    public array $unsynced_ids = [];
+    public int $proof_count = 0;
     public function esc_like($s) { return addcslashes($s, '_%\\'); }
     public function prepare($query, ...$args)
     {
         if (isset($args[0]) && is_array($args[0])) $args = $args[0];
-        if (substr_count($query, '%s') !== count($args)) throw new RuntimeException('placeholder mismatch: ' . $query);
-        if (preg_match('/%(?!s)/', str_replace('%s', '', $query))) throw new RuntimeException('stray % in prepare: ' . $query);
-        return vsprintf(str_replace('%s', "'%s'", $query), array_map('addslashes', $args));
+        $i = 0;
+        $out = preg_replace_callback('/%[sd]/', function ($m) use (&$i, $args) {
+            if (!array_key_exists($i, $args)) throw new RuntimeException('missing placeholder argument');
+            $v = $args[$i++];
+            return $m[0] === '%d' ? (string) (int) $v : "'" . addslashes($v) . "'";
+        }, $query);
+        if ($i !== count($args)) throw new RuntimeException('unused placeholder arguments');
+        return $out;
+    }
+    public function get_results($sql, $format) {
+        $this->queries[] = $sql;
+        return $this->board_counts;
+    }
+    public function get_var($sql) {
+        $this->queries[] = $sql;
+        return $this->proof_count;
     }
     public function get_col($sql)
     {
         $this->queries[] = $sql;
+        if (strpos($sql, 'AND a.meta_value') !== false) return $this->unsynced_ids;
+        if (strpos($sql, 'SELECT DISTINCT o.') !== false) return $this->board_ids;
         // Lọc cuối (IN (...)) trả lại đúng danh sách ứng viên, mới nhất trước.
         if (preg_match('/\b(?:id|ID) IN \(([\d,]+)\)/', $sql, $m)) {
             $ids = array_map('intval', explode(',', $m[1]));
@@ -245,6 +302,109 @@ check(!thean_can_change_any_status(), 'admin not designated → no arbitrary sta
 $GLOBALS['__caps'] = ['manage_woocommerce']; $GLOBALS['__uid'] = 7;
 check(thean_can_change_any_status() && !thean_can_skip_export_proof(), 'designated shop manager can change status, still cannot skip proof');
 unset($GLOBALS['__options']['thean_status_change_users']); $GLOBALS['__caps'] = []; $GLOBALS['__uid'] = 0;
+
+// Tái dùng flow phải giữ gating hiển thị, trong khi bước lưu sẵn vẫn không gated.
+$order = new WC_Order();
+$order->created = new DateTimeImmutable();
+check(!thean_ops_step_excluded($order), 'recent customer order eligible for board');
+$order->meta['_eim_internal'] = '1';
+check(thean_ops_step_excluded($order) && !thean_ops_step_excluded($order, false), 'internal gating preserved when reusing stored flow');
+$order->meta = []; $order->created = new DateTimeImmutable('-400 days');
+check(thean_ops_step_excluded($order) && !thean_ops_step_excluded($order, false), 'old-order gating preserved when reusing stored flow');
+$order->meta['_spx_date'] = '2026-01-01';
+check(thean_ops_step_excluded($order, false), 'merged Shopee order excluded even without age/internal gating');
+
+// Board: cache rỗng cũng phải là cache hit, tách kho lưu trữ / cấu hình / tab / giới hạn.
+foreach ([true, false] as $hpos) {
+    \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
+    thean_ops_board_invalidate();
+    $wpdb->queries = [];
+    $wpdb->board_counts = [['tab' => 'picking', 'n' => '25']];
+    $wpdb->proof_count = 3;
+    $counts = thean_ous_board_counts();
+    check($counts['picking'] === 25 && $counts['proof'] === 3, 'counts + proof count cached');
+    thean_ous_board_counts();
+    check(count($wpdb->queries) === 2, 'second count request skips SQL');
+    $key = thean_ous_board_cache_key('counts');
+    check($GLOBALS['__ttls'][$key] === 10, 'counts expire after 10 seconds');
+    $wpdb->board_ids = [901, 900];
+    $wpdb->queries = [];
+    check(thean_ous_board_page_ids('picking', 0, 10) === [901, 900], 'first page IDs');
+    thean_ous_board_page_ids('picking', 0, 10);
+    check(count($wpdb->queries) === 1, 'first page ID cache hit');
+    thean_ous_board_page_ids('shipping', 0, 10);
+    thean_ous_board_page_ids('picking', 0, 20);
+    check(count($wpdb->queries) === 3, 'ID cache separated by tab and limit');
+    thean_ous_board_page_ids('picking', 10, 20);
+    thean_ous_board_page_ids('picking', 10, 20);
+    check(count($wpdb->queries) === 5, 'load more uses live offset query');
+    thean_ops_board_invalidate();
+    check(thean_ous_board_cache_key('counts') !== $key, 'step update invalidates cache generation');
+    $wpdb->board_counts = []; $wpdb->board_ids = []; $wpdb->proof_count = 0;
+    $wpdb->queries = [];
+    thean_ous_board_counts(); thean_ous_board_counts();
+    thean_ous_board_page_ids('picking', 0, 10); thean_ous_board_page_ids('picking', 0, 10);
+    check(count($wpdb->queries) === 3, 'empty counts and IDs cached');
+    $key = thean_ous_board_cache_key('counts');
+    $GLOBALS['__options']['thean_internal_email_domains'] = 'private.example';
+    check(thean_ous_board_cache_key('counts') !== $key, 'domain settings change cache scope');
+    unset($GLOBALS['__options']['thean_internal_email_domains']);
+}
+$key = thean_ous_board_cache_key('counts');
+\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = true;
+check(thean_ous_board_cache_key('counts') !== $key, 'HPOS and legacy caches are separate');
+$key = thean_ous_board_cache_key('counts');
+thean_ops_step_queue(123);
+check(thean_ous_board_cache_key('counts') !== $key, 'queued order save invalidates counts/IDs');
+
+// Backfill: enqueue only; failures remain retryable and repeated opens share one event.
+$wpdb->queries = [];
+$GLOBALS['__schedule_fail'] = true;
+check(!thean_ops_step_request_backfill() && !get_transient('thean_ops_backfill_checked'), 'failed scheduling remains retryable');
+$GLOBALS['__schedule_fail'] = false;
+check(thean_ops_step_request_backfill(), 'background backfill scheduled');
+$calls = $GLOBALS['__schedule_calls'];
+check(thean_ops_step_request_backfill() && $GLOBALS['__schedule_calls'] === $calls && !$wpdb->queries, 'opening board does not scan orders or duplicate job');
+unset($GLOBALS['__scheduled']['thean_ops_step_backfill']);
+foreach ($GLOBALS['__actions']['thean_ops_step_backfill'] as $worker) $worker();
+check(count($wpdb->queries) === 1 && strpos($wpdb->queries[0], 'LIMIT 21') !== false, 'worker scans unsynced orders outside board request');
+check(!thean_ops_step_request_backfill() && $GLOBALS['__schedule_calls'] === $calls, 'backfill checks throttled across visits');
+
+// Một lượt nền xử lý tối đa 20 đơn và nối tiếp nếu còn backlog.
+$wpdb->unsynced_ids = range(100, 120);
+$GLOBALS['__order_queries'] = [];
+foreach ($GLOBALS['__actions']['thean_ops_step_backfill'] as $worker) $worker();
+check(count($GLOBALS['__order_queries']) === 1 && count($GLOBALS['__order_queries'][0]['post__in']) === 20, 'worker reads at most 20 unsynced orders');
+check((bool) wp_next_scheduled('thean_ops_step_backfill'), 'worker schedules another batch when backlog remains');
+$wpdb->unsynced_ids = [];
+unset($GLOBALS['__scheduled']['thean_ops_step_backfill']);
+
+// AJAX đầu tiên: chỉ lấy một tab, 10 đơn; kiểm tra quyền/nonce trước SQL hoặc xếp lịch.
+foreach ([true, false] as $hpos) {
+    \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
+    thean_ops_board_invalidate();
+    $GLOBALS['__caps'] = ['manage_woocommerce'];
+    $_POST = ['tab' => 'picking'];
+    $wpdb->queries = [];
+    try { thean_ous_ajax_board(); } catch (JsonResponse $r) {
+        check($r->success && $r->data['tab'] === 'picking' && $r->data['panes'] === null && $r->data['rows'] === '', 'active-tab response without all-tab panes');
+    }
+    $sql = implode("\n", $wpdb->queries);
+    check(count($wpdb->queries) === 3 && strpos($sql, 'LIMIT 10 OFFSET 0') !== false && strpos($sql, "s.meta_value = 'picking'") !== false && strpos($sql, 'a.meta_value') === false, 'only counts and active-page SQL; no foreground backfill');
+    $_POST['refresh'] = 1;
+    $wpdb->queries = [];
+    try { thean_ous_ajax_board(); } catch (JsonResponse $r) {}
+    check(count($wpdb->queries) === 3, 'explicit refresh bypasses server counts and IDs cache');
+    unset($_POST['refresh']);
+    $wpdb->queries = []; $GLOBALS['__caps'] = [];
+    try { thean_ous_ajax_board(); } catch (JsonResponse $r) { check(!$r->success, 'unauthorized board rejected'); }
+    check(!$wpdb->queries, 'unauthorized board performs no SQL');
+    $GLOBALS['__caps'] = ['manage_woocommerce']; $GLOBALS['__bad_nonce'] = true;
+    try { thean_ous_ajax_board(); } catch (RuntimeException $r) { check($r->getMessage() === 'Invalid nonce', 'bad nonce rejected'); }
+    check(!$wpdb->queries, 'bad nonce performs no SQL');
+    $GLOBALS['__bad_nonce'] = false;
+}
+$GLOBALS['__caps'] = []; $_POST = [];
 
 // Nhập VAT: bóc JSON trả lời của AI.
 $ai = thean_vat_request_parse_ai("Đây là kết quả:\n```json\n{\"tax_code\":\"MST: 0312 345 678\",\"company\":\" Công ty TNHH An \",\"address\":\"12 Lê Lợi, Q1\",\"email\":\"ketoan@an.vn\",\"note\":\"\"}\n```");

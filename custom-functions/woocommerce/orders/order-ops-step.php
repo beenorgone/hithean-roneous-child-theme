@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) exit;
  * Bước tính bằng thean_ow_flow() (order-workspace.php) — cùng logic bảng điều phối ở trang sửa đơn.
  *
  * ĐỔI LUỒNG VẬN HÀNH (thean_ow_flow, thean_ops_step_from_flow, trạng thái loại trừ…) → TĂNG THEAN_OPS_STEP_VERSION:
- * mọi đơn mở thành "chưa tính", cron + board tự tính lại (board bù 20 đơn mỗi lần mở, cron 50 đơn / 10 phút).
+ * mọi đơn mở thành "chưa tính", cron tự tính lại (backfill 20 đơn / lượt nền, cron đối soát 50 đơn / 10 phút).
  * Thêm / bớt tab → sửa thean_ops_step_tabs() + thean_ops_step_from_flow() rồi tăng version.
  *
  * Cập nhật:
@@ -242,6 +242,16 @@ function thean_ops_step_from_flow(array $flow, string $status = ''): string
     return array_key_exists($next, thean_ops_step_tabs()) ? $next : '';
 }
 
+/** Kiểm tra phạm vi riêng để tái dùng flow đã tính mà vẫn giữ bộ lọc hiển thị. */
+function thean_ops_step_excluded(WC_Order $order, bool $gated = true): bool
+{
+    $created = $order->get_date_created();
+    return ($gated && (!$created || $created->getTimestamp() < thean_ops_age_cutoff_ts()))
+        || $order->get_type() !== 'shop_order'
+        || (string) $order->get_meta('_spx_date') !== ''
+        || ($gated && thean_order_is_internal($order));
+}
+
 /**
  * Tính bước + gợi ý cho 1 đơn (không ghi). ['step' => tab|'', 'hint' => string, 'proof' => thiếu chứng từ XK?].
  * $gated = true (hiển thị ở ô tìm): đơn cũ (trước mốc khóa) / đơn nội bộ → không có bước.
@@ -250,13 +260,11 @@ function thean_ops_step_from_flow(array $flow, string $status = ''): string
  */
 function thean_ops_step_compute(WC_Order $order, bool $gated = true): array
 {
+    if (thean_ops_step_excluded($order, $gated)) {
+        return ['step' => '', 'hint' => '', 'proof' => false];
+    }
     if (!function_exists('thean_ow_flow')) {
         require_once __DIR__ . '/order-workspace.php';
-    }
-    $created = $order->get_date_created();
-    $too_old = $gated && (!$created || $created->getTimestamp() < thean_ops_age_cutoff_ts());
-    if ($too_old || $order->get_type() !== 'shop_order' || (string) $order->get_meta('_spx_date') !== '' || ($gated && thean_order_is_internal($order))) {
-        return ['step' => '', 'hint' => '', 'proof' => false];
     }
     $missing = thean_ops_missing_proof($order);
     if ($missing) {
@@ -288,14 +296,16 @@ function thean_ops_step_sync(WC_Order $order): array
             $order->delete_meta_data(THEAN_OPS_PROOF_META);
         }
         $order->save_meta_data();
+        thean_ops_board_invalidate();
     }
     return $res;
 }
 
 /** Tính + lưu bước cho nhiều đơn, đọc gộp 1 lần wc_get_orders. Trả [id => kết quả]. */
-function thean_ops_step_sync_ids(array $ids): array
+function thean_ops_step_sync_ids(array $ids, ?array &$loaded_orders = null): array
 {
     $out = [];
+    $loaded_orders = [];
     if (!$ids || !function_exists('wc_get_orders')) {
         return $out;
     }
@@ -303,10 +313,37 @@ function thean_ops_step_sync_ids(array $ids): array
     foreach (wc_get_orders(['post__in' => $ids, 'type' => 'shop_order', 'limit' => count($ids), 'return' => 'objects']) as $order) {
         if ($order instanceof WC_Order && in_array($order->get_id(), $ids, true)) {
             $out[$order->get_id()] = thean_ops_step_sync($order);
+            $loaded_orders[$order->get_id()] = $order;
         }
     }
     return $out;
 }
+
+/** Token riêng cho cache ID/số đếm board; không cache HTML hoặc quyền thao tác. */
+function thean_ops_board_invalidate(): void
+{
+    update_option('thean_ops_board_revision', uniqid('', true), false);
+}
+
+/** Chỉ xếp lịch; không quét hay đọc đơn trên request mở board. */
+function thean_ops_step_request_backfill(): bool
+{
+    $hook = 'thean_ops_step_backfill';
+    if (!get_transient('thean_ops_backfill_checked') && !wp_next_scheduled($hook)) {
+        if (wp_schedule_single_event(time() + 1, $hook)) {
+            set_transient('thean_ops_backfill_checked', 1, 60);
+        }
+    }
+    return (bool) wp_next_scheduled($hook);
+}
+
+add_action('thean_ops_step_backfill', function () {
+    $ids = thean_ops_step_unsynced_ids(21);
+    thean_ops_step_sync_ids(array_slice($ids, 0, 20));
+    if (count($ids) > 20 && !wp_next_scheduled('thean_ops_step_backfill')) {
+        wp_schedule_single_event(time() + 10, 'thean_ops_step_backfill');
+    }
+});
 
 /** Gom ID đơn cần tính lại, xử lý 1 lần ở shutdown. */
 function thean_ops_step_queue(int $order_id): void
@@ -314,6 +351,9 @@ function thean_ops_step_queue(int $order_id): void
     static $hooked = false;
     if ($order_id <= 0) {
         return;
+    }
+    if (empty($GLOBALS['thean_ops_step_queue'][$order_id])) {
+        thean_ops_board_invalidate();
     }
     $GLOBALS['thean_ops_step_queue'][$order_id] = true;
     if (!$hooked) {
