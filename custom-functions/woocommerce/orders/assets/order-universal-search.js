@@ -18,10 +18,13 @@
     var board = document.getElementById('thean-ous-board');
     var invoice = document.getElementById('thean-ous-invoice');
     var searchCtl = null, previewCtl = null, boardCtl = null, timer = 0;
-    var boardState = { tab: '', page: 0, shown: 0, loading: false };
+    var boardState = { tab: '', page: 0, shown: 0, cursor: 0, loading: false };
     var boardCache = new Map(); // "tab|page" → {at, data}; chỉ giữ các tab đã xem (BOARD_TTL)
     var blockedUntil = 0; // server khóa tìm kiếm (quá nhiều lượt) — không tự gửi tới khi hết hạn
-    var state = { q: '', page: 0, loading: false };
+    var state = { q: '', page: 0, shown: 0, cursor: 0, loading: false };
+    var rowUpdates = Promise.resolve(), rowEpoch = 0, rowScope = 0;
+    var rowPatches = new Map(), lastPatchTabs = null;
+    var activeBoardData = null, activeSearchData = null;
     var cache = new Map(); // "q|page" → {at, data}; 60s, tránh gọi lại khi mở/đóng modal
     var items = [], active = -1;
     var statusCmds = ['tt'].concat(Object.keys(cfg.aliases).filter(function (k) { return cfg.aliases[k] === 'tt'; }));
@@ -272,16 +275,27 @@
         selection(modal).clear();
         return wrap;
     }
-    function fillTable(modal, data, page) {
-        var tbody = page === 1 ? shell(modal).querySelector('tbody') : body(modal).querySelector('tbody');
-        tbody.insertAdjacentHTML('beforeend', data.rows);
-        syncBulk(modal);
+    function updateMore(modal, data) {
         var more = body(modal).querySelector('.thean-ous__more');
+        if (!more) return;
         more.hidden = !data.has_more;
         var step = modal === board ? BOARD_MORE : cfg.perPage;
-        if (data.has_more) more.querySelector('button').textContent = 'Xem thêm ' + Math.min(step, data.total - data.shown) + ' đơn (còn ' + (data.total - data.shown) + ')';
+        if (data.has_more) more.querySelector('button').textContent = 'Xem thêm ' + Math.max(1, Math.min(step, data.total - data.shown)) + ' đơn (còn ' + Math.max(0, data.total - data.shown) + ')';
+    }
+    function fillTable(modal, data, page) {
+        var tbody = page === 1 ? shell(modal).querySelector('tbody') : body(modal).querySelector('tbody');
+        var incoming = document.createElement('tbody');
+        incoming.innerHTML = data.rows;
+        Array.from(incoming.children).forEach(function (row) {
+            if (!tbody.querySelector('tr[data-order-id="' + row.dataset.orderId + '"]')) tbody.appendChild(row);
+        });
+        data.shown = tbody.querySelectorAll('tr[data-order-id]').length;
+        if (typeof data.exhausted === 'boolean') data.has_more = !data.exhausted && data.shown < data.total;
+        syncBulk(modal);
+        updateMore(modal, data);
     }
     function render(data, page) {
+        activeSearchData = data;
         var status = results.querySelector('.thean-ous-modal__status');
         var chips = results.querySelector('.thean-ous-chips');
         chips.replaceChildren();
@@ -300,6 +314,8 @@
             return;
         }
         fillTable(results, data, page);
+        state.shown = data.shown;
+        state.cursor = page === 1 ? (data.next_cursor || 0) : (data.next_cursor || state.cursor);
     }
     function search(q, page) {
         var key = q + '|' + page, hit = cache.get(key);
@@ -315,12 +331,15 @@
         var moreBtn = body(results).querySelector('[data-thean-ous-more]');
         if (page === 1) { results.querySelector('.thean-ous-modal__status').textContent = '— đang tìm…'; notice(body(results), 'Đang tìm “' + q + '”…'); }
         else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
-        post('thean_order_usearch', { q: q, page: page, range: currentRange }, ctl).then(function (res) {
+        var epoch = rowEpoch;
+        post('thean_order_usearch', { q: q, page: page, range: currentRange, before_id: page > 1 ? state.cursor : 0, shown: page > 1 ? state.shown : 0 }, ctl).then(async function (res) {
+            await rowUpdates;
             if (searchCtl !== ctl) return;
             if (!res.success) {
                 if (res.data && res.data.retry_after) blockedUntil = Date.now() + res.data.retry_after * 1000;
                 throw new Error(message(res, 'Không tìm được.'));
             }
+            if (epoch !== rowEpoch) res.data.rows = overlayRows(res.data.rows, null, q, true);
             cache.set(key, { at: Date.now(), data: res.data });
             state.page = page;
             render(res.data, page);
@@ -365,18 +384,18 @@
         }
         syncBulk(modal);
     }
-    function toast(text, isError) {
+    function toast(text, isError, retry) {
         var t = document.createElement('div');
         t.className = 'thean-ous-toast' + (isError ? ' is-error' : '');
         t.textContent = text;
+        if (retry) {
+            var button = document.createElement('button');
+            button.type = 'button'; button.className = 'thean-ous-btn'; button.textContent = 'Thử đồng bộ lại';
+            button.addEventListener('click', function () { t.remove(); retry(); });
+            t.appendChild(button);
+        }
         document.body.appendChild(t);
-        setTimeout(function () { t.remove(); }, 5000);
-    }
-    function refresh(modal) {
-        if (modal === board) { boardCache.clear(); loadBoard(boardState.tab, 1, false); return; }
-        cache.clear();
-        state.page = 0;
-        if (state.q) search(state.q, 1);
+        setTimeout(function () { t.remove(); }, retry ? 15000 : 5000);
     }
     function runBulk(modal, op) {
         var ids = Array.from(selection(modal));
@@ -395,15 +414,12 @@
                 if (!res.success) throw new Error(message(res, 'Không thực hiện được.'));
                 var d = res.data;
                 var lines = [d.message].concat((d.failed || []).map(function (f) { return '#' + f.id + ': ' + f.message; }));
-                selection(modal).clear();
-                refresh(modal);
-                // Kết quả (kể cả đơn lỗi) hiện trên đầu bảng sau khi tải lại.
-                setTimeout(function () {
+                return refreshOrders(d.done || []).then(function () {
                     var box = body(modal).querySelector('.thean-ous-bulk-result');
                     if (box) { box.textContent = lines.join(' · '); box.hidden = false; box.classList.toggle('is-error', (d.failed || []).length > 0); }
-                }, 800);
-                toast(d.message, (d.failed || []).length > 0);
-                document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { bulk: true } }));
+                    toast(d.message, (d.failed || []).length > 0);
+                    document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderIds: d.done || [], synced: true } }));
+                });
             });
         });
     }
@@ -432,7 +448,6 @@
         if (!window.theanFlow) { toast('Chưa tải được popup thao tác — tải lại trang.', true); return; }
         var id = btn.getAttribute('data-order-id');
         var current = btn.getAttribute('data-thean-ous-status');
-        var host = btn.closest('#thean-ous-board') ? board : (btn.closest('#thean-ous-results') ? results : null);
         window.theanFlow.prompt({
             title: '🔁 Đổi trạng thái — đơn #' + id,
             help: 'Chuyển sang trạng thái bất kỳ (ngoài luồng thông thường). Ghi chú (không bắt buộc) lưu vào đơn.',
@@ -446,8 +461,9 @@
                 var failed = (res.data.failed || [])[0];
                 if (failed) throw new Error(failed.message);
                 toast('Đơn #' + id + ': đã đổi trạng thái.');
-                if (host) refresh(host);
-                document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderId: id, bulk: !!host } }));
+                return refreshOrders([id]).then(function () {
+                    document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderId: id, synced: true } }));
+                });
             });
         });
     });
@@ -528,9 +544,126 @@
             else delete b.dataset.theanOusTab;
         });
     }
+    function patchRow(tbody, patch, belongs, html, append) {
+        var id = String(patch.id), previous = tbody.querySelector('tr[data-order-id="' + id + '"]');
+        if (!belongs || !html) { if (previous) previous.remove(); return; }
+        if (!previous && !append) return;
+        var incoming = document.createElement('tbody');
+        incoming.innerHTML = html;
+        var next = incoming.firstElementChild;
+        if (!next || next.dataset.orderId !== id) return;
+        if (previous) {
+            var focused = previous.contains(document.activeElement);
+            previous.replaceWith(next);
+            if (focused) next.focus({ preventScroll: true });
+        } else tbody.appendChild(next);
+    }
+    function overlayRows(html, tab, query, force) {
+        var tbody = document.createElement('tbody');
+        tbody.innerHTML = html;
+        rowPatches.forEach(function (entry, id) {
+            if (!force && Date.now() - entry.at > BOARD_TTL) { rowPatches.delete(id); return; }
+            var patch = entry.patch;
+            if (tab !== null) patchRow(tbody, patch, patch.tabs.indexOf(tab) !== -1, patch.rows, true);
+            else if (entry.q === query) patchRow(tbody, patch, patch.search_match, patch.search_rows, false);
+        });
+        return tbody.innerHTML;
+    }
+    function rememberBoard(data) {
+        var tbody = body(board).querySelector('tbody');
+        boardCache.set(data.tab + '|1', { at: Date.now(), data: Object.assign({}, data, {
+            rows: tbody ? tbody.innerHTML : '', shown: boardState.shown, page: boardState.page
+        }) });
+    }
+    function applyRowUpdates(data) {
+        lastPatchTabs = data.tabs;
+        (data.orders || []).forEach(function (patch) {
+            rowPatches.set(String(patch.id), { at: Date.now(), patch: patch, q: data.q });
+            selection(board).delete(String(patch.id));
+            selection(results).delete(String(patch.id));
+        });
+        var totals = {};
+        data.tabs.forEach(function (tab) { totals[tab.key] = tab.count; });
+        boardCache.forEach(function (entry, key) {
+            if (!key.endsWith('|1')) { boardCache.delete(key); return; }
+            var pane = entry.data;
+            pane.rows = overlayRows(pane.rows, pane.tab, '');
+            var parsed = document.createElement('tbody'); parsed.innerHTML = pane.rows;
+            pane.shown = parsed.children.length;
+            pane.total = totals[pane.tab] || 0;
+            pane.tabs = data.tabs;
+            pane.at = data.at;
+            if (pane.exhausted && pane.shown < pane.total) { pane.exhausted = false; pane.next_cursor = 0; }
+            pane.has_more = pane.shown < pane.total;
+        });
+        if (activeBoardData) {
+            var tbody = body(board).querySelector('tbody');
+            var insert = data.orders.some(function (patch) { return patch.tabs.indexOf(boardState.tab) !== -1 && patch.rows; });
+            if (!tbody && insert) tbody = shell(board).querySelector('tbody');
+            if (tbody) data.orders.forEach(function (patch) {
+                patchRow(tbody, patch, patch.tabs.indexOf(boardState.tab) !== -1, patch.rows, true);
+            });
+            activeBoardData.tabs = data.tabs;
+            activeBoardData.total = totals[boardState.tab] || 0;
+            activeBoardData.at = data.at;
+            boardState.shown = tbody ? tbody.children.length : 0;
+            activeBoardData.shown = boardState.shown;
+            if (activeBoardData.exhausted && boardState.shown < activeBoardData.total) {
+                activeBoardData.exhausted = false; activeBoardData.next_cursor = 0; boardState.cursor = 0;
+            }
+            activeBoardData.has_more = boardState.shown < activeBoardData.total;
+            renderTabs(data.tabs, boardState.tab);
+            board.querySelector('.thean-ous-modal__status').textContent = '— ' + (activeBoardData.range_label || '') + ' · cập nhật ' + data.at;
+            updateMore(board, activeBoardData);
+            syncBulk(board);
+            rememberBoard(activeBoardData);
+        }
+        var searchBody = body(results).querySelector('tbody');
+        if (searchBody && data.q === state.q && activeSearchData) {
+            data.orders.forEach(function (patch) {
+                var existed = searchBody.querySelector('tr[data-order-id="' + patch.id + '"]');
+                if (existed && !patch.search_match) activeSearchData.total = Math.max(0, activeSearchData.total - 1);
+                patchRow(searchBody, patch, patch.search_match, patch.search_rows, false);
+            });
+            state.shown = searchBody.children.length;
+            activeSearchData.shown = state.shown;
+            activeSearchData.has_more = state.shown < activeSearchData.total && !activeSearchData.exhausted;
+            results.querySelector('.thean-ous-modal__status').textContent = '— đang hiện ' + state.shown + ' đơn · cập nhật ' + data.at;
+            updateMore(results, activeSearchData);
+            syncBulk(results);
+        }
+        cache.clear();
+        if (data.q !== state.q && state.q && !results.hidden) {
+            Promise.resolve().then(function () { refreshOrders(data.orders.map(function (patch) { return patch.id; })); });
+        }
+        if (!preview.hidden && data.orders.some(function (patch) { return String(patch.id) === preview.dataset.orderId; })) openPreview(preview.dataset.orderId);
+    }
+    function refreshOrders(ids) {
+        ids = Array.from(new Set(ids.map(Number).filter(function (id) { return Number.isSafeInteger(id) && id > 0; })));
+        if (!ids.length) return Promise.resolve();
+        var range = currentRange, scope = rowScope, query = state.q || '';
+        rowEpoch++;
+        rowUpdates = rowUpdates.then(async function () {
+            for (var i = 0; i < ids.length; i += 50) {
+                var ctl = new AbortController();
+                var timeout = setTimeout(function () { ctl.abort(); }, 15000);
+                var res;
+                try { res = await post('thean_order_usearch_rows', { ids: ids.slice(i, i + 50).join(','), range: range, q: query }, ctl); }
+                finally { clearTimeout(timeout); }
+                if (!res.success) throw new Error(message(res, 'Không cập nhật được dòng đơn.'));
+                if (scope === rowScope && range === currentRange) applyRowUpdates(res.data);
+            }
+        }).catch(function (err) {
+            if (scope === rowScope) toast('Đơn đã lưu; chưa đồng bộ được giao diện: ' + (err.message || 'Lỗi kết nối.'), true, function () { refreshOrders(ids); });
+        });
+        return rowUpdates;
+    }
     function renderBoard(data, page) {
+        data.rows = overlayRows(data.rows, data.tab, '');
+        activeBoardData = data;
         boardState.tab = data.tab;
-        boardState.page = page;
+        boardState.page = page === 1 ? (data.page || 1) : page;
+        boardState.cursor = page === 1 ? (data.next_cursor || 0) : (data.next_cursor || boardState.cursor);
         boardState.shown = data.shown || 0;
         rememberTab(data.tab);
         syncUrlTab(data.tab);
@@ -538,6 +671,8 @@
         board.querySelector('.thean-ous-modal__status').textContent = '— ' + (data.range_label || '') + ' · cập nhật ' + data.at + (data.pending ? ' · đang chờ kiểm tra phân bước ở nền' : '');
         if (!data.total) { notice(body(board), data.pending ? 'Chưa có đơn ở bước này. Hệ thống đang chờ kiểm tra phân bước ở nền; bấm Làm mới sau ít giây.' : 'Không có đơn nào ở bước này 🎉'); return; }
         fillTable(board, data, page);
+        boardState.shown = data.shown;
+        rememberBoard(data);
         // Lượt đầu kết thúc tại đây; chỉ đọc thêm khi người dùng bấm "Xem thêm".
         if (page === 1 && window.performance && performance.mark && !performance.getEntriesByName('thean-board-first-visible').length) {
             requestAnimationFrame(function () {
@@ -560,7 +695,8 @@
         var ctl = new AbortController();
         boardCtl = ctl;
         boardState.loading = false;
-        if (!refresh && tab && hit && Date.now() - hit.at < BOARD_TTL) { renderBoard(hit.data, page); return; }
+        if (refresh) { rowPatches.clear(); lastPatchTabs = null; }
+        if (!refresh && page === 1 && tab && hit && Date.now() - hit.at < BOARD_TTL) { renderBoard(hit.data, page); return; }
         if (page === 1) {
             // Giữ cache tab khác; bỏ các trang cũ của tab sắp tải lại.
             boardCache.forEach(function (_, k) { if (k.indexOf(tab + '|') === 0) boardCache.delete(k); });
@@ -569,15 +705,23 @@
         var moreBtn = body(board).querySelector('[data-thean-ous-more]');
         if (page === 1) notice(body(board), 'Đang tải đơn cần xử lý…');
         else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
-        var data = { tab: tab, range: currentRange, offset: page === 1 ? 0 : boardState.shown, limit: page === 1 ? 10 : (limit || BOARD_MORE) };
+        var data = { tab: tab, range: currentRange, before_id: page === 1 ? 0 : boardState.cursor, offset: page === 1 || !boardState.cursor ? 0 : boardState.shown, limit: page === 1 ? 10 : (limit || BOARD_MORE) };
         if (refresh) data.refresh = 1;
-        post('thean_order_usearch_board', data, ctl).then(function (res) {
+        var epoch = rowEpoch;
+        post('thean_order_usearch_board', data, ctl).then(async function (res) {
+            await rowUpdates;
             if (boardCtl !== ctl) return;
             if (!res.success) {
                 if (res.data && res.data.retry_after) blockedUntil = Date.now() + res.data.retry_after * 1000;
                 throw new Error(message(res, 'Không tải được board.'));
             }
             var d = res.data, at = Date.now();
+            if (epoch !== rowEpoch && lastPatchTabs) {
+                d.rows = overlayRows(d.rows, d.tab, '', true);
+                d.tabs = lastPatchTabs;
+                var updated = d.tabs.find(function (t) { return t.key === d.tab; });
+                if (updated) d.total = updated.count;
+            }
             if (d.panes) {
                 // Tab không có đơn cũng có pane rỗng → bấm vào không phải gọi server.
                 (d.tabs || []).forEach(function (t) {
@@ -595,12 +739,14 @@
         }).finally(function () {
             if (boardCtl !== ctl) return;
             boardState.loading = false;
-            if (moreBtn) { moreBtn.disabled = false; moreBtn.textContent = 'Xem thêm'; }
+            if (moreBtn) { moreBtn.disabled = false; if (moreBtn.textContent === 'Đang tải…') moreBtn.textContent = 'Xem thêm'; }
         });
     }
 
     function changeRange() {
         currentRange = rangeSelect.value;
+        rowScope++; rowEpoch++;
+        rowPatches.clear(); lastPatchTabs = null; activeBoardData = null; activeSearchData = null;
         clearTimeout(timer);
         if (searchCtl) searchCtl.abort();
         searchCtl = null;
@@ -624,6 +770,7 @@
     if (rangeSelect) rangeSelect.addEventListener('change', changeRange);
 
     function openPreview(orderId) {
+        preview.dataset.orderId = String(orderId);
         if (previewCtl) previewCtl.abort();
         previewCtl = new AbortController();
         notice(body(preview), 'Đang tải đơn #' + orderId + '…');
@@ -717,7 +864,7 @@
         var pv = e.target.closest('[data-thean-ous-preview]');
         if (pv) { e.preventDefault(); setOpen(acts, false); openPreview(pv.getAttribute('data-thean-ous-preview')); }
     });
-    // Đơn vừa đổi (popup luồng / thao tác nhanh) → đóng popup thao tác, board tự tải lại.
+    // Đơn vừa đổi (popup luồng / thao tác nhanh) → đóng popup thao tác, cập nhật các dòng đơn liên quan.
     document.addEventListener('thean:order-updated', function () { if (!acts.hidden) setOpen(acts, false); });
 
     // Bảng đơn (kết quả tìm + board): chỉ nút "Xem nhanh" mở modal xem nhanh (bấm vào dòng không mở — dễ bấm nhầm khi chọn chữ / thao tác).
@@ -750,11 +897,11 @@
         if (e.target.closest('[data-thean-ous-more]')) { if (!boardState.loading) loadBoard(boardState.tab, boardState.page + 1, false); return; }
         tableClick(e);
     });
-    // Popup thao tác (order-flow-popup.js) báo đơn đã đổi → board tính lại tab đang xem.
+    // Mutation thành công: chỉ đọc lại những đơn vừa đổi, giữ nguyên các dòng khác.
     document.addEventListener('thean:order-updated', function (e) {
-        if (e.detail && e.detail.bulk) return; // runBulk đã tự làm mới
-        if (!board.hidden) { boardCache.clear(); loadBoard(boardState.tab, 1, false); }
-        cache.clear(); // kết quả tìm: lần mở / tìm sau lấy dữ liệu mới
+        var detail = e.detail || {};
+        if (detail.synced) return;
+        refreshOrders(detail.orderIds || (detail.orderId ? [detail.orderId] : []));
     });
     results.addEventListener('keydown', tableKey);
     board.addEventListener('keydown', tableKey);

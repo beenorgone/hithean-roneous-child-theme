@@ -26,7 +26,13 @@ foreach ([true, false] as $hpos) {
             $board[$range][$tab] = 'SELECT DISTINCT o.' . thean_ops_step_tables()['id'] . ' ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql($tab, $range) . ' ORDER BY o.' . thean_ops_step_tables()['id'];
         }
     }
-    $out[] = ['hpos' => $hpos, 'queries' => $rows, 'board' => $board, 'now' => time()];
+    $memberships = [];
+    foreach (['auto','7','30','90','all'] as $range) {
+        $wpdb->queries = [];
+        thean_ous_board_memberships([1,4,5,7,8,9,11], $range);
+        $memberships[$range] = end($wpdb->queries);
+    }
+    $out[] = ['hpos' => $hpos, 'queries' => $rows, 'board' => $board, 'memberships' => $memberships, 'now' => time()];
 }
 echo json_encode($out);
 '''
@@ -103,5 +109,14 @@ for scope in scopes:
                 want = [oid for oid, _, step, _ in fixtures if oid in eligible and step == tab]
             assert got == want, (hpos, range_name, tab, got, want, sql)
             checks += 1
+    for range_name, sql in scope['memberships'].items():
+        got = {oid: (step, bool(proof)) for oid, step, proof in db.execute(sql)}
+        eligible = expected.get(range_name, [1, 2, 4, 5, 8, 9])
+        proof_ids = {'auto': [8, 9], '7': [8], '30': [8, 9],
+                     '90': [4, 7, 8, 9, 11], 'all': [4, 7, 8, 9, 11]}[range_name]
+        want = {oid: (step, oid in proof_ids) for oid, _, step, _ in fixtures
+                if oid in eligible and oid in [1,4,5,7,8,9,11]}
+        assert got == want, (hpos, range_name, 'memberships', got, want, sql)
+        checks += 1
     db.close()
 print(f'OK ({checks} executed SQL checks)')

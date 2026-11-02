@@ -44,6 +44,38 @@ results offer **Tìm trong toàn bộ thời gian** to expand the shared range.
 - The browser retains visited tabs for 10 seconds. Changing tabs aborts prior work;
   late responses cannot replace the current tab or reset its loading state.
 
+## Incremental updates
+
+Successful order mutations emit `thean:order-updated` with `orderId` or
+`orderIds`. The board requests `thean_order_usearch_rows` for those IDs only
+(up to 50 per batch). It reuses freshly loaded order objects/flows, checks tab
+membership using the selected date range and existing business exclusions, and
+renders only those orders. Tab counts are refreshed with metadata aggregate
+queries; other order objects/rows are not reloaded.
+
+The client replaces a row in place if it remains in the same tab, removes it
+from old tabs, and appends it to cached destination tabs. The proof tab may
+coexist with the main workflow tab. Recent patches are also merged into the
+first response for a destination that was not yet opened. Existing unrelated
+row nodes, selections, and scroll position remain intact. Search results only
+patch existing affected rows, removing those that no longer match the query.
+An affected open preview can fetch just that order's detail again.
+
+Load more uses a descending order-ID cursor. Displayed row count is separate
+from the scan cursor; adding an older order or removing a row cannot shift
+subsequent pages. Appended orders are deduplicated when later pagination reaches
+them, and visited tab caches retain the accumulated rows/cursor.
+
+Pending list responses wait for row synchronization and merge recent patches
+before rendering. Date-range changes reject obsolete patch generations. Row
+synchronization errors show a retry that repeats only the row read, never the
+mutation or a full-tab load. Manual Refresh and range changes can still reload
+a tab explicitly.
+
+The quick-action payment, customer-confirmation, export, return, flow, VAT,
+and bulk integrations emit IDs only after a successful mutation response.
+Local tests mock these writes; no live financial/order action is used for tests.
+
 ## Background processing
 
 Opening the board schedules `thean_ops_step_backfill` without scanning orders.
@@ -63,6 +95,8 @@ the worker finishes to see newly classified orders.
 ```sh
 php tests/order-universal-search.php
 node tests/order-universal-search-board.cjs
+node tests/order-universal-search-row-updates.cjs
+node tests/order-admin-update-events.cjs
 python3 tests/order-universal-search-ranges.py
 php tests/order-hpos-compat.php
 php -l custom-functions/woocommerce/orders/order-universal-search.php
@@ -70,6 +104,8 @@ php -l custom-functions/woocommerce/orders/order-ops-step.php
 node --check custom-functions/woocommerce/orders/assets/order-universal-search.js
 git diff --check
 ```
+
+The DOM regression suite requires `jsdom` on the Node module search path.
 
 These are helper/SQL, SQLite date-boundary fixtures, and controlled network/DOM tests, not a running WordPress,
 real-browser, database query-plan, cron execution, or server-latency benchmark.
@@ -117,3 +153,9 @@ If page startup already exceeds the latency budget, profile WordPress/plugin
 bootstrap before changing search semantics or adding database indexes. If search
 SQL dominates, collect the actual queries and EXPLAIN plans on staging; the
 substring-matching contract is unchanged by this optimization.
+
+When a deployed page has no **Ngày tạo** selector, compare its authenticated
+HTML and served JS/CSS with the deployed commit/active theme. The JS should
+contain `currentRange` and the CSS should contain `.thean-ous-bar__range`.
+Check an asset URL with a fresh version parameter before attributing this to
+browser cache. A matching Git remote alone does not prove server deployment.

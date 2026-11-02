@@ -34,6 +34,7 @@ function esc_sql($s) { return addslashes($s); }
 function update_option($k, $v, $autoload = null) { $GLOBALS['__options'][$k] = $v; return true; }
 function wp_json_encode($v) { return json_encode($v); }
 function wp_unslash($v) { return $v; }
+function sanitize_text_field($v) { return trim(strip_tags((string) $v)); }
 function sanitize_key($v) { return preg_replace('/[^a-z0-9_-]/', '', strtolower($v)); }
 function absint($v) { return abs((int) $v); }
 function wp_date($format) { return gmdate($format); }
@@ -91,6 +92,7 @@ class FakeWpdb
     public string $postmeta = 'wp_postmeta';
     public array $queries = [];
     public array $board_counts = [];
+    public array $board_memberships = [];
     public array $board_ids = [];
     public array $unsynced_ids = [];
     public int $proof_count = 0;
@@ -109,7 +111,7 @@ class FakeWpdb
     }
     public function get_results($sql, $format) {
         $this->queries[] = $sql;
-        return $this->board_counts;
+        return strpos($sql, ' AS proof ') !== false ? $this->board_memberships : $this->board_counts;
     }
     public function get_var($sql) {
         $this->queries[] = $sql;
@@ -439,6 +441,53 @@ foreach ([true, false] as $hpos) {
     thean_ous_board_page_ids('return', 0, 10, 'all');
     check(count($wpdb->queries) === 2, 'first-page ID cache separates ranges');
 }
+
+// Incremental rows: bounded membership, search sources and cursor reads.
+foreach ([true, false] as $hpos) {
+    \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
+    $wpdb->board_memberships = [
+        ['order_id' => 901, 'step' => 'shipping', 'proof' => 1],
+        ['order_id' => 902, 'step' => 'return', 'proof' => 0],
+        ['order_id' => 903, 'step' => 'proof', 'proof' => 0],
+        ['order_id' => 999, 'step' => 'picking', 'proof' => 0],
+    ];
+    $wpdb->queries = [];
+    $member = thean_ous_board_memberships([901, 902, 903], '30');
+    check($member === [901 => ['shipping', 'proof'], 902 => ['return'], 903 => []], 'row update includes overlapping proof and only requested IDs');
+    check(strpos($wpdb->queries[0], 'IN (901,902,903)') !== false, 'membership SQL bounded to changed IDs');
+    $wpdb->queries = []; $wpdb->board_memberships = [];
+    thean_ous_find_order_ids(array_merge($empty, ['text' => 'Whey Gold']), 1, 'all', [300]);
+    foreach (array_slice($wpdb->queries, 0, -1) as $sql) {
+        check(strpos($sql, ' IN (300)') !== false && strpos($sql, ' IN (300)') < strpos($sql, 'ORDER BY'), 'row search scopes every source before candidate LIMIT');
+    }
+    check(strpos(end($wpdb->queries), ' IN (300)') !== false, 'row search final SQL restricted');
+    $wpdb->queries = [];
+    thean_ous_board_page_ids('picking', 9, 20, '30', 900);
+    $sql = $wpdb->queries[0];
+    check(strpos($sql, $hpos ? 'o.id < 900' : 'o.ID < 900') !== false && strpos($sql, 'LIMIT 20 OFFSET 0') !== false, 'cursor pagination ignores shifted offset');
+}
+$GLOBALS['__caps'] = ['manage_woocommerce'];
+$GLOBALS['__order_queries'] = [];
+$_POST = ['ids' => '901,901,902', 'range' => '90'];
+try { thean_ous_ajax_rows(); } catch (JsonResponse $r) {
+    check($r->success && $r->data['range'] === '90' && count($r->data['orders']) === 2, 'row endpoint deduplicates and retains range');
+    check($r->data['orders'][0]['rows'] === '' && $r->data['orders'][0]['tabs'] === [], 'missing order emits a removal patch');
+}
+check(count($GLOBALS['__order_queries']) === 1 && $GLOBALS['__order_queries'][0]['post__in'] === [901,902], 'row endpoint reads only changed orders once');
+$_POST = ['ids' => '901', 'q' => '/tt not-a-status'];
+try { thean_ous_ajax_rows(); } catch (JsonResponse $r) { check($r->success && !$r->data['orders'][0]['search_match'], 'invalid optional search does not block a saved order row update'); }
+$wpdb->queries = []; $GLOBALS['__order_queries'] = [];
+$_POST = ['ids' => implode(',', range(1,51))];
+try { thean_ous_ajax_rows(); } catch (JsonResponse $r) { check(!$r->success, 'row endpoint rejects oversized batches'); }
+check(!$wpdb->queries && !$GLOBALS['__order_queries'], 'oversized row request performs no reads');
+$_POST = ['ids' => '-5,0,invalid'];
+try { thean_ous_ajax_rows(); } catch (JsonResponse $r) { check(!$r->success, 'row endpoint rejects nonpositive IDs'); }
+$GLOBALS['__caps'] = []; $_POST = ['ids' => '901'];
+try { thean_ous_ajax_rows(); } catch (JsonResponse $r) { check(!$r->success, 'row endpoint requires order capability'); }
+check(!$wpdb->queries && !$GLOBALS['__order_queries'], 'unauthorized row request performs no reads');
+$GLOBALS['__caps'] = ['manage_woocommerce']; $GLOBALS['__bad_nonce'] = true;
+try { thean_ous_ajax_rows(); } catch (RuntimeException $r) { check($r->getMessage() === 'Invalid nonce', 'row endpoint rejects bad nonce'); }
+$GLOBALS['__bad_nonce'] = false; $GLOBALS['__caps'] = []; $_POST = [];
 
 // Nhập VAT: bóc JSON trả lời của AI.
 $ai = thean_vat_request_parse_ai("Đây là kết quả:\n```json\n{\"tax_code\":\"MST: 0312 345 678\",\"company\":\" Công ty TNHH An \",\"address\":\"12 Lê Lợi, Q1\",\"email\":\"ketoan@an.vn\",\"note\":\"\"}\n```");

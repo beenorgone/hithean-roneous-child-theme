@@ -13,6 +13,8 @@ function fixture() {
     const status = { textContent: '' };
     const ctx = {
         Map, Date, AbortController, URL, window: {},
+        rowUpdates: Promise.resolve(), rowEpoch: 0, rowScope: 0, rowPatches: new Map(), lastPatchTabs: null, activeBoardData: null, activeSearchData: null,
+        overlayRows: html => html, rememberBoard() {},
         currentRange: 'auto', rangeSelect: { value: 'auto' },
         searchCtl: null, state: { q: '', page: 0, loading: false },
         timer: 0, clearTimeout() {}, cache: new Map(),
@@ -40,7 +42,7 @@ function fixture() {
     return { ctx, requests, rendered, notices, more, status };
 }
 function response(tab, shown = 10, total = 40) {
-    return { success: true, data: { tab, shown, total, has_more: shown < total, rows: 'rows', tabs: [{ key: tab, count: total }], at: '12:00:00' } };
+    return { success: true, data: { tab, shown, total, has_more: shown < total, next_cursor: 1000 - shown, exhausted: shown >= total, rows: 'rows', tabs: [{ key: tab, count: total }], at: '12:00:00' } };
 }
 async function settle() { for (let i = 0; i < 6; i++) await Promise.resolve(); }
 (async () => {
