@@ -185,89 +185,7 @@ function hithean_export_save_uploaders_as_exporters(int $order_id, string $trigg
     return $added;
 }
 
-function hithean_export_lark_settings(): array
-{
-    $saved = get_option('hithean_export_lark_settings', []);
-    $saved = is_array($saved) ? $saved : [];
-    return wp_parse_args($saved, ['enabled' => '0', 'only_alerts' => '0', 'webhook_url' => '']);
-}
-
-function hithean_export_lark_sanitize_webhook($value): string
-{
-    $url   = esc_url_raw(trim((string) $value));
-    $parts = wp_parse_url($url);
-    $host  = strtolower((string) ($parts['host'] ?? ''));
-    $valid = ($parts['scheme'] ?? '') === 'https'
-        && preg_match('/(^|\\.)(larksuite\\.com|larkoffice\\.com|feishu\\.cn)$/', $host);
-    return $valid ? $url : '';
-}
-
-function hithean_export_lark_queue_notification(int $order_id): void
-{
-    if (!$order_id || get_post_meta($order_id, 'warehouse_export_lark_notified_at', true)) {
-        return;
-    }
-    $settings = hithean_export_lark_settings();
-    if (empty($settings['enabled']) || hithean_export_lark_sanitize_webhook($settings['webhook_url']) === '') {
-        return;
-    }
-    if (wp_next_scheduled('hithean_export_lark_notify_async', [$order_id, 0])) {
-        return;
-    }
-
-    thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'queued', 'updated_at' => current_time('mysql')]);
-    wp_schedule_single_event(time() + 5, 'hithean_export_lark_notify_async', [$order_id, 0]);
-}
-
-add_action('hithean_export_lark_notify_async', function ($order_id, $attempt = 0): void {
-    $order_id = absint($order_id);
-    $attempt  = absint($attempt);
-    if (!$order_id || get_post_meta($order_id, 'warehouse_export_lark_notified_at', true)) {
-        return;
-    }
-    $order = function_exists('wc_get_order') ? wc_get_order($order_id) : false;
-    if (!$order) {
-        return;
-    }
-
-    $settings = hithean_export_lark_settings();
-    $webhook  = hithean_export_lark_sanitize_webhook($settings['webhook_url'] ?? '');
-    if (empty($settings['enabled']) || $webhook === '') {
-        thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'disabled', 'updated_at' => current_time('mysql')]);
-        return;
-    }
-
-    $review       = get_post_meta($order_id, 'warehouse_export_ai_check', true);
-    $review_state = get_post_meta($order_id, 'warehouse_export_ai_review_status', true);
-    if (!is_array($review) && is_array($review_state) && ($review_state['state'] ?? '') === 'queued' && $attempt < 6) {
-        wp_schedule_single_event(time() + 30, 'hithean_export_lark_notify_async', [$order_id, $attempt + 1]);
-        return;
-    }
-
-    $passed  = is_array($review) && ($review['overall'] ?? '') === 'pass';
-    if ($passed && !empty($settings['only_alerts'])) {
-        thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'skipped_passed', 'updated_at' => current_time('mysql')]);
-        return;
-    }
-    $content = ($passed ? '✅' : '⚠️') . ' Xuất kho #' . $order->get_order_number() . ' — AI: ' . ($passed ? 'Đạt' : 'Không đạt');
-    $response = wp_remote_post($webhook, [
-        'timeout' => 8,
-        'headers' => ['Content-Type' => 'application/json; charset=utf-8'],
-        'body'    => wp_json_encode(['msg_type' => 'text', 'content' => ['text' => $content]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-    ]);
-    $code = is_wp_error($response) ? 0 : (int) wp_remote_retrieve_response_code($response);
-    if (is_wp_error($response) || $code < 200 || $code >= 300) {
-        $error = is_wp_error($response) ? $response->get_error_message() : 'Webhook HTTP ' . $code;
-        thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'failed', 'updated_at' => current_time('mysql'), 'error' => sanitize_text_field($error)]);
-        if ($attempt < 2) {
-            wp_schedule_single_event(time() + 60, 'hithean_export_lark_notify_async', [$order_id, $attempt + 1]);
-        }
-        return;
-    }
-
-    thean_order_meta_set((int) $order_id, 'warehouse_export_lark_notified_at', current_time('mysql'));
-    thean_order_meta_set((int) $order_id, 'warehouse_export_lark_status', ['state' => 'sent', 'updated_at' => current_time('mysql')]);
-}, 10, 2);
+require_once __DIR__ . '/warehouse-export-lark.php';
 
 add_action('hithean_warehouse_export_confirmed', function ($order): void {
     if ($order instanceof WC_Order) {
@@ -279,6 +197,7 @@ add_action('hithean_warehouse_export_confirmed', function ($order): void {
 
 add_action('hithean_export_ai_check_completed', function ($order, $result = []): void {
     if (!($order instanceof WC_Order)) return;
+    hithean_export_lark_queue_alert($order->get_id(), is_array($result) ? $result : []);
     $confirmed = (bool) get_post_meta($order->get_id(), 'export_confirmed_by', true);
     // AI khớp → lưu ngay; AI chạy xong sau khi đã xác nhận xuất kho → lưu theo xác nhận.
     if (is_array($result) && ($result['overall'] ?? '') === 'pass') {
@@ -287,9 +206,6 @@ add_action('hithean_export_ai_check_completed', function ($order, $result = []):
     } elseif ($confirmed) {
         hithean_export_save_ai_ship_codes($order->get_id(), 'export_confirmed');
         hithean_export_save_uploaders_as_exporters($order->get_id(), 'export_confirmed');
-    }
-    if ($confirmed) {
-        hithean_export_lark_queue_notification($order->get_id());
     }
 }, 10, 2);
 

@@ -273,6 +273,7 @@ function theme_erp_settings_render_page(): void
     $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'ai';
     $page_url   = admin_url('options-general.php?page=theme-erp-settings');
     $saved      = false;
+    $lark_error = '';
 
     if (
         $_SERVER['REQUEST_METHOD'] === 'POST' &&
@@ -284,13 +285,18 @@ function theme_erp_settings_render_page(): void
                 'hithean_export_upload_checklist',
                 sanitize_textarea_field(wp_unslash($_POST['hithean_export_upload_checklist'] ?? ''))
             );
-            update_option('hithean_export_lark_settings', [
-                'enabled'     => !empty($_POST['hithean_export_lark_enabled']) ? '1' : '0',
-                'only_alerts' => !empty($_POST['hithean_export_lark_only_alerts']) ? '1' : '0',
-                'webhook_url' => function_exists('hithean_export_lark_sanitize_webhook')
-                    ? hithean_export_lark_sanitize_webhook(wp_unslash($_POST['hithean_export_lark_webhook'] ?? ''))
-                    : '',
-            ], false);
+            $lark_webhook_raw = trim((string) wp_unslash($_POST['hithean_export_lark_webhook'] ?? ''));
+            $lark_webhook = function_exists('hithean_export_lark_sanitize_webhook')
+                ? hithean_export_lark_sanitize_webhook($lark_webhook_raw) : '';
+            if (($lark_webhook_raw !== '' || !empty($_POST['hithean_export_lark_enabled'])) && $lark_webhook === '') {
+                $lark_error = 'Webhook Lark không hợp lệ. Nhập URL đầy đủ dạng https://open.larksuite.com/open-apis/bot/v2/hook/<token>. Cấu hình Lark cũ được giữ nguyên.';
+            } else {
+                update_option('hithean_export_lark_settings', [
+                    'enabled'     => !empty($_POST['hithean_export_lark_enabled']) ? '1' : '0',
+                    'only_alerts' => !empty($_POST['hithean_export_lark_only_alerts']) ? '1' : '0',
+                    'webhook_url' => $lark_webhook,
+                ], false);
+            }
             $saved = true;
         }
 
@@ -339,7 +345,10 @@ function theme_erp_settings_render_page(): void
     <div class="wrap">
         <h1>Cài đặt ERP</h1>
         <?php if ($saved): ?>
-            <div class="notice notice-success is-dismissible"><p>✅ Đã lưu cài đặt.</p></div>
+            <div class="notice notice-success is-dismissible"><p><?php echo $lark_error !== '' ? 'Đã lưu các cài đặt khác; cấu hình Lark chưa được lưu.' : '✅ Đã lưu cài đặt.'; ?></p></div>
+        <?php endif; ?>
+        <?php if ($lark_error !== ''): ?>
+            <div class="notice notice-error"><p><?php echo esc_html($lark_error); ?></p></div>
         <?php endif; ?>
         <nav class="nav-tab-wrapper" style="margin-bottom:20px;">
             <?php foreach ($tabs as $slug => $label): ?>
@@ -434,10 +443,14 @@ function theme_erp_settings_render_page(): void
                     <tr>
                         <th scope="row">Thông báo nhóm Lark</th>
                         <td>
-                            <label><input type="checkbox" name="hithean_export_lark_enabled" value="1" <?php checked(!empty($lark_settings['enabled'])); ?>> Gửi khi nhân viên xác nhận xuất kho</label>
+                            <label><input type="checkbox" name="hithean_export_lark_enabled" value="1" <?php checked(!empty($lark_settings['enabled'])); ?>> Bật thông báo Lark: AI không khớp báo ngay; xác nhận xuất kho gom lô 30 phút</label>
                             <p><label><input type="checkbox" name="hithean_export_lark_only_alerts" value="1" <?php checked(!empty($lark_settings['only_alerts'])); ?>> Chỉ gửi cảnh báo khi AI không đạt</label></p>
                             <p><input type="url" class="large-text" style="max-width:600px" name="hithean_export_lark_webhook" value="<?php echo esc_attr((string) $lark_settings['webhook_url']); ?>" placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/..."></p>
-                            <p class="description">Dùng Incoming Webhook của đúng nhóm Lark. Tin nhắn chạy nền, ngắn gọn: đơn đã xuất kho và AI Đạt/Không đạt; không làm chậm thao tác xác nhận.</p>
+                            <p class="description">AI không khớp: gửi cảnh báo ngay qua tiến trình nền, không chờ xác nhận xuất kho. Xác nhận xuất kho: gửi một tin tổng hợp sau 30 phút từ lần xác nhận đầu tiên; xác nhận tiếp theo không kéo dài thời hạn. “Chỉ gửi cảnh báo” lọc các đơn AI đạt khỏi tin tổng hợp. Cần WP-Cron hoạt động. Bot có từ khóa phải chấp nhận nội dung “Xuất kho” / “AI”; hiện chưa hỗ trợ ký bằng secret.</p>
+                            <?php $lark_delivery = get_option('hithean_export_lark_last_delivery', []); ?>
+                            <?php if (is_array($lark_delivery) && !empty($lark_delivery['state'])): ?>
+                                <p role="status"><strong>Lần gửi gần nhất:</strong> <?php echo esc_html(($lark_delivery['state'] === 'sent' ? 'Lark đã nhận' : 'Gửi lỗi') . ' — ' . ($lark_delivery['updated_at'] ?? '')); ?><?php if (!empty($lark_delivery['error'])): ?><br><?php echo esc_html($lark_delivery['error']); ?><?php endif; ?></p>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 </table>
