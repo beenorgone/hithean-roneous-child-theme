@@ -23,6 +23,8 @@ function hithean_order_action_meta(string $slug): array
         'chinh-don-tao-don'                => ['other', '✏', 'Sửa đơn trên trang Tạo đơn', 'Chỉnh'],
         'hithean-order-payment'            => ['pay', '💳', 'Xác nhận thanh toán', 'Xác nhận TT'],
         'hithean-order-customer-confirmed' => ['pay', '✓', 'Khách đã xác nhận COD', 'Khách XN COD'],
+        'thean-order-preorder'            => ['other', '📅', 'Chuyển sang đặt trước', 'Đặt trước'],
+        'thean-order-preorder-confirm'    => ['pay', '📞', 'Xác nhận giao (đặt trước)', 'Xác nhận giao'],
         'qr-code'                          => ['pay', '▦', 'QR thanh toán', 'QR thanh toán'],
         'hithean-order-export-images'      => ['kho', '📦', 'Up ảnh xuất kho', 'Ảnh xuất kho'],
         'hithean-order-export-confirm'     => ['kho', '✓', 'Xác nhận xuất kho', 'XN xuất kho'],

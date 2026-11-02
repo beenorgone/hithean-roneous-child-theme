@@ -630,7 +630,7 @@ function thean_ous_order_actions(WC_Order $order): array
 function thean_ous_action_meta(string $slug): array
 {
     $meta = hithean_order_action_meta($slug);
-    return [$meta['group'], $meta['short']];
+    return [$meta['group'], $meta['short'], $meta['icon']];
 }
 
 function thean_ous_action_groups(): array
@@ -638,10 +638,11 @@ function thean_ous_action_groups(): array
     return ['view' => 'Xem', 'flow' => 'Tạm giữ / Hủy', 'pay' => 'Thanh toán', 'kho' => 'Kho', 'hoan' => 'Hoàn', 'other' => 'Khác'];
 }
 
-function thean_ous_button(string $group, string $label, string $url, string $class = '', bool $blank = false): string
+function thean_ous_button(string $group, string $label, string $url, string $class = '', bool $blank = false, string $icon = ''): string
 {
+    $icon_html = $icon !== '' ? '<span class="thean-ous-btn__icon" aria-hidden="true">' . esc_html($icon) . '</span> ' : '';
     return '<a class="thean-ous-btn thean-ous-btn--' . esc_attr($group) . ($class !== '' ? ' ' . esc_attr($class) : '') . '" href="' . esc_url($url) . '"'
-        . ($blank ? ' target="_blank" rel="noopener"' : '') . ' title="' . esc_attr($label) . '">' . esc_html($label) . '</a>';
+        . ($blank ? ' target="_blank" rel="noopener"' : '') . ' title="' . esc_attr($label) . '">' . $icon_html . esc_html($label) . '</a>';
 }
 
 /**
@@ -699,9 +700,9 @@ function thean_ous_next_actions(WC_Order $order, string $step, bool $proof = fal
             if (empty($action['url']) || ($slug !== $suffix && substr($slug, -strlen('-' . $suffix)) !== '-' . $suffix)) {
                 continue;
             }
-            [$group, $label] = thean_ous_action_meta($slug);
+            [$group, $label, $icon] = thean_ous_action_meta($slug);
             $label = $label !== '' ? $label : wp_strip_all_tags((string) ($action['name'] ?? $key));
-            $buttons[] = thean_ous_button($group, $label, (string) $action['url'], 'wc-action-button wc-action-button-' . $slug, !empty($action['target']));
+            $buttons[] = thean_ous_button($group, $label, (string) $action['url'], 'wc-action-button wc-action-button-' . $slug, !empty($action['target']), $icon);
         }
     }
     if ($step === 'preorder') {
@@ -717,7 +718,7 @@ function thean_ous_next_actions(WC_Order $order, string $step, bool $proof = fal
     if (!$buttons || $step === 'delivery' || $step === 'shipping') {
         $tab = ['cod' => 'payment', 'shipping' => 'delivery'][$step] ?? $step;
         $labels = function_exists('thean_ops_step_tabs') ? thean_ops_step_tabs() : [];
-        $buttons[] = thean_ous_button('view', 'Mở bước ' . ($labels[$step] ?? $step) . ' ↗', $order->get_edit_order_url() . '#step-' . $tab, '', true);
+        $buttons[] = thean_ous_button('view', 'Mở bước ' . ($labels[$step] ?? $step) . ' ↗', $order->get_edit_order_url() . '#step-' . $tab, '', true, '➡');
     }
     return '<div class="thean-ous-acts__g">' . implode('', $buttons) . '</div>';
 }
@@ -744,9 +745,9 @@ function thean_ous_render_actions(WC_Order $order, bool $compact): string
     $buttons = array_fill_keys(array_keys(thean_ous_action_groups()), []);
 
     if ($compact) {
-        $buttons['view'][] = '<button type="button" class="thean-ous-btn thean-ous-btn--primary" data-thean-ous-preview="' . esc_attr($id) . '">Xem nhanh</button>';
+        $buttons['view'][] = '<button type="button" class="thean-ous-btn thean-ous-btn--primary" data-thean-ous-preview="' . esc_attr($id) . '"><span class="thean-ous-btn__icon" aria-hidden="true">👁</span> Xem nhanh</button>';
     }
-    $buttons['view'][] = thean_ous_button('view', 'Chi tiết', $order->get_edit_order_url(), '', true);
+    $buttons['view'][] = thean_ous_button('view', 'Chi tiết', $order->get_edit_order_url(), '', true, '📄');
     $invoice = thean_ous_invoice_url($order);
     if ($invoice !== '') {
         $buttons['view'][] = '<button type="button" class="thean-ous-btn thean-ous-btn--view" data-thean-ous-invoice="' . esc_url($invoice) . '" data-order-id="' . esc_attr($order->get_id()) . '">🧾 Xem hóa đơn</button>';
@@ -767,16 +768,16 @@ function thean_ous_render_actions(WC_Order $order, bool $compact): string
         if ($compact && !$is_flow) {
             continue; // dòng kết quả: thao tác theo bước nằm ở cột "Thao tác tiếp theo" (thean_ous_next_actions)
         }
-        [$group, $label] = thean_ous_action_meta($slug);
+        [$group, $label, $icon] = thean_ous_action_meta($slug);
         $group = $is_flow ? 'flow' : $group;
-        $label = $is_flow ? '📅 Đặt trước' : ($label !== '' ? $label : wp_strip_all_tags((string) ($action['name'] ?? $key)));
-        $buttons[$group][] = thean_ous_button($group, $label, (string) $action['url'], 'wc-action-button wc-action-button-' . $slug, !empty($action['target']));
+        $label = $is_flow ? 'Đặt trước' : ($label !== '' ? $label : wp_strip_all_tags((string) ($action['name'] ?? $key)));
+        $buttons[$group][] = thean_ous_button($group, $label, (string) $action['url'], 'wc-action-button wc-action-button-' . $slug, !empty($action['target']), $icon);
     }
 
     $buttons['flow'] = array_merge(thean_ous_flow_buttons($order), $buttons['flow']);
 
     if (current_user_can('edit_shop_orders') || current_user_can('manage_woocommerce')) {
-        array_splice($buttons['view'], $compact ? 1 : 0, 0, [thean_ous_button('edit', 'Chỉnh', thean_ous_creator_url($id), '', true)]);
+        array_splice($buttons['view'], $compact ? 1 : 0, 0, [thean_ous_button('edit', 'Chỉnh', thean_ous_creator_url($id), '', true, '✏')]);
     }
 
     $html = '';

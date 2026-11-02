@@ -630,7 +630,7 @@
         var all = row.querySelector('template[data-thean-ous-acts-all]');
         var quick = document.createElement('div');
         quick.className = 'thean-ous-acts__g';
-        quick.innerHTML = '<button type="button" class="thean-ous-btn thean-ous-btn--primary" data-thean-ous-preview="' + id + '">Xem nhanh</button>';
+        quick.innerHTML = '<button type="button" class="thean-ous-btn thean-ous-btn--primary" data-thean-ous-preview="' + id + '"><span class="thean-ous-btn__icon" aria-hidden="true">👁</span> Xem nhanh</button>';
         section('📋 Tổng quan', [quick].concat(all ? [all.content.cloneNode(true)] : []), 'is-all');
         body(acts).replaceChildren(out);
         acts.dataset.orderId = id;

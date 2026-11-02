@@ -107,6 +107,7 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-acts__g { display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
 .thean-ous-acts__label { flex:0 0 74px; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
 .thean-ous-btn, .thean-ous-btn.wc-action-button { --c:#334155; --bg:#f1f5f9; --bd:#cbd5e1; display:inline-flex !important; align-items:center; width:auto !important; height:auto !important; margin:0 !important; padding:3px 9px !important; border:1px solid var(--bd) !important; border-radius:6px !important; background:var(--bg) !important; color:var(--c) !important; font-size:12px; font-weight:600; line-height:1.6; text-indent:0 !important; text-transform:none !important; letter-spacing:0 !important; text-decoration:none; white-space:nowrap; overflow:visible; box-shadow:none !important; cursor:pointer; }
+.thean-ous-btn__icon { display:inline-block; flex:0 0 auto; margin-inline-end:4px; line-height:1; }
 .thean-ous-btn::after { display:none !important; content:none !important; }
 .thean-ous-btn:hover { filter:brightness(.95); }
 .thean-ous-btn:focus-visible { outline:2px solid var(--ous-primary); outline-offset:1px; }
