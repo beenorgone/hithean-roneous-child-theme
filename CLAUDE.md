@@ -81,7 +81,8 @@ Xử lý đơn → "Khóa đơn cũ" (option `thean_order_age_lock_relax`). Boar
 - **Bảng danh sách của Woo tắt mặc định** (`order-list-lazy.php`, nạp sớm ở đầu `core/admin.php` vì WC truy vấn danh sách
   trước `admin_enqueue_scripts`): không chạy truy vấn đơn (legacy `posts_pre_query`, HPOS `woocommerce_hpos_pre_query`).
   Menu ⋯ trên thanh tìm → "⤓ Tải danh sách Woo" mở lại với `?thean_wc_list=1` (JS gắn tiếp vào phân trang / tab / sắp xếp), không nhớ cho lần sau.
-  Bảng cũng hiện khi có `?s=`, lọc khách / tháng, hoặc kết quả thao tác hàng loạt.
+  Ẩn với **mọi user**, kể cả khi URL có `?s=`, lọc khách / tháng hay kết quả thao tác hàng loạt — chỉ hiện khi có `?thean_wc_list=1`.
+  Board "Tải đơn cần xử lý" tự tải khi mở trang (`boardAutoload` trong `thean_ous_ui_config()`), trừ lúc đang mở bảng Woo.
   Cùng file: nút "Thêm đơn hàng" của danh sách trỏ sang `/tao-don/` (tab mới) khi có module tạo đơn (`thean_order_creator_url()`).
 
 Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô tìm mặc định** (ẩn `p.search-box`).

@@ -12,8 +12,9 @@ if (!defined('ABSPATH')) exit;
  *   tắt luôn dropdown tháng.
  * - HPOS (admin.php?page=wc-orders): truy vấn của list table bị bỏ qua qua woocommerce_hpos_pre_query
  *   (phòng khi bản WC không có filter đó: chỉ lấy 1 dòng).
- * Bảng vẫn hiện như cũ khi: có ?thean_wc_list=1 (JS gắn tiếp vào link phân trang / tab trạng thái / sắp xếp),
- * tìm kiếm cũ ?s=, lọc khách / tháng, hoặc vừa chạy thao tác hàng loạt.
+ * Ẩn với MỌI user có ô tìm đơn, kể cả khi URL có ?s=, lọc khách / tháng hay kết quả thao tác hàng loạt (changed,
+ * marked_*…). Chỉ hiện khi có ?thean_wc_list=1 (nút "⤓ Tải danh sách Woo" giữ nguyên query hiện tại; JS gắn tiếp
+ * tham số vào link phân trang / tab trạng thái / sắp xếp / form lọc, redirect sau thao tác hàng loạt giữ theo referer).
  * Nút "Thêm đơn hàng" của trang danh sách trỏ sang trang Tạo đơn (/tao-don/) khi theme có module tạo đơn hộ khách.
  * Dùng chung theanmarket + hithean.
  */
@@ -30,20 +31,10 @@ function thean_wcl_is_list_request(): bool
         && !in_array(sanitize_key(wp_unslash($_GET['action'] ?? '')), ['edit', 'new'], true);
 }
 
-/** Người xem đang chủ động dùng bảng Woo (bấm nút, tìm cũ, lọc, phân trang, kết quả thao tác hàng loạt)? */
+/** Người xem đã bấm "Tải danh sách Woo" (?thean_wc_list=1)? Mọi trường hợp khác bảng Woo đều ẩn. */
 function thean_wcl_requested(): bool
 {
-    foreach (['thean_wc_list', 's', '_customer_user', 'm', 'filter_action', 'changed', 'bulk_action', 'trashed', 'untrashed', 'deleted'] as $key) {
-        if (isset($_GET[$key]) && $_GET[$key] !== '') {
-            return true;
-        }
-    }
-    foreach (array_keys($_GET) as $key) {
-        if (strpos((string) $key, 'marked_') === 0) {
-            return true;
-        }
-    }
-    return false;
+    return isset($_GET['thean_wc_list']) && $_GET['thean_wc_list'] !== '' && $_GET['thean_wc_list'] !== '0';
 }
 
 /** Bảng Woo đang tắt cho request này? (chỉ với người dùng có ô tìm đơn thay thế) */
