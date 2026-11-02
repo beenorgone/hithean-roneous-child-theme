@@ -183,6 +183,16 @@
         // Read only explicit quantity ranges from the plugin's own table, never
         // a title, percentage, price or an assumed set of 1/2/3 purchase options.
         function addTierActions() {
+            var tierTables = summary.querySelectorAll('.awdr-bulk-customizable-table');
+            tierTables.forEach(function (table) {
+                var rows = table.querySelectorAll('tr.bulk_table_row');
+                var shortDescriptions = rows.length >= 2 && Array.prototype.every.call(rows, function (row) {
+                    var title = row.querySelector('.wdr_bulk_title');
+                    var words = title ? title.textContent.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean) : [];
+                    return words.length > 0 && words.length <= 5;
+                });
+                table.classList.toggle('hithean-purchase-tiers--short-copy', shortDescriptions);
+            });
             summary.querySelectorAll('.awdr-bulk-customizable-table tr.bulk_table_row').forEach(function (row) {
                 if (row.querySelector('[data-purchase-quantity]')) return;
                 var range = row.querySelector('.wdr_bulk_range');
