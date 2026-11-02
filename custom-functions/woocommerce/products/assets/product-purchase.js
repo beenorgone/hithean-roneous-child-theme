@@ -37,33 +37,6 @@
             disclosure.appendChild(impact);
         }
 
-        /* Original dialogs remain portalled to body. Only their launchers are
-         * represented in normal flow; no second floating action row. */
-        var utilities = document.createElement('div');
-        utilities.className = 'hithean-purchase-utilities';
-        function utility(label, action) {
-            var button = document.createElement('button');
-            button.type = 'button';
-            button.textContent = label;
-            button.addEventListener('click', action);
-            utilities.appendChild(button);
-        }
-        var wheel = document.querySelector('#thean-lw-root .thean-lw-trigger');
-        if (wheel) utility(wheel.textContent.replace(/\s+/g, ' ').trim(), function () { wheel.click(); });
-        var details = document.querySelector('[data-pcn-popover-toggle]');
-        if (details) utility('Chi tiết sản phẩm', function () {
-            if (window.matchMedia('(max-width: 767px)').matches) details.click();
-            else {
-                var target = document.querySelector('#pcn-root [data-target]');
-                if (target) target.click();
-            }
-        });
-        if (utilities.children.length) {
-            if (form) form.insertAdjacentElement('afterend', utilities);
-            else summary.appendChild(utilities);
-            document.body.classList.add('hithean-purchase-utilities-ready');
-        }
-
         var navBoundary = form || product.querySelector('.woocommerce-product-gallery');
         if (navBoundary && 'IntersectionObserver' in window) {
             var navObserver = new IntersectionObserver(function () {
