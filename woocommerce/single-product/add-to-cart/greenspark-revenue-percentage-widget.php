@@ -1,5 +1,11 @@
 <?php
 
+// API key khai trong wp-config.php: define('HITHEAN_GREENSPARK_API_KEY', '...'); — chưa khai thì bỏ qua widget.
+$hithean_greenspark_key = defined('HITHEAN_GREENSPARK_API_KEY') ? (string) HITHEAN_GREENSPARK_API_KEY : '';
+if ($hithean_greenspark_key === '') {
+  return;
+}
+
 $curl = curl_init();
 
 curl_setopt_array($curl, [
@@ -20,7 +26,7 @@ curl_setopt_array($curl, [
   CURLOPT_HTTPHEADER => [
     "accept: application/json",
     "content-type: application/json",
-    "x-api-key: Ad7GRBUTBUiaZ1E9KMDl7SjxOdpx%2FanOd8yIavl3BrL7bTybzBCZDQtk7kL9D5Q6qan%2BdqVOvo9Y"
+    "x-api-key: " . $hithean_greenspark_key
   ],
 ]);
 

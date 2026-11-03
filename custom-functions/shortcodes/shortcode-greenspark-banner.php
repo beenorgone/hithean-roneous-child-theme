@@ -8,8 +8,11 @@ if (!defined('ABSPATH')) {
  * Fetch Greenspark Widget via Secure AJAX
  */
 function get_greenspark_banner() {
-    // SECURITY: Define API key securely (DO NOT expose in JavaScript)
-    $api_key = 'Ad7GRBUTBUiaZ1E9KMDl7SjxOdpx%2FanOd8yIavl3BrL7bTybzBCZDQtk7kL9D5Q6qan%2BdqVOvo9Y'; // Replace with actual API key
+    // SECURITY: API key khai trong wp-config.php: define('HITHEAN_GREENSPARK_API_KEY', '...'); — không để trong code.
+    $api_key = defined('HITHEAN_GREENSPARK_API_KEY') ? (string) HITHEAN_GREENSPARK_API_KEY : '';
+    if ($api_key === '') {
+        exit;
+    }
 
     // Greenspark API URL
     $api_url = 'https://api.getgreenspark.com/v2/widgets/full-width-banner?lng=en';
