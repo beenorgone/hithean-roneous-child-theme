@@ -135,6 +135,15 @@ function hithean_apfm_render()
     <?php // div thay vì <nav>: JS/CSS theme cha nhắm vào mọi `nav` (offcanvas, sticky header). ?>
     <div class="apfm" id="apfm-root" role="navigation" aria-label="<?php esc_attr_e('Menu danh mục sản phẩm', 'hithean.com'); ?>">
         <ul class="apfm__list" role="list">
+            <?php // Giỏ hàng ngoài cùng bên trái — mở popup giỏ của add-to-cart-popup.php (badge cập nhật AJAX). ?>
+            <?php if (function_exists('hithean_atc_cart_count_html') && hithean_atc_popup_is_enabled()) : ?>
+                <li class="apfm__item apfm__item--cart">
+                    <button type="button" class="apfm__link" data-atc-cart-open aria-label="<?php esc_attr_e('Xem giỏ hàng', 'hithean.com'); ?>" title="<?php esc_attr_e('Giỏ hàng', 'hithean.com'); ?>">
+                        <span class="apfm__icon"><?php echo hithean_atc_cart_icon_svg(); ?></span>
+                        <?php echo hithean_atc_cart_count_html(); ?>
+                    </button>
+                </li>
+            <?php endif; ?>
             <?php foreach ($items as $item) :
                 $label = (string) ($item['label'] ?? '');
                 $icon  = hithean_apfm_icon_svg((string) ($item['icon'] ?? ''));

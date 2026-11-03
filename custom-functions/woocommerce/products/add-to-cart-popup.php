@@ -40,6 +40,12 @@ function hithean_atc_popup_view_ajax()
     ]);
 }
 
+/** Icon giỏ hàng dùng chung cho nút mở popup (sticky trang SP + sticky footer menu archive). */
+function hithean_atc_cart_icon_svg(): string
+{
+    return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2.5 3h2.6l2.4 11.6a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.1L21 7H6"/></svg>';
+}
+
 /** Số lượng SP trong giỏ cho badge nút giỏ hàng; khóa fragment theo class → WC / popup thay khi giỏ đổi. */
 function hithean_atc_cart_count_html(): string
 {

@@ -126,6 +126,43 @@ body.site-scrolled.admin-bar #apfm-root {
     font-weight: 700;
 }
 
+/* Nút giỏ hàng: ô vuông chỉ có icon, ngoài cùng bên trái. */
+.apfm__item--cart {
+    flex: 0 0 48px;
+}
+
+.apfm__item--cart .apfm__link {
+    padding: 0;
+    background: var(--default-color-light-blue, #e8f0fb);
+    color: var(--default-color-dark-blue, #0047ba);
+}
+
+.apfm__item--cart .apfm__icon {
+    width: 22px;
+    height: 22px;
+}
+
+.apfm__item--cart .hithean-cart-count {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border: 2px solid #fff;
+    border-radius: 10px;
+    background: #e53935;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+}
+
+.apfm__item--cart .hithean-cart-count[hidden] {
+    display: none;
+}
+
 @media (max-width: 767px) {
     .apfm__list {
         gap: 4px;

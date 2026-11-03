@@ -357,7 +357,7 @@ function hithean_pcn_render()
             <?php // Vòng quay (nếu có) được JS chèn lên đầu cụm → thứ tự: Nhận ưu đãi | Giỏ hàng | Chi tiết SP. ?>
             <?php if (function_exists('hithean_atc_cart_count_html') && hithean_atc_popup_is_enabled()) : ?>
                 <button type="button" class="pcn-mobile__cart" data-atc-cart-open aria-label="<?php esc_attr_e('Xem giỏ hàng', 'hithean.com'); ?>" title="<?php esc_attr_e('Giỏ hàng', 'hithean.com'); ?>">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2.5 3h2.6l2.4 11.6a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.1L21 7H6"/></svg>
+                    <?php echo hithean_atc_cart_icon_svg(); ?>
                     <?php echo hithean_atc_cart_count_html(); ?>
                 </button>
             <?php endif; ?>
