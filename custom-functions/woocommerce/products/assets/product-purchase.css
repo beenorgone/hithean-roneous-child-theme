@@ -142,6 +142,7 @@ body.hithean-product-purchase .sticky-atc-bar .quantity[hidden] { display: none 
     body.hithean-product-purchase div.product .woocommerce-product-gallery .woocommerce-product-gallery__trigger,
     body.hithean-product-purchase div.product.sale .woocommerce-product-gallery .woocommerce-product-gallery__trigger { top: 10px; left: 10px; }
     body.hithean-product-purchase .product-single .summary > .hithean-product-linking { order: 30; }
+    body.hithean-product-purchase .product-single .summary > section.hithean-product-linking { margin-left: 16px !important; margin-right: 16px !important; }
     body.hithean-product-purchase .hithean-product-linking__options { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
     body.hithean-product-purchase .hithean-product-linking .hithean-product-linking__option { min-width: 0; padding: 10px 8px; }
     body.hithean-product-purchase .product-single .summary > .awdr-bulk-customizable-table { order: 40; }
