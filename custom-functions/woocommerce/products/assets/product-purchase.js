@@ -566,6 +566,7 @@
         if (!quantity || !originalButton || !quote) return;
         var $form = $(form);
         var subtotal = quote.querySelector('[data-purchase-subtotal]');
+        var breakdown = quote.querySelector('[data-purchase-breakdown]');
         var status = quote.querySelector('[data-purchase-status]');
         var bar = document.querySelector('.sticky-atc-bar');
         var stickyQuantity = bar && bar.querySelector('.sticky-atc-bar__qty-input');
@@ -626,6 +627,7 @@
             currentQuote = null;
             lastKey = '';
             subtotal.textContent = '—';
+            if (breakdown) breakdown.textContent = '';
             if (stickySubtotal) stickySubtotal.textContent = '';
             if (price) price.innerHTML = nativePriceHtml;
             setStatus(message, state);
@@ -638,6 +640,7 @@
             if (price) price.innerHTML = result.unitHtml;
             subtotal.innerHTML = result.subtotalHtml;
             if (!result.subtotalHtml) subtotal.textContent = '—';
+            if (breakdown) breakdown.innerHTML = result.subtotalHtml && typeof result.breakdownHtml === 'string' ? result.breakdownHtml : '';
             if (stickySubtotal) stickySubtotal.innerHTML = result.subtotalHtml;
             setStatus(result.message, result.state);
         }

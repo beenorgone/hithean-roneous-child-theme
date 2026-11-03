@@ -317,3 +317,7 @@ body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input,
 .pcn-proof-dialog__impact .b-greenspark-revenue-percentage-widget * { max-width: 100%; box-sizing: border-box; }
 .pcn-proof-dialog__impact img,
 .pcn-proof-dialog__impact svg { height: auto; }
+/* "đơn giá × N SP" dưới nhãn Tạm tính sản phẩm. */
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown { display: block; margin-top: 2px; font-size: 13px; color: var(--purchase-muted); }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown:empty { display: none; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown .amount { font-weight: 600; color: var(--purchase-ink); }

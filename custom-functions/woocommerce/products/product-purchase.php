@@ -86,7 +86,7 @@ function hithean_product_purchase_render_quote(): void
     if (!$product instanceof WC_Product || !$product->is_type(['simple', 'variable'])) return;
     ?>
     <div class="hithean-purchase-quote" hidden aria-live="polite" aria-atomic="true">
-        <div class="hithean-purchase-quote__total"><span><?php esc_html_e('Tạm tính sản phẩm', 'hithean.com'); ?></span><strong data-purchase-subtotal></strong></div>
+        <div class="hithean-purchase-quote__total"><span><?php esc_html_e('Tạm tính sản phẩm', 'hithean.com'); ?><small class="hithean-purchase-quote__breakdown" data-purchase-breakdown></small></span><strong data-purchase-subtotal></strong></div>
         <p class="hithean-purchase-quote__status" data-purchase-status></p>
     </div>
     <?php
@@ -251,5 +251,7 @@ function hithean_product_purchase_build_quote(WC_Product $product, int $quantity
     }
     $subtotal = wc_get_price_to_display($product, ['qty' => $quantity, 'price' => (float) $price]);
     $result['subtotalHtml'] = wp_kses_post(wc_price($subtotal) . $product->get_price_suffix((float) $price, $quantity));
+    // "đơn giá × N SP" cạnh nhãn tạm tính (giá đơn vị đã áp ưu đãi số lượng nếu có).
+    $result['breakdownHtml'] = wp_kses_post(wc_price(wc_get_price_to_display($product, ['price' => (float) $price])) . ' × ' . $quantity . ' SP');
     return $result;
 }
