@@ -525,6 +525,18 @@
             disclosure.appendChild(caption);
             disclosure.appendChild(impact);
         }
+        // Nội dung Greenspark cũng hiện trong popup Hồ sơ & kiểm nghiệm (bản sao HTML tĩnh của API; bản gốc giữ nguyên).
+        if (impact && trustBar && proofDialog && impact.textContent.trim() && !proofDialog.querySelector('.pcn-proof-dialog__impact')) {
+            var impactCopy = impact.cloneNode(true);
+            impactCopy.removeAttribute('id');
+            impactCopy.querySelectorAll('[id]').forEach(function (node) { node.removeAttribute('id'); });
+            var impactBox = document.createElement('div');
+            impactBox.className = 'pcn-proof-dialog__extra pcn-proof-dialog__impact';
+            impactBox.setAttribute('data-pcn-proof-extra', '');
+            impactBox.appendChild(impactCopy);
+            proofDialog.appendChild(impactBox);
+            proofDialog.dispatchEvent(new Event('pcn:proof-refresh'));
+        }
 
         setupOffers(summary, config);
 
