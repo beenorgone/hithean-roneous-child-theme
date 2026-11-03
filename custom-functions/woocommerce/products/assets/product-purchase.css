@@ -238,9 +238,7 @@ html.hithean-offers-open { overflow: hidden; }
     .hithean-offers-dialog__list { padding: 12px; }
     .hithean-offers-dialog__foot { padding: 12px 18px 16px; }
 }
-/* Thẻ bậc giá gộp: phạm vi "chỉ mã này" + danh sách bậc. */
-.hithean-offer-card__scope { margin: 0; padding: 8px 10px; border-radius: 8px; background: #fbf4e2; font-size: 12px; line-height: 1.5; }
-.hithean-offer-card__scope strong { font-weight: 700; }
+/* Thẻ bậc giá gộp: danh sách bậc. */
 .hithean-offer-tiers { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hithean-offer-tiers li { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 8px 12px; border: 1px solid #3b22221c; border-radius: 10px; }
 .hithean-offer-tiers li.is-current { border-color: #214f3c; background: #edf5ec; }
