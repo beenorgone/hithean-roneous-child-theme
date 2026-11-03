@@ -715,32 +715,23 @@ function hithean_render_product_trust_ctas(bool $with_nutrition): void
         }
         return;
     }
-    // Có popup "Hồ sơ & kiểm nghiệm" của product-navigation (cần ≥2 mục menu) → 1 thanh gộp mở popup đó
-    // (data-pcn-proof-toggle: product-navigation.js gắn sự kiện + chỉ hiện khi widget IVAR có hồ sơ công khai).
-    // Không có popup → giữ 2 widget nhúng tại chỗ như cũ.
-    if (function_exists('hithean_pcn_get_items') && count(hithean_pcn_get_items()) >= 2) {
-        $labels = array_values(array_filter([
-            !empty($proof_scripts['qc']) ? 'Kiểm nghiệm độc lập' : '',
-            !empty($proof_scripts['legal']) ? 'Hồ sơ công bố' : '',
-        ]));
-        ?>
-        <div class="product-trust-ctas">
-            <button type="button" class="hithean-offers-trigger hithean-trust-trigger" data-pcn-proof-toggle data-pcn-proof-entry hidden aria-haspopup="dialog" aria-controls="pcn-proof-dialog">
-                <span class="hithean-offers-trigger__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.9 8 10 4.6-1.1 8-5 8-10v-6l-8-3Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>
-                <span class="hithean-offers-trigger__text"><strong>Hồ sơ &amp; kiểm nghiệm</strong><small><?php echo esc_html(implode(' · ', $labels)); ?></small></span>
-                <span class="hithean-offers-trigger__more" aria-hidden="true">Xem ›</span>
-            </button>
-            <?php if ($with_nutrition) hithean_render_product_nutrition_label(); ?>
-        </div>
-        <style>
-            .product-trust-ctas { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
-            .product-trust-ctas .product-nutrition-label { margin: 0 !important; }
-        </style>
-        <?php
-        return;
-    }
+    ?>
+    <?php
+    // Thanh gộp mở popup "Hồ sơ & kiểm nghiệm" của product-navigation (data-pcn-proof-toggle: product-navigation.js
+    // gắn sự kiện + chỉ hiện khi có hồ sơ). Popup chỉ in ở wp_footer khi menu có ≥2 mục — lúc render summary chưa
+    // biết (tab chưa build; KHÔNG gọi hithean_pcn_get_items() ở đây: nó cache kết quả rỗng và làm mất cả menu).
+    // Nên in cả thanh lẫn 2 widget; CSS :has(#pcn-proof-dialog) chọn hiện cái nào, JS gỡ phần thừa.
+    $labels = array_values(array_filter([
+        !empty($proof_scripts['qc']) ? 'Kiểm nghiệm độc lập' : '',
+        !empty($proof_scripts['legal']) ? 'Hồ sơ công bố' : '',
+    ]));
     ?>
     <div class="product-trust-ctas">
+        <button type="button" class="hithean-offers-trigger hithean-trust-trigger" data-pcn-proof-toggle data-pcn-proof-entry hidden aria-haspopup="dialog" aria-controls="pcn-proof-dialog">
+            <span class="hithean-offers-trigger__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.9 8 10 4.6-1.1 8-5 8-10v-6l-8-3Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>
+            <span class="hithean-offers-trigger__text"><strong>Hồ sơ &amp; kiểm nghiệm</strong><small><?php echo esc_html(implode(' · ', $labels)); ?></small></span>
+            <span class="hithean-offers-trigger__more" aria-hidden="true">Xem ›</span>
+        </button>
         <?php foreach (['qc', 'legal'] as $kind) : if (empty($proof_scripts[$kind])) continue; ?>
             <div class="product-trust-ctas__embed product-trust-ctas__embed--<?php echo esc_attr($kind); ?>"><?php echo $proof_scripts[$kind]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- IVAR HTML fetched from the allowlisted host, or the rebuilt script. ?></div>
         <?php endforeach; ?>
@@ -756,6 +747,8 @@ function hithean_render_product_trust_ctas(bool $with_nutrition): void
            !important vì qc-embed.js đặt max-width inline cho host. */
         .product-trust-ctas .ivar-qc-widget-host { max-width: min(400px, 100%) !important; }
         @media (min-width: 769px) { .product-trust-ctas__embed { justify-content: flex-start; } }
+        body:has(#pcn-proof-dialog) .product-trust-ctas__embed { display: none !important; }
+        body:not(:has(#pcn-proof-dialog)) .product-trust-ctas .hithean-trust-trigger { display: none !important; }
     </style>
     <?php
 }

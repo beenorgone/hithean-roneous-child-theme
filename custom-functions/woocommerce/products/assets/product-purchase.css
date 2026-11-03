@@ -150,7 +150,7 @@ body.hithean-product-purchase .sticky-atc-bar .quantity[hidden] { display: none 
     body.hithean-product-purchase .product-single .summary > .hithean-purchase-utilities { order: 55; }
     body.hithean-product-purchase .product-single .summary > .hithean-sales-count { order: 58; }
     body.hithean-product-purchase .product-single .summary > .product-trust-ctas { order: 60; }
-    body.hithean-product-purchase .product-single .summary > .product-trust-ctas:has(.hithean-trust-trigger) { order: 46; }
+    body.hithean-product-purchase:has(#pcn-proof-dialog) .product-single .summary > .product-trust-ctas:has(.hithean-trust-trigger) { order: 46; }
     body.hithean-product-purchase .product-single .summary .product-trust-ctas__embed { justify-content: center; }
     body.hithean-product-purchase .product-single .summary > .hithean-purchase-contact-actions { order: 65; }
     body.hithean-product-purchase .product-single .summary > .b-single-product-ctas { order: 66; }
@@ -283,7 +283,7 @@ body.hithean-product-purchase .summary .hithean-offers-trigger.hithean-trust-tri
 .hithean-trust-trigger .hithean-offers-trigger__text strong,
 .hithean-trust-trigger .hithean-offers-trigger__more { color: #001f3f; }
 .hithean-trust-trigger .hithean-offers-trigger__text small { color: #0047ba; }
-body.hithean-product-purchase .product-single .summary .product-trust-ctas:has(.hithean-trust-trigger) { display: flex; margin: 0 0 14px; }
+body.hithean-product-purchase:has(#pcn-proof-dialog) .product-single .summary .product-trust-ctas:has(.hithean-trust-trigger) { display: flex; margin: 0 0 14px; }
 /* Nút "Xem bảng dinh dưỡng" trong popup Hồ sơ & kiểm nghiệm: thẻ cùng kiểu các mục hồ sơ. */
 .pcn-proof-dialog__nutrition .product-nutrition-label__trigger { display: flex !important; align-items: center; justify-content: flex-start; gap: 12px; width: 100% !important; max-width: 100%; height: auto !important; min-height: 64px; margin: 0 !important; padding: 12px 16px !important; border: 1px solid #c9d7ef !important; border-radius: 12px !important; background: #fff !important; color: #001f3f !important; box-shadow: none !important; font: 600 14px/1.35 "Be Vietnam", Arial, sans-serif !important; letter-spacing: 0 !important; text-align: left !important; text-transform: none !important; }
 .pcn-proof-dialog__nutrition .product-nutrition-label__trigger:hover { border-color: #0047ba !important; background: #eef3fb !important; }

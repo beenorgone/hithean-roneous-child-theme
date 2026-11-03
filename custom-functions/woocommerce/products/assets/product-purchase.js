@@ -476,6 +476,9 @@
         // trước khi modal dinh dưỡng mở (listener capture chạy trước handler click của product-nutrition-label).
         var proofDialog = document.getElementById('pcn-proof-dialog');
         var trustBar = summary.querySelector('.hithean-trust-trigger');
+        // Có popup → bỏ 2 widget nhúng tại chỗ; không có → bỏ thanh gộp, giữ widget như cũ.
+        if (trustBar && !proofDialog) { trustBar.remove(); trustBar = null; }
+        if (trustBar) summary.querySelectorAll('.product-trust-ctas__embed').forEach(function (embed) { embed.remove(); });
         var nutritionTrigger = nutritionAction && nutritionAction.querySelector('.product-nutrition-label__trigger');
         var proofItems = proofDialog && proofDialog.querySelector('.pcn-proof-dialog__items');
         if (trustBar && proofItems && nutritionTrigger) {
