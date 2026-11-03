@@ -314,6 +314,7 @@ body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input,
 .pcn-proof-dialog .pcn-proof-dialog__row { border-radius: 0 !important; }
 /* Greenspark trong popup Hồ sơ & kiểm nghiệm. */
 .pcn-proof-dialog__impact .b-greenspark-revenue-percentage-widget { display: block; max-width: 100%; margin: 0; padding: 0; border: 0; overflow: hidden; }
+.pcn-proof-dialog__impact { width: 100%; }
 .pcn-proof-dialog__impact .b-greenspark-revenue-percentage-widget * { max-width: 100%; box-sizing: border-box; }
 .pcn-proof-dialog__impact img,
 .pcn-proof-dialog__impact svg { height: auto; }

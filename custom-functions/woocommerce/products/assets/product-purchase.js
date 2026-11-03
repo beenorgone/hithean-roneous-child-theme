@@ -535,6 +535,22 @@
             impactBox.setAttribute('data-pcn-proof-extra', '');
             impactBox.appendChild(impactCopy);
             proofDialog.appendChild(impactBox);
+            // HTML của Greenspark có khung bề rộng cố định / inline-*: đi xuống chuỗi phần tử bọc (1 con, bỏ qua
+            // <style>/<script>) và cho từng lớp giãn đầy popup; lớp đầu có nhiều con (hàng nội dung) cũng giãn đầy.
+            (function stretch(node, depth) {
+                if (!node || depth > 6) return;
+                node.style.setProperty('width', '100%', 'important');
+                node.style.setProperty('max-width', 'none', 'important');
+                node.style.setProperty('margin-left', '0', 'important');
+                node.style.setProperty('margin-right', '0', 'important');
+                node.style.setProperty('box-sizing', 'border-box', 'important');
+                var display = window.getComputedStyle ? window.getComputedStyle(node).display : '';
+                if (display === 'inline-flex') node.style.setProperty('display', 'flex', 'important');
+                else if (display === 'inline-block' || display === 'inline') node.style.setProperty('display', 'block', 'important');
+                else if (display === 'inline-grid') node.style.setProperty('display', 'grid', 'important');
+                var kids = Array.prototype.filter.call(node.children, function (child) { return !/^(STYLE|SCRIPT|LINK|TEMPLATE)$/.test(child.tagName); });
+                if (kids.length === 1) stretch(kids[0], depth + 1);
+            })(impactCopy, 0);
             proofDialog.dispatchEvent(new Event('pcn:proof-refresh'));
         }
 
