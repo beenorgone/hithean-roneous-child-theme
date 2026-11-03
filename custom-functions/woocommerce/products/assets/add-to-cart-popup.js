@@ -168,6 +168,59 @@ jQuery(function ($) {
         });
     }
 
+    /*
+     * − / +: đổi số trên giao diện ngay, bấm liên tiếp gộp thành 1 request (chờ 400ms sau lần bấm cuối);
+     * đang gửi thì khóa stepper của dòng đó, xong render lại cả giỏ (tổng tiền, badge).
+     */
+    var qtyTimers = {};
+
+    function stepQty($btn) {
+        var $stepper = $btn.closest('[data-atc-qty-key]');
+        var key = $stepper.attr('data-atc-qty-key');
+        var max = parseInt($stepper.attr('data-max'), 10) || 0;
+        var $val = $stepper.find('.atc-popup__qty-val');
+        var qty = (parseInt($val.text(), 10) || 1) + parseInt($btn.attr('data-atc-qty-step'), 10);
+        qty = Math.max(1, max > 0 ? Math.min(qty, max) : qty);
+
+        $val.text(qty);
+        $stepper.find('[data-atc-qty-step="-1"]').prop('disabled', qty <= 1);
+        $stepper.find('[data-atc-qty-step="1"]').prop('disabled', max > 0 && qty >= max);
+
+        clearTimeout(qtyTimers[key]);
+        qtyTimers[key] = setTimeout(function () {
+            delete qtyTimers[key];
+            sendQty($stepper, key, qty);
+        }, 400);
+    }
+
+    function sendQty($stepper, key, qty) {
+        var $item = $stepper.closest('.atc-popup__item');
+        var nonce = $stepper.closest('[data-atc-remove-nonce]').attr('data-atc-remove-nonce');
+        $modal.find('.atc-popup__notice').remove();
+        $item.addClass('is-updating');
+
+        $.ajax({
+            url: config.ajaxUrl,
+            type: 'POST',
+            data: { action: config.qtyAction, nonce: nonce, cart_item_key: key, quantity: qty },
+            dataType: 'json'
+        }).done(function (res) {
+            var data = (res && res.data) || {};
+            if (typeof data.html === 'string') {
+                render(data);
+                writeCache(data);
+                applyFragments(data.fragments);
+                $(document.body).trigger('updated_cart_totals');
+            } else {
+                $item.removeClass('is-updating');
+            }
+            if (!res || !res.success || data.message) notice(data.message || config.qtyError);
+        }).fail(function () {
+            $item.removeClass('is-updating');
+            notice(config.qtyError);
+        });
+    }
+
     function notice(message) {
         $('<p class="atc-popup__notice" role="alert"></p>').text(message).prependTo($modal.find('.atc-popup__cart'));
     }
@@ -259,6 +312,10 @@ jQuery(function ($) {
         openCart();
     });
     $(document).on('pointerenter touchstart', '[data-atc-cart-open]', prefetch);
+    $modal.on('click', '[data-atc-qty-step]', function (e) {
+        e.preventDefault();
+        stepQty($(this));
+    });
     $modal.on('click', '[data-atc-remove]', function (e) {
         e.preventDefault();
         removeItem($(this));

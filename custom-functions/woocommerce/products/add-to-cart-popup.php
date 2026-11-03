@@ -18,6 +18,7 @@ if (!defined('ABSPATH')) exit;
 const HITHEAN_ATC_POPUP_ACTION = 'hithean_atc_popup';
 const HITHEAN_ATC_POPUP_VIEW_ACTION = 'hithean_atc_popup_view';
 const HITHEAN_ATC_POPUP_REMOVE_ACTION = 'hithean_atc_popup_remove';
+const HITHEAN_ATC_POPUP_QTY_ACTION = 'hithean_atc_popup_qty';
 
 /*
   Xem giỏ hàng (nút giỏ hàng ở cụm sticky mobile trang sản phẩm — product-navigation.php):
@@ -59,6 +60,63 @@ function hithean_atc_popup_remove_ajax()
     $payload = hithean_atc_popup_cart_payload();
     $payload['fragments'] = hithean_atc_popup_fragments();
     wp_send_json_success($payload);
+}
+
+/*
+  Đổi số lượng 1 dòng (nút − / + trong popup). Dùng chung nonce với nút xóa. Kiểm như trang giỏ
+  của WC: tối đa theo tồn kho / bán lẻ từng cái + filter woocommerce_update_cart_validation (plugin addon…).
+*/
+add_action('wp_ajax_' . HITHEAN_ATC_POPUP_QTY_ACTION, 'hithean_atc_popup_qty_ajax');
+add_action('wp_ajax_nopriv_' . HITHEAN_ATC_POPUP_QTY_ACTION, 'hithean_atc_popup_qty_ajax');
+
+function hithean_atc_popup_qty_ajax()
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        wp_send_json_error(['message' => __('Không tải được giỏ hàng.', 'hithean.com')]);
+    }
+    if (!check_ajax_referer(HITHEAN_ATC_POPUP_REMOVE_ACTION, 'nonce', false)) {
+        wp_send_json_error(['message' => __('Phiên làm việc đã hết hạn, vui lòng tải lại trang.', 'hithean.com')]);
+    }
+
+    $key  = isset($_POST['cart_item_key']) ? wc_clean(wp_unslash($_POST['cart_item_key'])) : '';
+    $qty  = isset($_POST['quantity']) ? (int) wp_unslash($_POST['quantity']) : 0;
+    $item = $key !== '' ? WC()->cart->get_cart_item($key) : null;
+    $product = $item['data'] ?? null;
+
+    if (!$item || !$product instanceof WC_Product) {
+        wp_send_json_error(['message' => __('Sản phẩm không còn trong giỏ hàng.', 'hithean.com')] + hithean_atc_popup_cart_payload());
+    }
+
+    $max = hithean_atc_popup_item_max_qty($product);
+    $qty = max(1, $max > 0 ? min($qty, $max) : $qty);
+
+    if ($qty !== (int) $item['quantity']) {
+        if (apply_filters('woocommerce_update_cart_validation', true, $key, $item, $qty)) {
+            WC()->cart->set_quantity($key, $qty, true);
+        }
+    }
+
+    $errors = wc_get_notices('error');
+    wc_clear_notices();
+
+    $payload = hithean_atc_popup_cart_payload();
+    $payload['fragments'] = hithean_atc_popup_fragments();
+    if ($errors) {
+        $payload['message'] = implode(' ', array_filter(array_map(function ($notice) {
+            return wp_strip_all_tags(is_array($notice) ? ($notice['notice'] ?? '') : (string) $notice);
+        }, $errors)));
+    }
+    wp_send_json_success($payload);
+}
+
+/** Số lượng tối đa của 1 dòng giỏ: 0 = không giới hạn. */
+function hithean_atc_popup_item_max_qty(WC_Product $product): int
+{
+    if ($product->is_sold_individually()) {
+        return 1;
+    }
+    $max = (int) $product->get_max_purchase_quantity();
+    return $max > 0 ? $max : 0;
 }
 
 /** Nội dung popup chế độ xem + số lượng + cart hash (JS dùng hash để biết bản lưu tạm còn đúng không). */
@@ -184,9 +242,19 @@ function hithean_atc_popup_render_cart(string $added_key): string
                         <?php echo $link ? '<a href="' . esc_url($link) . '">' . wp_kses_post($name) . '</a>' : wp_kses_post($name); ?>
                     </p>
                     <?php echo wc_get_formatted_cart_item_data($item); ?>
-                    <p class="atc-popup__qty">
-                        <?php echo esc_html($item['quantity']); ?> &times; <?php echo WC()->cart->get_product_price($product); ?>
-                    </p>
+                    <?php $max_qty = hithean_atc_popup_item_max_qty($product); ?>
+                    <div class="atc-popup__qty">
+                        <?php if ($max_qty !== 1) : ?>
+                            <span class="atc-popup__stepper" data-atc-qty-key="<?php echo esc_attr($key); ?>" data-max="<?php echo esc_attr($max_qty); ?>">
+                                <button type="button" data-atc-qty-step="-1" aria-label="<?php esc_attr_e('Giảm số lượng', 'hithean.com'); ?>"<?php disabled((int) $item['quantity'] <= 1); ?>>&minus;</button>
+                                <span class="atc-popup__qty-val" aria-live="polite"><?php echo esc_html($item['quantity']); ?></span>
+                                <button type="button" data-atc-qty-step="1" aria-label="<?php esc_attr_e('Tăng số lượng', 'hithean.com'); ?>"<?php disabled($max_qty > 0 && (int) $item['quantity'] >= $max_qty); ?>>+</button>
+                            </span>
+                            <span class="atc-popup__unit">&times; <?php echo WC()->cart->get_product_price($product); ?></span>
+                        <?php else : ?>
+                            <span class="atc-popup__unit"><?php echo esc_html($item['quantity']); ?> &times; <?php echo WC()->cart->get_product_price($product); ?></span>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <div class="atc-popup__line-total"><?php echo $cart->get_product_subtotal($product, $item['quantity']); ?></div>
                 <button type="button" class="atc-popup__remove" data-atc-remove="<?php echo esc_attr($key); ?>" aria-label="<?php echo esc_attr(sprintf(__('Xóa %s khỏi giỏ hàng', 'hithean.com'), wp_strip_all_tags($name))); ?>" title="<?php esc_attr_e('Xóa khỏi giỏ', 'hithean.com'); ?>">&times;</button>
@@ -270,6 +338,8 @@ function hithean_atc_popup_enqueue_assets()
         'action'       => HITHEAN_ATC_POPUP_ACTION,
         'viewAction'   => HITHEAN_ATC_POPUP_VIEW_ACTION,
         'removeAction' => HITHEAN_ATC_POPUP_REMOVE_ACTION,
+        'qtyAction'    => HITHEAN_ATC_POPUP_QTY_ACTION,
+        'qtyError'     => __('Không cập nhật được số lượng, vui lòng thử lại.', 'hithean.com'),
         'emptyText'    => __('Giỏ hàng của bạn đang trống.', 'hithean.com'),
         'loadingText'  => __('Đang tải giỏ hàng...', 'hithean.com'),
         'removeError'  => __('Không xóa được sản phẩm, vui lòng thử lại.', 'hithean.com'),

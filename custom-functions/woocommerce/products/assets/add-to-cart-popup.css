@@ -182,9 +182,60 @@ html.atc-popup-open {
 }
 
 .atc-popup__qty {
-    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 0;
     font-size: 13px;
     color: #666;
+}
+
+/* Nút − số + (đổi số lượng ngay trong popup). */
+.atc-popup__stepper {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--default-color-grey);
+    border-radius: 6px;
+    background: #fff;
+}
+
+.atc-popup__stepper button {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--default-color-dark-blue);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 30px;
+    cursor: pointer;
+}
+
+.atc-popup__stepper button:disabled {
+    color: #bbb;
+    cursor: default;
+}
+
+.atc-popup__stepper button:not(:disabled):hover,
+.atc-popup__stepper button:focus-visible {
+    background: var(--default-color-light-blue);
+    outline: none;
+}
+
+.atc-popup__qty-val {
+    min-width: 28px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--default-color-black);
+}
+
+.atc-popup__item.is-updating .atc-popup__line-total,
+.atc-popup__item.is-updating .atc-popup__stepper {
+    opacity: .5;
+    pointer-events: none;
 }
 
 .atc-popup__line-total {
