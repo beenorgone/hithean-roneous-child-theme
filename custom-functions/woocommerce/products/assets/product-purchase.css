@@ -319,6 +319,8 @@ body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input,
 .pcn-proof-dialog__impact .gs-byPercentage-wrapper { display: block !important; width: 100% !important; max-width: none !important; margin: 0 !important; font-size: 18px; }
 .pcn-proof-dialog__impact .gs-byPercentage-inner { width: auto !important; max-width: none !important; box-sizing: border-box !important; }
 /* "đơn giá × N SP" dưới nhãn Tạm tính sản phẩm. */
-body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown { display: block; margin-top: 2px; font-size: 13px; color: var(--purchase-muted); }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown { display: block; margin: -2px 0 0; text-align: right; font: 400 12px/1.4 Arial, sans-serif !important; color: var(--purchase-muted); }
 body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown:empty { display: none; }
-body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown .amount { font-weight: 600; color: var(--purchase-ink); }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown .amount,
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown bdi,
+body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown .woocommerce-Price-currencySymbol { font: inherit !important; color: inherit !important; }

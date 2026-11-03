@@ -86,7 +86,8 @@ function hithean_product_purchase_render_quote(): void
     if (!$product instanceof WC_Product || !$product->is_type(['simple', 'variable'])) return;
     ?>
     <div class="hithean-purchase-quote" hidden aria-live="polite" aria-atomic="true">
-        <div class="hithean-purchase-quote__total"><span><?php esc_html_e('Tạm tính sản phẩm', 'hithean.com'); ?><small class="hithean-purchase-quote__breakdown" data-purchase-breakdown></small></span><strong data-purchase-subtotal></strong></div>
+        <div class="hithean-purchase-quote__total"><span><?php esc_html_e('Tạm tính sản phẩm', 'hithean.com'); ?></span><strong data-purchase-subtotal></strong></div>
+        <small class="hithean-purchase-quote__breakdown" data-purchase-breakdown></small>
         <p class="hithean-purchase-quote__status" data-purchase-status></p>
     </div>
     <?php
