@@ -141,6 +141,22 @@ function hithean_offers_wdr_sources(array $rows, array $products): array {
     }
     return $sources;
 }
+/**
+ * Ngày bắt đầu / kết thúc khai thật trong plugin Product Addon (ô chung của sản phẩm + cột ngày của từng dòng).
+ * Lấy giao của các khoảng (bắt đầu muộn nhất, kết thúc sớm nhất). Null khi không khai ngày nào → đoán từ chữ như cũ.
+ */
+function hithean_offers_addon_schedule(int $id, array $addons): ?array {
+    if (!function_exists('simple_addon_parse_date_bound')) { return null; }
+    $bounds = function_exists('simple_addon_get_product_schedule') ? [simple_addon_get_product_schedule($id)] : [];
+    foreach ($addons as $addon) { $bounds[] = ['start' => (string) ($addon['start'] ?? ''), 'end' => (string) ($addon['end'] ?? '')]; }
+    $start = 0; $end = 0;
+    foreach ($bounds as $b) {
+        $s = simple_addon_parse_date_bound($b['start'] ?? '', false); $e = simple_addon_parse_date_bound($b['end'] ?? '', true);
+        if ($s) { $start = max($start, $s); }
+        if ($e) { $end = $end ? min($end, $e) : $e; }
+    }
+    return ($start || $end) ? ['start' => $start, 'end' => $end, 'reason' => ''] : null;
+}
 function hithean_offers_product_sources($product): array {
     $id = $product->get_id(); $sources = [];
     if (!function_exists('simple_addon_get_product_addons') && hithean_offers_plugin_active('product-addon')) { throw new RuntimeException('Product Addon đang bật nhưng API không khả dụng.'); }
@@ -158,7 +174,8 @@ function hithean_offers_product_sources($product): array {
             $context = hithean_offers_text((string) $config['sale_message']);
             if ($context !== '') { $parts[] = $context; }
             $row = hithean_offers_source('addon:' . $id . ':' . $choice['value'], 'addon', $config, [$id], implode('. ', $parts), 'gift');
-            $dates = hithean_offers_dates($row['title']); $row['start'] = $dates['start']; $row['end'] = $dates['end'];
+            $dates = hithean_offers_addon_schedule($id, $choice['addons']) ?? hithean_offers_dates($row['title']);
+            $row['start'] = $dates['start']; $row['end'] = $dates['end'];
             $row['editable_dates'] = $dates['reason'] !== ''; $row['requires_date'] = $row['editable_dates'];
             if ($dates['reason']) { $row['reason'] = $dates['reason']; }
             $row['owner_product'] = $id; $row['source'] = admin_url('post.php?post=' . $id . '&action=edit');

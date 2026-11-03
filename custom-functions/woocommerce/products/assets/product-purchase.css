@@ -221,7 +221,7 @@ html.hithean-offers-open { overflow: hidden; }
 .hithean-offer-card__media img { display: block; width: 100%; height: 100%; margin: 0; object-fit: cover; }
 .hithean-offer-card__media--icon { display: grid; place-items: center; border: 0; color: var(--default-color-dark-blue, #0047ba); background: #e8f0fb; }
 .hithean-offer-card__media--icon.is-wheel { color: #9a6a00; background: #fff4d6; }
-.hithean-offer-card__media--icon svg { width: 52%; height: 52%; }
+.hithean-offer-card__media--icon svg { width: 36%; height: 36%; min-width: 20px; min-height: 20px; }
 .hithean-offer-card__badge { padding: 5px 12px; border-radius: 99px; background: #ecefe6; color: var(--ho-green); font-size: 11px; font-weight: 700; }
 .hithean-offer-card__price,
 .hithean-offer-card__price .amount { font-size: 15px !important; font-weight: 700; color: var(--ho-green); }
