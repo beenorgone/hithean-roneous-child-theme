@@ -1,14 +1,19 @@
 .thean-lw {
-    --lw-green: #087a5a;
-    --lw-ink: #19231f;
-    --lw-muted: #607269;
-    --lw-line: #dbe5df;
-    --lw-gold: #f2b33d;
-    --lw-red: #e65c43;
-    --lw-blue: #245c9d;
-    --lw-purple: #8c4a8f;
-    --lw-cream: #f7f2e7;
-    font-family: inherit;
+    /* Màu thương hiệu hithean (css/custom.css) — có fallback khi biến theme chưa nạp */
+    --lw-primary: var(--default-color-dark-blue, #0047ba);
+    --lw-navy: var(--default-color-navy-blue, #001f3f);
+    --lw-green: var(--default-color-green-dark, #00843d);
+    --lw-gold: var(--default-color-yellow, #fbb917);
+    --lw-red: var(--default-color-red, #bf1f33);
+    --lw-light-blue: var(--default-color-light-blue, #b0dded);
+    --lw-cream: var(--default-color-beige, #f7f6f2);
+    --lw-ink: var(--default-color-black, #323232);
+    --lw-muted: var(--default-color-charcoal-grey, #36454f);
+    --lw-line: #d6dfeb;
+    --lw-tint: #eef4fc;
+    --lw-heading-font: "Oswald", sans-serif;
+    --lw-body-font: "Be Vietnam", sans-serif;
+    font-family: var(--lw-body-font);
 }
 
 .thean-lw-trigger {
@@ -22,10 +27,22 @@
     border: 0;
     border-radius: 999px;
     color: #fff;
-    background: var(--lw-green);
-    box-shadow: 0 10px 28px rgba(8, 122, 90, 0.28);
+    background: var(--lw-primary);
+    box-shadow: 0 10px 28px rgba(0, 71, 186, 0.3);
     cursor: pointer;
-    font-weight: 700;
+    font-family: var(--lw-heading-font);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    transition: background-color .2s ease, box-shadow .2s ease;
+}
+
+.thean-lw-trigger:hover,
+.thean-lw-trigger:focus-visible {
+    background: var(--lw-navy);
+    box-shadow: 0 10px 28px rgba(0, 31, 63, 0.35);
 }
 
 .thean-lw[data-vertical="bottom"] .thean-lw-trigger { bottom: var(--lw-t-bottom, 63px); }
@@ -41,8 +58,10 @@
     height: 24px;
     place-items: center;
     border-radius: 50%;
-    color: var(--lw-green);
-    background: #fff;
+    color: var(--lw-navy);
+    background: var(--lw-gold);
+    font-weight: 700;
+    letter-spacing: 0;
 }
 
 .thean-lw-modal[hidden] {
@@ -58,7 +77,7 @@
 .thean-lw-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(11, 18, 15, 0.52);
+    background: rgba(0, 31, 63, 0.55);
 }
 
 .thean-lw-panel {
@@ -69,10 +88,11 @@
     max-height: calc(100vh - 20px);
     overflow: auto;
     transform: translate(-50%, -50%);
-    border-radius: 8px;
+    border-top: 4px solid var(--lw-primary);
+    border-radius: 6px;
     background: #fff;
     color: var(--lw-ink);
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    box-shadow: var(--default-box-shadow, 0 24px 70px rgba(0, 0, 0, 0.28));
 }
 
 .thean-lw-close {
@@ -88,6 +108,12 @@
     cursor: pointer;
     font-size: 28px;
     line-height: 1;
+    transition: color .2s ease;
+}
+
+.thean-lw-close:hover,
+.thean-lw-close:focus-visible {
+    color: var(--lw-primary);
 }
 
 .thean-lw-grid {
@@ -125,8 +151,8 @@
     aspect-ratio: 1;
     border: 10px solid #fff;
     border-radius: 50%;
-    background: conic-gradient(var(--lw-green) 0 72deg, var(--lw-gold) 72deg 144deg, var(--lw-red) 144deg 216deg, var(--lw-cream) 216deg 288deg, var(--lw-blue) 288deg 360deg);
-    box-shadow: 0 16px 40px rgba(20, 34, 28, 0.2);
+    background: conic-gradient(var(--lw-primary) 0 72deg, var(--lw-gold) 72deg 144deg, var(--lw-green) 144deg 216deg, var(--lw-light-blue) 216deg 288deg, var(--lw-navy) 288deg 360deg);
+    box-shadow: 0 0 0 3px var(--lw-gold), 0 16px 40px rgba(0, 31, 63, 0.25);
     position: relative;
     transition: transform 2.6s cubic-bezier(.16, .86, .26, 1);
     transform: rotate(0deg);
@@ -139,7 +165,7 @@
     border-radius: 50%;
     background:
         radial-gradient(circle at center, rgba(255,255,255,0.14) 0 36%, transparent 37%),
-        conic-gradient(var(--lw-green) 0 72deg, var(--lw-gold) 72deg 144deg, var(--lw-red) 144deg 216deg, var(--lw-cream) 216deg 288deg, var(--lw-blue) 288deg 360deg);
+        conic-gradient(var(--lw-primary) 0 72deg, var(--lw-gold) 72deg 144deg, var(--lw-green) 144deg 216deg, var(--lw-light-blue) 216deg 288deg, var(--lw-navy) 288deg 360deg);
 }
 
 .thean-lw-wheel::after {
@@ -160,8 +186,9 @@
     top: 50%;
     width: 56px;
     color: #fff;
-    font-size: 10px;
-    font-weight: 800;
+    font-family: var(--lw-heading-font);
+    font-size: 11px;
+    font-weight: 600;
     line-height: 1.15;
     text-align: center;
     transform-origin: center center;
@@ -172,10 +199,12 @@
     z-index: 1;
     white-space: nowrap;
     letter-spacing: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .thean-lw-wheel__label:nth-child(2n) {
-    color: #38250b;
+    color: var(--lw-navy);
+    text-shadow: none;
 }
 
 .thean-lw.is-spinning .thean-lw-wheel {
@@ -185,16 +214,22 @@
 .thean-lw-kicker {
     margin: 0 0 8px;
     color: var(--lw-green);
-    font-size: 13px;
-    font-weight: 800;
+    font-family: var(--lw-heading-font);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    line-height: 1.3;
     text-transform: uppercase;
 }
 
 .thean-lw h2 {
     margin: 0 20px 6px 0;
-    color: var(--lw-ink);
-    font-size: 22px;
-    line-height: 1.18;
+    color: var(--lw-navy);
+    font-family: var(--lw-heading-font);
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.2;
+    word-spacing: 2px;
 }
 
 .thean-lw-spins,
@@ -210,12 +245,12 @@
 .thean-lw-spins {
     margin: 8px 0 10px;
     padding: 9px 10px;
-    border: 1px solid rgba(8, 122, 90, 0.22);
-    border-left: 4px solid var(--lw-green);
-    border-radius: 6px;
-    background: #eef8f4;
-    color: var(--lw-ink);
-    font-weight: 800;
+    border: 1px solid rgba(0, 71, 186, 0.18);
+    border-left: 4px solid var(--lw-primary);
+    border-radius: 4px;
+    background: var(--lw-tint);
+    color: var(--lw-navy);
+    font-weight: 600;
 }
 
 .thean-lw-result-list,
@@ -223,16 +258,19 @@
     margin: 10px 0;
     padding: 8px 10px;
     border: 1px solid var(--lw-line);
-    border-radius: 8px;
-    background: #f8fbf9;
+    border-radius: 6px;
+    background: var(--lw-cream);
 }
 
 .thean-lw-result-list__title {
     margin: 0 0 8px;
-    font-weight: 700;
-    color: var(--lw-ink);
+    font-family: var(--lw-heading-font);
+    font-weight: 500;
+    color: var(--lw-navy);
     line-height: 1.3;
-    font-size: 14px;
+    font-size: 15px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
 }
 
 .thean-lw-prize-choice {
@@ -248,13 +286,23 @@
     background: #fff;
     color: var(--lw-ink);
     cursor: pointer;
+    font-family: var(--lw-body-font);
     text-align: left;
+    text-transform: none;
+    letter-spacing: 0;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.thean-lw-prize-choice:not(:disabled):hover {
+    border-color: var(--lw-primary);
 }
 
 .thean-lw-prize-choice strong,
 .thean-lw-coupon strong {
     margin-right: 15px;
+    color: var(--lw-navy);
     font-size: 15px;
+    font-weight: 700;
     line-height: 1.45;
 }
 
@@ -267,9 +315,11 @@
 .thean-lw-prize-choice__index {
     display: inline-flex;
     align-items: center;
-    color: var(--lw-green);
-    font-size: 11px;
-    font-weight: 800;
+    color: var(--lw-primary);
+    font-family: var(--lw-heading-font);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .5px;
     text-transform: uppercase;
 }
 
@@ -280,8 +330,9 @@
 }
 
 .thean-lw-prize-choice[aria-pressed="true"] {
-    border-color: var(--lw-green);
-    box-shadow: inset 0 0 0 1px var(--lw-green);
+    border-color: var(--lw-primary);
+    background: var(--lw-tint);
+    box-shadow: inset 0 0 0 1px var(--lw-primary);
 }
 
 .thean-lw-prize-choice[data-dismissed="true"] {
@@ -300,7 +351,7 @@
 .thean-lw-coupon__selected {
     margin: 0 0 6px;
     color: var(--lw-green);
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .thean-lw-actions {
@@ -324,19 +375,42 @@
     width: 100%;
 }
 
-.thean-lw-btn {
+/* Nút theo kiểu CTA hithean (.button--*): Oswald in hoa, viền 2px, góc vuông */
+.thean-lw .thean-lw-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 42px;
-    padding: 9px 16px;
-    border: 1px solid var(--lw-green);
-    border-radius: 6px;
-    background: var(--lw-green);
+    min-height: 45px;
+    margin: 0;
+    padding: 8px 20px;
+    border: 2px solid var(--lw-primary);
+    border-radius: 0;
+    background: var(--lw-primary);
     color: #fff;
     cursor: pointer;
-    font-weight: 700;
+    font-family: var(--lw-heading-font);
+    font-size: 15px;
+    font-weight: var(--default-button-font-weight, 500);
+    letter-spacing: 1px;
+    line-height: 1.2;
+    text-align: center;
     text-decoration: none;
+    text-transform: uppercase;
+    word-spacing: 2px;
+    box-shadow: none;
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.thean-lw .thean-lw-btn:not(:disabled):hover,
+.thean-lw .thean-lw-btn:not(:disabled):focus-visible {
+    border-color: var(--lw-navy);
+    background: var(--lw-navy);
+    color: #fff;
+}
+
+.thean-lw .thean-lw-btn:focus-visible {
+    outline: 2px solid var(--lw-gold);
+    outline-offset: 2px;
 }
 
 .thean-lw a.thean-lw-btn,
@@ -348,19 +422,55 @@
     text-decoration: none;
 }
 
-.thean-lw-btn:disabled {
-    opacity: 0.6;
+.thean-lw .thean-lw-btn:disabled {
+    opacity: 0.55;
     cursor: not-allowed;
 }
 
-.thean-lw-btn--secondary {
-    background: #fff;
-    color: var(--lw-green);
+/* Nút Quay: vàng thương hiệu để nổi trên vòng quay */
+.thean-lw .thean-lw-actions--wheel .thean-lw-btn--primary {
+    border-color: var(--lw-gold);
+    background: var(--lw-gold);
+    color: var(--lw-navy);
+    font-weight: 600;
 }
 
-.thean-lw-btn--dismiss {
+.thean-lw .thean-lw-actions--wheel .thean-lw-btn--primary:not(:disabled):hover,
+.thean-lw .thean-lw-actions--wheel .thean-lw-btn--primary:not(:disabled):focus-visible {
+    border-color: var(--lw-navy);
+    background: var(--lw-navy);
+    color: var(--lw-gold);
+}
+
+/* Phụ: như .button--dark-blue-reverse */
+.thean-lw .thean-lw-btn--secondary {
+    background: #fff;
+    color: var(--lw-primary);
+}
+
+.thean-lw .thean-lw-btn--secondary:not(:disabled):hover,
+.thean-lw .thean-lw-btn--secondary:not(:disabled):focus-visible {
+    border-color: var(--lw-primary);
+    background: var(--lw-primary);
+    color: #fff;
+}
+
+/* Tắt vòng quay: nhẹ, không cạnh tranh với CTA chính */
+.thean-lw .thean-lw-btn--dismiss {
     min-height: 36px;
-    padding: 7px 12px;
+    padding: 6px 12px;
+    border-width: 1px;
+    border-color: var(--lw-line);
+    color: var(--lw-muted);
+    font-size: 13px;
+    letter-spacing: .5px;
+}
+
+.thean-lw .thean-lw-btn--dismiss:not(:disabled):hover,
+.thean-lw .thean-lw-btn--dismiss:not(:disabled):focus-visible {
+    border-color: var(--lw-muted);
+    background: #fff;
+    color: var(--lw-navy);
 }
 
 .thean-lw-form {
@@ -370,7 +480,8 @@
 .thean-lw-form label {
     display: block;
     margin-bottom: 6px;
-    font-weight: 700;
+    color: var(--lw-navy);
+    font-weight: 600;
 }
 
 .thean-lw-form input[type="text"] {
@@ -379,7 +490,15 @@
     margin-bottom: 10px;
     padding: 8px 10px;
     border: 1px solid var(--lw-line);
-    border-radius: 6px;
+    border-radius: 0;
+    color: var(--lw-ink);
+    font-family: var(--lw-body-font);
+}
+
+.thean-lw-form input[type="text"]:focus {
+    border-color: var(--lw-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 71, 186, 0.15);
 }
 
 .thean-lw-hp {
@@ -394,11 +513,14 @@
     gap: 8px;
     margin: 8px 0;
     padding: 8px 10px;
-    border: 1px dashed var(--lw-green);
-    border-radius: 6px;
+    border: 2px dashed var(--lw-primary);
+    border-radius: 4px;
     background: #fff;
-    color: var(--lw-green);
-    font-weight: 800;
+    color: var(--lw-primary);
+    font-family: var(--lw-heading-font);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
 }
 
 @media (max-width: 720px) {
@@ -441,7 +563,7 @@
     }
 
     .thean-lw h2 {
-        font-size: 16px;
+        font-size: 19px;
         margin-right: 14px;
         line-height: 1.2;
     }
@@ -477,7 +599,7 @@
     .thean-lw-wheel__label {
         --lw-label-radius: 44px;
         width: 38px;
-        font-size: 8px;
+        font-size: 9px;
         line-height: 1.05;
     }
 
@@ -492,11 +614,21 @@
         margin-inline: auto;
     }
 
-    .thean-lw-btn {
-        min-height: 34px;
+    .thean-lw .thean-lw-btn {
+        min-height: 38px;
         padding: 7px 10px;
-        font-size: 12px;
+        font-size: 13px;
+        letter-spacing: .5px;
         line-height: 1.2;
+    }
+
+    .thean-lw .thean-lw-btn--dismiss {
+        min-height: 32px;
+        font-size: 12px;
+    }
+
+    .thean-lw-code {
+        font-size: 16px;
     }
 
     .thean-lw-result-list,
