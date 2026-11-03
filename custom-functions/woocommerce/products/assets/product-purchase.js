@@ -200,7 +200,10 @@
         }
         var ICONS = {
             ship: '<path d="M3 6h11v9H3z"/><path d="M14 9h4l3 3v3h-7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
-            wheel: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><path d="M10 1.5h4L12 5z" fill="currentColor"/>'
+            // Vòng quay 6 ô (3 ô tô màu xen kẽ) + kim chỉ phía trên.
+            wheel: '<g fill="currentColor" fill-opacity=".28" stroke="none"><path d="M12 13V5a8 8 0 0 1 6.93 4z"/><path d="M12 13l6.93 4A8 8 0 0 1 12 21z"/><path d="M12 13v8a8 8 0 0 1-6.93-4z"/></g>'
+                + '<circle cx="12" cy="13" r="8"/><path d="M12 5v16M5.07 9l13.86 8M18.93 9 5.07 17"/>'
+                + '<circle cx="12" cy="13" r="1.8" fill="currentColor"/><path d="M10.3 1.6h3.4L12 4.6z" fill="currentColor"/>'
         };
         function mediaEl(item) {
             if (!item || (!item.src && !ICONS[item.icon])) return null;
