@@ -17,6 +17,7 @@ if (!defined('ABSPATH')) exit;
 
 const HITHEAN_ATC_POPUP_ACTION = 'hithean_atc_popup';
 const HITHEAN_ATC_POPUP_VIEW_ACTION = 'hithean_atc_popup_view';
+const HITHEAN_ATC_POPUP_REMOVE_ACTION = 'hithean_atc_popup_remove';
 
 /*
   Xem giỏ hàng (nút giỏ hàng ở cụm sticky mobile trang sản phẩm — product-navigation.php):
@@ -31,13 +32,46 @@ function hithean_atc_popup_view_ajax()
         wp_send_json_error(['message' => __('Không tải được giỏ hàng.', 'hithean.com')]);
     }
 
+    wp_send_json_success(hithean_atc_popup_cart_payload());
+}
+
+/*
+  Xóa 1 dòng khỏi giỏ ngay trong popup (nút × mỗi sản phẩm). Nonce nằm trong HTML giỏ
+  (render qua AJAX nên không dính cache trang).
+*/
+add_action('wp_ajax_' . HITHEAN_ATC_POPUP_REMOVE_ACTION, 'hithean_atc_popup_remove_ajax');
+add_action('wp_ajax_nopriv_' . HITHEAN_ATC_POPUP_REMOVE_ACTION, 'hithean_atc_popup_remove_ajax');
+
+function hithean_atc_popup_remove_ajax()
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        wp_send_json_error(['message' => __('Không tải được giỏ hàng.', 'hithean.com')]);
+    }
+    if (!check_ajax_referer(HITHEAN_ATC_POPUP_REMOVE_ACTION, 'nonce', false)) {
+        wp_send_json_error(['message' => __('Phiên làm việc đã hết hạn, vui lòng tải lại trang.', 'hithean.com')]);
+    }
+
+    $key = isset($_POST['cart_item_key']) ? wc_clean(wp_unslash($_POST['cart_item_key'])) : '';
+    if ($key !== '' && WC()->cart->get_cart_item($key)) {
+        WC()->cart->remove_cart_item($key);
+    }
+
+    $payload = hithean_atc_popup_cart_payload();
+    $payload['fragments'] = hithean_atc_popup_fragments();
+    wp_send_json_success($payload);
+}
+
+/** Nội dung popup chế độ xem + số lượng + cart hash (JS dùng hash để biết bản lưu tạm còn đúng không). */
+function hithean_atc_popup_cart_payload(): array
+{
     WC()->cart->calculate_totals();
     $count = (int) WC()->cart->get_cart_contents_count();
 
-    wp_send_json_success([
-        'html'  => $count > 0 ? hithean_atc_popup_render_cart('') : '<p class="atc-popup__empty">' . esc_html__('Giỏ hàng của bạn đang trống.', 'hithean.com') . '</p>',
-        'count' => $count,
-    ]);
+    return [
+        'html'      => $count > 0 ? hithean_atc_popup_render_cart('') : '<p class="atc-popup__empty">' . esc_html__('Giỏ hàng của bạn đang trống.', 'hithean.com') . '</p>',
+        'count'     => $count,
+        'cart_hash' => $count > 0 ? WC()->cart->get_cart_hash() : '',
+    ];
 }
 
 /** Icon giỏ hàng dùng chung cho nút mở popup (sticky trang SP + sticky footer menu archive). */
@@ -135,7 +169,7 @@ function hithean_atc_popup_render_cart(string $added_key): string
 
     ob_start();
     ?>
-    <ul class="atc-popup__items">
+    <ul class="atc-popup__items" data-atc-remove-nonce="<?php echo esc_attr(wp_create_nonce(HITHEAN_ATC_POPUP_REMOVE_ACTION)); ?>">
         <?php foreach ($items as $key => $item) :
             $product = $item['data'] ?? null;
             if (!$product instanceof WC_Product || empty($item['quantity'])) continue;
@@ -155,6 +189,7 @@ function hithean_atc_popup_render_cart(string $added_key): string
                     </p>
                 </div>
                 <div class="atc-popup__line-total"><?php echo $cart->get_product_subtotal($product, $item['quantity']); ?></div>
+                <button type="button" class="atc-popup__remove" data-atc-remove="<?php echo esc_attr($key); ?>" aria-label="<?php echo esc_attr(sprintf(__('Xóa %s khỏi giỏ hàng', 'hithean.com'), wp_strip_all_tags($name))); ?>" title="<?php esc_attr_e('Xóa khỏi giỏ', 'hithean.com'); ?>">&times;</button>
             </li>
         <?php endforeach; ?>
     </ul>
@@ -234,6 +269,10 @@ function hithean_atc_popup_enqueue_assets()
         'ajaxUrl'      => admin_url('admin-ajax.php'),
         'action'       => HITHEAN_ATC_POPUP_ACTION,
         'viewAction'   => HITHEAN_ATC_POPUP_VIEW_ACTION,
+        'removeAction' => HITHEAN_ATC_POPUP_REMOVE_ACTION,
+        'emptyText'    => __('Giỏ hàng của bạn đang trống.', 'hithean.com'),
+        'loadingText'  => __('Đang tải giỏ hàng...', 'hithean.com'),
+        'removeError'  => __('Không xóa được sản phẩm, vui lòng thử lại.', 'hithean.com'),
         'addingText'   => __('Đang thêm...', 'hithean.com'),
         'errorText'    => __('Có lỗi xảy ra, vui lòng thử lại.', 'hithean.com'),
     ]);

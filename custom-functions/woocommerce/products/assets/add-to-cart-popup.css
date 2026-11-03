@@ -193,6 +193,39 @@ html.atc-popup-open {
     font-size: 14px;
 }
 
+.atc-popup__remove {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    margin: -4px -4px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #888;
+    font-size: 20px;
+    line-height: 28px;
+    cursor: pointer;
+}
+
+.atc-popup__remove:hover,
+.atc-popup__remove:focus-visible {
+    background: #fdecea;
+    color: #c62828;
+    outline: none;
+}
+
+.atc-popup__item.is-removing {
+    opacity: .4;
+    pointer-events: none;
+}
+
+.atc-popup__notice {
+    margin: 0 0 8px;
+    color: #c62828;
+    font-size: 13px;
+}
+
 .atc-popup__subtotal {
     display: flex;
     justify-content: space-between;

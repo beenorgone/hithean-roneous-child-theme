@@ -48,34 +48,128 @@ jQuery(function ($) {
         });
     }
 
+    /*
+     * Xem giỏ: admin-ajax mất ~1,5s nên lưu bản giỏ gần nhất ở sessionStorage, khóa theo cookie
+     * woocommerce_cart_hash của WC (đổi mỗi khi giỏ đổi). Hash khớp → hiện ngay, không gọi server;
+     * lệch → hiện bản cũ (mờ) rồi thay khi tải xong. Tải sẵn lúc rảnh sau khi trang tải + khi chạm nút.
+     */
+    var CACHE_KEY = 'hitheanAtcCart';
     var viewXhr = null;
 
-    function openCart() {
-        if (busy) return;
-        var $cart = $modal.find('.atc-popup__cart');
-        $cart.addClass('is-loading');
-        open('view');
+    function cartHashCookie() {
+        var m = document.cookie.match(/(?:^|;\s*)woocommerce_cart_hash=([^;]*)/);
+        return m ? decodeURIComponent(m[1]) : '';
+    }
 
-        if (viewXhr) viewXhr.abort();
+    function readCache() {
+        try {
+            var c = JSON.parse(window.sessionStorage.getItem(CACHE_KEY) || 'null');
+            return c && typeof c.html === 'string' ? c : null;
+        } catch (e) { return null; }
+    }
+
+    function writeCache(payload) {
+        try {
+            window.sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                html: payload.html, count: payload.count, cart_hash: payload.cart_hash || ''
+            }));
+        } catch (e) { /* private mode */ }
+    }
+
+    function emptyPayload() {
+        return { html: '<p class="atc-popup__empty">' + $('<div>').text(config.emptyText).html() + '</p>', count: 0, cart_hash: '' };
+    }
+
+    function render(payload) {
+        $modal.find('.atc-popup__cart').html(payload.html);
+        if (payload.count > 0) $modal.removeAttr('data-empty'); else $modal.attr('data-empty', '1');
+        setCount(payload.count);
+    }
+
+    function fetchCart() {
+        if (viewXhr) return viewXhr;
         viewXhr = $.ajax({
             url: config.ajaxUrl,
             type: 'POST',
             data: { action: config.viewAction },
             dataType: 'json'
         }).done(function (res) {
+            if (res && res.success) writeCache(res.data);
+        }).always(function () {
+            viewXhr = null;
+        });
+        return viewXhr;
+    }
+
+    function prefetch() {
+        var hash = cartHashCookie();
+        var cache = readCache();
+        if (hash && (!cache || cache.cart_hash !== hash)) fetchCart();
+    }
+
+    function openCart() {
+        if (busy) return;
+        var $cart = $modal.find('.atc-popup__cart');
+        var hash = cartHashCookie();
+        var cache = readCache();
+        var fresh = cache && cache.cart_hash === hash;
+
+        if (fresh) {
+            render(cache);
+        } else if (cache) {
+            render(cache);
+        } else if (!hash) {
+            render(emptyPayload()); // không có cookie hash = giỏ trống (vẫn kiểm lại bên dưới)
+        } else {
+            $cart.html('<p class="atc-popup__empty">' + $('<div>').text(config.loadingText).html() + '</p>');
+        }
+        open('view');
+        if (fresh) return;
+
+        if (hash) $cart.addClass('is-loading');
+        fetchCart().done(function (res) {
+            if ($modal.attr('data-state') !== 'view') return;
             if (!res || !res.success) {
                 showError(res && res.data && res.data.message);
                 return;
             }
-            $cart.html(res.data.html);
-            if (res.data.count > 0) $modal.removeAttr('data-empty'); else $modal.attr('data-empty', '1');
-            setCount(res.data.count);
+            render(res.data);
         }).fail(function (xhr, status) {
-            if (status !== 'abort') showError();
+            if (status !== 'abort' && hash) showError();
         }).always(function () {
-            viewXhr = null;
             $cart.removeClass('is-loading');
         });
+    }
+
+    function removeItem($btn) {
+        var $item = $btn.closest('.atc-popup__item');
+        var nonce = $btn.closest('[data-atc-remove-nonce]').attr('data-atc-remove-nonce');
+        $modal.find('.atc-popup__notice').remove();
+        $item.addClass('is-removing');
+
+        $.ajax({
+            url: config.ajaxUrl,
+            type: 'POST',
+            data: { action: config.removeAction, nonce: nonce, cart_item_key: $btn.attr('data-atc-remove') },
+            dataType: 'json'
+        }).done(function (res) {
+            if (!res || !res.success) {
+                $item.removeClass('is-removing');
+                notice((res && res.data && res.data.message) || config.removeError);
+                return;
+            }
+            render(res.data);
+            writeCache(res.data);
+            applyFragments(res.data.fragments);
+            $(document.body).trigger('removed_from_cart', [res.data.fragments, res.data.cart_hash, $btn]);
+        }).fail(function () {
+            $item.removeClass('is-removing');
+            notice(config.removeError);
+        });
+    }
+
+    function notice(message) {
+        $('<p class="atc-popup__notice" role="alert"></p>').text(message).prependTo($modal.find('.atc-popup__cart'));
     }
 
     function applyFragments(fragments) {
@@ -116,6 +210,10 @@ jQuery(function ($) {
             $modal.find('.atc-popup__cart').html(res.data.html);
             $modal.removeAttr('data-empty');
             if (res.data.count !== undefined) setCount(res.data.count);
+            // Lưu cho lần bấm nút giỏ sau (bỏ tô "vừa thêm").
+            var $copy = $('<div>').html(res.data.html);
+            $copy.find('.is-added').removeClass('is-added');
+            writeCache({ html: $copy.html(), count: res.data.count, cart_hash: res.data.cart_hash });
             open('success');
         }).fail(function () {
             showError();
@@ -160,6 +258,14 @@ jQuery(function ($) {
         e.preventDefault();
         openCart();
     });
+    $(document).on('pointerenter touchstart', '[data-atc-cart-open]', prefetch);
+    $modal.on('click', '[data-atc-remove]', function (e) {
+        e.preventDefault();
+        removeItem($(this));
+    });
+    if ($('[data-atc-cart-open]').length) {
+        (window.requestIdleCallback || function (cb) { return setTimeout(cb, 1500); })(prefetch);
+    }
 
     // Delegate ở document → chạy sau handler gắn trực tiếp vào form (validate của addon/variation).
     $(document).on('submit', 'form.cart', function (e) {
