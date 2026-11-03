@@ -291,9 +291,37 @@
     }
 
     .pcn-mobile__cluster .thean-lw-trigger__text {
-        font-size: 14px;
         overflow: visible;
         white-space: nowrap;
+    }
+
+    /* Nhận ưu đãi + Chi tiết SP: cùng 1 kiểu chữ (Oswald in hoa như nút của theme), nhỏ hơn để vừa mobile hẹp. */
+    .pcn-mobile__cluster .thean-lw-trigger,
+    .pcn-mobile__detail {
+        gap: 6px;
+        padding: 8px 10px;
+        font-family: "Oswald", sans-serif;
+        font-size: 13px;
+        font-weight: var(--default-button-font-weight, 500);
+        letter-spacing: 0.5px;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
+
+    /* Icon tròn (% của vòng quay, icon Chi tiết SP) không bị co méo khi nút hẹp. */
+    .pcn-mobile__cluster .thean-lw-trigger__icon,
+    .pcn-mobile__detail-icon {
+        flex: 0 0 auto;
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        font-size: 12px;
+        line-height: 1;
+    }
+
+    .pcn-mobile__detail-icon svg {
+        width: 14px;
+        height: 14px;
     }
 
     /* Nút giỏ hàng (mở popup của add-to-cart-popup.js): ô vuông cố định giữa Nhận ưu đãi và Chi tiết SP. */
@@ -340,33 +368,44 @@
         min-width: 0;
         align-items: center;
         justify-content: center;
-        gap: 8px;
         min-height: 44px;
-        padding: 10px 14px;
         border: 0;
         border-radius: 5px;
         background: var(--default-color-light-blue);
         color: var(--default-color-dark-blue);
-        font-size: 14px;
-        font-weight: 700;
         white-space: nowrap;
         cursor: pointer;
     }
 
     .pcn-mobile__detail-icon {
         display: inline-grid;
-        flex-shrink: 0;
-        width: 27px;
-        height: 27px;
         place-items: center;
         border-radius: 50%;
         color: var(--default-color-dark-blue);
         background: #fff;
     }
 
-    .pcn-mobile__detail-icon svg {
-        width: 16px;
-        height: 16px;
+}
+
+/* Mobile rất hẹp (≤360px): thu chữ + khoảng cách thêm để 3 nút vẫn nằm 1 hàng. */
+@media (max-width: 360px) {
+    .pcn-mobile__cluster {
+        gap: 6px;
+    }
+
+    .pcn-mobile__cluster .thean-lw-trigger,
+    .pcn-mobile__detail {
+        gap: 4px;
+        padding: 8px 6px;
+        font-size: 12px;
+        letter-spacing: 0.2px;
+    }
+
+    .pcn-mobile__cluster .thean-lw-trigger__icon,
+    .pcn-mobile__detail-icon {
+        width: 20px;
+        height: 20px;
+        min-width: 20px;
     }
 }
 
