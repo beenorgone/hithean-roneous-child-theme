@@ -37,6 +37,7 @@ body.hithean-product-purchase .product-single .summary > form.cart { order: 6; }
 body.hithean-product-purchase .product-single .summary > .hithean-purchase-utilities { order: 7; }
 body.hithean-product-purchase .product-single .summary > .hithean-sales-count { order: 8; margin: 14px 0; }
 body.hithean-product-purchase .product-single .summary > .product-trust-ctas { order: 9; }
+body.hithean-product-purchase:has(#pcn-proof-dialog) .product-single .summary > .product-trust-ctas:has(.hithean-trust-trigger) { order: 5; }
 body.hithean-product-purchase .product-single .summary > .hithean-purchase-contact-actions { order: 10; }
 body.hithean-product-purchase .product-single .summary > .b-single-product-ctas { order: 11; }
 body.hithean-product-purchase .product-single .summary > .b-greenspark-revenue-percentage-widget,
@@ -284,11 +285,17 @@ body.hithean-product-purchase .summary .hithean-offers-trigger.hithean-trust-tri
 .hithean-trust-trigger .hithean-offers-trigger__more { color: #001f3f; }
 .hithean-trust-trigger .hithean-offers-trigger__text small { color: #0047ba; }
 body.hithean-product-purchase:has(#pcn-proof-dialog) .product-single .summary .product-trust-ctas:has(.hithean-trust-trigger) { display: flex; margin: 0 0 14px; }
-/* Nút "Xem bảng dinh dưỡng" trong popup Hồ sơ & kiểm nghiệm: thẻ cùng kiểu các mục hồ sơ. */
-.pcn-proof-dialog__nutrition .product-nutrition-label__trigger { display: flex !important; align-items: center; justify-content: flex-start; gap: 12px; width: 100% !important; max-width: 100%; height: auto !important; min-height: 64px; margin: 0 !important; padding: 12px 16px !important; border: 1px solid #c9d7ef !important; border-radius: 12px !important; background: #fff !important; color: #001f3f !important; box-shadow: none !important; font: 600 14px/1.35 "Be Vietnam", Arial, sans-serif !important; letter-spacing: 0 !important; text-align: left !important; text-transform: none !important; }
-.pcn-proof-dialog__nutrition .product-nutrition-label__trigger:hover { border-color: #0047ba !important; background: #eef3fb !important; }
-.pcn-proof-dialog__nutrition .product-nutrition-label__trigger i { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #eef3fb; color: #0047ba; font-size: 16px; }
-.pcn-proof-dialog__nutrition .product-nutrition-label__trigger::after { content: "→"; margin-left: auto; color: #0047ba; font-weight: 400; }
+/* Hàng "Xem bảng dinh dưỡng" cuối popup Hồ sơ & kiểm nghiệm: gọn, tách khỏi lưới hồ sơ bằng đường kẻ. */
+.pcn-proof-dialog__extra { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e6eaf2; }
+.pcn-proof-dialog .pcn-proof-dialog__row { display: flex !important; align-items: center; gap: 12px; width: 100% !important; max-width: 100%; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 10px 12px !important; border: 1px solid #dbe4f3 !important; border-radius: 12px !important; background: #f6f9fe !important; color: #001f3f !important; box-shadow: none !important; font: 400 13px/1.35 "Be Vietnam", Arial, sans-serif !important; letter-spacing: 0 !important; text-align: left !important; text-transform: none !important; cursor: pointer; }
+.pcn-proof-dialog .pcn-proof-dialog__row:hover { border-color: #0047ba !important; background: #eef3fb !important; }
+.pcn-proof-dialog .pcn-proof-dialog__row:focus-visible { outline: 2px solid #0047ba; outline-offset: 2px; }
+.pcn-proof-dialog__row-icon { flex: 0 0 auto; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #fff; color: #0047ba; font-size: 15px; }
+.pcn-proof-dialog__row-icon i { margin: 0 !important; }
+.pcn-proof-dialog__row-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pcn-proof-dialog__row-text strong { font-size: 14px; font-weight: 600; }
+.pcn-proof-dialog__row-text small { font-size: 12px; color: #5f625a; }
+.pcn-proof-dialog__row-arrow { flex: 0 0 auto; color: #0047ba; }
 /* Danh mục & Tag (woocommerce/single-product/meta.php): nhãn + chip. */
 body.hithean-product-purchase .product-single .summary .product_meta.hithean-product-meta { display: grid; gap: 10px; margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--purchase-line); font-size: 13px; color: var(--purchase-ink); text-align: left; }
 .hithean-product-meta__row { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: start; gap: 10px; margin: 0; }

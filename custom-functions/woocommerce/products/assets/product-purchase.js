@@ -471,26 +471,30 @@
         var shopeeAction = summary.querySelector('.ecom-buy-trigger');
         var shopeeModal = shopeeAction && summary.querySelector('.ecom-buy-modal');
         if (shopeeModal && shopeeModal.parentNode !== document.body) document.body.appendChild(shopeeModal);
-        // Có thanh "Hồ sơ & kiểm nghiệm" (product-page.php) + popup của product-navigation → nút "Xem bảng dinh dưỡng"
-        // vào popup đó. Modal dinh dưỡng (tìm theo aria-controls) ra <body>: popup hồ sơ là top layer nên đóng nó
-        // trước khi modal dinh dưỡng mở (listener capture chạy trước handler click của product-nutrition-label).
+        // Có thanh "Hồ sơ & kiểm nghiệm" (product-page.php) + popup của product-navigation → thêm 1 hàng "Xem bảng dinh
+        // dưỡng" ở cuối popup (bản sao nút gốc, cùng aria-controls — handler của product-nutrition-label bắt mọi
+        // .product-nutrition-label__trigger). Nút gốc giữ nguyên trong cụm nút liên hệ. Popup hồ sơ là top layer nên
+        // đóng nó trước khi modal dinh dưỡng mở (listener capture chạy trước handler click của product-nutrition-label).
         var proofDialog = document.getElementById('pcn-proof-dialog');
         var trustBar = summary.querySelector('.hithean-trust-trigger');
         // Có popup → bỏ 2 widget nhúng tại chỗ; không có → bỏ thanh gộp, giữ widget như cũ.
         if (trustBar && !proofDialog) { trustBar.remove(); trustBar = null; }
         if (trustBar) summary.querySelectorAll('.product-trust-ctas__embed').forEach(function (embed) { embed.remove(); });
         var nutritionTrigger = nutritionAction && nutritionAction.querySelector('.product-nutrition-label__trigger');
-        var proofItems = proofDialog && proofDialog.querySelector('.pcn-proof-dialog__items');
-        if (trustBar && proofItems && nutritionTrigger) {
-            var nutritionModal = nutritionAction.querySelector('.product-nutrition-label__modal');
-            if (nutritionModal) document.body.appendChild(nutritionModal);
-            var slot = document.createElement('div');
-            slot.className = 'pcn-proof-dialog__item pcn-proof-dialog__nutrition';
-            slot.setAttribute('data-pcn-proof-extra', '');
-            slot.appendChild(nutritionTrigger);
-            proofItems.appendChild(slot);
-            nutritionAction.remove();
-            nutritionAction = null;
+        if (trustBar && proofDialog && nutritionTrigger && !proofDialog.querySelector('[data-pcn-proof-extra]')) {
+            var extra = document.createElement('div');
+            extra.className = 'pcn-proof-dialog__extra';
+            extra.setAttribute('data-pcn-proof-extra', '');
+            var copy = document.createElement('button');
+            copy.type = 'button';
+            copy.className = 'product-nutrition-label__trigger pcn-proof-dialog__row';
+            copy.setAttribute('aria-haspopup', 'dialog');
+            copy.setAttribute('aria-controls', nutritionTrigger.getAttribute('aria-controls') || '');
+            copy.innerHTML = '<span class="pcn-proof-dialog__row-icon" aria-hidden="true"><i class="ti-clipboard"></i></span>'
+                + '<span class="pcn-proof-dialog__row-text"><strong>Xem bảng dinh dưỡng</strong><small>Thành phần &amp; giá trị dinh dưỡng</small></span>'
+                + '<span class="pcn-proof-dialog__row-arrow" aria-hidden="true">→</span>';
+            extra.appendChild(copy);
+            proofDialog.appendChild(extra);
             var trustNote = trustBar.querySelector('.hithean-offers-trigger__text small');
             if (trustNote) trustNote.textContent = (trustNote.textContent ? trustNote.textContent + ' · ' : '') + 'Bảng dinh dưỡng';
             proofDialog.dispatchEvent(new Event('pcn:proof-refresh'));
