@@ -9,6 +9,7 @@
      * Thứ tự thẻ: add-on → bậc giá (gộp 1 thẻ) → thanh ưu đãi.
      * Bấm thẻ không đổi gì: thẻ add-on có nút "Mua theo ưu đãi này" đặt thẳng số lượng; thẻ bậc giá mở popup nhỏ
      * chọn số lượng (bậc nhanh + ô − N +, hiện bậc đang áp dụng) rồi mới đặt.
+     * Đặt số lượng xong thì thêm vào giỏ luôn (popup giỏ hàng của add-to-cart-popup.js).
      * Có vòng quay may mắn → thêm thẻ "Quay ngay"; nút sticky "Nhận ưu đãi" của vòng quay mở popup này.
      * Khối add-on có lựa chọn (khách phải chọn) giữ nguyên tại chỗ.
      */
@@ -342,7 +343,7 @@
             }
             qtyDialog.querySelector('[data-qty-step="-1"]').disabled = value <= bounds.min;
             qtyDialog.querySelector('[data-qty-step="1"]').disabled = value >= bounds.max;
-            qtyDialog.querySelector('[data-qty-apply]').textContent = 'Chọn ' + value + ' sản phẩm';
+            qtyDialog.querySelector('[data-qty-apply]').textContent = 'Thêm ' + value + ' sản phẩm vào giỏ';
             return value;
         }
         function openQty(card) {
@@ -378,6 +379,19 @@
             if (qtyDialog.open) qtyDialog.close();
             if (dialog.open) dialog.close();
             refresh();
+            // Thêm vào giỏ ngay như nút "Thêm vào giỏ": submit gốc → add-to-cart-popup.js bắt submit, thêm bằng AJAX
+            // và hiện popup giỏ hàng (không có module popup thì form POST như thường). Chờ 1 nhịp để plugin
+            // add-on / Discount Rules xử lý xong sự kiện đổi số lượng.
+            window.setTimeout(function () {
+                var button = form.querySelector('.single_add_to_cart_button');
+                if (!button || button.disabled || button.classList.contains('disabled')) {
+                    if (button) button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+                if (!form.reportValidity()) return;
+                if (typeof form.requestSubmit === 'function') form.requestSubmit(button);
+                else button.click();
+            }, 0);
         }
 
         var lastCards = initial;
