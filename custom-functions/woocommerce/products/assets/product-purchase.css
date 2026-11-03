@@ -315,9 +315,9 @@ body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input,
 /* Greenspark trong popup Hồ sơ & kiểm nghiệm. */
 .pcn-proof-dialog__impact .b-greenspark-revenue-percentage-widget { display: block; max-width: 100%; margin: 0; padding: 0; border: 0; overflow: hidden; }
 .pcn-proof-dialog__impact { width: 100%; }
-.pcn-proof-dialog__impact .b-greenspark-revenue-percentage-widget * { max-width: 100%; box-sizing: border-box; }
-.pcn-proof-dialog__impact img,
-.pcn-proof-dialog__impact svg { height: auto; }
+/* Greenspark gắn style inline (wrapper 16.25em, inner 14.25em content-box) → !important để giãn đầy popup. */
+.pcn-proof-dialog__impact .gs-byPercentage-wrapper { display: block !important; width: 100% !important; max-width: none !important; margin: 0 !important; font-size: 18px; }
+.pcn-proof-dialog__impact .gs-byPercentage-inner { width: auto !important; max-width: none !important; box-sizing: border-box !important; }
 /* "đơn giá × N SP" dưới nhãn Tạm tính sản phẩm. */
 body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown { display: block; margin-top: 2px; font-size: 13px; color: var(--purchase-muted); }
 body.hithean-product-purchase .product-single .summary .hithean-purchase-quote__breakdown:empty { display: none; }
