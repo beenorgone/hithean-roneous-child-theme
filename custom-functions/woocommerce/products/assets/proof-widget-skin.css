@@ -23,6 +23,21 @@
     width: var(--hithean-proof-fill, auto);
     height: var(--hithean-proof-fill, auto);
 }
+/* Nút hồ sơ pháp lý là grid 2 hàng (tiêu đề / số hồ sơ): khi giãn cao bằng ô bên cạnh, các hàng bị kéo
+   giãn → 2 dòng cách xa nhau. Dồn hàng vào giữa, sát nhau; font của site thay vì font kế thừa (ra chữ có chân). */
+.ivar-legal__cta {
+    align-content: center;
+    row-gap: 2px;
+    padding: 10px 14px 10px 12px;
+    font-family: "Be Vietnam", Arial, sans-serif;
+}
+.ivar-legal__cta-title {
+    font-size: 14px;
+    line-height: 1.35;
+}
+.ivar-legal__cta-sub {
+    line-height: 1.35;
+}
 
 /* ---------- Khung popup ---------- */
 
