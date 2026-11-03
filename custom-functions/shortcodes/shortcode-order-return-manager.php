@@ -120,6 +120,13 @@ add_shortcode('order_return_management', function () {
             <button type="button" class="orm-filter" data-filter="missing_code">Thiếu mã hoàn</button>
             <button type="button" class="orm-filter" data-filter="issue">Có sự cố</button>
             <button type="button" class="orm-filter" data-filter="no_images">Chưa upload ảnh</button>
+            <label class="orm-range" title="Chỉ tải đơn tạo trong khoảng này">Khoảng
+                <select id="orm_range">
+                    <?php foreach (hithean_return_range_options() as $value => $label): ?>
+                        <option value="<?= esc_attr($value) ?>" <?php selected($value, hithean_return_range('')); ?>><?= esc_html($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
         </div>
 
         <div class="orm-flow">
@@ -364,6 +371,22 @@ add_shortcode('order_return_management', function () {
             background: #e3f2fd;
             border-color: var(--orm-blue);
             color: #0d47a1;
+        }
+
+        .orm-range {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 6px;
+            font-weight: 700;
+            color: var(--orm-text);
+        }
+
+        .orm-range select {
+            min-height: 32px;
+            border: 1px solid var(--orm-border);
+            border-radius: 18px;
+            padding: 2px 28px 2px 10px;
         }
 
         .orm-flow {
@@ -1005,6 +1028,7 @@ add_shortcode('order_return_management', function () {
             }
 
             let currentFilter = 'open';
+            let currentRange = $('#orm_range').val() || '60';
 
             function setBusy(form, isBusy) {
                 form.find('button, input, select, textarea').prop('disabled', isBusy);
@@ -1016,6 +1040,7 @@ add_shortcode('order_return_management', function () {
                     action: 'load_return_orders',
                     list_type: 'board',
                     filter: currentFilter,
+                    range: currentRange,
                     nonce: ormBoardNonce
                 }, function(resp) {
                     if (resp.success) {
@@ -1122,6 +1147,7 @@ add_shortcode('order_return_management', function () {
                 $.post(ajaxurl, {
                     action: 'load_return_orders',
                     list_type: 'history',
+                    range: currentRange,
                     page: historyPage,
                     nonce: ormBoardNonce
                 }, function(resp) {
@@ -1181,6 +1207,10 @@ add_shortcode('order_return_management', function () {
             });
 
             $('#orm_refresh_btn').on('click', loadReturnBoard);
+            $('#orm_range').on('change', function() {
+                currentRange = $(this).val() || '60';
+                loadReturnBoard();
+            });
             $(document).on('click', '.orm-kanban-nav-btn', function() {
                 const direction = parseInt($(this).attr('data-direction'), 10) || 1;
                 const board = $('#orm_board');
@@ -1445,6 +1475,35 @@ function hithean_return_hpos_enabled(): bool
 }
 
 /**
+ * Khoảng thời gian tải board hoàn hàng (theo ngày tạo đơn). Mặc định 60 ngày qua.
+ */
+function hithean_return_range_options(): array
+{
+    return ['30' => '30 ngày qua', '60' => '60 ngày qua', '90' => '90 ngày qua', '180' => '180 ngày qua', '365' => '1 năm qua', 'all' => 'Tất cả'];
+}
+
+function hithean_return_range($range): string
+{
+    $range = sanitize_key((string) $range);
+    return isset(hithean_return_range_options()[$range]) ? $range : '60';
+}
+
+function hithean_return_range_label(string $range): string
+{
+    return hithean_return_range_options()[hithean_return_range($range)];
+}
+
+/** Điều kiện SQL lọc theo ngày tạo đơn (cột GMT), '' khi chọn "Tất cả". */
+function hithean_return_range_sql(string $range, string $column): string
+{
+    $range = hithean_return_range($range);
+    if ($range === 'all') {
+        return '';
+    }
+    return " AND {$column} >= '" . gmdate('Y-m-d H:i:s', time() - (int) $range * DAY_IN_SECONDS) . "'";
+}
+
+/**
  * Lấy danh sách order ID theo return_status.
  * Query trực tiếp bảng meta đúng theo storage — KHÔNG dùng wc_get_orders()+meta_query
  * vì meta_query bị data store bỏ qua ở một số phiên bản → trả về tất cả đơn.
@@ -1452,8 +1511,10 @@ function hithean_return_hpos_enabled(): bool
  * @param string $type 'pending' | 'completed'
  * @return int[]
  */
-function hithean_return_get_order_ids(string $type): array
+function hithean_return_get_order_ids(string $type, string $range = '60'): array
 {
+    $range_hpos = hithean_return_range_sql($range, 'o.date_created_gmt');
+    $range_legacy = hithean_return_range_sql($range, 'p.post_date_gmt');
     global $wpdb;
     $meta_key = 'return_status';
 
@@ -1467,7 +1528,7 @@ function hithean_return_get_order_ids(string $type): array
                 FROM {$orders_table} o
                 INNER JOIN {$meta_table} m ON o.id = m.order_id
                 WHERE o.type = 'shop_order'
-                  AND o.status <> 'trash'
+                  AND o.status <> 'trash'{$range_hpos}
                   AND m.meta_key = %s
                   AND m.meta_value <> ''
                   AND m.meta_value LIKE %s
@@ -1480,7 +1541,7 @@ function hithean_return_get_order_ids(string $type): array
                 FROM {$orders_table} o
                 INNER JOIN {$meta_table} m ON o.id = m.order_id
                 WHERE o.type = 'shop_order'
-                  AND o.status <> 'trash'
+                  AND o.status <> 'trash'{$range_hpos}
                   AND m.meta_key = %s
                   AND m.meta_value <> ''
                   AND m.meta_value NOT LIKE %s
@@ -1496,7 +1557,7 @@ function hithean_return_get_order_ids(string $type): array
                 FROM {$wpdb->posts} p
                 INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
                 WHERE p.post_type = 'shop_order'
-                  AND p.post_status NOT IN ('trash')
+                  AND p.post_status NOT IN ('trash'){$range_legacy}
                   AND pm.meta_key = %s
                   AND pm.meta_value <> ''
                   AND pm.meta_value LIKE %s
@@ -1509,7 +1570,7 @@ function hithean_return_get_order_ids(string $type): array
                 FROM {$wpdb->posts} p
                 INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
                 WHERE p.post_type = 'shop_order'
-                  AND p.post_status NOT IN ('trash')
+                  AND p.post_status NOT IN ('trash'){$range_legacy}
                   AND pm.meta_key = %s
                   AND pm.meta_value <> ''
                   AND pm.meta_value NOT LIKE %s
@@ -1662,7 +1723,9 @@ function hithean_return_clear_cache(): void
     wp_cache_delete('return_orders_pending_v7', 'orders');
     wp_cache_delete('return_orders_completed_v7', 'orders');
     foreach (hithean_return_allowed_filters() as $filter) {
-        wp_cache_delete('return_board_v9_' . $filter, 'orders');
+        foreach (array_keys(hithean_return_range_options()) as $range) {
+            wp_cache_delete('return_board_v10_' . $filter . '_' . $range, 'orders');
+        }
     }
 }
 
@@ -1802,17 +1865,19 @@ function hithean_return_order_matches_filter(WC_Order $order, string $filter): b
     return in_array($column, ['new', 'needs_action', 'waiting_return', 'issue', 'received'], true);
 }
 
-function hithean_return_get_board_order_ids(string $filter): array
+function hithean_return_get_board_order_ids(string $filter, string $range = '60'): array
 {
     $ids = array_merge(
-        hithean_return_get_order_ids('pending'),
-        hithean_return_get_order_ids('completed')
+        hithean_return_get_order_ids('pending', $range),
+        hithean_return_get_order_ids('completed', $range)
     );
     return array_values(array_unique(array_map('intval', $ids)));
 }
 
-function hithean_return_get_received_order_ids(int $limit = 51, int $offset = 0): array
+function hithean_return_get_received_order_ids(int $limit = 51, int $offset = 0, string $range = '60'): array
 {
+    $range_hpos = hithean_return_range_sql($range, 'o.date_created_gmt');
+    $range_legacy = hithean_return_range_sql($range, 'p.post_date_gmt');
     global $wpdb;
     $meta_key = 'return_status';
     $limit = max(1, min(200, $limit));
@@ -1824,7 +1889,7 @@ function hithean_return_get_received_order_ids(int $limit = 51, int $offset = 0)
             FROM {$wpdb->prefix}wc_orders o
             INNER JOIN {$wpdb->prefix}wc_orders_meta m ON o.id = m.order_id
             WHERE o.type = 'shop_order'
-              AND o.status <> 'trash'
+              AND o.status <> 'trash'{$range_hpos}
               AND m.meta_key = %s
               AND m.meta_value <> ''
               AND m.meta_value LIKE %s
@@ -1837,7 +1902,7 @@ function hithean_return_get_received_order_ids(int $limit = 51, int $offset = 0)
             FROM {$wpdb->posts} p
             INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
             WHERE p.post_type = 'shop_order'
-              AND p.post_status NOT IN ('trash')
+              AND p.post_status NOT IN ('trash'){$range_legacy}
               AND pm.meta_key = %s
               AND pm.meta_value <> ''
               AND pm.meta_value LIKE %s
@@ -2354,14 +2419,15 @@ add_action('wp_ajax_load_return_board', function () {
         $filter = 'open';
     }
 
-    $cache_key = 'return_board_v9_' . $filter;
+    $range = hithean_return_range($_POST['range'] ?? '');
+    $cache_key = 'return_board_v10_' . $filter . '_' . $range;
     $cached = wp_cache_get($cache_key, 'orders');
     if ($cached !== false) {
         wp_send_json_success($cached);
     }
 
     $orders = [];
-    foreach (hithean_return_get_board_order_ids($filter) as $oid) {
+    foreach (hithean_return_get_board_order_ids($filter, $range) as $oid) {
         $order = wc_get_order($oid);
         if (!$order || $order->get_type() !== 'shop_order') {
             continue;
@@ -2380,7 +2446,7 @@ add_action('wp_ajax_load_return_board', function () {
     $data = [
         'summary_html' => $rendered['summary_html'],
         'board_html' => $rendered['board_html'],
-        'message' => sprintf('Đang hiển thị %d đơn theo bộ lọc hiện tại.', count($orders)),
+        'message' => sprintf('Đang hiển thị %d đơn theo bộ lọc hiện tại · khoảng: %s.', count($orders), hithean_return_range_label($range)),
     ];
 
     wp_cache_set($cache_key, $data, 'orders', 180);
@@ -2456,7 +2522,7 @@ add_action('wp_ajax_load_return_orders', function () {
         $page = max(1, intval($_POST['page'] ?? 1));
         $per_page = 50;
         $offset = ($page - 1) * $per_page;
-        $ids = hithean_return_get_received_order_ids($per_page + 1, $offset);
+        $ids = hithean_return_get_received_order_ids($per_page + 1, $offset, hithean_return_range($_POST['range'] ?? ''));
         $has_more = count($ids) > $per_page;
         $ids = array_slice($ids, 0, $per_page);
         $orders = [];
@@ -2483,14 +2549,15 @@ add_action('wp_ajax_load_return_orders', function () {
             $filter = 'open';
         }
 
-        $cache_key = 'return_board_v9_' . $filter;
+        $range = hithean_return_range($_POST['range'] ?? '');
+        $cache_key = 'return_board_v10_' . $filter . '_' . $range;
         $cached = wp_cache_get($cache_key, 'orders');
         if ($cached !== false) {
             wp_send_json_success($cached);
         }
 
         $orders = [];
-        foreach (hithean_return_get_board_order_ids($filter) as $oid) {
+        foreach (hithean_return_get_board_order_ids($filter, $range) as $oid) {
             $order = wc_get_order($oid);
             if (!$order || $order->get_type() !== 'shop_order') {
                 continue;
@@ -2509,7 +2576,7 @@ add_action('wp_ajax_load_return_orders', function () {
         $data = [
             'summary_html' => $rendered['summary_html'],
             'board_html' => $rendered['board_html'],
-            'message' => sprintf('Đang hiển thị %d đơn theo bộ lọc hiện tại.', count($orders)),
+            'message' => sprintf('Đang hiển thị %d đơn theo bộ lọc hiện tại · khoảng: %s.', count($orders), hithean_return_range_label($range)),
         ];
 
         wp_cache_set($cache_key, $data, 'orders', 180);
