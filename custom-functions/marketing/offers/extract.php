@@ -57,6 +57,9 @@ function hithean_offers_parse(string $html): array {
     $summary = $summaries->item(0);
     // Account widgets, recommendations and linked SKU cards are never promotion evidence.
     foreach ($xp->query('.//*[' . $class('hithean-product-linking') . ' or ' . $class('related') . ' or ' . $class('upsells') . ']', $summary) as $node) { $node->parentNode->removeChild($node); }
+    // Dòng "⏳ Đến hết …" của Product Addon chỉ là nhãn hiển thị: hạn thật đọc từ data-start / data-end của dòng,
+    // bỏ nhãn khỏi chữ bằng chứng để khóa ưu đãi không đổi theo cách ghi ngày và không bị đoán ngày lần nữa.
+    foreach ($xp->query('//*[' . $class('product_addon-date') . ']') as $node) { $node->parentNode->removeChild($node); }
     $title = hithean_offers_text($xp->query('//*[' . $class('product_title') . ']')->item(0)->textContent);
     $candidates = []; $covered = [];
     $blocks = $xp->query('.//*[' . $class('product_addon-title') . ' or ' . $class('awdr_discount_bar_content') . ' or ' . $class('awdr-bulk-customizable-table') . ']', $summary);

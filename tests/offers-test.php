@@ -102,6 +102,17 @@ $manual = hithean_offers_parse(str_replace('data-mode="auto"', 'data-mode="choic
 check(!$manual['candidates'][0]['safe'], 'Choice promotion never auto-publishes');
 $range = hithean_offers_parse(str_replace('"max":0', '"max":2', $fixture));
 check(!$range['candidates'][0]['safe'], 'Hidden upper quantity condition requires review');
+// Product Addon có lịch: hạn đọc từ data-start / data-end, nhãn "⏳ Đến hết …" không lọt vào chữ bằng chứng.
+$end_ts = (new DateTimeImmutable('2099-11-30 23:59:59', new DateTimeZone('Asia/Ho_Chi_Minh')))->getTimestamp();
+$dated = hithean_offers_parse(str_replace(
+    ['<label data-mode="auto"', 'Tự động áp dụng</small>'],
+    ['<label data-mode="auto" data-start="1700000000" data-end="' . $end_ts . '"', 'Tự động áp dụng</small><small class="product_addon-date">⏳ Đến hết 30/11/2099</small>'],
+    $fixture
+));
+check($dated['candidates'][0]['start'] === 1700000000 && $dated['candidates'][0]['end'] === $end_ts, 'Addon dates come from data attributes');
+check(!str_contains($dated['candidates'][0]['evidence'], 'Đến hết'), 'Addon date label stays out of evidence');
+check($dated['candidates'][0]['safe'] === true, 'Dated automatic gift still auto-publishes');
+check($dated['candidates'][0]['evidence'] === $page['candidates'][0]['evidence'], 'Date label does not change evidence text');
 $single = hithean_offers_candidate('MUA 1 TẶNG 1 tự động áp dụng hoặc quà khác', 'gift', true);
 check(!$single['safe'], 'Alternative reward is not silently treated as unconditional');
 $dates = hithean_offers_dates('Áp dụng từ 01/01/2030 đến hết 31/01/2030');
