@@ -143,26 +143,23 @@ function hithean_offers_wdr_sources(array $rows, array $products): array {
 }
 /**
  * Ngày bắt đầu / kết thúc khai thật trong plugin Product Addon (ô chung của sản phẩm + cột ngày của từng dòng).
- * Lấy giao của các khoảng (bắt đầu muộn nhất, kết thúc sớm nhất). Null khi không khai ngày nào → đoán từ chữ như cũ.
+ * Null khi plugin cũ / không khai ngày nào → đoán từ chữ như cũ.
  */
-function hithean_offers_addon_schedule(int $id, array $addons): ?array {
-    if (!function_exists('simple_addon_parse_date_bound')) { return null; }
-    $bounds = function_exists('simple_addon_get_product_schedule') ? [simple_addon_get_product_schedule($id)] : [];
-    foreach ($addons as $addon) { $bounds[] = ['start' => (string) ($addon['start'] ?? ''), 'end' => (string) ($addon['end'] ?? '')]; }
-    $start = 0; $end = 0;
-    foreach ($bounds as $b) {
-        $s = simple_addon_parse_date_bound($b['start'] ?? '', false); $e = simple_addon_parse_date_bound($b['end'] ?? '', true);
-        if ($s) { $start = max($start, $s); }
-        if ($e) { $end = $end ? min($end, $e) : $e; }
-    }
-    return ($start || $end) ? ['start' => $start, 'end' => $end, 'reason' => ''] : null;
+function hithean_offers_addon_schedule(int $id, array $choice): ?array {
+    if (!function_exists('simple_addon_get_choice_schedule')) { return null; }
+    $s = simple_addon_get_choice_schedule($id, $choice);
+    return ($s['start'] || $s['end']) ? ['start' => (int) $s['start'], 'end' => (int) $s['end'], 'reason' => ''] : null;
 }
 function hithean_offers_product_sources($product): array {
     $id = $product->get_id(); $sources = [];
     if (!function_exists('simple_addon_get_product_addons') && hithean_offers_plugin_active('product-addon')) { throw new RuntimeException('Product Addon đang bật nhưng API không khả dụng.'); }
-    $addon_enabled = !function_exists('simple_addon_is_product_addon_feature_enabled') || simple_addon_is_product_addon_feature_enabled($id);
+    // Plugin có lịch: lấy cả dòng sắp tới ngày bắt đầu → ưu đãi vào trạng thái "scheduled" và tự lên trang đúng giờ.
+    $scheduled = function_exists('simple_addon_is_product_addon_switched_on');
+    $addon_enabled = $scheduled ? simple_addon_is_product_addon_switched_on($id)
+        : (!function_exists('simple_addon_is_product_addon_feature_enabled') || simple_addon_is_product_addon_feature_enabled($id));
     if (function_exists('simple_addon_get_product_addons') && $addon_enabled) {
-        foreach (simple_addon_build_display_choices(simple_addon_get_product_addons($id)) as $choice) {
+        $addon_rows = $scheduled ? simple_addon_get_product_addons($id, true) : simple_addon_get_product_addons($id);
+        foreach (simple_addon_build_display_choices($addon_rows) as $choice) {
             $addons = array_values(array_filter($choice['addons'], static fn($a) => in_array($a['type'], ['product', 'discount', 'coupon'], true)));
             if (!$addons) { continue; }
             $parts = [hithean_offers_text($choice['name']), $choice['mode'] === 'auto' ? 'Tự động áp dụng khi đủ điều kiện' : 'Cần chọn ưu đãi tại trang sản phẩm'];
@@ -174,7 +171,7 @@ function hithean_offers_product_sources($product): array {
             $context = hithean_offers_text((string) $config['sale_message']);
             if ($context !== '') { $parts[] = $context; }
             $row = hithean_offers_source('addon:' . $id . ':' . $choice['value'], 'addon', $config, [$id], implode('. ', $parts), 'gift');
-            $dates = hithean_offers_addon_schedule($id, $choice['addons']) ?? hithean_offers_dates($row['title']);
+            $dates = hithean_offers_addon_schedule($id, $choice) ?? hithean_offers_dates($row['title']);
             $row['start'] = $dates['start']; $row['end'] = $dates['end'];
             $row['editable_dates'] = $dates['reason'] !== ''; $row['requires_date'] = $row['editable_dates'];
             if ($dates['reason']) { $row['reason'] = $dates['reason']; }
@@ -185,8 +182,9 @@ function hithean_offers_product_sources($product): array {
         $message = hithean_offers_text((string) get_post_meta($id, 'product_addon_sale_message', true));
         if ($message !== '' && !$sources) {
             $row = hithean_offers_source('addon:' . $id . ':message', 'addon', ['text' => $message], [$id], $message, 'other');
-            $dates = hithean_offers_dates($message); $row['start'] = $dates['start']; $row['end'] = $dates['end'];
-            $row['editable_dates'] = true; $row['requires_date'] = $dates['reason'] !== '';
+            $planned = hithean_offers_addon_schedule($id, []);
+            $dates = $planned ?? hithean_offers_dates($message); $row['start'] = $dates['start']; $row['end'] = $dates['end'];
+            $row['editable_dates'] = !$planned; $row['requires_date'] = $dates['reason'] !== '';
             if ($dates['reason']) { $row['reason'] = $dates['reason']; }
             $row['owner_product'] = $id; $row['source'] = admin_url('post.php?post=' . $id . '&action=edit');
             $sources[] = $row;

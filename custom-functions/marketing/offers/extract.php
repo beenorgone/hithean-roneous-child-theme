@@ -27,8 +27,9 @@ function hithean_offers_dates(string $text): array {
     if ($result['start'] && $result['end'] && $result['start'] > $result['end']) { $result['reason'] = 'Khoảng thời gian không hợp lệ.'; }
     return $result;
 }
-function hithean_offers_candidate(string $text, string $kind, bool $safe, string $scope = 'product', string $reason = ''): array {
-    $dates = hithean_offers_dates($text);
+function hithean_offers_candidate(string $text, string $kind, bool $safe, string $scope = 'product', string $reason = '', ?array $dates = null): array {
+    // $dates: mốc khai thật từ nguồn (vd data-start / data-end của Product Addon) — ưu tiên hơn đoán từ chữ.
+    $dates = $dates ?? hithean_offers_dates($text);
     if ($dates['reason']) { $reason = $dates['reason']; $safe = false; }
     if (preg_match('/đại lý|sỉ|riêng cho|thành viên|đăng nhập|lượt quay|khách hàng mới|khách mới|mã\s|coupon|chọn\s|hoặc|tùy|tuỳ|ngoại trừ|trừ sản phẩm|không áp dụng|điều kiện khác/iu', $text)) {
         $safe = false; $reason = $reason ?: 'Có điều kiện hoặc đối tượng cần kiểm tra.';
@@ -69,10 +70,15 @@ function hithean_offers_parse(string $html): array {
         $kind = $gift ? 'gift' : ($shipping ? 'shipping' : 'quantity');
         // Bulk/choice tables may have hidden cart conditions: never auto-publish them.
         $automatic = $gift && (bool) preg_match('/tự động áp dụng/iu', $text);
-        $constraints = [];
+        $constraints = []; $planned = null;
         $parent = $node->parentNode;
         while ($parent instanceof DOMElement && $parent !== $summary) {
-            foreach (['data-mode', 'data-ranges', 'data-min-qty'] as $attribute) {
+            // Product Addon ghi khoảng hiệu lực thật (timestamp) lên dòng lựa chọn.
+            if ($planned === null && ($parent->hasAttribute('data-start') || $parent->hasAttribute('data-end'))) {
+                $planned = ['start' => (int) $parent->getAttribute('data-start'), 'end' => (int) $parent->getAttribute('data-end'), 'reason' => ''];
+                if ($planned['start'] && $planned['end'] && $planned['start'] > $planned['end']) { $planned['reason'] = 'Khoảng thời gian không hợp lệ.'; }
+            }
+            foreach (['data-mode', 'data-ranges', 'data-min-qty', 'data-start', 'data-end'] as $attribute) {
                 if ($parent->hasAttribute($attribute)) { $constraints[] = [$attribute => $parent->getAttribute($attribute)]; }
             }
             if (strtolower($parent->tagName) === 'label') { $text = hithean_offers_node_text($parent); }
@@ -95,7 +101,7 @@ function hithean_offers_parse(string $html): array {
             $qualifier = trim((string) preg_replace('/^Ưu đãi\s*:?\s*/iu', '', hithean_offers_node_text($context)));
             if ($qualifier !== '') { $text .= ' · ' . $qualifier; $automatic = false; }
         }
-        $candidate = hithean_offers_candidate($text, $kind, $automatic, $order || $shipping ? 'order' : 'product', $automatic ? '' : 'Cần xác nhận đầy đủ điều kiện chương trình.');
+        $candidate = hithean_offers_candidate($text, $kind, $automatic, $order || $shipping ? 'order' : 'product', $automatic ? '' : 'Cần xác nhận đầy đủ điều kiện chương trình.', $planned);
         $candidate['conditions_hash'] = hash('sha256', wp_json_encode($constraints));
         $candidate['source_constraints'] = $constraints;
         $candidates[] = $candidate;

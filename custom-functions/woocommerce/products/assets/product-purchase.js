@@ -56,6 +56,19 @@
         function productMedia() { return media.product ? { src: media.product } : null; }
         function addonMedia(name) { return media.addons && media.addons[name] ? { src: media.addons[name] } : productMedia(); }
 
+        // Hạn ưu đãi add-on: plugin product-addon ghi data-end (timestamp) lên dòng; giờ VN, cùng cách ghi trang /uu-dai/.
+        function endLabel(row) {
+            var end = Number(row.getAttribute('data-end'));
+            if (!end) return '';
+            try {
+                var parts = {};
+                new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+                    .formatToParts(new Date(end * 1000)).forEach(function (p) { parts[p.type] = p.value; });
+                var day = parts.day + '/' + parts.month + '/' + parts.year;
+                return parts.hour + ':' + parts.minute + ':' + parts.second === '23:59:59' ? 'Đến hết ' + day : 'Đến ' + parts.hour + ':' + parts.minute + ' ' + day;
+            } catch (e) { return ''; }
+        }
+
         function collect() {
             var cards = [];
             // Add-on lên đầu.
@@ -67,8 +80,11 @@
                     if (!name) return;
                     var minimum = Number(row.getAttribute('data-min-qty')) || 1;
                     var price = row.querySelector('.product_addon-price');
+                    var notes = ['Tự động áp dụng khi mua từ ' + minimum + ' sản phẩm'];
+                    var until = endLabel(row);
+                    if (until) notes.push('⏳ ' + until);
                     cards.push({
-                        media: addonMedia(name), badge: 'Ưu đãi kèm', title: name, notes: ['Tự động áp dụng khi mua từ ' + minimum + ' sản phẩm'], price: price, extra: message,
+                        media: addonMedia(name), badge: 'Ưu đãi kèm', title: name, notes: notes, price: price, extra: message,
                         active: row.classList.contains('is-active'), qty: minimum > 1 ? minimum : 0, blocked: minimum > 1 ? blockedReason(minimum, null) : ''
                     });
                 });
