@@ -1,5 +1,147 @@
 (function ($) {
     'use strict';
+
+    /*
+     * "Ưu đãi đang áp dụng": gom thanh ưu đãi của Discount Rules (freeship…) và khối "Ưu đãi" của plugin
+     * product-addon (chỉ khi mọi dòng là "tự động áp dụng") vào 1 nút → popup mỗi chương trình 1 thẻ, cùng kiểu
+     * popup trang /uu-dai/. Nguồn gốc vẫn nằm trong DOM (ẩn bằng CSS) để plugin tiếp tục đồng bộ trạng thái /
+     * input ẩn của form; popup đọc lại nguồn mỗi lần mở nên luôn khớp nội dung plugin đang hiển thị.
+     * Khối add-on có lựa chọn (khách phải chọn) giữ nguyên tại chỗ.
+     */
+    function setupOffers(summary, config) {
+        var text = function (node) { return node ? node.textContent.replace(/\s+/g, ' ').trim() : ''; };
+        var isAutoOffer = function (box) {
+            var heading = box.querySelector(':scope > h4');
+            var rows = box.querySelectorAll('[data-choice-row]');
+            return /^ưu đãi/i.test(text(heading)) && rows.length > 0
+                && Array.prototype.every.call(rows, function (row) { return row.getAttribute('data-mode') === 'auto'; });
+        };
+        summary.querySelectorAll('[data-product-addon-container]').forEach(function (box) {
+            if (isAutoOffer(box)) box.setAttribute('data-hithean-offer-source', '');
+        });
+
+        function collect() {
+            var cards = [];
+            summary.querySelectorAll('[data-hithean-offer-source]').forEach(function (box) {
+                var message = box.querySelector('.product_addon-sale-message');
+                box.querySelectorAll('[data-choice-row]').forEach(function (row) {
+                    var title = row.querySelector('.product_addon-title');
+                    var name = title ? text(title.firstChild) || text(title) : '';
+                    if (!name) return;
+                    var minimum = Number(row.getAttribute('data-min-qty')) || 1;
+                    var notes = [row.classList.contains('is-active')
+                        ? '✓ Đang áp dụng với số lượng bạn chọn'
+                        : 'Tự động áp dụng khi mua từ ' + minimum + ' sản phẩm'];
+                    var price = row.querySelector('.product_addon-price');
+                    cards.push({ badge: 'Ưu đãi kèm', title: name, notes: notes, price: price, extra: message, active: row.classList.contains('is-active') });
+                });
+            });
+            summary.querySelectorAll('.awdr_discount_bar').forEach(function (bar) {
+                var label = text(bar);
+                if (!label) return;
+                var content = bar.querySelector('.awdr_discount_bar_content') || bar;
+                cards.push({
+                    badge: /free ?ship|miễn phí (vận chuyển|giao)|phí (ship|vận chuyển)/i.test(label) ? 'Ưu đãi vận chuyển' : 'Ưu đãi',
+                    html: content, label: label, notes: [], active: true
+                });
+            });
+            return cards;
+        }
+
+        var initial = collect();
+        if (!initial.length) return;
+        document.body.classList.add('hithean-purchase-offers');
+
+        var trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'hithean-offers-trigger';
+        trigger.setAttribute('aria-haspopup', 'dialog');
+        trigger.innerHTML = '<span class="hithean-offers-trigger__icon" aria-hidden="true">✳</span>'
+            + '<span class="hithean-offers-trigger__text"><strong>Ưu đãi đang áp dụng</strong><small data-offers-summary></small></span>'
+            + '<span class="hithean-offers-trigger__count" data-offers-count></span>'
+            + '<span class="hithean-offers-trigger__more" aria-hidden="true">Xem ›</span>';
+        var anchor = summary.querySelector('[data-hithean-offer-source], .awdr_discount_bar');
+        if (anchor && anchor.parentNode === summary) summary.insertBefore(trigger, anchor);
+        else summary.appendChild(trigger);
+
+        var dialog = document.createElement('dialog');
+        dialog.className = 'hithean-offers-dialog';
+        dialog.setAttribute('aria-labelledby', 'hithean-offers-dialog-title');
+        dialog.innerHTML = '<div class="hithean-offers-dialog__head"><div><h3 id="hithean-offers-dialog-title">Ưu đãi đang áp dụng</h3><p data-offers-meta></p></div>'
+            + '<button type="button" class="hithean-offers-dialog__close" data-offers-close aria-label="Đóng">×</button></div>'
+            + '<ul class="hithean-offers-dialog__list" data-offers-list></ul>'
+            + '<div class="hithean-offers-dialog__foot"><p>Mỗi chương trình có điều kiện riêng. Giá trị cuối cùng được xác nhận trong giỏ hàng.</p></div>';
+        if (config.offersUrl) {
+            var all = document.createElement('a');
+            all.className = 'hithean-offers-dialog__all';
+            all.href = config.offersUrl;
+            all.textContent = 'Xem mọi ưu đãi trên website ↗';
+            dialog.querySelector('.hithean-offers-dialog__foot').appendChild(all);
+        }
+        document.body.appendChild(dialog);
+        var list = dialog.querySelector('[data-offers-list]');
+
+        function el(tag, className, content) {
+            var node = document.createElement(tag);
+            if (className) node.className = className;
+            if (content) node.textContent = content;
+            return node;
+        }
+        function renderTrigger(cards) {
+            trigger.hidden = !cards.length;
+            trigger.querySelector('[data-offers-summary]').textContent = cards.map(function (card) { return card.title || card.label; }).join(' · ');
+            trigger.querySelector('[data-offers-count]').textContent = String(cards.length);
+            trigger.setAttribute('aria-label', 'Ưu đãi đang áp dụng: ' + cards.length + ' chương trình. Xem chi tiết');
+        }
+        function renderDialog(cards) {
+            dialog.querySelector('[data-offers-meta]').textContent = cards.length + ' chương trình cho sản phẩm này';
+            list.textContent = '';
+            cards.forEach(function (card) {
+                var item = el('li', 'hithean-offer-card' + (card.active ? ' is-active' : ''));
+                var top = el('div', 'hithean-offer-card__top');
+                top.appendChild(el('span', 'hithean-offer-card__badge', card.badge));
+                if (card.price) {
+                    var price = el('span', 'hithean-offer-card__price');
+                    price.innerHTML = card.price.innerHTML;
+                    top.appendChild(price);
+                }
+                item.appendChild(top);
+                var body = el('div', 'hithean-offer-card__title');
+                // Nội dung đã hiển thị trên trang (do plugin render) — sao chép nguyên node, không qua chuỗi.
+                if (card.html) Array.prototype.forEach.call(card.html.childNodes, function (node) { body.appendChild(node.cloneNode(true)); });
+                else body.textContent = card.title;
+                item.appendChild(body);
+                if (card.extra && text(card.extra)) {
+                    var extra = el('div', 'hithean-offer-card__extra');
+                    Array.prototype.forEach.call(card.extra.childNodes, function (node) { extra.appendChild(node.cloneNode(true)); });
+                    item.appendChild(extra);
+                }
+                card.notes.forEach(function (note) { item.appendChild(el('p', 'hithean-offer-card__note', note)); });
+                list.appendChild(item);
+            });
+        }
+        function refresh() { renderTrigger(collect()); }
+        renderTrigger(initial);
+
+        trigger.addEventListener('click', function () {
+            var cards = collect();
+            renderDialog(cards);
+            if (typeof dialog.showModal === 'function') dialog.showModal();
+            else dialog.setAttribute('open', '');
+            document.documentElement.classList.add('hithean-offers-open');
+        });
+        dialog.addEventListener('close', function () { document.documentElement.classList.remove('hithean-offers-open'); trigger.focus(); });
+        dialog.addEventListener('click', function (event) {
+            if (event.target.closest('[data-offers-close]')) { dialog.close(); return; }
+            if (event.target !== dialog) return;
+            var rect = dialog.getBoundingClientRect();
+            if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+        });
+        // Discount Rules / addon cập nhật thanh ưu đãi theo phân loại & số lượng.
+        $(document).on('wdr_dynamic_price_update.hitheanOffers', refresh);
+        $(summary).on('found_variation.hitheanOffers reset_data.hitheanOffers change.hitheanOffers input.hitheanOffers', function () { window.setTimeout(refresh, 0); });
+    }
+
     $(function () {
         var config = window.hitheanProductPurchase;
         var product = document.querySelector('.product-single > .product');
@@ -40,6 +182,8 @@
             disclosure.appendChild(caption);
             disclosure.appendChild(impact);
         }
+
+        setupOffers(summary, config);
 
         var navBoundary = form || product.querySelector('.woocommerce-product-gallery');
         if (navBoundary && 'IntersectionObserver' in window) {

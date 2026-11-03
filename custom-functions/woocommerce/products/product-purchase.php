@@ -46,7 +46,16 @@ function hithean_product_purchase_enqueue(): void
         'chooseQuantity' => __('Chọn số lượng', 'hithean.com'),
         'temporary' => __('Tạm tính sản phẩm', 'hithean.com'),
         'adding' => __('Đang thêm…', 'hithean.com'),
+        'offersUrl' => hithean_product_purchase_offers_url(),
     ]);
+}
+
+/** Link "Xem mọi ưu đãi" trong popup ưu đãi: chỉ khi trang /uu-dai/ đã công khai (không ở chế độ xem trước). */
+function hithean_product_purchase_offers_url(): string
+{
+    if (!function_exists('hithean_offers_settings') || hithean_offers_settings()['preview']) return '';
+    $page = get_page_by_path('uu-dai');
+    return $page && $page->post_status === 'publish' ? (string) get_permalink($page) : '';
 }
 
 function hithean_product_purchase_render_quote(): void
