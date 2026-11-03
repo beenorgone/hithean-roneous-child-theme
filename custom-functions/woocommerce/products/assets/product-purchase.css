@@ -62,7 +62,10 @@ body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs 
 body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs li { flex: 0 0 64px; float: none; width: 64px !important; margin: 0; border-radius: 8px; overflow: hidden; }
 body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs img { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
 body.hithean-product-purchase .woocommerce-product-gallery .flex-control-thumbs img.flex-active { outline: 2px solid var(--purchase-blue); outline-offset: -2px; opacity: 1; }
-body.hithean-product-purchase div.product .woocommerce-product-gallery .woocommerce-product-gallery__trigger { top: auto; bottom: 10px; right: 10px; left: auto; }
+/* Kính lúp phóng to: góc trên trái ảnh chính (lùi qua cột thumb 64px + gap 12px); NEW ở góc trên phải. */
+body.hithean-product-purchase div.product .woocommerce-product-gallery .woocommerce-product-gallery__trigger { top: 10px; bottom: auto; left: 86px; right: auto; }
+/* Desktop: badge SALE cũng ở góc trên trái ảnh → đặt kính lúp ngay dưới badge. */
+body.hithean-product-purchase div.product.sale .woocommerce-product-gallery .woocommerce-product-gallery__trigger { top: 54px; }
 body.hithean-product-purchase .product-single .summary .awdr_discount_bar { max-width: none; margin: 0 0 14px !important; padding: 12px !important; border: 1px solid var(--purchase-line); border-radius: 8px !important; background: #edf5ec !important; color: #285239 !important; text-align: left; font-size: 13px; line-height: 1.5; }
 body.hithean-product-purchase .product-single .summary .awdr_discount_bar_content { background: transparent !important; color: inherit !important; }
 body.hithean-product-purchase .hithean-purchase-tiers { margin-bottom: 14px; }
@@ -135,6 +138,8 @@ body.hithean-product-purchase .sticky-atc-bar .quantity[hidden] { display: none 
     body.hithean-product-purchase .product-single .summary > .price { order: 35; font-size: 26px; }
     body.hithean-product-purchase .product-single .summary > .woocommerce-product-details__short-description { order: 10; margin-bottom: 16px; }
     body.hithean-product-purchase .product-single > .product > .woocommerce-product-gallery { display: block; order: 20; width: calc(100% - 32px); margin: 0 16px 22px; }
+    body.hithean-product-purchase div.product .woocommerce-product-gallery .woocommerce-product-gallery__trigger,
+    body.hithean-product-purchase div.product.sale .woocommerce-product-gallery .woocommerce-product-gallery__trigger { top: 10px; left: 10px; }
     body.hithean-product-purchase .product-single .summary > .hithean-product-linking { order: 30; }
     body.hithean-product-purchase .hithean-product-linking__options { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
     body.hithean-product-purchase .hithean-product-linking .hithean-product-linking__option { min-width: 0; padding: 10px 8px; }
