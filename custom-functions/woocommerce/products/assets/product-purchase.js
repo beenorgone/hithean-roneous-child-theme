@@ -527,7 +527,8 @@
         // Thanh "Hồ sơ & kiểm nghiệm" ngay dưới "Ưu đãi đang áp dụng" (không có ưu đãi → ngay trên form mua).
         var trustBlock = trustBar && trustBar.closest('.product-trust-ctas');
         var offersBar = summary.querySelector(':scope > .hithean-offers-trigger:not(.hithean-trust-trigger)');
-        if (trustBlock && trustBlock.parentNode === summary) {
+        // Khối có thể nằm trong cụm CTA (hook hithean_before_product_chat_ctas) → đưa ra làm con trực tiếp của summary.
+        if (trustBlock) {
             if (offersBar) offersBar.insertAdjacentElement('afterend', trustBlock);
             else if (form && form.parentNode === summary) summary.insertBefore(trustBlock, form);
         }
