@@ -216,10 +216,19 @@
             }
             return box;
         }
-        // Ảnh cao bằng badge + tiêu đề ghép lại: đo cột chữ, gán --ho-media (giới hạn trong CSS).
+        // Ảnh cao bằng dòng chip + 1 dòng tiêu đề (không theo tiêu đề nhiều dòng): đo rồi gán --ho-media.
+        function mediaSize(main) {
+            var top = main.querySelector('.hithean-offer-card__top');
+            var title = main.querySelector('.hithean-offer-card__title');
+            if (!top || !title) return 0;
+            var style = getComputedStyle(title);
+            var line = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.5;
+            return top.offsetHeight + (parseFloat(getComputedStyle(main).rowGap) || 0) + line;
+        }
         var mediaObserver = window.ResizeObserver ? new ResizeObserver(function (entries) {
             entries.forEach(function (entry) {
-                entry.target.parentNode.style.setProperty('--ho-media', Math.round(entry.target.offsetHeight) + 'px');
+                var size = mediaSize(entry.target);
+                if (size) entry.target.parentNode.style.setProperty('--ho-media', Math.round(size) + 'px');
             });
         }) : null;
         function cardLabel(card) {
