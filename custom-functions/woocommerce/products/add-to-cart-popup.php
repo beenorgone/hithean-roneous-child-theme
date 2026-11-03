@@ -16,6 +16,43 @@ if (!defined('ABSPATH')) exit;
 \*---------------------------------------*/
 
 const HITHEAN_ATC_POPUP_ACTION = 'hithean_atc_popup';
+const HITHEAN_ATC_POPUP_VIEW_ACTION = 'hithean_atc_popup_view';
+
+/*
+  Xem giỏ hàng (nút giỏ hàng ở cụm sticky mobile trang sản phẩm — product-navigation.php):
+  mở cùng popup ở chế độ "view", nội dung giỏ lấy lại qua AJAX mỗi lần mở (trang có thể bị cache).
+*/
+add_action('wp_ajax_' . HITHEAN_ATC_POPUP_VIEW_ACTION, 'hithean_atc_popup_view_ajax');
+add_action('wp_ajax_nopriv_' . HITHEAN_ATC_POPUP_VIEW_ACTION, 'hithean_atc_popup_view_ajax');
+
+function hithean_atc_popup_view_ajax()
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        wp_send_json_error(['message' => __('Không tải được giỏ hàng.', 'hithean.com')]);
+    }
+
+    WC()->cart->calculate_totals();
+    $count = (int) WC()->cart->get_cart_contents_count();
+
+    wp_send_json_success([
+        'html'  => $count > 0 ? hithean_atc_popup_render_cart('') : '<p class="atc-popup__empty">' . esc_html__('Giỏ hàng của bạn đang trống.', 'hithean.com') . '</p>',
+        'count' => $count,
+    ]);
+}
+
+/** Số lượng SP trong giỏ cho badge nút giỏ hàng; khóa fragment theo class → WC / popup thay khi giỏ đổi. */
+function hithean_atc_cart_count_html(): string
+{
+    $count = (function_exists('WC') && WC()->cart) ? (int) WC()->cart->get_cart_contents_count() : 0;
+
+    return '<span class="hithean-cart-count" data-atc-cart-count="' . $count . '"' . ($count > 0 ? '' : ' hidden') . '>'
+        . ($count > 99 ? '99+' : $count) . '</span>';
+}
+
+add_filter('woocommerce_add_to_cart_fragments', function ($fragments) {
+    $fragments['span.hithean-cart-count'] = hithean_atc_cart_count_html();
+    return $fragments;
+});
 
 add_action('wp_ajax_' . HITHEAN_ATC_POPUP_ACTION, 'hithean_atc_popup_ajax');
 add_action('wp_ajax_nopriv_' . HITHEAN_ATC_POPUP_ACTION, 'hithean_atc_popup_ajax');
@@ -62,6 +99,7 @@ function hithean_atc_popup_ajax()
         'html'      => hithean_atc_popup_render_cart($added_key),
         'fragments' => hithean_atc_popup_fragments(),
         'cart_hash' => WC()->cart->get_cart_hash(),
+        'count'     => (int) WC()->cart->get_cart_contents_count(),
     ]);
 }
 
@@ -189,6 +227,7 @@ function hithean_atc_popup_enqueue_assets()
     wp_localize_script('hithean-atc-popup', 'hitheanAtcPopupConfig', [
         'ajaxUrl'      => admin_url('admin-ajax.php'),
         'action'       => HITHEAN_ATC_POPUP_ACTION,
+        'viewAction'   => HITHEAN_ATC_POPUP_VIEW_ACTION,
         'addingText'   => __('Đang thêm...', 'hithean.com'),
         'errorText'    => __('Có lỗi xảy ra, vui lòng thử lại.', 'hithean.com'),
     ]);
@@ -209,8 +248,11 @@ function hithean_atc_popup_render_modal()
 
             <div class="atc-popup__state atc-popup__state--success">
                 <h3 class="atc-popup__title" id="atc-popup-title">
-                    <span class="atc-popup__check" aria-hidden="true">&#10003;</span>
-                    <?php esc_html_e('Đã thêm vào giỏ hàng', 'hithean.com'); ?>
+                    <span class="atc-popup__title-added">
+                        <span class="atc-popup__check" aria-hidden="true">&#10003;</span>
+                        <?php esc_html_e('Đã thêm vào giỏ hàng', 'hithean.com'); ?>
+                    </span>
+                    <span class="atc-popup__title-view"><?php esc_html_e('Giỏ hàng của bạn', 'hithean.com'); ?></span>
                 </h3>
                 <div class="atc-popup__cart"></div>
                 <div class="atc-popup__actions">

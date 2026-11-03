@@ -56,8 +56,39 @@ html.atc-popup-open {
 }
 
 .atc-popup[data-state="success"] .atc-popup__state--success,
+.atc-popup[data-state="view"] .atc-popup__state--success,
 .atc-popup[data-state="error"] .atc-popup__state--error {
     display: flex;
+}
+
+/* Chế độ "view" (mở từ nút giỏ hàng): cùng khung success, đổi tiêu đề; giỏ trống thì ẩn nút Đặt hàng. */
+.atc-popup__title-added {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.atc-popup__title-view,
+.atc-popup[data-state="view"] .atc-popup__title-added {
+    display: none;
+}
+
+.atc-popup[data-state="view"] .atc-popup__title-view {
+    display: inline;
+}
+
+.atc-popup[data-empty] .atc-popup__checkout {
+    display: none;
+}
+
+.atc-popup__cart.is-loading {
+    opacity: .5;
+    pointer-events: none;
+}
+
+.atc-popup__empty {
+    margin: 8px 0 16px;
+    color: var(--default-color-black);
 }
 
 .atc-popup__title {

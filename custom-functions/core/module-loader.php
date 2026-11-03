@@ -418,7 +418,7 @@ function tpc_loader_modules()
             'file' => 'custom-functions/woocommerce/products/add-to-cart-popup.php',
             // Trang sản phẩm + mọi trang có product loop (trừ giỏ hàng / thanh toán, tự kiểm trong module).
             'condition' => '__return_true',
-            'ajax_actions' => ['hithean_atc_popup'],
+            'ajax_actions' => ['hithean_atc_popup', 'hithean_atc_popup_view'],
         ],
         [
             'id' => 'product_navigation',

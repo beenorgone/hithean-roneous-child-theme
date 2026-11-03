@@ -296,6 +296,44 @@
         white-space: nowrap;
     }
 
+    /* Nút giỏ hàng (mở popup của add-to-cart-popup.js): ô vuông cố định giữa Nhận ưu đãi và Chi tiết SP. */
+    .pcn-mobile__cart {
+        position: relative;
+        display: inline-grid;
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        padding: 0;
+        border: 0;
+        border-radius: 5px;
+        background: var(--default-color-light-blue);
+        color: var(--default-color-dark-blue);
+        cursor: pointer;
+    }
+
+    .pcn-mobile__cart .hithean-cart-count {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        box-sizing: border-box;
+        border: 2px solid #fff;
+        border-radius: 10px;
+        background: #e53935;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 16px;
+        text-align: center;
+    }
+
+    .pcn-mobile__cart .hithean-cart-count[hidden] {
+        display: none;
+    }
+
     .pcn-mobile__detail {
         display: inline-flex;
         flex: 1 1 0;
