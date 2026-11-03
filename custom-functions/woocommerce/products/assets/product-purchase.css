@@ -295,7 +295,8 @@ body.hithean-product-purchase:has(#pcn-proof-dialog) .product-single .summary .p
 .pcn-proof-dialog__row-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .pcn-proof-dialog__row-text strong { font-size: 14px; font-weight: 600; }
 .pcn-proof-dialog__row-text small { font-size: 12px; color: #5f625a; }
-.pcn-proof-dialog__row-arrow { flex: 0 0 auto; color: #0047ba; }
+/* Cùng kiểu mũi tên 2 widget IVAR (proof-widget-skin.css). */
+.pcn-proof-dialog__row-arrow { flex: 0 0 auto; color: #0047ba; font-family: "Be Vietnam", Arial, sans-serif; font-size: 18px; font-weight: 400; line-height: 1; }
 /* Danh mục & Tag (woocommerce/single-product/meta.php): 1 dãy chip, danh mục trước, tag sau (viền đứt, #). */
 body.hithean-product-purchase .product-single .summary .product_meta.hithean-product-meta { display: block; margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--purchase-line); font-size: 13px; color: var(--purchase-ink); text-align: left; }
 .hithean-product-meta__chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
