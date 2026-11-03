@@ -274,3 +274,11 @@ html.hithean-offers-open { overflow: hidden; }
 .hithean-offers-qty__status .hithean-offer-card__price,
 .hithean-offers-qty__status .hithean-offer-card__price .amount { font-size: 13px !important; }
 .hithean-offers-qty .hithean-offers-dialog__foot .hithean-offer-card__action { margin: 0 !important; }
+/* Thanh gộp "Hồ sơ & kiểm nghiệm" (product-page.php): cùng khuôn thanh ưu đãi, tông xanh dương thương hiệu. */
+body.hithean-product-purchase .summary .hithean-offers-trigger.hithean-trust-trigger { margin: 0 !important; border-color: #c9d7ef !important; background: #eef3fb !important; color: #0047ba !important; }
+body.hithean-product-purchase .summary .hithean-offers-trigger.hithean-trust-trigger:hover { border-color: #0047ba !important; box-shadow: 0 4px 12px #0047ba1a !important; }
+.hithean-trust-trigger .hithean-offers-trigger__icon { background: #0047ba; color: #fff; }
+.hithean-trust-trigger .hithean-offers-trigger__icon svg { display: block; }
+.hithean-trust-trigger .hithean-offers-trigger__text strong,
+.hithean-trust-trigger .hithean-offers-trigger__more { color: #001f3f; }
+.hithean-trust-trigger .hithean-offers-trigger__text small { color: #0047ba; }

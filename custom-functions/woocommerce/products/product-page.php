@@ -715,6 +715,30 @@ function hithean_render_product_trust_ctas(bool $with_nutrition): void
         }
         return;
     }
+    // Có popup "Hồ sơ & kiểm nghiệm" của product-navigation (cần ≥2 mục menu) → 1 thanh gộp mở popup đó
+    // (data-pcn-proof-toggle: product-navigation.js gắn sự kiện + chỉ hiện khi widget IVAR có hồ sơ công khai).
+    // Không có popup → giữ 2 widget nhúng tại chỗ như cũ.
+    if (function_exists('hithean_pcn_get_items') && count(hithean_pcn_get_items()) >= 2) {
+        $labels = array_values(array_filter([
+            !empty($proof_scripts['qc']) ? 'Kiểm nghiệm độc lập' : '',
+            !empty($proof_scripts['legal']) ? 'Hồ sơ công bố' : '',
+        ]));
+        ?>
+        <div class="product-trust-ctas">
+            <button type="button" class="hithean-offers-trigger hithean-trust-trigger" data-pcn-proof-toggle data-pcn-proof-entry hidden aria-haspopup="dialog" aria-controls="pcn-proof-dialog">
+                <span class="hithean-offers-trigger__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.9 8 10 4.6-1.1 8-5 8-10v-6l-8-3Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>
+                <span class="hithean-offers-trigger__text"><strong>Hồ sơ &amp; kiểm nghiệm</strong><small><?php echo esc_html(implode(' · ', $labels)); ?></small></span>
+                <span class="hithean-offers-trigger__more" aria-hidden="true">Xem ›</span>
+            </button>
+            <?php if ($with_nutrition) hithean_render_product_nutrition_label(); ?>
+        </div>
+        <style>
+            .product-trust-ctas { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+            .product-trust-ctas .product-nutrition-label { margin: 0 !important; }
+        </style>
+        <?php
+        return;
+    }
     ?>
     <div class="product-trust-ctas">
         <?php foreach (['qc', 'legal'] as $kind) : if (empty($proof_scripts[$kind])) continue; ?>
