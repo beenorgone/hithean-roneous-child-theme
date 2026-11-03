@@ -51,6 +51,11 @@
             return tiers.filter(function (tier) { return value >= tier.min && value <= tier.max; })[0] || null;
         }
 
+        // Ảnh / icon góc phải thẻ: sản phẩm đang xem, ảnh add-on (theo tên dòng), icon cho vận chuyển & vòng quay.
+        var media = config.offerMedia || {};
+        function productMedia() { return media.product ? { src: media.product } : null; }
+        function addonMedia(name) { return media.addons && media.addons[name] ? { src: media.addons[name] } : productMedia(); }
+
         function collect() {
             var cards = [];
             // Add-on lên đầu.
@@ -63,7 +68,7 @@
                     var minimum = Number(row.getAttribute('data-min-qty')) || 1;
                     var price = row.querySelector('.product_addon-price');
                     cards.push({
-                        badge: 'Ưu đãi kèm', title: name, notes: ['Tự động áp dụng khi mua từ ' + minimum + ' sản phẩm'], price: price, extra: message,
+                        media: addonMedia(name), badge: 'Ưu đãi kèm', title: name, notes: ['Tự động áp dụng khi mua từ ' + minimum + ' sản phẩm'], price: price, extra: message,
                         active: row.classList.contains('is-active'), qty: minimum > 1 ? minimum : 0, blocked: minimum > 1 ? blockedReason(minimum, null) : ''
                     });
                 });
@@ -88,7 +93,7 @@
                 tiers.sort(function (a, b) { return a.min - b.min; });
                 var current = tierFor(tiers, currentQuantity());
                 cards.push({
-                    kind: 'tiers', badge: 'Mua nhiều giảm giá', title: 'Mua nhiều giảm giá', tiers: tiers, current: current,
+                    kind: 'tiers', media: productMedia(), badge: 'Mua nhiều giảm giá', title: 'Mua nhiều giảm giá', tiers: tiers, current: current,
                     sku: skuLabel(), notes: [], active: !!current, blocked: blockedReason(tiers[0].min, tiers[0].row)
                 });
             }
@@ -96,8 +101,10 @@
                 var label = text(bar);
                 if (!label) return;
                 var content = bar.querySelector('.awdr_discount_bar_content') || bar;
+                var shipping = /free ?ship|miễn phí (vận chuyển|giao)|phí (ship|vận chuyển)/i.test(label);
                 cards.push({
-                    badge: /free ?ship|miễn phí (vận chuyển|giao)|phí (ship|vận chuyển)/i.test(label) ? 'Ưu đãi vận chuyển' : 'Ưu đãi',
+                    media: shipping ? { icon: 'ship' } : productMedia(),
+                    badge: shipping ? 'Ưu đãi vận chuyển' : 'Ưu đãi',
                     html: content, label: label, notes: [], active: true
                 });
             });
@@ -106,7 +113,7 @@
             if (wheel) {
                 var state = text(wheel.querySelector('.thean-lw-trigger__text'));
                 cards.push({
-                    kind: 'wheel', badge: 'Vòng quay may mắn', title: 'Quay vòng quay may mắn — nhận mã giảm giá / quà tặng',
+                    kind: 'wheel', media: { icon: 'wheel' }, badge: 'Vòng quay may mắn', title: 'Quay vòng quay may mắn — nhận mã giảm giá / quà tặng',
                     notes: state && !/^nhận ưu đãi$/i.test(state) ? [state] : ['Mỗi lượt quay có thể trúng mã giảm giá hoặc quà tặng'], active: false
                 });
             }
@@ -191,6 +198,30 @@
             if (suffix) price.appendChild(el('small', '', ' ' + suffix));
             return price;
         }
+        var ICONS = {
+            ship: '<path d="M3 6h11v9H3z"/><path d="M14 9h4l3 3v3h-7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
+            wheel: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><path d="M10 1.5h4L12 5z" fill="currentColor"/>'
+        };
+        function mediaEl(item) {
+            if (!item || (!item.src && !ICONS[item.icon])) return null;
+            var box = el('span', 'hithean-offer-card__media' + (item.icon ? ' hithean-offer-card__media--icon is-' + item.icon : ''));
+            box.setAttribute('aria-hidden', 'true');
+            if (item.icon) {
+                box.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + ICONS[item.icon] + '</svg>';
+            } else {
+                var img = el('img');
+                img.src = item.src; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+                img.onerror = function () { box.remove(); };
+                box.appendChild(img);
+            }
+            return box;
+        }
+        // Ảnh cao bằng badge + tiêu đề ghép lại: đo cột chữ, gán --ho-media (giới hạn trong CSS).
+        var mediaObserver = window.ResizeObserver ? new ResizeObserver(function (entries) {
+            entries.forEach(function (entry) {
+                entry.target.parentNode.style.setProperty('--ho-media', Math.round(entry.target.offsetHeight) + 'px');
+            });
+        }) : null;
         function cardLabel(card) {
             if (card.kind === 'tiers') return card.tiers.map(function (tier) { return tier.label; }).join(' / ');
             return card.title || card.label;
@@ -210,17 +241,28 @@
         }
         function renderDialog(cards) {
             dialog.querySelector('[data-offers-meta]').textContent = cards.length + ' chương trình cho sản phẩm này';
+            if (mediaObserver) mediaObserver.disconnect();
             list.textContent = '';
             cards.forEach(function (card) {
                 var item = el('li', 'hithean-offer-card' + (card.active ? ' is-active' : ''));
+                var head = el('div', 'hithean-offer-card__head');
+                var main = el('div', 'hithean-offer-card__main');
                 var top = el('div', 'hithean-offer-card__top');
                 top.appendChild(el('span', 'hithean-offer-card__badge', card.badge));
                 if (card.price) top.appendChild(priceEl(card.price, ''));
-                item.appendChild(top);
+                main.appendChild(top);
                 var body = el('div', 'hithean-offer-card__title');
                 if (card.html) cloneInto(body, card.html);
                 else body.textContent = card.title;
-                item.appendChild(body);
+                main.appendChild(body);
+                head.appendChild(main);
+                var thumb = mediaEl(card.media);
+                if (thumb) {
+                    head.classList.add('has-media');
+                    head.appendChild(thumb);
+                    if (mediaObserver) mediaObserver.observe(main);
+                }
+                item.appendChild(head);
                 if (card.kind === 'tiers') {
                     var tierList = el('ul', 'hithean-offer-tiers');
                     card.tiers.forEach(function (tier) {

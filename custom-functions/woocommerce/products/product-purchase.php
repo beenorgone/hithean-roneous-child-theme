@@ -47,7 +47,29 @@ function hithean_product_purchase_enqueue(): void
         'temporary' => __('Tạm tính sản phẩm', 'hithean.com'),
         'adding' => __('Đang thêm…', 'hithean.com'),
         'offersUrl' => hithean_product_purchase_offers_url(),
+        'offerMedia' => hithean_product_purchase_offer_media((int) get_queried_object_id()),
     ]);
+}
+
+/**
+ * Ảnh nhỏ góc phải thẻ trong popup ưu đãi: ảnh sản phẩm đang xem + ảnh sản phẩm add-on (dòng add-on loại
+ * "product" — tặng/mua kèm) theo tên dòng. Chỉ đọc dữ liệu qua hàm của plugin product-addon, không sửa plugin.
+ */
+function hithean_product_purchase_offer_media(int $product_id): array
+{
+    $thumb = static function (int $id): string {
+        $image_id = $id ? (int) get_post_thumbnail_id($id) : 0;
+        return $image_id ? (string) wp_get_attachment_image_url($image_id, 'woocommerce_gallery_thumbnail') : '';
+    };
+    $addons = [];
+    if ($product_id && function_exists('simple_addon_get_product_addons') && function_exists('simple_addon_resolve_product_id')) {
+        foreach ((array) simple_addon_get_product_addons($product_id) as $addon) {
+            if (($addon['type'] ?? '') !== 'product' || ($addon['status'] ?? '') !== 'ON' || isset($addons[$addon['name']])) continue;
+            $url = $thumb((int) simple_addon_resolve_product_id($addon['target'] ?? ''));
+            if ($url !== '') $addons[(string) $addon['name']] = $url;
+        }
+    }
+    return ['product' => $thumb($product_id), 'addons' => (object) $addons];
 }
 
 /** Link "Xem mọi ưu đãi" trong popup ưu đãi: chỉ khi trang /uu-dai/ đã công khai (không ở chế độ xem trước). */

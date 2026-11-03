@@ -214,6 +214,14 @@ html.hithean-offers-open { overflow: hidden; }
 .hithean-offers-dialog__list { display: grid; gap: 12px; margin: 0; padding: 16px; overflow-y: auto; list-style: none; background: var(--ho-cream); }
 .hithean-offer-card { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 18px; border: 1px solid #3b222210; border-radius: 16px; background: #fff; box-shadow: 0 3px 12px #3b222206; }
 .hithean-offer-card__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+/* Ảnh / icon góc phải trên, cao bằng badge + tiêu đề (JS đo cột chữ → --ho-media, kẹp 48–88px). */
+.hithean-offer-card__head { display: flex; align-items: flex-start; gap: 14px; }
+.hithean-offer-card__main { display: flex; flex: 1 1 auto; flex-direction: column; gap: 10px; min-width: 0; }
+.hithean-offer-card__media { --ho-media-size: clamp(48px, var(--ho-media, 64px), 88px); flex: 0 0 var(--ho-media-size); width: var(--ho-media-size); height: var(--ho-media-size); overflow: hidden; border: 1px solid #3b22221a; border-radius: 12px; background: var(--ho-cream); }
+.hithean-offer-card__media img { display: block; width: 100%; height: 100%; margin: 0; object-fit: cover; }
+.hithean-offer-card__media--icon { display: grid; place-items: center; border: 0; color: var(--default-color-dark-blue, #0047ba); background: #e8f0fb; }
+.hithean-offer-card__media--icon.is-wheel { color: #9a6a00; background: #fff4d6; }
+.hithean-offer-card__media--icon svg { width: 52%; height: 52%; }
 .hithean-offer-card__badge { padding: 5px 12px; border-radius: 99px; background: #ecefe6; color: var(--ho-green); font-size: 11px; font-weight: 700; }
 .hithean-offer-card__price,
 .hithean-offer-card__price .amount { font-size: 15px !important; font-weight: 700; color: var(--ho-green); }
