@@ -524,7 +524,7 @@
             document.body.classList.add('hithean-purchase-has-sticky');
             function syncStickyMenuOffset() {
                 var barHeight = Math.ceil(bar.getBoundingClientRect().height);
-                if (barHeight > 0) document.body.style.setProperty('--purchase-bottom-space', (barHeight + 16) + 'px');
+                if (barHeight > 0) document.body.style.setProperty('--purchase-bottom-space', (barHeight + 8) + 'px');
             }
             syncStickyMenuOffset();
             if ('ResizeObserver' in window) new ResizeObserver(syncStickyMenuOffset).observe(bar);
