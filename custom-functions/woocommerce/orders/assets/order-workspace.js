@@ -12,7 +12,7 @@
     var currentTab = '';
     var isTouch = window.matchMedia('(pointer: coarse)').matches;
 
-    // Metabox "Thông tin bổ sung" (id theo Meta Box — order-metabox.php) ẩn mặc định, nút "Form đầy đủ" bật lại.
+    // Metabox "Thông tin bổ sung" (id theo Meta Box — order-metabox.php) luôn ẩn (thay bằng bảng điều phối).
     function metabox() { return cfg.metabox ? document.getElementById(cfg.metabox) : null; }
     if (metabox()) metabox().classList.add('tow-metabox');
     document.body.classList.add('tow-hide-metabox');
@@ -672,16 +672,6 @@
             return;
         }
 
-        var toggle = e.target.closest('.tow-toggle-metabox');
-        if (toggle) {
-            var hidden = document.body.classList.toggle('tow-hide-metabox');
-            toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
-            var mb = metabox();
-            if (!hidden && mb) {
-                mb.classList.remove('closed');
-                mb.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }
     });
 
     root.addEventListener('keydown', function (e) {
@@ -740,8 +730,6 @@
         el.querySelectorAll('.tow-form[data-task="payment"]').forEach(syncPayer);
         el.querySelectorAll('.tow-tags').forEach(renderTags);
         el.querySelectorAll('.tow-picker').forEach(updatePickerCount);
-        var toggle = el.querySelector('.tow-toggle-metabox');
-        if (toggle) toggle.setAttribute('aria-expanded', document.body.classList.contains('tow-hide-metabox') ? 'false' : 'true');
 
         if (!(preferTab && activate(preferTab))) activate(el.getAttribute('data-active'));
     }

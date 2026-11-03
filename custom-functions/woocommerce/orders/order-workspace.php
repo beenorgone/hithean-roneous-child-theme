@@ -790,7 +790,6 @@ function thean_ow_render_inner(WC_Order $order): void
         </div>
 
         <div class="tow-foot">
-            <button type="button" class="button tow-toggle-metabox" aria-expanded="false">⚙️ Form đầy đủ (VAT, sự cố, kế toán…)</button>
             <a class="button" href="<?php echo esc_url(home_url('/tien-ich-admin/')); ?>" target="_blank" rel="noopener">Tiện ích admin ↗</a>
         </div>
     </div>
