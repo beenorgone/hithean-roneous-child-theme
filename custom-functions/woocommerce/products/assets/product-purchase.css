@@ -305,3 +305,9 @@ body.hithean-product-purchase .product-single .summary .product_meta.hithean-pro
 .hithean-product-meta__chips a:focus-visible { border-color: var(--purchase-blue, #0047ba) !important; background: #eef3fb !important; color: var(--purchase-blue, #0047ba) !important; }
 .hithean-product-meta__chip--tag a { border: 1px dashed #a3aa99 !important; background: transparent !important; box-shadow: none; color: var(--purchase-muted, #5f625a) !important; }
 .hithean-product-meta__chip--tag a::before { content: "#"; margin-right: 1px; opacity: .6; }
+/* Vuông góc như nút theme: nút Thêm vào giỏ + ô số lượng (form + thanh sticky), hàng "Xem bảng dinh dưỡng" trong popup. */
+body.hithean-product-purchase .product-single .summary form.cart .single_add_to_cart_button,
+body.hithean-product-purchase .product-single .summary form.cart .quantity input.qty,
+body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__btn,
+body.hithean-product-purchase .sticky-atc-bar .sticky-atc-bar__qty-input,
+.pcn-proof-dialog .pcn-proof-dialog__row { border-radius: 0 !important; }
