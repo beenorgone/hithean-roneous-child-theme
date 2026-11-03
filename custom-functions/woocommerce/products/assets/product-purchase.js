@@ -6,7 +6,7 @@
      * của plugin product-addon (chỉ khi mọi dòng là "tự động áp dụng") vào 1 nút → popup mỗi chương trình 1 thẻ,
      * cùng kiểu popup trang /uu-dai/. Nguồn gốc vẫn nằm trong DOM (ẩn bằng CSS) để plugin tiếp tục đồng bộ trạng
      * thái / input ẩn của form; popup đọc lại nguồn mỗi lần mở nên luôn khớp nội dung plugin đang hiển thị.
-     * Thứ tự thẻ: add-on → bậc giá (gộp 1 thẻ, chỉ tính cho đúng mã đang xem) → thanh ưu đãi.
+     * Thứ tự thẻ: add-on → bậc giá (gộp 1 thẻ, ghi rõ mã đang xem) → thanh ưu đãi.
      * Bấm thẻ không đổi gì: thẻ add-on có nút "Mua theo ưu đãi này" đặt thẳng số lượng; thẻ bậc giá mở popup nhỏ
      * chọn số lượng (bậc nhanh + ô − N +, hiện bậc đang áp dụng) rồi mới đặt.
      * Có vòng quay may mắn → thêm thẻ "Quay ngay"; nút sticky "Nhận ưu đãi" của vòng quay mở popup này.
@@ -88,7 +88,7 @@
                 tiers.sort(function (a, b) { return a.min - b.min; });
                 var current = tierFor(tiers, currentQuantity());
                 cards.push({
-                    kind: 'tiers', badge: 'Mua nhiều giảm giá', title: 'Mua nhiều giảm giá — chỉ cho mã này', tiers: tiers, current: current,
+                    kind: 'tiers', badge: 'Mua nhiều giảm giá', title: 'Mua nhiều giảm giá', tiers: tiers, current: current,
                     sku: skuLabel(), notes: [], active: !!current, blocked: blockedReason(tiers[0].min, tiers[0].row)
                 });
             }
