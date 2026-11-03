@@ -2,10 +2,11 @@
     'use strict';
 
     /*
-     * "Ưu đãi đang áp dụng": gom thanh ưu đãi của Discount Rules (freeship…) và khối "Ưu đãi" của plugin
-     * product-addon (chỉ khi mọi dòng là "tự động áp dụng") vào 1 nút → popup mỗi chương trình 1 thẻ, cùng kiểu
-     * popup trang /uu-dai/. Nguồn gốc vẫn nằm trong DOM (ẩn bằng CSS) để plugin tiếp tục đồng bộ trạng thái /
-     * input ẩn của form; popup đọc lại nguồn mỗi lần mở nên luôn khớp nội dung plugin đang hiển thị.
+     * "Ưu đãi đang áp dụng": gom bậc giá mua nhiều + thanh ưu đãi của Discount Rules (freeship…) và khối "Ưu đãi"
+     * của plugin product-addon (chỉ khi mọi dòng là "tự động áp dụng") vào 1 nút → popup mỗi chương trình 1 thẻ,
+     * cùng kiểu popup trang /uu-dai/. Nguồn gốc vẫn nằm trong DOM (ẩn bằng CSS) để plugin tiếp tục đồng bộ trạng
+     * thái / input ẩn của form; popup đọc lại nguồn mỗi lần mở nên luôn khớp nội dung plugin đang hiển thị.
+     * Thẻ bậc giá / add-on có số lượng: bấm thẻ không đổi gì — nút "Mua theo ưu đãi này" mới đặt số lượng.
      * Khối add-on có lựa chọn (khách phải chọn) giữ nguyên tại chỗ.
      */
     function setupOffers(summary, config) {
@@ -20,8 +21,36 @@
             if (isAutoOffer(box)) box.setAttribute('data-hithean-offer-source', '');
         });
 
+        var form = summary.querySelector('form.cart');
+        var quantity = form && form.querySelector('input.qty[name="quantity"]');
+        // Lý do không đặt được số lượng `minimum` (rỗng = đặt được) — cùng điều kiện với bậc giá ở trang.
+        function blockedReason(minimum, row) {
+            if (!quantity || quantity.type === 'hidden' || quantity.disabled || quantity.readOnly) return 'Không đổi được số lượng cho sản phẩm này';
+            var variation = form.querySelector('[name="variation_id"]');
+            if (variation && !Number(variation.value)) return 'Chọn phiên bản trước khi áp dụng';
+            if (row && row.getAttribute('aria-disabled') === 'true') return 'Không áp dụng được với lựa chọn hiện tại';
+            if ((quantity.max && minimum > Number(quantity.max)) || (quantity.min && minimum < Number(quantity.min))) return 'Không áp dụng được với lựa chọn hiện tại';
+            return '';
+        }
+        function currentQuantity() { return quantity ? Number(quantity.value) || 0 : 0; }
+
         function collect() {
             var cards = [];
+            summary.querySelectorAll('.awdr-bulk-customizable-table tr.bulk_table_row').forEach(function (row) {
+                var range = text(row.querySelector('.wdr_bulk_range'));
+                var match = range.match(/^([1-9]\d{0,3})(?:\s*(\+)|\s*[-–]\s*([1-9]\d{0,3}))?$/);
+                var title = text(row.querySelector('.wdr_bulk_title'));
+                if (!match && !title) return;
+                var minimum = match ? Number(match[1]) : 0;
+                var maximum = match ? (match[3] ? Number(match[3]) : (match[2] ? Infinity : minimum)) : 0;
+                var price = row.querySelector('.wdr_table_discounted_price') || row.querySelector('.wdr_bulk_table_discount');
+                var active = minimum > 0 && currentQuantity() >= minimum && currentQuantity() <= maximum;
+                cards.push({
+                    badge: 'Mua nhiều giảm giá', title: title || ('Mua ' + range), price: price, priceSuffix: price ? '/ sản phẩm' : '',
+                    notes: minimum ? ['Áp dụng khi mua ' + (match[2] ? 'từ ' + minimum : (match[3] ? minimum + '–' + maximum : minimum)) + ' sản phẩm'] : [],
+                    qty: minimum, active: active, blocked: minimum ? blockedReason(minimum, row) : ''
+                });
+            });
             summary.querySelectorAll('[data-hithean-offer-source]').forEach(function (box) {
                 var message = box.querySelector('.product_addon-sale-message');
                 box.querySelectorAll('[data-choice-row]').forEach(function (row) {
@@ -29,11 +58,12 @@
                     var name = title ? text(title.firstChild) || text(title) : '';
                     if (!name) return;
                     var minimum = Number(row.getAttribute('data-min-qty')) || 1;
-                    var notes = [row.classList.contains('is-active')
-                        ? '✓ Đang áp dụng với số lượng bạn chọn'
-                        : 'Tự động áp dụng khi mua từ ' + minimum + ' sản phẩm'];
+                    var active = row.classList.contains('is-active');
                     var price = row.querySelector('.product_addon-price');
-                    cards.push({ badge: 'Ưu đãi kèm', title: name, notes: notes, price: price, extra: message, active: row.classList.contains('is-active') });
+                    cards.push({
+                        badge: 'Ưu đãi kèm', title: name, notes: ['Tự động áp dụng khi mua từ ' + minimum + ' sản phẩm'], price: price, extra: message,
+                        active: active, qty: minimum > 1 ? minimum : 0, blocked: minimum > 1 ? blockedReason(minimum, null) : ''
+                    });
                 });
             });
             summary.querySelectorAll('.awdr_discount_bar').forEach(function (bar) {
@@ -51,6 +81,7 @@
         var initial = collect();
         if (!initial.length) return;
         document.body.classList.add('hithean-purchase-offers');
+        if (summary.querySelector('.awdr-bulk-customizable-table tr.bulk_table_row')) document.body.classList.add('hithean-purchase-offers-tiers');
 
         var trigger = document.createElement('button');
         trigger.type = 'button';
@@ -60,7 +91,7 @@
             + '<span class="hithean-offers-trigger__text"><strong>Ưu đãi đang áp dụng</strong><small data-offers-summary></small></span>'
             + '<span class="hithean-offers-trigger__count" data-offers-count></span>'
             + '<span class="hithean-offers-trigger__more" aria-hidden="true">Xem ›</span>';
-        var anchor = summary.querySelector('[data-hithean-offer-source], .awdr_discount_bar');
+        var anchor = summary.querySelector('.awdr-bulk-customizable-table, [data-hithean-offer-source], .awdr_discount_bar');
         if (anchor && anchor.parentNode === summary) summary.insertBefore(trigger, anchor);
         else summary.appendChild(trigger);
 
@@ -103,6 +134,7 @@
                 if (card.price) {
                     var price = el('span', 'hithean-offer-card__price');
                     price.innerHTML = card.price.innerHTML;
+                    if (card.priceSuffix) price.appendChild(el('small', '', ' ' + card.priceSuffix));
                     top.appendChild(price);
                 }
                 item.appendChild(top);
@@ -117,6 +149,21 @@
                     item.appendChild(extra);
                 }
                 card.notes.forEach(function (note) { item.appendChild(el('p', 'hithean-offer-card__note', note)); });
+                if (card.qty) {
+                    var action = el('button', 'hithean-offer-card__action');
+                    action.type = 'button';
+                    if (card.active) {
+                        action.disabled = true;
+                        action.textContent = '✓ Đang áp dụng với ' + currentQuantity() + ' sản phẩm';
+                    } else if (card.blocked) {
+                        action.disabled = true;
+                        action.textContent = card.blocked;
+                    } else {
+                        action.dataset.offersQty = String(card.qty);
+                        action.textContent = 'Mua theo ưu đãi này · ' + card.qty + ' sản phẩm';
+                    }
+                    item.appendChild(action);
+                }
                 list.appendChild(item);
             });
         }
@@ -133,6 +180,16 @@
         dialog.addEventListener('close', function () { document.documentElement.classList.remove('hithean-offers-open'); trigger.focus(); });
         dialog.addEventListener('click', function (event) {
             if (event.target.closest('[data-offers-close]')) { dialog.close(); return; }
+            var apply = event.target.closest('[data-offers-qty]');
+            if (apply && quantity) {
+                // Sự kiện gốc: jQuery (bảng giá, tạm tính, thanh sticky) lẫn plugin add-on đều nhận.
+                quantity.value = apply.dataset.offersQty;
+                quantity.dispatchEvent(new Event('input', { bubbles: true }));
+                quantity.dispatchEvent(new Event('change', { bubbles: true }));
+                dialog.close();
+                refresh();
+                return;
+            }
             if (event.target !== dialog) return;
             var rect = dialog.getBoundingClientRect();
             if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
