@@ -471,6 +471,30 @@
         var shopeeAction = summary.querySelector('.ecom-buy-trigger');
         var shopeeModal = shopeeAction && summary.querySelector('.ecom-buy-modal');
         if (shopeeModal && shopeeModal.parentNode !== document.body) document.body.appendChild(shopeeModal);
+        // Có thanh "Hồ sơ & kiểm nghiệm" (product-page.php) + popup của product-navigation → nút "Xem bảng dinh dưỡng"
+        // vào popup đó. Modal dinh dưỡng (tìm theo aria-controls) ra <body>: popup hồ sơ là top layer nên đóng nó
+        // trước khi modal dinh dưỡng mở (listener capture chạy trước handler click của product-nutrition-label).
+        var proofDialog = document.getElementById('pcn-proof-dialog');
+        var trustBar = summary.querySelector('.hithean-trust-trigger');
+        var nutritionTrigger = nutritionAction && nutritionAction.querySelector('.product-nutrition-label__trigger');
+        var proofItems = proofDialog && proofDialog.querySelector('.pcn-proof-dialog__items');
+        if (trustBar && proofItems && nutritionTrigger) {
+            var nutritionModal = nutritionAction.querySelector('.product-nutrition-label__modal');
+            if (nutritionModal) document.body.appendChild(nutritionModal);
+            var slot = document.createElement('div');
+            slot.className = 'pcn-proof-dialog__item pcn-proof-dialog__nutrition';
+            slot.setAttribute('data-pcn-proof-extra', '');
+            slot.appendChild(nutritionTrigger);
+            proofItems.appendChild(slot);
+            nutritionAction.remove();
+            nutritionAction = null;
+            var trustNote = trustBar.querySelector('.hithean-offers-trigger__text small');
+            if (trustNote) trustNote.textContent = (trustNote.textContent ? trustNote.textContent + ' · ' : '') + 'Bảng dinh dưỡng';
+            proofDialog.dispatchEvent(new Event('pcn:proof-refresh'));
+            document.addEventListener('click', function (event) {
+                if (event.target.closest && event.target.closest('#pcn-proof-dialog .product-nutrition-label__trigger') && proofDialog.open) proofDialog.close();
+            }, true);
+        }
         var contactActionItems = [nutritionAction, chatAction, shopeeAction].filter(Boolean);
         if (contactActionItems.length) {
             var contactActions = document.createElement('div');
@@ -496,6 +520,14 @@
         }
 
         setupOffers(summary, config);
+
+        // Thanh "Hồ sơ & kiểm nghiệm" ngay dưới "Ưu đãi đang áp dụng" (không có ưu đãi → ngay trên form mua).
+        var trustBlock = trustBar && trustBar.closest('.product-trust-ctas');
+        var offersBar = summary.querySelector(':scope > .hithean-offers-trigger:not(.hithean-trust-trigger)');
+        if (trustBlock && trustBlock.parentNode === summary) {
+            if (offersBar) offersBar.insertAdjacentElement('afterend', trustBlock);
+            else if (form && form.parentNode === summary) summary.insertBefore(trustBlock, form);
+        }
 
         var navBoundary = form || product.querySelector('.woocommerce-product-gallery');
         if (navBoundary && 'IntersectionObserver' in window) {

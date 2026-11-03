@@ -241,8 +241,10 @@
                 slot.hidden = !hasButton;
                 if (hasButton) available++;
             });
-            proofEntries.forEach(function (entry) { entry.hidden = available === 0; });
-            if (!available && proofDialog.open) closeProofDialog();
+            // Mục thêm vào popup từ chỗ khác (vd nút "Xem bảng dinh dưỡng" — product-purchase.js) cũng tính là có nội dung.
+            var shown = available + proofDialog.querySelectorAll('[data-pcn-proof-extra]').length;
+            proofEntries.forEach(function (entry) { entry.hidden = shown === 0; });
+            if (!shown && proofDialog.open) closeProofDialog();
             proofChecks++;
             if (available === proofSlots.length || proofChecks >= 120) {
                 window.clearInterval(proofTimer);
@@ -253,6 +255,7 @@
         // when there is no published widget. Never expose an empty menu entry.
         var proofTimer = window.setInterval(refreshProofAvailability, 250);
         refreshProofAvailability();
+        proofDialog.addEventListener('pcn:proof-refresh', refreshProofAvailability);
 
         proofToggles.forEach(function (toggle) {
             toggle.addEventListener('click', function () {
