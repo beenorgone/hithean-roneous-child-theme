@@ -296,18 +296,12 @@ body.hithean-product-purchase:has(#pcn-proof-dialog) .product-single .summary .p
 .pcn-proof-dialog__row-text strong { font-size: 14px; font-weight: 600; }
 .pcn-proof-dialog__row-text small { font-size: 12px; color: #5f625a; }
 .pcn-proof-dialog__row-arrow { flex: 0 0 auto; color: #0047ba; }
-/* Danh mục & Tag (woocommerce/single-product/meta.php): nhãn + chip. */
-body.hithean-product-purchase .product-single .summary .product_meta.hithean-product-meta { display: grid; gap: 10px; margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--purchase-line); font-size: 13px; color: var(--purchase-ink); text-align: left; }
-.hithean-product-meta__row { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: start; gap: 10px; margin: 0; }
-.hithean-product-meta__label { padding-top: 5px; font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--purchase-muted, #5f625a); }
+/* Danh mục & Tag (woocommerce/single-product/meta.php): 1 dãy chip, danh mục trước, tag sau (viền đứt, #). */
+body.hithean-product-purchase .product-single .summary .product_meta.hithean-product-meta { display: block; margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--purchase-line); font-size: 13px; color: var(--purchase-ink); text-align: left; }
 .hithean-product-meta__chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hithean-product-meta__chips li { margin: 0; padding: 0; }
 .hithean-product-meta__chips a { display: inline-flex; align-items: center; min-height: 30px; padding: 4px 12px; border: 1px solid var(--purchase-line, #dfe3da); border-radius: 99px; background: #fff; color: var(--purchase-ink, #33291f) !important; font-size: 12px; line-height: 1.3; text-decoration: none !important; transition: border-color .15s, background-color .15s, color .15s; }
 .hithean-product-meta__chips a:hover,
 .hithean-product-meta__chips a:focus-visible { border-color: var(--purchase-blue, #0047ba); background: #eef3fb; color: var(--purchase-blue, #0047ba) !important; }
-.hithean-product-meta__row--tags .hithean-product-meta__chips a { border-style: dashed; background: transparent; color: var(--purchase-muted, #5f625a) !important; }
-.hithean-product-meta__row--tags .hithean-product-meta__chips a::before { content: "#"; margin-right: 1px; opacity: .6; }
-@media (max-width: 767px) {
-    .hithean-product-meta__row { grid-template-columns: 1fr; gap: 6px; }
-    .hithean-product-meta__label { padding-top: 0; }
-}
+.hithean-product-meta__chip--tag a { border-style: dashed; background: transparent; color: var(--purchase-muted, #5f625a) !important; }
+.hithean-product-meta__chip--tag a::before { content: "#"; margin-right: 1px; opacity: .6; }

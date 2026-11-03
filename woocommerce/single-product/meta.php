@@ -21,35 +21,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 global $product;
 
-// Danh mục & Tag dạng chip (CSS: product-purchase.css → .hithean-product-meta).
-$hithean_meta_rows = [
-	'cats' => ['label' => __('Danh mục', 'hithean.com'), 'terms' => get_the_terms($product->get_id(), 'product_cat')],
-	'tags' => ['label' => __('Tag', 'hithean.com'), 'terms' => get_the_terms($product->get_id(), 'product_tag')],
-];
+// Danh mục rồi Tag: 1 dãy chip ngang, tự xuống dòng, không nhãn (CSS: product-purchase.css → .hithean-product-meta).
+$hithean_meta_chips = [];
+foreach ( [ 'product_cat' => 'cat', 'product_tag' => 'tag' ] as $hithean_tax => $hithean_kind ) {
+	$hithean_terms = get_the_terms( $product->get_id(), $hithean_tax );
+	if ( empty( $hithean_terms ) || is_wp_error( $hithean_terms ) ) {
+		continue;
+	}
+	foreach ( $hithean_terms as $hithean_term ) {
+		$hithean_link = get_term_link( $hithean_term );
+		if ( ! is_wp_error( $hithean_link ) ) {
+			$hithean_meta_chips[] = [ 'kind' => $hithean_kind, 'name' => $hithean_term->name, 'url' => $hithean_link ];
+		}
+	}
+}
 ?>
 <div class="product_meta hithean-product-meta">
 
 	<?php do_action( 'woocommerce_product_meta_start' ); ?>
 
-	<?php foreach ( $hithean_meta_rows as $hithean_key => $hithean_row ) :
-		if ( empty( $hithean_row['terms'] ) || is_wp_error( $hithean_row['terms'] ) ) {
-			continue;
-		}
-		?>
-		<div class="hithean-product-meta__row hithean-product-meta__row--<?php echo esc_attr( $hithean_key ); ?> <?php echo 'cats' === $hithean_key ? 'posted_in' : 'tagged_as'; ?>">
-			<span class="hithean-product-meta__label"><?php echo esc_html( $hithean_row['label'] ); ?></span>
-			<ul class="hithean-product-meta__chips">
-				<?php foreach ( $hithean_row['terms'] as $hithean_term ) :
-					$hithean_link = get_term_link( $hithean_term );
-					if ( is_wp_error( $hithean_link ) ) {
-						continue;
-					}
-					?>
-					<li><a href="<?php echo esc_url( $hithean_link ); ?>" rel="tag"><?php echo esc_html( $hithean_term->name ); ?></a></li>
-				<?php endforeach; ?>
-			</ul>
-		</div>
-	<?php endforeach; ?>
+	<?php if ( $hithean_meta_chips ) : ?>
+		<ul class="hithean-product-meta__chips" aria-label="<?php esc_attr_e( 'Danh mục và tag sản phẩm', 'hithean.com' ); ?>">
+			<?php foreach ( $hithean_meta_chips as $hithean_chip ) : ?>
+				<li class="hithean-product-meta__chip--<?php echo esc_attr( $hithean_chip['kind'] ); ?>"><a href="<?php echo esc_url( $hithean_chip['url'] ); ?>" rel="tag"><?php echo esc_html( $hithean_chip['name'] ); ?></a></li>
+			<?php endforeach; ?>
+		</ul>
+	<?php endif; ?>
 
 	<?php do_action( 'woocommerce_product_meta_end' ); ?>
 
