@@ -1763,11 +1763,11 @@ function thean_ous_render_ui(): void
             <input type="search" name="q" placeholder="Tìm đơn: ID, tên, SĐT, email, địa chỉ, SP, vận đơn… — gõ / để lọc (/tt, /sdt, /id, /sp)" aria-label="Tìm đơn hàng" aria-autocomplete="list" aria-controls="thean-ous-suggest">
             <label class="thean-ous-bar__range">Ngày tạo
                 <select name="range" aria-label="Khoảng ngày tạo đơn" title="Áp dụng cho tìm kiếm và board. Toàn bộ vẫn giữ điều kiện nghiệp vụ và mốc khóa đơn của board.">
-                    <option value="auto" title="30 ngày; riêng Hoàn hàng và Đặt trước: 90 ngày">Mặc định: 30 / 90 ngày</option>
-                    <option value="7">7 ngày gần nhất</option>
-                    <option value="30">30 ngày gần nhất</option>
-                    <option value="90">90 ngày gần nhất</option>
-                    <option value="all">Toàn bộ thời gian</option>
+                    <option value="auto" title="Mặc định: 30 ngày; riêng Hoàn hàng và Đặt trước: 90 ngày">30/90 ngày</option>
+                    <option value="7" title="7 ngày gần nhất">7 ngày</option>
+                    <option value="30" title="30 ngày gần nhất">30 ngày</option>
+                    <option value="90" title="90 ngày gần nhất">90 ngày</option>
+                    <option value="all" title="Toàn bộ thời gian">Toàn bộ</option>
                 </select>
             </label>
             <kbd>/</kbd>

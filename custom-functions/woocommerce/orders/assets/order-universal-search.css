@@ -230,15 +230,22 @@ body.thean-ous-open { overflow:hidden; }
     .thean-ous-bar kbd { display:none; }
     .thean-ous-bar__brand img { height:24px; max-width:96px; }
     .thean-ous-bar .dashicons-search { display:none; }
-    .thean-ous-bar__row { flex-wrap:wrap; }
-    .thean-ous-bar__range { order:3; flex:1 1 100%; }
-    .thean-ous-bar__range select { flex:1; max-width:none; }
-    .thean-ous-bar__row input[type="search"] { flex-basis:calc(100% - 110px); }
-    .thean-ous-bar__board { order:4; }
+    /* Mobile: 2 dòng — [logo][ô tìm][Tìm] / [📋 Tải đơn cần xử lý][ngày tạo][🧹][⋯]; mọi nút cao 38px. */
+    .thean-ous-bar__row { flex-wrap:wrap; gap:6px; padding:6px 8px; }
+    .thean-ous-bar__brand { order:0; margin-right:0; }
+    /* basis lớn → nút "Tải đơn" không chen lên dòng 1 (ô tìm co về phần còn lại sau logo + Tìm). */
+    .thean-ous-bar__row input[type="search"] { order:1; flex:1 1 calc(100% - 200px); min-width:0; height:38px; padding:6px 10px; }
+    .thean-ous-bar__submit { order:2; height:38px; padding:0 14px; }
+    .thean-ous-bar__board { order:3; flex:1 1 100px; min-width:0; justify-content:center; height:38px; padding:0 10px; font-size:13px; }
+    .thean-ous-bar__board span { overflow:hidden; text-overflow:ellipsis; }
+    .thean-ous-bar__range { order:4; flex:0 1 100px; min-width:0; gap:0; font-size:0; } /* ẩn chữ "Ngày tạo", giữ ô chọn */
+    .thean-ous-bar__range select { flex:1; width:100%; min-width:0; max-width:none; min-height:38px; height:38px; padding:0 20px 0 6px; background-position:right 4px top 55%; font-size:13px; text-overflow:ellipsis; }
+    .thean-ous-bar__flush { order:5; justify-content:center; width:38px; height:38px; padding:0; }
     .thean-ous-menu { order:6; }
+    .thean-ous-menu__btn { width:38px; height:38px; }
     .thean-ous-board { padding:12px 10px; }
-    .thean-ous-bar__flush { order:5; }
     .thean-ous-bar__flush span { display:none; } /* mobile: chỉ biểu tượng 🧹 (khi đang chạy vẫn hiện tiến độ) */
+    .thean-ous-bar__flush:disabled { width:auto; padding:0 10px; }
     .thean-ous-bar__flush:disabled span { display:inline; }
     .thean-ous-bar input[type="search"] { font-size:16px; } /* iOS không zoom */
     .thean-ous-modal { padding:0; align-items:stretch; }
