@@ -31,6 +31,28 @@
             });
         });
     }
+    // Banner chương trình: thư viện ảnh WP không nổi trên <dialog> modal (top layer) → tạm đóng dialog, chọn xong mở lại.
+    document.addEventListener('click', function (event) {
+        const choose = event.target.closest('[data-ho-banner-choose]');
+        if (!choose || !window.wp || !wp.media) { return; }
+        event.preventDefault();
+        const box = choose.closest('[data-ho-banner]');
+        const dialog = choose.closest('dialog');
+        const frame = wp.media({title: 'Chọn banner chương trình', button: {text: 'Dùng ảnh này'}, library: {type: 'image'}, multiple: false});
+        frame.on('select', function () {
+            const image = frame.state().get('selection').first().toJSON();
+            const size = (image.sizes && (image.sizes.medium_large || image.sizes.large || image.sizes.medium)) || image;
+            box.querySelector('[data-ho-banner-input]').value = image.id;
+            const preview = box.querySelector('[data-ho-banner-preview]');
+            preview.src = size.url; preview.hidden = false;
+            choose.textContent = 'Đổi ảnh';
+        });
+        frame.on('close', function () {
+            if (dialog && !dialog.open) { dialog.showModal(); document.body.classList.add('ho-modal-open'); }
+        });
+        if (dialog && dialog.open) { dialog.close(); }
+        frame.open();
+    });
     document.querySelectorAll('[data-ho-view]').forEach(function (button) {
         button.addEventListener('click', function () {
             board.classList.toggle('is-table', button.dataset.hoView === 'table');

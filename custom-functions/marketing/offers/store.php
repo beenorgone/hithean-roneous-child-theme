@@ -140,6 +140,7 @@ function hithean_offers_publish(): void {
             $row['in_stock'] = $product->is_in_stock();
             $row['variable'] = $product->is_type('variable');
             $row['pinned'] = !empty($row['pinned']);
+            $row['banner'] = hithean_offers_banner_url((int) ($row['id'] ?? 0));
             foreach ([$row['start'] ?? 0, !empty($row['end']) ? $row['end'] + 1 : 0, $row['verified_at'] + HITHEAN_OFFERS_FRESHNESS] as $date) {
                 if ($date > time()) { $boundary = min($boundary, $date); }
             }
@@ -155,6 +156,21 @@ function hithean_offers_publish(): void {
         wp_schedule_single_event($boundary, 'hithean_offers_boundary');
         if (($old['items'] ?? []) !== $items || ($old['valid_until'] ?? 0) !== $boundary) { hithean_offers_purge(); }
     } finally { hithean_offers_unlock('publish', $token); }
+}
+/** Banner chương trình: meta riêng (ID ảnh) nên đồng bộ nguồn ghi đè `_ho_data` không làm mất. */
+function hithean_offers_banner_id(int $id): int {
+    return $id ? (int) get_post_meta($id, '_ho_banner', true) : 0;
+}
+function hithean_offers_banner_url(int $id): string {
+    $banner = hithean_offers_banner_id($id);
+    return $banner ? (string) (wp_get_attachment_image_url($banner, 'large') ?: '') : '';
+}
+function hithean_offers_set_banner(int $id, int $attachment): void {
+    if (!current_user_can('manage_woocommerce')) { throw new RuntimeException('Không có quyền sửa banner.'); }
+    if (get_post_type($id) !== 'hithean_offer') { throw new RuntimeException('Không tìm thấy ưu đãi.'); }
+    if ($attachment && !wp_attachment_is_image($attachment)) { throw new RuntimeException('Banner phải là ảnh trong Thư viện.'); }
+    if ($attachment) { update_post_meta($id, '_ho_banner', $attachment); } else { delete_post_meta($id, '_ho_banner'); }
+    hithean_offers_audit($id, $attachment ? 'banner_set' : 'banner_removed');
 }
 function hithean_offers_purge(): void {
     $page = get_page_by_path('uu-dai');

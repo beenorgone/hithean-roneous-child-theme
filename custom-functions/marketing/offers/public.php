@@ -65,7 +65,7 @@ function hithean_offers_card(array $row): string {
     ob_start(); ?>
     <?php $group = $row['group'] ?? []; $site_wide = !empty($row['site_wide']); $dialog = $group && !$site_wide ? 'ho-group-' . substr(md5((string) $row['source_id']), 0, 10) : ''; ?>
     <article class="ho-card<?php echo $group ? ' ho-card-group' : ''; ?>" data-ho-card<?php echo $group ? ' data-ho-names="' . esc_attr(implode(' ', wp_list_pluck($group, 'product_name'))) . '"' : ''; ?> data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-until="<?php echo (int) $until; ?>" data-ho-search="<?php echo esc_attr($row['product_name'] . ' ' . $row['title']); ?>">
-        <a class="ho-card-visual" href="<?php echo esc_url($row['url']); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($offers) > 1 ? count($offers) . ' ưu đãi' : esc_html($kinds[$row['kind']] ?? 'Ưu đãi'); ?></span><?php if (!empty($row['program']) || $site_wide) : ?><span class="ho-wheel-art">✳<span><?php echo $row['kind'] === 'shipping' ? '0₫' : '%'; ?></span></span><?php elseif ($group) : ?><span class="ho-group-art" data-count="<?php echo min(3, count($group)); ?>"><?php foreach (array_slice($group, 0, 3) as $item) : ?><img src="<?php echo esc_url($item['image']); ?>" alt="" width="240" height="240" loading="lazy" decoding="async"><?php endforeach; ?></span><?php else : ?><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"><?php endif; ?></a>
+        <a class="ho-card-visual<?php echo !empty($row['banner']) ? ' ho-has-banner' : ''; ?>" href="<?php echo esc_url($row['url']); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($offers) > 1 ? count($offers) . ' ưu đãi' : esc_html($kinds[$row['kind']] ?? 'Ưu đãi'); ?></span><?php if (!empty($row['banner'])) : ?><img class="ho-banner" src="<?php echo esc_url($row['banner']); ?>" alt="" width="1200" height="1000" loading="lazy" decoding="async"><?php elseif (!empty($row['program']) || $site_wide) : ?><span class="ho-wheel-art">✳<span><?php echo $row['kind'] === 'shipping' ? '0₫' : '%'; ?></span></span><?php elseif ($group) : ?><span class="ho-group-art" data-count="<?php echo min(3, count($group)); ?>"><?php foreach (array_slice($group, 0, 3) as $item) : ?><img src="<?php echo esc_url($item['image']); ?>" alt="" width="240" height="240" loading="lazy" decoding="async"><?php endforeach; ?></span><?php else : ?><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"><?php endif; ?></a>
         <div class="ho-card-body"><h3><a href="<?php echo esc_url($row['url']); ?>"><?php echo esc_html($row['product_name']); ?></a></h3><ul class="ho-benefits"><?php foreach ($offers as $offer) : $offer_until = min($offer['end'] ? $offer['end'] + 1 : PHP_INT_MAX, $offer['verified_at'] + HITHEAN_OFFERS_FRESHNESS); ?>
         <li data-ho-rule data-ho-kind="<?php echo esc_attr($offer['kind']); ?>" data-ho-until="<?php echo (int) $offer_until; ?>"><p class="ho-benefit"><?php echo esc_html($offer['title']); ?></p>
         <?php if (!empty($offer['condition_note'])) : ?><p class="ho-date"><?php echo esc_html($offer['condition_note']); ?></p><?php endif; ?>
@@ -137,6 +137,8 @@ function hithean_offers_shortcode(): string {
         }
         if (!isset($grouped[$id])) { $grouped[$id] = $row; $grouped[$id]['offers'] = []; }
         $grouped[$id]['offers'][] = $row;
+        // Card gộp nhiều ưu đãi: lấy banner đầu tiên được đặt.
+        if (empty($grouped[$id]['banner']) && !empty($row['banner'])) { $grouped[$id]['banner'] = $row['banner']; }
     }
     // An approved wheel program leads the grid; other cards keep their snapshot order.
     if (isset($grouped['wheel:program'])) { $grouped = ['wheel:program' => $grouped['wheel:program']] + $grouped; }
@@ -158,7 +160,7 @@ function hithean_offers_shortcode(): string {
         <p class="ho-result" data-ho-result role="status" aria-live="polite"><?php echo (int) $count; ?> sản phẩm / chương trình có ưu đãi</p>
         <div data-ho-panel="programs"><div class="ho-grid"><?php foreach ($products as $row) { echo hithean_offers_card($row); } ?></div>
         <p class="ho-empty" data-ho-empty hidden>Chưa có ưu đãi phù hợp. Thử tên sản phẩm khác hoặc chọn “Tất cả”.</p></div>
-        <div data-ho-panel="products" hidden><div class="ho-grid ho-product-grid"><?php foreach ($catalog as $offers) { echo hithean_offers_card($offers[0] + ['offers' => $offers]); } ?></div>
+        <div data-ho-panel="products" hidden><div class="ho-grid ho-product-grid"><?php foreach ($catalog as $offers) { echo hithean_offers_card(array_merge($offers[0], ['offers' => $offers, 'banner' => ''])); /* Chế độ sản phẩm giữ ảnh sản phẩm. */ } ?></div>
         <p class="ho-empty" data-ho-products-empty hidden>Không tìm thấy sản phẩm phù hợp.</p></div>
         <?php else : ?><div class="ho-empty"><span aria-hidden="true">✳</span><h3>Hẹn bạn ở ưu đãi tiếp theo</h3><p>Các chương trình mới sẽ xuất hiện tại đây sau khi được cập nhật.</p><a class="ho-button ho-button-dark" href="<?php echo esc_url(wc_get_page_permalink('shop')); ?>">Khám phá sản phẩm <span aria-hidden="true">↗</span></a></div><?php endif; ?>
         </section>

@@ -6,6 +6,7 @@ add_action('admin_menu', static function (): void {
 });
 add_action('admin_enqueue_scripts', static function ($hook): void {
     if ($hook !== 'woocommerce_page_hithean-offers') { return; }
+    wp_enqueue_media();
     $base = HITHEAN_THEME_DIR . '/custom-functions/marketing/offers/';
     wp_enqueue_style('hithean-offers-admin', get_stylesheet_directory_uri() . '/custom-functions/marketing/offers/admin.css', [], filemtime($base . 'admin.css'));
     wp_enqueue_script('hithean-offers-admin', get_stylesheet_directory_uri() . '/custom-functions/marketing/offers/admin.js', [], filemtime($base . 'admin.js'), true);
@@ -56,6 +57,11 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             hithean_offers_review(absint($_POST['offer_id'] ?? 0), sanitize_text_field(wp_unslash($_POST['source_key'] ?? '')), $action, $fields);
             hithean_offers_publish();
             if ($action === 'restore') { $notice = 'Đã khôi phục card. Kiểm tra nguồn và duyệt lại trước khi đăng.'; }
+        } elseif ($action === 'banner') {
+            $attachment = empty($_POST['remove_banner']) ? absint($_POST['banner_id'] ?? 0) : 0;
+            hithean_offers_set_banner(absint($_POST['offer_id'] ?? 0), $attachment);
+            hithean_offers_publish();
+            $notice = $attachment ? 'Đã lưu banner chương trình.' : 'Đã bỏ banner, card dùng lại ảnh sản phẩm.';
         } elseif ($action === 'rollback') {
             $run = (array) get_option(HITHEAN_OFFERS_RUN, []);
             if (in_array($run['status'] ?? '', ['queued', 'running'], true)) { throw new RuntimeException('Dừng lượt quét trước khi khôi phục snapshot.'); }
@@ -127,7 +133,9 @@ function hithean_offers_admin(): void {
             $heading = hithean_offers_admin_title($row, $product);
             $dialog_id = 'ho-offer-dialog-' . $id;
             $title_id = $dialog_id . '-title';
-            echo '<article class="ho-offer"><h3><button type="button" class="ho-offer-title" data-ho-open="' . esc_attr($dialog_id) . '" aria-haspopup="dialog" aria-controls="' . esc_attr($dialog_id) . '">' . esc_html($heading) . '</button></h3>';
+            $banner_id = hithean_offers_banner_id($id);
+            $banner_src = $banner_id ? (string) wp_get_attachment_image_url($banner_id, 'medium') : '';
+            echo '<article class="ho-offer">' . ($banner_src ? '<img class="ho-offer-banner" src="' . esc_url($banner_src) . '" alt="" loading="lazy">' : '') . '<h3><button type="button" class="ho-offer-title" data-ho-open="' . esc_attr($dialog_id) . '" aria-haspopup="dialog" aria-controls="' . esc_attr($dialog_id) . '">' . esc_html($heading) . '</button></h3>';
             echo '<dialog class="ho-offer-dialog" id="' . esc_attr($dialog_id) . '" aria-labelledby="' . esc_attr($title_id) . '"><header class="ho-dialog-header"><div><h2 id="' . esc_attr($title_id) . '">' . esc_html($heading) . '</h2><p class="ho-muted">' . esc_html($label) . '</p></div><button type="button" class="button ho-dialog-close" data-ho-close aria-label="Đóng cửa sổ chỉnh sửa" autofocus>Đóng ×</button></header><div class="ho-dialog-body"><p>' . esc_html($row['title']) . '</p><p class="ho-error">' . esc_html($row['reason']) . '</p>';
             if ($shared) {
                 echo '<details><summary>Áp dụng cho ' . count($row['product_ids']) . ' sản phẩm · Duyệt một lần cho cả rule</summary><ul>';
@@ -142,6 +150,11 @@ function hithean_offers_admin(): void {
             if (!empty($row['source_constraints'])) { echo '<p>Điều kiện cấu trúc tại nguồn:</p><pre>' . esc_html(wp_json_encode($row['source_constraints'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>'; }
             foreach (array_filter((array) get_post_meta($id, '_ho_audit', true), 'is_array') as $audit) { echo '<p>' . esc_html(wp_date('d/m H:i', $audit['at']) . ' · #' . $audit['user'] . ' · ' . $audit['action']) . '</p>'; }
             echo '</details>';
+            echo '<details class="ho-banner-box"' . ($banner_src ? ' open' : '') . '><summary>Banner chương trình' . ($banner_src ? ' ✓' : '') . '</summary>';
+            hithean_offers_form_start('banner', ['offer_id' => $id]);
+            echo '<p class="ho-muted">Thay ảnh sản phẩm trên card ở trang /uu-dai/ (chế độ “Xem chương trình”). Ảnh phủ kín khung, tỉ lệ khuyến nghị 6:5 — vd 1200×1000px; nội dung chính đặt giữa ảnh vì mobile cắt bớt 2 mép trên/dưới.</p>';
+            echo '<div class="ho-banner-pick" data-ho-banner><input type="hidden" name="banner_id" value="' . esc_attr($banner_id ?: '') . '" data-ho-banner-input><img src="' . esc_url($banner_src) . '" alt="" data-ho-banner-preview' . ($banner_src ? '' : ' hidden') . '>';
+            echo '<p class="ho-actions"><button type="button" class="button" data-ho-banner-choose>' . ($banner_src ? 'Đổi ảnh' : 'Chọn ảnh') . '</button> <button class="button button-primary">Lưu banner</button>' . ($banner_src ? ' <button class="button" name="remove_banner" value="1">Bỏ banner</button>' : '') . '</p></div></form></details>';
             if ($status === 'rejected') {
                 hithean_offers_form_start('restore', ['offer_id' => $id, 'source_key' => $row['key']]);
                 echo '<p><button class="button">Khôi phục để duyệt lại</button></p><p class="ho-muted">Khôi phục cả rule và các sản phẩm liên kết; cần duyệt lại trước khi đăng.</p></form>';

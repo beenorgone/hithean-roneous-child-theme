@@ -144,3 +144,20 @@ body.ho-modal-open { overflow: hidden; }
     .ho-offer-dialog { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); }
     .ho-dialog-header, .ho-dialog-body { padding: 16px; }
 }
+.ho-offer-banner {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1.15;
+    object-fit: cover;
+    border-radius: 10px 10px 0 0;
+}
+.ho-banner-pick img {
+    display: block;
+    max-width: 320px;
+    width: 100%;
+    aspect-ratio: 1.15;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e2e7eb;
+    margin: 8px 0;
+}

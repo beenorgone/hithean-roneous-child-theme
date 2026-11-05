@@ -58,6 +58,14 @@ ok(preg_match('/data-ho-open="(ho-group-[0-9a-f]{10})"/', $html, $m) && str_cont
 function programs($html) { return substr($html, 0, strpos($html, 'data-ho-panel="products"')); }
 function product_panel($html) { $start = strpos($html, 'data-ho-panel="products"'); return substr($html, $start, strpos($html, 'data-ho-products-empty') - $start); }
 function product_card($html, $name) { foreach (explode('<article', product_panel($html)) as $card) { if (str_contains($card, '>' . $name . '</a>')) { return $card; } } return ''; }
+if (!function_exists('wp_attachment_is_image')) { function wp_attachment_is_image($id) { return $id === 77; } }
+denied(fn() => hithean_offers_set_banner($id, 5), 'Banner must be a library image');
+hithean_offers_set_banner($id, 77); hithean_offers_publish(); $html = hithean_offers_shortcode();
+ok(str_contains(programs($html), 'ho-has-banner') && str_contains(programs($html), 'class="ho-banner"') && !str_contains(programs($html), 'ho-group-art') && !str_contains(product_panel($html), 'ho-banner'), 'Program banner replaces the product images on the program card only');
+hithean_offers_upsert_source(hithean_offers_records()[0] + ['blocked' => false], 'banner-sync');
+ok(hithean_offers_banner_id($id) === 77, 'Banner survives a source re-sync');
+hithean_offers_set_banner($id, 0); hithean_offers_publish(); $html = hithean_offers_shortcode();
+ok(!str_contains($html, 'ho-has-banner') && str_contains(programs($html), 'ho-group-art'), 'Removing the banner restores product images');
 $panel = product_panel($html);
 ok(substr_count($panel, 'data-ho-card') === 2 && substr_count($panel, 'data-ho-rule ') === 2 && str_contains($panel, '>Test product 11</a>') && !str_contains($panel, 'ho-card-group') && substr_count($html, 'data-ho-mode="') === 3 && str_contains($html, '>Sản phẩm ưu đãi</button>'), 'Product mode renders one full card per product and the sticky bar switches modes');
 $GLOBALS['products'][11]->stock = false; $stock_html = hithean_offers_shortcode(); $GLOBALS['products'][11]->stock = true;
