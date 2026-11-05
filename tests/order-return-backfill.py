@@ -20,14 +20,14 @@ foreach ([false, true] as $hpos) {
     $t = thean_ops_step_tables();
     $wpdb->queries = [];
     thean_ops_step_unsynced_ids(100);
-    $out[] = [$t, 'SELECT o.' . $t['id'] . ' ' . thean_ops_step_open_sql($t), $wpdb->queries[0]];
+    $out[] = [$t, 'SELECT o.' . $t['id'] . ' ' . thean_ops_step_open_sql($t), $wpdb->queries[0], THEAN_OPS_STEP_VERSION];
 }
 echo json_encode($out);
 '''
 queries = json.loads(subprocess.check_output(['php', '-r', php], cwd=ROOT))
 now = dt.datetime.now(dt.timezone.utc)
 checks = 0
-for tables, base, unsynced in queries:
+for tables, base, unsynced, current_version in queries:
     db = sqlite3.connect(':memory:')
     t = tables
     db.execute(f"CREATE TABLE {t['orders']} ({t['id']} INTEGER PRIMARY KEY, "
@@ -60,7 +60,7 @@ for tables, base, unsynced in queries:
     order(13, 'completed', age=10)  # recent proof audit remains eligible
     order(14, request='Đã nhận hàng hoàn', step='return')  # clean stale steps
     order(15, step='return')  # return deleted outside hooks
-    order(16, request='Chờ hoàn', version='7')  # sweep/flush still revisit
+    order(16, request='Chờ hoàn', version=current_version)  # sweep/flush still revisit
     expected = {10696, 2, 3, 4, 5, 12, 13, 14, 15, 16}
     actual = {row[0] for row in db.execute(base)}
     assert actual == expected, (t['orders'], actual, expected)

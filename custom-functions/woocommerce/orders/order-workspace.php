@@ -592,6 +592,25 @@ function thean_render_order_workspace($order_arg): void
     <?php
 }
 
+/** Nhận diện giao nhanh cả sau khi đã đổi trạng thái sang Đã giao. */
+function thean_ow_is_fast_delivery(WC_Order $order): bool
+{
+    return $order->get_status() === 'local-shipping'
+        || (bool) preg_grep('/^Giao nhanh(?:\\s|$)/iu', thean_ow_meta_list($order, 'handling_status'))
+        || (bool) array_intersect(['ahamove', 'grab', 'self'], thean_ow_meta_list($order, 'shipper'));
+}
+
+/** Giao nhanh là hình thức giao; phải có xác nhận xuất hoặc nhãn bàn giao mới coi là đã giao đi. */
+function thean_ow_is_dispatched(WC_Order $order): bool
+{
+    $status = $order->get_status();
+    if (in_array($status, ['shipping', 'partial-shipping', 'delivered', 'partial-shipped', 'completed'], true)) {
+        return true;
+    }
+    return $status === 'local-shipping' && ($order->get_meta('export_confirmed_by')
+        || array_intersect(['Đã nhập kho vận chuyển', 'Đã giao hàng', 'Giao hàng 1 phần'], thean_ow_meta_list($order, 'handling_status')));
+}
+
 /**
  * Trạng thái luồng xử lý của đơn (không render, không ghi): các bước, bước cần làm tiếp và gợi ý.
  * Dùng chung cho bảng điều phối (thean_ow_render_inner) và board "Cần xử lý" của ô tìm đơn.
@@ -619,23 +638,26 @@ function thean_ow_flow(WC_Order $order): array
     $is_pickup   = in_array('Chờ khách đến lấy hàng', $handling, true);
     $is_closed   = in_array($status, thean_ow_closed_statuses(), true);
     $is_shipping = in_array($status, ['shipping', 'local-shipping', 'partial-shipping'], true);
+    $is_fast     = thean_ow_is_fast_delivery($order);
+    $dispatched  = thean_ow_is_dispatched($order);
     $return_done = strpos($return_status, 'Đã nhận') === 0 || $return_status === 'Hủy yêu cầu';
     $has_return  = $return_status !== '';
 
     // Luồng: Thanh toán (CK) / Khách xác nhận (COD) → Lấy hàng → Xuất kho → Giao → Hoàn (nếu có).
     // Mỗi bước: [nhãn, xong?, bỏ qua?]
     $steps = $is_cod
-        ? ['confirm' => ['Xác nhận', $cod_confirm['done'], $cod_confirm['skip']]]
-        : ['payment' => ['Thanh toán', $payment['done'], false]];
+        ? ['confirm' => ['Chờ khách xác nhận / thanh toán', $cod_confirm['done'], $cod_confirm['skip']]]
+        : ['payment' => ['Chờ khách xác nhận / thanh toán', $payment['done'], false]];
     $steps += [
-        'picking'  => ['Lấy hàng', (bool) $export_images, false],
-        'export'   => ['Xuất kho', (bool) $confirmed_by, false],
-        'delivery' => [$is_pickup ? 'Khách lấy' : 'Giao hàng', in_array($status, ['delivered', 'partial-shipped', 'completed'], true), false],
+        'picking'  => ['Cần xuất kho, đóng gói', (bool) $export_images, false],
+        'export'   => ['Chưa kiểm tra ảnh xuất kho', (bool) $confirmed_by, false],
+        'delivery' => [$is_pickup ? 'Khách lấy' : ($dispatched ? 'Theo dõi giao hàng' : 'Đã đóng gói, chờ giao VC'), in_array($status, ['delivered', 'partial-shipped', 'completed'], true), false],
     ];
     if ($has_return) $steps['return'] = ['Hoàn hàng', $return_done, false];
 
     $next = '';
     foreach ($steps as $key => $step) {
+        if ($dispatched && in_array($key, ['picking', 'export'], true)) continue;
         if (!$step[1]) { $next = $key; break; }
     }
     // Đang hoàn hàng thì ưu tiên xử lý hoàn (VD "Chờ hoàn (Không giao được)" khi chưa giao xong).
@@ -653,6 +675,10 @@ function thean_ow_flow(WC_Order $order): array
         $next_hint = 'Đối soát / xác nhận đã thu COD';
         $next_goto = 'payment';
     }
+    if ($next === 'delivery' && $is_fast && $confirmed_by && $is_cod && !$payment['done']) {
+        $next_hint = 'Giao nhanh đã xuất kho — theo dõi giao hàng và xác nhận khi đã thu COD';
+        $next_goto = 'payment';
+    }
     if ($is_closed) $next_hint = '';
     // Tab mở sẵn: bước cần làm; xong hết thì bước cuối.
     $active = isset($steps[$next]) ? $next : ($has_return ? 'return' : 'delivery');
@@ -668,7 +694,7 @@ function thean_ow_flow(WC_Order $order): array
         $next_hint = $preorder_confirm === 'waiting' ? 'Đơn đặt trước: chờ khách phản hồi xác nhận giao' : 'Đơn đặt trước: nhắn/gọi khách xác nhận giao đơn';
     }
 
-    return compact('preorder_note', 'preorder_confirm', 'payment', 'export_images', 'confirmed_by', 'ai', 'shippers', 'handling', 'ship_code', 'export_date', 'return_status', 'return_code', 'compensate', 'refund', 'return_images', 'is_cod', 'cod_confirm', 'is_pickup', 'is_closed', 'is_shipping', 'return_done', 'has_return', 'steps', 'next', 'next_hint', 'next_goto', 'active');
+    return compact('preorder_note', 'preorder_confirm', 'payment', 'export_images', 'confirmed_by', 'ai', 'shippers', 'handling', 'ship_code', 'export_date', 'return_status', 'return_code', 'compensate', 'refund', 'return_images', 'is_cod', 'cod_confirm', 'is_pickup', 'is_closed', 'is_shipping', 'is_fast', 'return_done', 'has_return', 'steps', 'next', 'next_hint', 'next_goto', 'active');
 }
 
 /** Phần bảng thay được qua AJAX (task `render`) — không gồm modal/toast/config. */
@@ -1044,7 +1070,7 @@ function thean_ow_box_picking(WC_Order $order): void
     $items = $order->get_items();
     $qty = 0;
     foreach ($items as $item) $qty += (float) $item->get_quantity();
-    thean_ow_box_open('picking', '🧺 Lấy hàng (soạn hàng)', thean_ow_badge(count($items) . ' SP · ' . wc_stock_amount($qty) . ' món', 'neutral'));
+    thean_ow_box_open('picking', '🧺 Cần xuất kho, đóng gói', thean_ow_badge(count($items) . ' SP · ' . wc_stock_amount($qty) . ' món', 'neutral'));
 
     echo '<div class="tow-btns tow-print">';
     foreach (thean_ow_print_links($order) as $label => $url) {
@@ -1417,7 +1443,7 @@ function thean_ow_box_tools(WC_Order $order, $order_no): void
     echo '<div class="tow-chips">';
     foreach ($links as $label => $url) echo '<a class="tow-chip tow-chip--solid" href="' . esc_url($url) . '" target="_blank" rel="noopener">' . esc_html($label) . '</a>';
     echo '<button type="button" class="tow-chip" data-copy="' . esc_attr((string) $order_no) . '">📋 Mã đơn</button>';
-    echo '<button type="button" class="tow-chip" data-goto="picking">🖨️ In phiếu GHTK/Nhanh → Lấy hàng</button>';
+    echo '<button type="button" class="tow-chip" data-goto="picking">🖨️ In phiếu GHTK/Nhanh → Soạn hàng, đóng gói</button>';
     echo '</div>';
     thean_ow_box_close();
 }

@@ -17,6 +17,7 @@
     var preview = document.getElementById('thean-ous-preview');
     var board = document.getElementById('thean-ous-board');
     var invoice = document.getElementById('thean-ous-invoice');
+    var guide = document.getElementById('thean-ous-workflow-guide'), guideOpener = null;
     var searchCtl = null, previewCtl = null, boardCtl = null, timer = 0;
     var boardState = { tab: '', page: 0, shown: 0, cursor: 0, loading: false };
     var boardCache = new Map(); // "tab|page" → {at, data}; chỉ giữ các tab đã xem (BOARD_TTL)
@@ -170,9 +171,17 @@
             // Chừa chỗ cho thanh tìm (đang nổi trên modal) để vẫn thấy mình gõ gì.
             results.style.paddingTop = Math.round(bar.getBoundingClientRect().bottom + 8) + 'px';
         }
+        if (modal === guide && open) guideOpener = document.activeElement;
         modal.hidden = !open;
+        if (modal === guide) {
+            if (open) {
+                guide.querySelector('.thean-ous-modal__dialog').scrollTop = 0;
+                guide.querySelector('button[data-thean-ous-close]').focus({ preventScroll: true });
+            }
+            else if (guideOpener && guideOpener.isConnected) guideOpener.focus({ preventScroll: true });
+        }
         if (modal === invoice && !open) invoice.querySelector('iframe').src = 'about:blank';
-        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden || !invoice.hidden || (typeof acts !== 'undefined' && !acts.hidden));
+        document.body.classList.toggle('thean-ous-open', !results.hidden || !preview.hidden || !invoice.hidden || (typeof acts !== 'undefined' && !acts.hidden) || (guide && !guide.hidden));
     }
     function body(modal) { return modal.querySelector('.thean-ous-modal__body'); }
     function notice(el, text) {
@@ -282,6 +291,37 @@
         var step = modal === board ? BOARD_MORE : cfg.perPage;
         if (data.has_more) more.querySelector('button').textContent = 'Xem thêm ' + Math.max(1, Math.min(step, data.total - data.shown)) + ' đơn (còn ' + Math.max(0, data.total - data.shown) + ')';
     }
+    // Groups are views of the loaded rows, never extra orders or pagination cursors.
+    function boardRowsHtml(tbody) {
+        return Array.from(tbody.querySelectorAll('tr[data-order-id]')).map(function (row) { return row.outerHTML; }).join('');
+    }
+    function groupBoardRows(modal, data) {
+        if (modal !== board) return;
+        var tab = (data.tabs || []).find(function (item) { return item.key === data.tab; });
+        var groups = tab && tab.groups;
+        var tbody = body(modal).querySelector('tbody');
+        if (!tbody || !groups || !groups.length) return;
+        var rows = Array.from(tbody.querySelectorAll('tr[data-order-id]'));
+        var anchor = tbody.firstElementChild;
+        function place(node) {
+            if (node === anchor) anchor = anchor.nextElementSibling;
+            else tbody.insertBefore(node, anchor);
+        }
+        groups.forEach(function (group) {
+            var members = rows.filter(function (row) { return row.dataset.opsStep === group.key; });
+            var header = Array.from(tbody.querySelectorAll('[data-ops-group-header]')).find(function (row) { return row.dataset.opsGroupHeader === group.key; });
+            if (!header) {
+                header = document.createElement('tr');
+                header.dataset.opsGroupHeader = group.key;
+                header.className = 'thean-ous-group';
+                var cell = document.createElement('th'); cell.colSpan = 6; header.appendChild(cell);
+            }
+            header.firstElementChild.textContent = group.label + ' — đang hiện ' + members.length + ' / ' + group.count + ' đơn'
+                + (!members.length && group.count ? ' · Bấm Xem thêm để tải các đơn còn lại.' : '');
+            place(header);
+            members.forEach(place);
+        });
+    }
     function fillTable(modal, data, page) {
         var tbody = page === 1 ? shell(modal).querySelector('tbody') : body(modal).querySelector('tbody');
         var incoming = document.createElement('tbody');
@@ -289,6 +329,7 @@
         Array.from(incoming.children).forEach(function (row) {
             if (!tbody.querySelector('tr[data-order-id="' + row.dataset.orderId + '"]')) tbody.appendChild(row);
         });
+        groupBoardRows(modal, data);
         data.shown = tbody.querySelectorAll('tr[data-order-id]').length;
         if (typeof data.exhausted === 'boolean') data.has_more = !data.exhausted && data.shown < data.total;
         syncBulk(modal);
@@ -572,7 +613,7 @@
     function rememberBoard(data) {
         var tbody = body(board).querySelector('tbody');
         boardCache.set(data.tab + '|1', { at: Date.now(), data: Object.assign({}, data, {
-            rows: tbody ? tbody.innerHTML : '', shown: boardState.shown, page: boardState.page
+            rows: tbody ? boardRowsHtml(tbody) : '', shown: boardState.shown, page: boardState.page
         }) });
     }
     function applyRowUpdates(data) {
@@ -589,7 +630,7 @@
             var pane = entry.data;
             pane.rows = overlayRows(pane.rows, pane.tab, '');
             var parsed = document.createElement('tbody'); parsed.innerHTML = pane.rows;
-            pane.shown = parsed.children.length;
+            pane.shown = parsed.querySelectorAll('tr[data-order-id]').length;
             pane.total = totals[pane.tab] || 0;
             pane.tabs = data.tabs;
             pane.at = data.at;
@@ -606,7 +647,8 @@
             activeBoardData.tabs = data.tabs;
             activeBoardData.total = totals[boardState.tab] || 0;
             activeBoardData.at = data.at;
-            boardState.shown = tbody ? tbody.children.length : 0;
+            groupBoardRows(board, activeBoardData);
+            boardState.shown = tbody ? tbody.querySelectorAll('tr[data-order-id]').length : 0;
             activeBoardData.shown = boardState.shown;
             if (activeBoardData.exhausted && boardState.shown < activeBoardData.total) {
                 activeBoardData.exhausted = false; activeBoardData.next_cursor = 0; boardState.cursor = 0;
@@ -689,6 +731,8 @@
     var BOARD_TTL = 10000; // 10 giây: đơn mới vào tab (đặt hàng, đổi trạng thái ở nơi khác) hiện ra khi đổi tab mà không cần Làm mới
     var BOARD_MORE = 20; // = THEAN_OUS_BOARD_MORE
     function loadBoard(tab, page, refresh, limit) {
+        if (tab === 'payment') tab = 'confirm'; // old bookmarks/saved tab
+        if (tab === 'cod_fast') tab = 'cod';
         var key = tab + '|' + page, hit = boardCache.get(key);
         board.hidden = false;
         if (boardCtl) boardCtl.abort();
@@ -866,6 +910,9 @@
     });
     // Đơn vừa đổi (popup luồng / thao tác nhanh) → đóng popup thao tác, cập nhật các dòng đơn liên quan.
     document.addEventListener('thean:order-updated', function () { if (!acts.hidden) setOpen(acts, false); });
+    document.addEventListener('thean:workspace-changed', function (e) {
+        if (e.detail.workspace === 'products') [results, preview, invoice, acts].forEach(function (modal) { if (!modal.hidden) setOpen(modal, false); });
+    });
 
     // Bảng đơn (kết quả tìm + board): chỉ nút "Xem nhanh" mở modal xem nhanh (bấm vào dòng không mở — dễ bấm nhầm khi chọn chữ / thao tác).
     function tableClick(e) {
@@ -953,10 +1000,30 @@
     });
 
     document.addEventListener('click', function (e) {
+        var guideButton = e.target.closest('[data-thean-ous-workflow-guide]');
+        if (guideButton) {
+            var scope = guideButton.dataset.theanOusWorkflowGuide || 'orders';
+            var titles = { orders: 'Quy trình xử lý đơn', shopee: 'Hướng dẫn xử lý đơn Shopee', products: 'Hướng dẫn công cụ sản phẩm' };
+            if (!titles[scope]) scope = 'orders';
+            guide.querySelector('#thean-ous-workflow-title').textContent = titles[scope];
+            guide.querySelectorAll('[data-workflow-guide-scope]').forEach(function (section) { section.hidden = section.dataset.workflowGuideScope !== scope; });
+            setOpen(guide, true); return;
+        }
         var close = e.target.closest('[data-thean-ous-close]');
         if (close) setOpen(close.closest('.thean-ous-modal'), false);
     });
     document.addEventListener('keydown', function (e) {
+        if (guide && !guide.hidden) {
+            if (e.key === 'Escape') {
+                e.preventDefault(); e.stopImmediatePropagation(); setOpen(guide, false);
+            } else if (e.key === 'Tab') {
+                var nodes = guide.querySelectorAll('button, a[href], [tabindex="0"]');
+                var first = nodes[0], last = nodes[nodes.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            }
+            return;
+        }
         if (e.key === 'Escape') {
             if (!suggest.hidden) return; // ô gợi ý tự đóng (handler của input)
             if (!menuList.hidden) { setMenu(false); return; }
@@ -971,6 +1038,7 @@
         var tag = (e.target.tagName || '').toLowerCase();
         if (e.key === '/' && !e.ctrlKey && !e.metaKey && !/^(input|textarea|select)$/.test(tag) && !e.target.isContentEditable) {
             e.preventDefault();
+            if (window.TheanOrderWorkspace) window.TheanOrderWorkspace.show('orders');
             input.focus();
             input.select();
         }

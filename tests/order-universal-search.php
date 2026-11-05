@@ -261,7 +261,7 @@ check(thean_ops_shipping_statuses() === ['shipping', 'local-shipping', 'partial-
 check(preg_match("/pf\.meta_value = '1'\) AND o\.(date_created_gmt|post_date_gmt) >= '\d{4}-/", thean_ous_board_tab_sql('proof'))
     && strpos(thean_ous_board_sql(), "s.meta_value <> 'proof' OR o.") !== false, 'proof tab: only orders within THEAN_OPS_PROOF_DAYS (stale flags not counted)');
 check(isset(thean_ops_step_tabs()['proof']) && thean_ops_proof_statuses() === ['delivered', 'partial-shipped', 'completed'], 'tab Thiếu chứng từ XK');
-check(array_key_last(thean_ops_step_tabs()) === 'preorder' && thean_ops_step_tabs()['confirm'] === 'Xác nhận khách', 'tabs: Đặt trước + Xác nhận khách');
+check(array_key_last(thean_ops_step_tabs()) === 'preorder' && thean_ops_step_tabs()['confirm'] === 'Chờ khách xác nhận / thanh toán', 'tabs: Đặt trước + Xác nhận khách');
 check(thean_ops_step_from_flow(['next_goto' => 'payment'], 'da-ghi-nhan') === '', 'Đã ghi nhận not in ops flow');
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
@@ -488,6 +488,30 @@ check(!$wpdb->queries && !$GLOBALS['__order_queries'], 'unauthorized row request
 $GLOBALS['__caps'] = ['manage_woocommerce']; $GLOBALS['__bad_nonce'] = true;
 try { thean_ous_ajax_rows(); } catch (RuntimeException $r) { check($r->getMessage() === 'Invalid nonce', 'row endpoint rejects bad nonce'); }
 $GLOBALS['__bad_nonce'] = false; $GLOBALS['__caps'] = []; $_POST = [];
+
+// Grouped tabs preserve raw steps/actions, aggregate SQL and mutation memberships.
+check(!isset(thean_ops_step_tabs()['payment']) && thean_ops_step_tab('payment') === 'confirm', 'payment grouped under customer tab');
+check(thean_ous_board_in_tab(['step' => 'payment'], 'confirm') && thean_ous_board_in_tab(['step' => 'confirm'], 'confirm'), 'both customer groups belong to merged tab');
+check(thean_ous_board_in_tab(['step' => 'cod_fast'], 'cod') && thean_ous_board_in_tab(['step' => 'cod'], 'cod'), 'both COD groups belong to COD tab');
+check(thean_ops_step_from_flow(['next_goto' => 'payment', 'is_cod' => true, 'is_fast' => true]) === 'cod_fast', 'fast COD has distinct stored step');
+foreach ([true, false] as $hpos) {
+    \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
+    check(thean_ous_board_tab_sql('confirm') === "s.meta_value IN ('confirm','payment')", 'merged customer tab SQL');
+    check(thean_ous_board_tab_sql('cod') === "s.meta_value IN ('cod_fast','cod')", 'COD subgroup SQL');
+    thean_ops_board_invalidate();
+    $wpdb->board_counts = [['tab' => 'confirm', 'n' => 2], ['tab' => 'payment', 'n' => 3], ['tab' => 'cod_fast', 'n' => 4], ['tab' => 'cod', 'n' => 5]];
+    $wpdb->queries = [];
+    $counts = thean_ous_board_counts('30');
+    $tabs = array_column(thean_ous_board_tabs('30'), null, 'key');
+    check($counts['confirm'] === 5 && $counts['cod'] === 9 && !isset($counts['payment']), 'group counts sum into parent tabs');
+    check($tabs['confirm']['groups'][1]['count'] === 3 && $tabs['cod']['groups'][0]['count'] === 4 && count($wpdb->queries) === 2, 'group counts reuse same aggregate queries');
+    $wpdb->board_memberships = [['order_id' => 910, 'step' => 'payment', 'proof' => 0], ['order_id' => 911, 'step' => 'cod_fast', 'proof' => 1]];
+    check(thean_ous_board_memberships([910,911], '30') === [910 => ['confirm'], 911 => ['cod','proof']], 'row patches map raw steps to canonical tabs with proof overlap');
+    $wpdb->board_counts = []; $wpdb->board_memberships = [];
+}
+ob_start(); thean_ous_render_workflow_guide(); $guide = ob_get_clean();
+check(strpos($guide, 'aria-labelledby="thean-ous-workflow-title"') !== false && strpos($guide, 'Đơn chờ thanh toán trước') !== false
+    && strpos($guide, 'Chờ đối soát đơn vị VC') !== false && strpos($guide, 'AI chỉ hỗ trợ') !== false, 'guide explains both grouped tabs and human export confirmation');
 
 // Nhập VAT: bóc JSON trả lời của AI.
 $ai = thean_vat_request_parse_ai("Đây là kết quả:\n```json\n{\"tax_code\":\"MST: 0312 345 678\",\"company\":\" Công ty TNHH An \",\"address\":\"12 Lê Lợi, Q1\",\"email\":\"ketoan@an.vn\",\"note\":\"\"}\n```");

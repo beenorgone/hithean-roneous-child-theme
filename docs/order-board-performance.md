@@ -159,3 +159,68 @@ HTML and served JS/CSS with the deployed commit/active theme. The JS should
 contain `currentRange` and the CSS should contain `.thean-ous-bar__range`.
 Check an asset URL with a fresh version parameter before attributing this to
 browser cache. A matching Git remote alone does not prove server deployment.
+
+## Workflow groups and main workspaces
+
+Workflow version 8 keeps `confirm` / `payment` as separate stored steps and quick
+operations, but displays them in **Chờ khách xác nhận / thanh toán**, under
+**Đơn chờ xác nhận** and **Đơn chờ thanh toán trước**. Old payment-tab URLs resolve
+to the merged tab. The COD tab groups stored `cod_fast` and `cod` steps into
+**Chờ thu COD giao nhanh** and **Chờ đối soát đơn vị VC**. Group totals reuse the
+same aggregate query/cache as tab totals; headings show loaded / total counts.
+Pagination remains one descending-ID cursor per tab, so a group's first rows may
+require Load more. Headings are never counted, selected, cached as orders or
+included in mutation patches. Changing a raw step within a merged tab moves only
+that order to its new group.
+
+`local-shipping` alone is a delivery method, not proof of dispatch. Without
+export images or confirmation it stays in packing, then image review. After
+human export confirmation an unpaid fast COD order enters `cod_fast`, without
+changing its delivery or payment status. Fast delivery is recognized by
+`local-shipping`, a Giao nhanh handling tag, or `ahamove` / `grab` / `self` carrier;
+Hithean uses its `order_*` field adapter. A fast-status order is treated as
+actually dispatched only after export confirmation or an explicit handover /
+delivery handling tag. Carrier shipping/partial-shipping/delivered/partial-shipped
+and completed statuses establish dispatch directly.
+
+The **Thiếu / chưa xác nhận ảnh xuất kho** tab remains a parallel exception queue
+for dispatched orders missing images or human confirmation, including completed
+and partly shipped/delivered orders. Returns keep priority; collectible COD can
+coexist with the proof exception. The existing skip permission, 60-day proof
+policy, selected date range, internal-order exclusions and age lock remain.
+Version 8 uses the existing background backfill; do not scan all orders in the
+initial request. Verify WP-Cron after deployment.
+
+The top navigation and fixed bottom menu switch between **Đơn hàng** and
+**Sản phẩm** without unmounting the order board or tool frames. Existing Shopee
+embedding, when installed, stays inside the Orders panel. Hithean currently has
+no corresponding Shopee module; this change does not port the module or its
+inventory operations.
+
+Products has three lazy subtabs reusing `[product_info_search]`,
+`[product_compare]`, and `[protein_calculator]`. Each runs in an isolated,
+same-origin document at `/?thean_order_tool=info|compare|protein&_wpnonce=...`.
+The route runs in frontend context for WooCommerce dependencies, requires order
+read/manage capability plus a nonce, sends no-cache/SAMEORIGIN/noindex headers,
+and accepts only registry keys. It never accepts caller-supplied file paths or
+shortcode text. No product tool document is fetched before it is selected;
+switching tabs preserves its DOM/entered data. Reload explicitly resets that tool.
+Theanmarket providers live under `woocommerce/products/`; Hithean providers live
+under `shortcodes/`. Product info explicitly registers its existing AJAX script.
+
+Workflow/Help buttons open one focus-managed dialog with separate Orders,
+Shopee and Products content. Escape, backdrop and close buttons close it and
+restore focus; tab focus stays inside. Guides use the same label source as the
+operational tabs. A browser-local preview verifies layout/navigation only;
+production shortcode AJAX, permissions and existing stock/payment operations
+still require authenticated runtime acceptance after deployment.
+
+Additional checks:
+
+```sh
+php tests/order-workflow-routing.php
+php tests/order-product-tools.php
+node tests/order-workspace-tabs.cjs
+python3 tests/order-return-backfill.py
+node --check custom-functions/woocommerce/orders/assets/order-workspace-tabs.js
+```

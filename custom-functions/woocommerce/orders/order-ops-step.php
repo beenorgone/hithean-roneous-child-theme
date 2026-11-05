@@ -7,8 +7,8 @@ if (!defined('ABSPATH')) exit;
  *
  * - `_thean_ops_step`    = tab board (confirm, payment, picking, export, delivery, shipping, cod, return) hoặc 'none'.
  * - `_thean_ops_step_v`  = THEAN_OPS_STEP_VERSION lúc tính (đánh dấu đơn đã được tính theo logic hiện tại).
- * - `_thean_ops_proof`   = '1' khi thiếu chứng từ xuất kho: tab "Thiếu chứng từ XK" lọc theo cờ này (không theo bước), nên đơn
- *   đang giao thiếu chứng từ hiện ở CẢ "Đang giao" (bước) lẫn "Thiếu chứng từ XK" (cờ).
+ * - `_thean_ops_proof`   = '1' khi thiếu chứng từ xuất kho: tab "Thiếu / chưa xác nhận ảnh xuất kho" lọc theo cờ này (không theo bước), nên đơn
+ *   đang giao thiếu chứng từ hiện ở CẢ "Đang giao" (bước) lẫn "Thiếu / chưa xác nhận ảnh xuất kho" (cờ).
  * Bước tính bằng thean_ow_flow() (order-workspace.php) — cùng logic bảng điều phối ở trang sửa đơn.
  *
  * ĐỔI LUỒNG VẬN HÀNH (thean_ow_flow, thean_ops_step_from_flow, trạng thái loại trừ…) → TĂNG THEAN_OPS_STEP_VERSION:
@@ -28,13 +28,20 @@ if (!defined('ABSPATH')) exit;
  * File nạp mọi request (đơn tạo ở checkout cũng cần tính). Dùng chung theanmarket + hithean.
  */
 
+// Frontend context preserves WooCommerce/shortcode dependencies; document remains staff-only.
+add_action('template_redirect', function () {
+    if (!isset($_GET['thean_order_tool'])) return;
+    require_once __DIR__ . '/order-product-tools.php';
+    thean_order_product_tool_response();
+}, 1);
+
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '7'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu chứng từ XK; 4: cờ chứng từ cho đơn đang giao;
+const THEAN_OPS_STEP_VERSION = '8'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu / chưa xác nhận ảnh xuất kho; 4: cờ chứng từ cho đơn đang giao;
                                     // 5: bắt save_meta_data trên HPOS; 6: lưu bước thật cả đơn nội bộ / đơn cũ + đọc đơn bỏ qua cache;
-                                    // 7: tính lại cả đơn đóng còn hoàn hàng, kể cả bước đã lưu sai / chưa tính)
-const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu chứng từ XK" (đơn đang giao: kèm tab Đang giao)
-const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu chứng từ XK: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
+                                    // 7: tính lại cả đơn đóng còn hoàn hàng; 8: nhóm khách/COD, giao nhanh chưa xuất không tính đã giao đi)
+const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu / chưa xác nhận ảnh xuất kho" (đơn đang giao: kèm tab Đang giao)
+const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu / chưa xác nhận ảnh xuất kho: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
 const THEAN_OPS_SWEEP     = 50;
 
@@ -42,17 +49,36 @@ const THEAN_OPS_SWEEP     = 50;
 function thean_ops_step_tabs(): array
 {
     return [
-        'confirm'  => 'Xác nhận khách', // COD chờ khách xác nhận + đơn đặt trước vừa tiếp tục cần xác nhận giao
-        'payment'  => 'Chờ thanh toán',
-        'picking'  => 'Lấy hàng',
-        'export'   => 'Xuất kho',
-        'delivery' => 'Chờ giao',
+        'confirm'  => 'Chờ khách xác nhận / thanh toán',
+        'picking'  => 'Cần xuất kho, đóng gói',
+        'export'   => 'Chưa kiểm tra ảnh xuất kho',
+        'delivery' => 'Đã đóng gói, chờ giao VC',
         'shipping' => 'Đang giao',
-        'cod'      => 'Thu COD',
-        'proof'    => 'Thiếu chứng từ XK', // đã giao / hoàn thành mà thiếu ảnh hoặc xác nhận xuất kho
+        'cod'      => 'Chờ thu COD',
+        'proof'    => 'Thiếu / chưa xác nhận ảnh xuất kho', // chỉ đơn đã giao đi; có thể chồng lên bước chính
         'return'   => 'Hoàn hàng',
         'preorder' => 'Đặt trước',      // trạng thái pre-order, chờ đến hẹn
     ];
+}
+
+/** Bước lưu sẵn vẫn riêng biệt để giữ đúng thao tác; chỉ gộp ở lớp hiển thị board. */
+function thean_ops_step_tab(string $step): string
+{
+    return ['payment' => 'confirm', 'cod_fast' => 'cod'][$step] ?? $step;
+}
+
+/** Hai nhóm trong cùng một tab; khóa là bước gốc, dùng chung cho SQL, badge và UI. */
+function thean_ops_step_groups(string $tab): array
+{
+    return [
+        'confirm' => ['confirm' => 'Đơn chờ xác nhận', 'payment' => 'Đơn chờ thanh toán trước'],
+        'cod' => ['cod_fast' => 'Chờ thu COD giao nhanh', 'cod' => 'Chờ đối soát đơn vị VC'],
+    ][$tab] ?? [];
+}
+
+function thean_ops_step_labels(): array
+{
+    return array_merge(thean_ops_step_tabs(), thean_ops_step_groups('confirm'), thean_ops_step_groups('cod'));
 }
 
 /**
@@ -66,6 +92,7 @@ function thean_ops_board_url(string $tab = ''): string
         && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
     $url  = $hpos ? admin_url('admin.php?page=wc-orders') : admin_url('edit.php?post_type=shop_order');
     $tab  = sanitize_key($tab);
+    $tab  = thean_ops_step_tab($tab); // giữ link cũ ?thean_board=payment
     return isset(thean_ops_step_tabs()[$tab]) ? add_query_arg('thean_board', $tab, $url) : $url;
 }
 
@@ -175,13 +202,13 @@ function thean_can_change_any_status(): bool
     return $ids ? in_array(get_current_user_id(), $ids, true) : current_user_can('manage_options');
 }
 
-/** Trạng thái đã giao / xong — thiếu chứng từ xuất kho thì chỉ ở tab "Thiếu chứng từ XK". */
+/** Trạng thái đã giao / xong — thiếu chứng từ xuất kho thì chỉ ở tab "Thiếu / chưa xác nhận ảnh xuất kho". */
 function thean_ops_proof_statuses(): array
 {
     return ['delivered', 'partial-shipped', 'completed'];
 }
 
-/** Trạng thái đang giao — thiếu chứng từ thì ở cả tab "Đang giao" (theo dõi) lẫn "Thiếu chứng từ XK", không về "Lấy hàng". */
+/** Trạng thái đang giao — thiếu chứng từ thì ở cả tab "Đang giao" (theo dõi) lẫn "Thiếu / chưa xác nhận ảnh xuất kho", không về "Lấy hàng". */
 function thean_ops_shipping_statuses(): array
 {
     return ['shipping', 'local-shipping', 'partial-shipping'];
@@ -206,6 +233,13 @@ function thean_ops_missing_proof(WC_Order $order): array
     if (function_exists('thean_legacy_meta_reconcile')) {
         thean_legacy_meta_reconcile($order);
         thean_export_proof_recover($order);
+    }
+    // "Giao nhanh" có thể được gắn tự động trước khi đóng gói, không phải bằng chứng đã bàn giao.
+    if (!function_exists('thean_ow_is_dispatched')) {
+        require_once __DIR__ . '/order-workspace.php';
+    }
+    if (!thean_ow_is_dispatched($order)) {
+        return [];
     }
     $missing = [];
     if (trim((string) $order->get_meta('warehouse_export_images')) === '' && trim((string) get_post_meta($order->get_id(), 'warehouse_export_images', true)) === '') {
@@ -234,12 +268,12 @@ function thean_ops_step_from_flow(array $flow, string $status = ''): string
         return !empty($flow['preorder_confirm']) ? 'confirm' : 'preorder';
     }
     if ($next === 'payment' && !empty($flow['is_cod'])) {
-        return 'cod'; // COD đã giao, chờ đối soát thu tiền
+        return !empty($flow['is_fast']) ? 'cod_fast' : 'cod';
     }
     if ($next === 'delivery' && !empty($flow['is_shipping'])) {
         return 'shipping';
     }
-    return array_key_exists($next, thean_ops_step_tabs()) ? $next : '';
+    return array_key_exists($next, thean_ops_step_labels()) ? $next : '';
 }
 
 /** Kiểm tra phạm vi riêng để tái dùng flow đã tính mà vẫn giữ bộ lọc hiển thị. */
@@ -267,16 +301,25 @@ function thean_ops_step_compute(WC_Order $order, bool $gated = true): array
         require_once __DIR__ . '/order-workspace.php';
     }
     $missing = thean_ops_missing_proof($order);
-    if ($missing) {
-        $status = $order->get_status();
-        $hint   = wc_get_order_status_name($status) . ' nhưng thiếu ' . implode(' + ', $missing); // VD "Đang giao nhưng thiếu ảnh xuất kho"
-        // Đang giao: bước chính là theo dõi giao (tab Đang giao), cờ chứng từ đưa thêm vào tab Thiếu chứng từ XK.
-        return ['step' => in_array($status, thean_ops_shipping_statuses(), true) ? 'shipping' : 'proof', 'hint' => $hint, 'proof' => true];
-    }
     $flow = thean_ow_flow($order);
     $step = thean_ops_step_from_flow($flow, $order->get_status());
+    // Đã giao đi: không kéo về soạn hàng/duyệt ảnh. Ảnh thiếu là công việc ngoại lệ song song.
+    // Hoàn hàng còn dở và bước xác nhận giao đặt trước vẫn được ưu tiên.
+    if (thean_ow_is_dispatched($order) && !in_array($flow['next_goto'], ['return', 'preorder'], true)) {
+        if ($order->get_status() !== 'completed' && $flow['is_cod'] && !$flow['payment']['done']
+            && ($flow['is_fast'] ? (bool) $flow['confirmed_by'] : in_array($order->get_status(), ['delivered', 'partial-shipped'], true))) {
+            $step = $flow['is_fast'] ? 'cod_fast' : 'cod';
+        } elseif (in_array($order->get_status(), thean_ops_shipping_statuses(), true)) {
+            $step = 'shipping';
+        } elseif ($missing) {
+            $step = 'proof';
+        }
+    }
     $hint = $step === '' ? '' : (string) ($flow['next_hint'] ?: ($step === 'return' ? 'Hoàn hàng: ' . $flow['return_status'] : ''));
-    return ['step' => $step, 'hint' => $hint, 'proof' => false];
+    if ($missing) {
+        $hint = ($hint !== '' ? $hint . ' · ' : '') . wc_get_order_status_name($order->get_status()) . ' nhưng thiếu ' . implode(' + ', $missing);
+    }
+    return ['step' => $step, 'hint' => $hint, 'proof' => (bool) $missing];
 }
 
 /** Tính và lưu bước của đơn. Trả kết quả thean_ops_step_compute(). */
@@ -457,7 +500,7 @@ function thean_ops_step_watched_meta(): array
 {
     return [
         '_order_payment_confirmation_audit', 'paid_date', 'order_paid_date', 'bank_account_received', 'order_bank_account_received',
-        'handling_status', 'order_handling_status', 'warehouse_export_images', 'export_confirmed_by', 'return_status',
+        'handling_status', 'order_handling_status', 'shipper', 'order_shipper', 'warehouse_export_images', 'export_confirmed_by', 'return_status',
         '_payment_method', '_spx_date', '_eim_internal', '_billing_email', '_thean_preorder_confirm', '_thean_export_proof_skip',
     ];
 }

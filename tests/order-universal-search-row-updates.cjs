@@ -160,5 +160,32 @@ const get = (f, id) => f.ctx.body(f.ctx.board).querySelector(`tr[data-order-id="
     const newQueryPatch = patch(100,['picking'],tabs(1)); newQueryPatch.data.q = 'new';
     changing.requests[1].resolve(newQueryPatch); await changing.ctx.rowUpdates; await settle();
     check(changing.requests.length === 2, 'stable query does not create repeated synchronization requests');
+    // Grouped customer tab: changes within the same tab must move between groups,
+    // preserve unrelated nodes, and never count headings as orders.
+    const g = fixture();
+    const grouped = (confirm, payment) => [{ key: 'confirm', label: 'Customers', count: confirm + payment, groups: [
+        { key: 'confirm', label: 'Đơn chờ xác nhận', count: confirm }, { key: 'payment', label: 'Đơn chờ thanh toán trước', count: payment }
+    ] }];
+    const gr = (id, step) => row(id).replace('tabindex="0"', `data-ops-step="${step}" tabindex="0"`);
+    g.ctx.loadBoard('confirm', 1, false);
+    const gp = page('confirm', [51,50], grouped(1,2), 50);
+    gp.data.rows = gr(51,'payment') + gr(50,'confirm');
+    g.requests[0].resolve(gp); await settle();
+    const groupBody = g.ctx.body(g.ctx.board).querySelector('tbody');
+    check(groupBody.querySelectorAll('[data-ops-group-header]').length === 2 && g.ctx.boardState.shown === 2, 'two group headings do not inflate loaded order count');
+    check(groupBody.firstElementChild.dataset.opsGroupHeader === 'confirm' && get(g,50).previousElementSibling.dataset.opsGroupHeader === 'confirm', 'orders grouped by task rather than global ID order');
+    const stable51 = get(g,51);
+    task = g.ctx.refreshOrders([50]); await settle();
+    const changed = patch(50,['confirm'],grouped(0,3)); changed.data.orders[0].rows = gr(50,'payment');
+    g.requests[1].resolve(changed); await task;
+    check(get(g,50).dataset.opsStep === 'payment' && get(g,51) === stable51, 'same-tab subgroup change preserves unrelated order node');
+    check(groupBody.querySelector('[data-ops-group-header="confirm"]').textContent.includes('0 / 0') && groupBody.querySelector('[data-ops-group-header="payment"]').textContent.includes('2 / 3'), 'group counts update after mutation');
+    check(!g.ctx.boardCache.get('confirm|1').data.rows.includes('data-ops-group-header') && g.ctx.boardState.shown === 2, 'cache and pagination contain orders only');
+    g.ctx.loadBoard('confirm', 2, false);
+    const gm = page('confirm',[49],grouped(0,3),49,true); gm.data.rows = gr(49,'payment');
+    g.requests[2].resolve(gm); await settle();
+    check(g.ctx.boardState.shown === 3 && groupBody.querySelectorAll('[data-ops-group-header]').length === 2 && get(g,51) === stable51, 'load more merges group rows without duplicating headers or rebuilding unrelated rows');
+    g.ctx.loadBoard('payment', 1, false);
+    check(g.ctx.boardState.tab === 'confirm' && g.requests.length === 3, 'legacy payment tab reuses merged customer cache');
     console.log(`OK (${checks} DOM and request checks)`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

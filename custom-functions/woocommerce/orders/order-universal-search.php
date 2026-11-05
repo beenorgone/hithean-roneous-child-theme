@@ -1,5 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
+require_once __DIR__ . '/order-product-tools.php';
 
 /**
  * Tìm kiếm đơn nhanh (sticky) ở trang danh sách đơn WooCommerce — thay ô tìm mặc định.
@@ -747,13 +748,14 @@ function thean_ous_next_actions(WC_Order $order, string $step, bool $proof = fal
         'confirm' => ['order-customer-confirmed', 'order-preorder-confirm'],
         'payment' => ['order-payment'],
         'cod'     => ['order-payment'],
+        'cod_fast' => ['order-payment'],
         'picking' => ['order-export-images', 'in-van-don-ghtk', 'print_pxk'],
         'export'  => ['order-export-confirm'],
         'return'  => ['order-return-record', 'order-return-images'],
         'proof'   => ['order-export-images', 'order-export-confirm'],
     ];
     $buttons = [];
-    // Đơn đang giao thiếu chứng từ XK: nút theo dõi giao + nút bổ sung chứng từ (như tab Thiếu chứng từ XK).
+    // Đơn đang giao thiếu chứng từ XK: nút theo dõi giao + nút bổ sung chứng từ (như tab Thiếu / chưa xác nhận ảnh xuất kho).
     $suffixes = array_merge($map[$step] ?? [], $proof && $step !== 'proof' ? $map['proof'] : []);
     foreach ($suffixes as $suffix) {
         foreach (thean_ous_order_actions($order) as $key => $action) {
@@ -777,8 +779,8 @@ function thean_ous_next_actions(WC_Order $order, string $step, bool $proof = fal
         $buttons[] = thean_ous_button('kho', '🚚 Đăng GHTK ↗', $order->get_edit_order_url() . '#step-ghtk', '', true);
     }
     if (!$buttons || $step === 'delivery' || $step === 'shipping') {
-        $tab = ['cod' => 'payment', 'shipping' => 'delivery'][$step] ?? $step;
-        $labels = function_exists('thean_ops_step_tabs') ? thean_ops_step_tabs() : [];
+        $tab = ['cod' => 'payment', 'cod_fast' => 'payment', 'shipping' => 'delivery'][$step] ?? $step;
+        $labels = function_exists('thean_ops_step_labels') ? thean_ops_step_labels() : [];
         $buttons[] = thean_ous_button('view', 'Mở bước ' . ($labels[$step] ?? $step) . ' ↗', $order->get_edit_order_url() . '#step-' . $tab, '', true, '➡');
     }
     return '<div class="thean-ous-acts__g">' . implode('', $buttons) . '</div>';
@@ -886,7 +888,7 @@ function thean_ous_load_orders(array $ids): array
  */
 function thean_ous_step_badge(WC_Order $order, array $flow): string
 {
-    $tabs   = function_exists('thean_ops_step_tabs') ? thean_ops_step_tabs() : [];
+    $tabs   = function_exists('thean_ops_step_labels') ? thean_ops_step_labels() : [];
     $step   = (string) ($flow['step'] ?? '');
     $stored = defined('THEAN_OPS_STEP_META') ? (string) $order->get_meta(THEAN_OPS_STEP_META) : '';
     $class  = 'is-' . ($step !== '' ? $step : 'none');
@@ -894,7 +896,7 @@ function thean_ous_step_badge(WC_Order $order, array $flow): string
     if ($step !== '') {
         $label = $tabs[$step] ?? $step;
         if (!empty($flow['proof']) && $step !== 'proof') {
-            $label .= ' + ' . ($tabs['proof'] ?? 'Thiếu chứng từ XK');
+            $label .= ' + ' . ($tabs['proof'] ?? 'Thiếu / chưa xác nhận ảnh xuất kho');
         }
     } else {
         $created = $order->get_date_created();
@@ -953,7 +955,7 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?ar
         $phone   = $order->get_billing_phone() ?: $order->get_shipping_phone();
         $address = thean_ous_address_line($order);
         ?>
-        <tr data-order-id="<?php echo esc_attr($id); ?>" tabindex="0">
+        <tr data-order-id="<?php echo esc_attr($id); ?>" data-ops-step="<?php echo esc_attr($flow['step']); ?>" tabindex="0">
             <td class="thean-ous__c-check"><label><input type="checkbox" data-thean-ous-check value="<?php echo esc_attr($id); ?>" aria-label="Chọn đơn #<?php echo esc_attr($id); ?>"></label></td>
             <td class="thean-ous__c-order">
                 <div class="thean-ous__order-head">
@@ -1143,7 +1145,7 @@ function thean_ous_board_sql(string $range = 'auto'): string
 }
 
 /**
- * Điều kiện SQL chọn đơn của 1 tab: tab "Thiếu chứng từ XK" theo cờ THEAN_OPS_PROOF_META (gồm cả đơn đang giao — bước
+ * Điều kiện SQL chọn đơn của 1 tab: tab "Thiếu / chưa xác nhận ảnh xuất kho" theo cờ THEAN_OPS_PROOF_META (gồm cả đơn đang giao — bước
  * chính vẫn là Đang giao), các tab khác theo bước `_thean_ops_step` (alias s).
  */
 function thean_ous_board_tab_sql(string $tab, string $range = 'auto'): string
@@ -1155,11 +1157,15 @@ function thean_ous_board_tab_sql(string $tab, string $range = 'auto'): string
             . ' AND ' . thean_ous_proof_since_sql($t)
             . ' AND ' . thean_ous_range_sql($range === 'auto' ? '30' : $range);
     }
+    $groups = thean_ops_step_groups(thean_ops_step_tab($tab));
+    if ($groups) {
+        return 's.meta_value IN (' . implode(',', array_map(static fn($step) => $wpdb->prepare('%s', $step), array_keys($groups))) . ')';
+    }
     return $wpdb->prepare('s.meta_value = %s', $tab);
 }
 
 /**
- * Tab "Thiếu chứng từ XK" chỉ xét đơn tạo trong THEAN_OPS_PROOF_DAYS ngày (thean_ops_missing_proof). Cờ lưu sẵn không tự
+ * Tab "Thiếu / chưa xác nhận ảnh xuất kho" chỉ xét đơn tạo trong THEAN_OPS_PROOF_DAYS ngày (thean_ops_missing_proof). Cờ lưu sẵn không tự
  * hết hạn khi đơn quá 60 ngày → lọc thẳng bằng SQL để số đếm khớp danh sách.
  */
 function thean_ous_proof_since_sql(array $t): string
@@ -1170,7 +1176,7 @@ function thean_ous_proof_since_sql(array $t): string
 /** Đơn (kết quả thean_ops_step_compute) có thuộc tab không — cùng quy tắc thean_ous_board_tab_sql. */
 function thean_ous_board_in_tab(array $res, string $tab): bool
 {
-    return $tab === 'proof' ? !empty($res['proof']) : ($res['step'] ?? '') === $tab;
+    return $tab === 'proof' ? !empty($res['proof']) : thean_ops_step_tab((string) ($res['step'] ?? '')) === thean_ops_step_tab($tab);
 }
 
 /** Cache dữ liệu dùng chung, khóa gồm cấu hình lọc và revision; HTML luôn render theo user hiện tại.
@@ -1197,8 +1203,8 @@ function thean_ous_timing_header(array $timings): void
     }
 }
 
-/** Số đơn mỗi tab (GROUP BY theo bước + đếm riêng tab "Thiếu chứng từ XK" theo cờ). */
-function thean_ous_board_counts(string $range = 'auto'): array
+/** Số đơn mỗi tab (GROUP BY theo bước + đếm riêng tab "Thiếu / chưa xác nhận ảnh xuất kho" theo cờ). */
+function thean_ous_board_stats(string $range = 'auto'): array
 {
     global $wpdb;
     $key = thean_ous_board_cache_key('counts', $range);
@@ -1208,16 +1214,40 @@ function thean_ous_board_counts(string $range = 'auto'): array
     }
     $rows   = $wpdb->get_results('SELECT s.meta_value AS tab, COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') AS n ' . thean_ous_board_sql($range) . ' GROUP BY s.meta_value', ARRAY_A);
     $counts = array_fill_keys(array_keys(thean_ops_step_tabs()), 0);
+    $steps = [];
     foreach ((array) $rows as $row) {
-        if (isset($counts[$row['tab']])) {
-            $counts[$row['tab']] = (int) $row['n'];
+        $steps[$row['tab']] = (int) $row['n'];
+        $tab = thean_ops_step_tab($row['tab']);
+        if (isset($counts[$tab])) {
+            $counts[$tab] += (int) $row['n'];
         }
     }
     if (isset($counts['proof'])) {
         $counts['proof'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('proof', $range));
     }
-    set_transient($key, $counts, THEAN_OUS_BOARD_CACHE_TTL);
-    return $counts;
+    $stats = ['counts' => $counts, 'steps' => $steps];
+    set_transient($key, $stats, THEAN_OUS_BOARD_CACHE_TTL);
+    return $stats;
+}
+
+function thean_ous_board_counts(string $range = 'auto'): array
+{
+    return thean_ous_board_stats($range)['counts'];
+}
+
+/** Labels + group totals share the same aggregate query/cache as tab counts. */
+function thean_ous_board_tabs(string $range = 'auto'): array
+{
+    $stats = thean_ous_board_stats($range);
+    $tabs = [];
+    foreach (thean_ops_step_tabs() as $key => $label) {
+        $groups = [];
+        foreach (thean_ops_step_groups($key) as $step => $group_label) {
+            $groups[] = ['key' => $step, 'label' => $group_label, 'count' => $stats['steps'][$step] ?? 0];
+        }
+        $tabs[] = ['key' => $key, 'label' => $label, 'count' => $stats['counts'][$key] ?? 0, 'groups' => $groups];
+    }
+    return $tabs;
 }
 
 /** ID đơn trong tab từ vị trí $offset, tối đa $limit đơn, mới nhất trước. */
@@ -1261,7 +1291,7 @@ function thean_ous_ajax_board(): void
     $before_id = absint($_POST['before_id'] ?? 0);
     $offset = absint($_POST['offset'] ?? 0); // "Xem thêm": số đơn đang hiện của tab
     $limit  = min(50, max(1, absint($_POST['limit'] ?? ($offset === 0 ? THEAN_OUS_BOARD_FIRST : THEAN_OUS_BOARD_MORE))));
-    $tab    = sanitize_key(wp_unslash($_POST['tab'] ?? ''));
+    $tab    = thean_ops_step_tab(sanitize_key(wp_unslash($_POST['tab'] ?? '')));
     $counts = thean_ous_board_counts($range);
     if (!isset($labels[$tab])) {
         $tab = (string) (array_key_first(array_filter($counts)) ?? array_key_first($labels));
@@ -1343,10 +1373,7 @@ function thean_ous_ajax_board(): void
             'exhausted' => count($ids_by[$t]) < ($all ? THEAN_OUS_BOARD_FIRST : $limit),
         ];
     }
-    $tabs = [];
-    foreach ($labels as $k => $label) {
-        $tabs[] = ['key' => $k, 'label' => $label, 'count' => $counts[$k] ?? 0];
-    }
+    $tabs = thean_ous_board_tabs($range);
     thean_ous_timing_header([
         'board_query' => ($queried - $started) * 1000,
         'board_sync' => ($synced - $queried) * 1000,
@@ -1381,8 +1408,9 @@ function thean_ous_board_memberships(array $ids, string $range): array
         if (!isset($out[$id])) {
             continue;
         }
-        if (isset($labels[$row['step']]) && $row['step'] !== 'proof') {
-            $out[$id][] = $row['step'];
+        $tab = thean_ops_step_tab($row['step']);
+        if (isset($labels[$tab]) && $tab !== 'proof') {
+            $out[$id][] = $tab;
         }
         if (!empty($row['proof'])) {
             $out[$id][] = 'proof';
@@ -1426,11 +1454,7 @@ function thean_ous_ajax_rows(): void
             'search_rows' => $match ? thean_ous_render_rows([$id], thean_ous_highlight_tokens($filters), [], [$order], $flows) : '',
         ];
     }
-    $counts = thean_ous_board_counts($range);
-    $tabs = [];
-    foreach (thean_ops_step_tabs() as $key => $label) {
-        $tabs[] = ['key' => $key, 'label' => $label, 'count' => $counts[$key] ?? 0];
-    }
+    $tabs = thean_ous_board_tabs($range);
     thean_ous_timing_header(['row_update' => (microtime(true) - $started) * 1000]);
     wp_send_json_success(['orders' => $patches, 'tabs' => $tabs, 'range' => $range, 'q' => $query, 'at' => wp_date('H:i:s'), 'ver' => thean_ous_build_ver()]);
 }
@@ -1706,6 +1730,61 @@ function thean_ous_ui_config(): array
 
 // CSS/JS là file tĩnh (trình duyệt cache, version = filemtime). File này được nạp trong
 // admin_enqueue_scripts priority 10 nên đăng ký priority 20 để chạy ngay trong lượt đó.
+/** Hướng dẫn tại chỗ, chỉ đọc; nhãn lấy cùng nguồn với các tab board. */
+function thean_ous_render_workflow_guide(): void
+{
+    $labels = thean_ops_step_tabs();
+    $instructions = [
+        'confirm' => 'Đơn chờ xác nhận: gọi hoặc nhắn khách, ghi nhận đã đồng ý / chờ phản hồi / cần hủy. Đơn chờ thanh toán trước: kiểm tra tiền thực nhận, sau đó xác nhận thanh toán. Hai nhóm có thao tác riêng; khách đồng ý không có nghĩa đã thanh toán.',
+        'picking' => 'Soạn đúng sản phẩm và số lượng, in phiếu, chụp rồi tải ảnh xuất kho. Đơn giao nhanh chưa có ảnh và chưa bàn giao cũng ở đây. Tải ảnh xong chuyển sang bước kiểm tra ảnh.',
+        'export' => 'Kiểm tra ảnh, mã đơn, sản phẩm và số lượng rồi xác nhận xuất kho. AI chỉ hỗ trợ đọc ảnh; AI báo khớp và việc tải ảnh không thay cho người xác nhận.',
+        'delivery' => 'Đã có ảnh và xác nhận xuất kho: chọn đơn vị vận chuyển, nhập mã vận đơn và ghi nhận bàn giao. Khách tự lấy thì bàn giao khi khách đến.',
+        'shipping' => 'Theo dõi giao hàng; chỉ chuyển Đã giao khi có căn cứ khách đã nhận. Theo dõi đơn giao một phần và xử lý yêu cầu hoàn nếu có.',
+        'cod' => 'Chờ thu COD giao nhanh: đơn giao nhanh đã xác nhận xuất kho nhưng chưa xác nhận thu tiền. Chờ đối soát đơn vị VC: đơn COD đã giao / giao một phần, chờ xác nhận khoản tiền bên vận chuyển chuyển về. Chỉ xác nhận khi thực nhận tiền; xuất kho không đồng nghĩa đã giao thành công hoặc đã thu COD.',
+        'proof' => 'Danh sách ngoại lệ: đơn đã giao đi (đang giao, đã giao, giao một phần, hoàn thành…) còn thiếu ảnh hoặc thiếu người xác nhận xuất kho. Bổ sung ảnh / kiểm tra và xác nhận. Một đơn có thể đồng thời ở tab theo dõi giao, COD hoặc hoàn hàng. Đơn giao nhanh chỉ mang nhãn Giao nhanh chưa được coi là đã bàn giao.',
+        'return' => 'Theo dõi yêu cầu hoàn, tiếp nhận hàng thực tế, kiểm tra ảnh và số lượng rồi ghi nhận kết quả theo quyền được cấp.',
+        'preorder' => 'Giữ đơn đến lịch hẹn; khi tiếp tục, liên hệ khách xác nhận giao lại trước khi xử lý các bước tiếp theo.',
+    ];
+    ?>
+    <div class="thean-ous-modal thean-ous-modal--guide" id="thean-ous-workflow-guide" hidden>
+        <div class="thean-ous-modal__backdrop" data-thean-ous-close></div>
+        <div class="thean-ous-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="thean-ous-workflow-title" tabindex="-1">
+            <button type="button" class="thean-ous-modal__close" data-thean-ous-close aria-label="Đóng hướng dẫn">&times;</button>
+            <h2 class="thean-ous-modal__title" id="thean-ous-workflow-title">Quy trình xử lý đơn</h2>
+            <div data-workflow-guide-scope="orders">
+            <p>Mở tab có việc cần làm, xử lý bằng nút trên từng đơn. Khi lưu thành công, dòng đơn và số đếm tự cập nhật sang bước phù hợp.</p>
+            <ol class="thean-ous-guide">
+                <?php foreach ($instructions as $key => $text) : ?>
+                    <li><h3><?php echo esc_html($labels[$key]); ?></h3><p><?php echo esc_html($text); ?></p></li>
+                <?php endforeach; ?>
+            </ol>
+            <p class="thean-ous-guide__note">Bộ lọc Ngày tạo áp dụng cho mọi tab. Mỗi lần chỉ tải một phần danh sách; số “đang hiện / tổng” của từng nhóm cho biết còn đơn cần bấm Xem thêm. Tab ngoại lệ ảnh giữ giới hạn <?php echo (int) THEAN_OPS_PROOF_DAYS; ?> ngày và bộ lọc ngày đang chọn. Nếu vừa cập nhật quy trình, hệ thống sẽ phân bước lại ở nền; bấm Làm mới sau khi xử lý xong.</p>
+            </div>
+            <div data-workflow-guide-scope="shopee" hidden>
+                <p>Xử lý kiện Shopee theo thứ tự: tải ảnh → kiểm tra → xác nhận xuất kho → bàn giao → đối soát.</p>
+                <ol class="thean-ous-guide">
+                    <li><h3>1. Tải ảnh kiện</h3><p>Mở mục tải ảnh, chọn ảnh tem vận đơn đặt cạnh đủ sản phẩm. Nhập mã đơn nếu cần; AI hỗ trợ đọc tem và nhận diện sản phẩm.</p></li>
+                    <li><h3>2. Kiểm tra kiện chờ xác nhận</h3><p>Đối chiếu mã đơn, mã vận đơn, sản phẩm và số lượng trên ảnh. Sửa thông tin sai trước khi xác nhận. AI báo khớp vẫn cần người kiểm tra.</p></li>
+                    <li><h3>3. Xác nhận xuất kho</h3><p>Chỉ xác nhận khi ảnh và hàng thực tế đúng. Xác nhận xuất kho có tác động tồn kho; không bấm lặp lại khi kết nối chậm, hãy kiểm tra trạng thái kiện trước.</p></li>
+                    <li><h3>4. Bàn giao và đối soát</h3><p>Dùng khu Bàn giao SPX để quét hoặc nhập mã vận đơn khi vận chuyển nhận kiện. Kiểm tra kết quả từng mã. Mở trang đầy đủ để xem lịch sử và các chức năng đối soát.</p></li>
+                </ol>
+                <p class="thean-ous-guide__note">Xác nhận xuất kho và bàn giao vận chuyển là hai việc riêng. Nếu tải nhầm ảnh, sai mã hoặc kiện bị hủy, kiểm tra chi tiết và dùng thao tác phù hợp trên kiện trước khi tiếp tục.</p>
+            </div>
+            <div data-workflow-guide-scope="products" hidden>
+                <p>Chọn một trong ba công cụ. Chuyển tab giữ kết quả và dữ liệu đang nhập; Tải lại công cụ sẽ khởi động lại công cụ đó.</p>
+                <ol class="thean-ous-guide">
+                    <li><h3>Tra thông tin &amp; HDSD sản phẩm</h3><p>Nhập tên sản phẩm, chọn đúng sản phẩm hoặc biến thể, đọc thông tin và hướng dẫn sử dụng. Dùng nút Copy giới thiệu / Copy HDSD để gửi nội dung phù hợp cho khách.</p></li>
+                    <li><h3>So sánh sản phẩm</h3><p>Tìm và thêm các sản phẩm cần so sánh, kiểm tra biến thể và đơn vị. Đọc bảng so sánh theo tiêu chí khách quan tâm; nội dung AI chỉ hỗ trợ, cần kiểm tra thông tin trước khi tư vấn.</p></li>
+                    <li><h3>Tính protein</h3><p>Nhập thông tin và lựa chọn phù hợp trong biểu mẫu để xem kết quả ước tính. Dùng kết quả làm thông tin tham khảo khi tư vấn và đọc các giải thích ngay trong công cụ.</p></li>
+                </ol>
+                <p class="thean-ous-guide__note">Các công cụ dùng lại chức năng hiện có của website. Chỉ công cụ đang chọn được tải lần đầu. Nếu nội dung không tải, bấm Tải lại công cụ; dùng Mở riêng khi cần đăng nhập lại hoặc xem rộng hơn. Muốn tiếp tục xử lý đơn, bấm Đơn hàng ở thanh trên hoặc menu sticky phía dưới.</p>
+            </div>
+            <button type="button" class="thean-ous__more-btn" data-thean-ous-close>Đã hiểu, quay lại làm việc</button>
+        </div>
+    </div>
+    <?php
+}
+
 add_action('admin_enqueue_scripts', 'thean_ous_enqueue_assets', 20);
 function thean_ous_enqueue_assets(): void
 {
@@ -1717,6 +1796,7 @@ function thean_ous_enqueue_assets(): void
     wp_enqueue_style('thean-ous', $uri . 'order-universal-search.css', [], (string) @filemtime($dir . 'order-universal-search.css'));
     wp_enqueue_script('thean-ous', $uri . 'order-universal-search.js', [], (string) @filemtime($dir . 'order-universal-search.js'), true);
     wp_add_inline_script('thean-ous', 'window.theanOusCfg = ' . wp_json_encode(thean_ous_ui_config()) . ';', 'before');
+    wp_enqueue_script('thean-workspace-tabs', $uri . 'order-workspace-tabs.js', ['thean-ous'], (string) @filemtime($dir . 'order-workspace-tabs.js'), true);
     if (function_exists('thean_flow_popup_enqueue')) {
         thean_flow_popup_enqueue(false); // popup Tạm giữ / Hủy / Đặt trước… (order-ops-step.php)
     }
@@ -1757,6 +1837,10 @@ function thean_ous_render_ui(): void
     }
     ?>
     <form class="thean-ous-bar" id="thean-ous-bar" role="search" autocomplete="off" hidden>
+        <div class="thean-workspace-tabs" role="tablist" aria-label="Khu làm việc">
+            <button type="button" id="thean-workspace-orders" role="tab" aria-controls="thean-ous-orders-panel" aria-selected="true" tabindex="0" data-order-workspace="orders">📋 Đơn hàng</button>
+            <button type="button" id="thean-workspace-products" role="tab" aria-controls="thean-ous-products-panel" aria-selected="false" tabindex="-1" data-order-workspace="products">📦 Sản phẩm</button>
+        </div>
         <div class="thean-ous-bar__row">
             <a class="thean-ous-bar__brand" href="<?php echo esc_url(function_exists('thean_erp_get_home_url') ? thean_erp_get_home_url() : home_url('/')); ?>" target="_blank" rel="noopener" title="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php echo thean_ous_logo_html(); ?></a>
             <span class="dashicons dashicons-search" aria-hidden="true"></span>
@@ -1802,6 +1886,7 @@ function thean_ous_render_ui(): void
     <section class="thean-ous-board" id="thean-ous-board" aria-labelledby="thean-ous-board-title" hidden>
         <div class="thean-ous-board__head">
             <h2 class="thean-ous-modal__title" id="thean-ous-board-title">Đơn cần xử lý <span class="thean-ous-modal__status"></span></h2>
+            <button type="button" class="thean-ous__more-btn" data-thean-ous-workflow-guide aria-haspopup="dialog" aria-controls="thean-ous-workflow-guide">📖 Quy trình</button>
             <button type="button" class="thean-ous__more-btn" data-thean-ous-board-refresh>↻ Làm mới</button>
             <button type="button" class="thean-ous__more-btn" data-thean-ous-board-link title="Sao chép link mở thẳng tab đang xem (?thean_board=…)">🔗 Link tab</button>
             <button type="button" class="thean-ous__more-btn" data-thean-ous-board-close>Ẩn</button>
@@ -1809,6 +1894,15 @@ function thean_ous_render_ui(): void
         <div class="thean-ous-tabs" role="tablist" aria-label="Bước xử lý"></div>
         <div class="thean-ous-modal__body"></div>
     </section>
+
+    <section id="thean-ous-orders-panel" role="tabpanel" aria-labelledby="thean-workspace-orders"></section>
+    <?php thean_order_render_product_workspace(); ?>
+    <nav class="thean-workspace-foot" id="thean-workspace-foot" aria-label="Khu làm việc" hidden>
+        <button type="button" data-order-workspace="orders" aria-pressed="true">📋 Đơn hàng</button>
+        <button type="button" data-order-workspace="products" aria-pressed="false">📦 Sản phẩm</button>
+        <div id="thean-workspace-order-shortcuts" hidden></div>
+    </nav>
+    <?php thean_ous_render_workflow_guide(); ?>
 
     <div class="thean-ous-modal thean-ous-modal--invoice" id="thean-ous-invoice" hidden>
         <div class="thean-ous-modal__backdrop" data-thean-ous-close></div>
