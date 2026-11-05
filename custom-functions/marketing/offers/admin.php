@@ -152,7 +152,7 @@ function hithean_offers_admin(): void {
             echo '</details>';
             echo '<details class="ho-banner-box"' . ($banner_src ? ' open' : '') . '><summary>Banner chương trình' . ($banner_src ? ' ✓' : '') . '</summary>';
             hithean_offers_form_start('banner', ['offer_id' => $id]);
-            echo '<p class="ho-muted">Thay ảnh sản phẩm trên card ở trang /uu-dai/ (chế độ “Xem chương trình”). Ảnh phủ kín khung, tỉ lệ khuyến nghị 6:5 — vd 1200×1000px; nội dung chính đặt giữa ảnh vì mobile cắt bớt 2 mép trên/dưới.</p>';
+            echo '<p class="ho-muted">Thay ảnh sản phẩm trên card ở trang /uu-dai/ (chế độ “Xem chương trình”). Ảnh hiện nguyên vẹn, không cắt — khung card theo tỉ lệ của ảnh. Các banner cùng tỉ lệ (vd 1200×1000px) thì lưới card đều nhau.</p>';
             echo '<div class="ho-banner-pick" data-ho-banner><input type="hidden" name="banner_id" value="' . esc_attr($banner_id ?: '') . '" data-ho-banner-input><img src="' . esc_url($banner_src) . '" alt="" data-ho-banner-preview' . ($banner_src ? '' : ' hidden') . '>';
             echo '<p class="ho-actions"><button type="button" class="button" data-ho-banner-choose>' . ($banner_src ? 'Đổi ảnh' : 'Chọn ảnh') . '</button> <button class="button button-primary">Lưu banner</button>' . ($banner_src ? ' <button class="button" name="remove_banner" value="1">Bỏ banner</button>' : '') . '</p></div></form></details>';
             if ($status === 'rejected') {

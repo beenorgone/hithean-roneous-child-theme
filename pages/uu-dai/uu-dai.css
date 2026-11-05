@@ -436,19 +436,19 @@
     mix-blend-mode: multiply;
     max-height: 290px;
 }
-/* Banner chương trình phủ kín khung, thay ảnh sản phẩm. */
+/* Banner chương trình thay ảnh sản phẩm, hiện nguyên ảnh (không cắt): khung theo tỉ lệ của ảnh. */
 .ho-card-visual.ho-has-banner,
 .ho-card-group .ho-card-visual.ho-has-banner {
     padding: 0;
-    overflow: hidden;
+    aspect-ratio: auto;
+    display: block;
 }
 .ho-card-visual img.ho-banner {
-    position: absolute;
-    inset: 0;
+    display: block;
     width: 100%;
-    height: 100%;
+    height: auto;
     max-height: none;
-    object-fit: cover;
+    object-fit: initial;
     mix-blend-mode: normal;
 }
 .ho-has-banner .ho-badge {

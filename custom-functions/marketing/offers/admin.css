@@ -147,16 +147,14 @@ body.ho-modal-open { overflow: hidden; }
 .ho-offer-banner {
     display: block;
     width: 100%;
-    aspect-ratio: 1.15;
-    object-fit: cover;
+    height: auto;
     border-radius: 10px 10px 0 0;
 }
 .ho-banner-pick img {
     display: block;
     max-width: 320px;
     width: 100%;
-    aspect-ratio: 1.15;
-    object-fit: cover;
+    height: auto;
     border-radius: 8px;
     border: 1px solid #e2e7eb;
     margin: 8px 0;
