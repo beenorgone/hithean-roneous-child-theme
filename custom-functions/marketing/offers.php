@@ -15,7 +15,7 @@ if (is_admin()) { require_once __DIR__ . '/offers/admin.php'; }
 if (defined('WP_CLI') && WP_CLI) { require_once __DIR__ . '/offers/cli.php'; }
 
 function hithean_offers_settings(): array {
-    return array_merge(['enabled' => false, 'ai_enabled' => true, 'provider' => 'auto', 'model' => '', 'preview' => true, 'source' => 'database'], (array) get_option('hithean_offers_settings', []));
+    return array_merge(['enabled' => false, 'ai_enabled' => true, 'provider' => 'auto', 'model' => '', 'preview' => true, 'source' => 'database', 'banner_layout' => 'full'], (array) get_option('hithean_offers_settings', []));
 }
 
 /** Migrate the former daily event without changing saved publication/automation switches. */

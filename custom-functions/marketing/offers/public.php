@@ -147,7 +147,7 @@ function hithean_offers_shortcode(): string {
     foreach ($products as $row) { if (!empty($row['image']) && !isset($images[$row['product_id']])) { $images[$row['product_id']] = $row; } if (count($images) === 3) { break; } }
     $count = count($products);
     ob_start(); ?>
-    <div class="ho-page" data-ho-page data-ho-mode="programs">
+    <div class="ho-page ho-banners-<?php echo hithean_offers_settings()['banner_layout'] === 'grid' ? 'grid' : 'full'; ?>" data-ho-page data-ho-mode="programs">
         <nav class="ho-nav" aria-label="Điều hướng ưu đãi"><?php echo hithean_offers_logo(); ?><div><a href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/')); ?>">Khám phá sản phẩm</a><a class="ho-nav-cart" href="<?php echo esc_url(wc_get_cart_url()); ?>">Giỏ hàng <span aria-hidden="true">↗</span></a></div></nav>
         <?php if ($preview && current_user_can('manage_woocommerce')) : ?><p class="ho-preview" role="status">Bản xem trước dành cho quản trị viên. Bật hiển thị công khai trong WooCommerce → Ưu đãi sản phẩm khi đã kiểm tra nguồn.</p><?php endif; ?>
         <main>

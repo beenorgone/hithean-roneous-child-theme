@@ -39,10 +39,11 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             $provider = sanitize_key(wp_unslash($_POST['provider'] ?? 'auto'));
             if (!in_array($provider, ['auto', 'openai', 'claude', 'gemini', 'gemini_billing', 'qwen'], true)) { throw new RuntimeException('Provider không hợp lệ.'); }
             $next = ['enabled' => !empty($_POST['enabled']), 'ai_enabled' => !empty($_POST['ai_enabled']), 'provider' => $provider,
-                'model' => sanitize_text_field(wp_unslash($_POST['model'] ?? '')), 'preview' => empty($_POST['public'])];
+                'model' => sanitize_text_field(wp_unslash($_POST['model'] ?? '')), 'preview' => empty($_POST['public']),
+                'banner_layout' => ($_POST['banner_layout'] ?? '') === 'grid' ? 'grid' : 'full'];
             update_option('hithean_offers_settings', $next, false);
             hithean_offers_sync_schedule();
-            if ($old['preview'] !== $next['preview']) { hithean_offers_purge(); }
+            if ($old['preview'] !== $next['preview'] || $old['banner_layout'] !== $next['banner_layout']) { hithean_offers_purge(); }
         } elseif ($action === 'page') {
             if (get_page_by_path('uu-dai')) { throw new RuntimeException('Trang /uu-dai/ đã tồn tại. Hãy kiểm tra nội dung và chọn template Landing Page trong trình sửa trang.'); }
             $id = wp_insert_post(['post_type' => 'page', 'post_status' => 'draft', 'post_title' => 'Ưu đãi', 'post_name' => 'uu-dai', 'post_content' => '[hithean_offers]'], true);
@@ -119,7 +120,7 @@ function hithean_offers_admin(): void {
     foreach ($run['errors'] ?? [] as $error) { echo '<p class="ho-error">SP #' . absint($error['product_id']) . ': ' . esc_html($error['message']) . '</p>'; }
     echo '</section><details class="ho-panel"><summary>Cấu hình & xuất bản</summary>';
     hithean_offers_form_start('settings');
-    echo '<p><label><input type="checkbox" name="enabled" ' . checked($s['enabled'], true, false) . '> Tự đồng bộ mỗi tuần một lần</label></p><p><label><input type="checkbox" name="public" ' . checked(!$s['preview'], true, false) . '> Hiển thị snapshot trên trang công khai</label></p><p>Dữ liệu cấu trúc được đọc trực tiếp từ cấu hình. Nội dung và điều kiện chưa rõ sẽ chờ duyệt.</p><p><button class="button button-primary">Lưu cấu hình</button></p></form>';
+    echo '<p><label><input type="checkbox" name="enabled" ' . checked($s['enabled'], true, false) . '> Tự đồng bộ mỗi tuần một lần</label></p><p><label><input type="checkbox" name="public" ' . checked(!$s['preview'], true, false) . '> Hiển thị snapshot trên trang công khai</label></p><fieldset><legend>Hiển thị banner chương trình</legend>' . '<p><label><input type="radio" name="banner_layout" value="grid" ' . checked($s['banner_layout'], 'grid', false) . '> Lưới đều nhau — card cùng chiều cao, banner phủ kín khung (cắt bớt mép nếu khác tỉ lệ 6:5)</label></p>' . '<p><label><input type="radio" name="banner_layout" value="full" ' . checked($s['banner_layout'], 'full', false) . '> Hiện nguyên banner — không cắt, khung card cao theo tỉ lệ từng ảnh</label></p>' . '</fieldset><p>Dữ liệu cấu trúc được đọc trực tiếp từ cấu hình. Nội dung và điều kiện chưa rõ sẽ chờ duyệt.</p><p><button class="button button-primary">Lưu cấu hình</button></p></form>';
     $page = get_page_by_path('uu-dai');
     if ($page) { echo '<p><a class="button" href="' . esc_url(get_edit_post_link($page->ID)) . '">Kiểm tra / sửa trang Ưu đãi</a> <a class="button" href="' . esc_url(get_permalink($page->ID)) . '">Xem trang</a></p>'; }
     else { hithean_offers_form_start('page'); echo '<button class="button">Tạo trang nháp /uu-dai/</button></form>'; }

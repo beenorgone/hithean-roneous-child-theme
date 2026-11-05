@@ -65,6 +65,10 @@ hithean_offers_set_banner($id, 77); hithean_offers_publish(); $html = hithean_of
 ok(str_contains(programs($html), 'ho-has-banner') && str_contains(programs($html), 'class="ho-banner"') && str_contains(programs($html), 'width="1200" height="628"') && !str_contains(programs($html), 'ho-group-art') && !str_contains(product_panel($html), 'ho-banner'), 'Program banner replaces the product images on the program card only');
 hithean_offers_upsert_source(hithean_offers_records()[0] + ['blocked' => false], 'banner-sync');
 ok(hithean_offers_banner_id($id) === 77, 'Banner survives a source re-sync');
+ok(str_contains($html, 'ho-banners-full'), 'Banners show in full by default');
+$GLOBALS['options']['hithean_offers_settings']['banner_layout'] = 'grid';
+ok(str_contains(hithean_offers_shortcode(), 'ho-banners-grid'), 'Even-grid banner layout can be selected');
+unset($GLOBALS['options']['hithean_offers_settings']['banner_layout']);
 hithean_offers_set_banner($id, 0); hithean_offers_publish(); $html = hithean_offers_shortcode();
 ok(!str_contains($html, 'ho-has-banner') && str_contains(programs($html), 'ho-group-art'), 'Removing the banner restores product images');
 $panel = product_panel($html);
