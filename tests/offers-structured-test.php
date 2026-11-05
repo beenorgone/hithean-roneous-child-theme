@@ -213,6 +213,10 @@ ok(count($variant_items) === 1 && !empty($variant_items[0]['condition_note']), '
 $GLOBALS['addons'][11] = [['value' => 'gift', 'name' => 'Test gift', 'mode' => 'auto', 'ranges' => [['min' => 2, 'max' => 5]], 'addons' => [['type' => 'product', 'status' => 'ON', 'target' => 13]]]];
 $addon_sources = hithean_offers_product_sources($GLOBALS['products'][11]);
 ok(count($addon_sources) === 1 && str_contains($addon_sources[0]['title'], 'từ 2 đến 5') && !$addon_sources[0]['safe'], 'Addon quantity ranges stay explicit and review-first');
+$strip = hithean_offers_gift_strip($addon_sources[0], $GLOBALS['products'][11]);
+ok($strip['buy']['id'] === 11 && $strip['buy']['qty'] === 2 && array_column($strip['gifts'], 'id') === [13], 'Addon gift strip resolves the bought product, minimum quantity and gift product');
+$strip_html = hithean_offers_gift_strips([['gift_strip' => $strip], ['gift_strip' => $strip]]);
+ok(substr_count($strip_html, 'ho-gift-strip') === 1 && str_contains($strip_html, '>Mua<') && str_contains($strip_html, '>Tặng<') && str_contains($strip_html, '×2'), 'Card shows one "Mua A TẶNG B" line per distinct gift');
 $GLOBALS['addon_enabled'][11] = false; update_post_meta(11, 'product_addon_sale_message', 'Test stale message');
 ok(hithean_offers_product_sources($GLOBALS['products'][11]) === [], 'Disabled addon suppresses both choices and leftover sale messages');
 class SaleOfferProduct extends \OfferTestProduct {

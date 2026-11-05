@@ -141,6 +141,7 @@ function hithean_offers_publish(): void {
             $row['variable'] = $product->is_type('variable');
             $row['pinned'] = !empty($row['pinned']);
             $banner = hithean_offers_banner_src((int) ($row['id'] ?? 0));
+            $row['gift_strip'] = ($row['family'] ?? '') === 'addon' ? hithean_offers_gift_strip($row, $product) : [];
             $row['banner'] = $banner[0]; $row['banner_w'] = $banner[1]; $row['banner_h'] = $banner[2];
             foreach ([$row['start'] ?? 0, !empty($row['end']) ? $row['end'] + 1 : 0, $row['verified_at'] + HITHEAN_OFFERS_FRESHNESS] as $date) {
                 if ($date > time()) { $boundary = min($boundary, $date); }
@@ -157,6 +158,25 @@ function hithean_offers_publish(): void {
         wp_schedule_single_event($boundary, 'hithean_offers_boundary');
         if (($old['items'] ?? []) !== $items || ($old['valid_until'] ?? 0) !== $boundary) { hithean_offers_purge(); }
     } finally { hithean_offers_unlock('publish', $token); }
+}
+/** Quà tặng kèm (Product Addon, loại product): ảnh nhỏ SP mua + SP tặng cho dòng "Mua A TẶNG B" trên card. */
+function hithean_offers_gift_strip(array $row, $product): array {
+    $thumb = static function ($item, int $qty = 1): array {
+        return ['id' => $item->get_id(), 'name' => $item->get_name(), 'url' => get_permalink($item->get_id()), 'qty' => $qty,
+            'image' => wp_get_attachment_image_url($item->get_image_id(), 'woocommerce_gallery_thumbnail') ?: wc_placeholder_img_src()];
+    };
+    $gifts = [];
+    foreach ((array) ($row['source_config']['addons'] ?? []) as $addon) {
+        if (($addon['type'] ?? '') !== 'product') { continue; }
+        $target = trim((string) ($addon['target'] ?? ''));
+        $gift_id = function_exists('simple_addon_resolve_product_id') ? (int) simple_addon_resolve_product_id($target) : (ctype_digit($target) ? (int) $target : 0);
+        $gift = $gift_id ? wc_get_product($gift_id) : null;
+        if (!$gift || isset($gifts[$gift_id])) { continue; }
+        $gifts[$gift_id] = $thumb($gift);
+    }
+    // Mua tối thiểu = mốc nhỏ nhất trong các khoảng số lượng của lựa chọn.
+    $mins = array_map(static fn($range) => max(1, (int) ($range['min'] ?? 0)), (array) ($row['source_config']['ranges'] ?? []));
+    return $gifts ? ['buy' => $thumb($product, $mins ? min($mins) : 1), 'gifts' => array_values($gifts)] : [];
 }
 /** Banner chương trình: meta riêng (ID ảnh) nên đồng bộ nguồn ghi đè `_ho_data` không làm mất. */
 function hithean_offers_banner_id(int $id): int {

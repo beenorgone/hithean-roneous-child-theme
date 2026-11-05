@@ -58,6 +58,21 @@ function hithean_offers_group_dialog(array $row, string $id): string {
     <?php endforeach; ?></ul></dialog>
     <?php return (string) ob_get_clean();
 }
+/** Dòng "Mua [ảnh SP] TẶNG [ảnh quà]" — mỗi quà tặng kèm khác nhau một dòng. */
+function hithean_offers_gift_strips(array $offers): string {
+    $html = ''; $seen = [];
+    foreach ($offers as $offer) {
+        $strip = $offer['gift_strip'] ?? [];
+        if (!$strip) { continue; }
+        $sig = $strip['buy']['id'] . ':' . $strip['buy']['qty'] . ':' . implode(',', wp_list_pluck($strip['gifts'], 'id'));
+        if (isset($seen[$sig])) { continue; }
+        $seen[$sig] = true;
+        $thumb = static fn(array $item): string => '<a class="ho-gift-thumb" href="' . esc_url($item['url']) . '" title="' . esc_attr($item['name']) . '"><img src="' . esc_url($item['image']) . '" alt="' . esc_attr($item['name']) . '" width="56" height="56" loading="lazy" decoding="async">' . ($item['qty'] > 1 ? '<span class="ho-gift-qty">×' . (int) $item['qty'] . '</span>' : '') . '</a>';
+        $names = esc_attr('Mua ' . ($strip['buy']['qty'] > 1 ? $strip['buy']['qty'] . ' ' : '') . $strip['buy']['name'] . ' tặng ' . implode(', ', wp_list_pluck($strip['gifts'], 'name')));
+        $html .= '<p class="ho-gift-strip" aria-label="' . $names . '"><span class="ho-gift-word">Mua</span>' . $thumb($strip['buy']) . '<span class="ho-gift-word ho-gift-word-accent">Tặng</span>' . implode('<span class="ho-gift-plus" aria-hidden="true">+</span>', array_map($thumb, $strip['gifts'])) . '</p>';
+    }
+    return $html;
+}
 function hithean_offers_card(array $row): string {
     $kinds = ['gift' => 'Quà tặng', 'discount' => 'Giá ưu đãi', 'shipping' => 'Ưu đãi vận chuyển', 'quantity' => 'Mua nhiều giảm giá', 'other' => 'Ưu đãi'];
     $offers = $row['offers'] ?? [$row];
@@ -66,7 +81,7 @@ function hithean_offers_card(array $row): string {
     <?php $group = $row['group'] ?? []; $site_wide = !empty($row['site_wide']); $dialog = $group && !$site_wide ? 'ho-group-' . substr(md5((string) $row['source_id']), 0, 10) : ''; ?>
     <article class="ho-card<?php echo $group ? ' ho-card-group' : ''; ?>" data-ho-card<?php echo $group ? ' data-ho-names="' . esc_attr(implode(' ', wp_list_pluck($group, 'product_name'))) . '"' : ''; ?> data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-until="<?php echo (int) $until; ?>" data-ho-search="<?php echo esc_attr($row['product_name'] . ' ' . $row['title']); ?>">
         <a class="ho-card-visual<?php echo !empty($row['banner']) ? ' ho-has-banner' : ''; ?>" href="<?php echo esc_url($row['url']); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($offers) > 1 ? count($offers) . ' ưu đãi' : esc_html($kinds[$row['kind']] ?? 'Ưu đãi'); ?></span><?php if (!empty($row['banner'])) : ?><img class="ho-banner" src="<?php echo esc_url($row['banner']); ?>" alt=""<?php echo !empty($row['banner_w']) ? ' width="' . (int) $row['banner_w'] . '" height="' . (int) $row['banner_h'] . '"' : ''; ?> loading="lazy" decoding="async"><?php elseif (!empty($row['program']) || $site_wide) : ?><span class="ho-wheel-art">✳<span><?php echo $row['kind'] === 'shipping' ? '0₫' : '%'; ?></span></span><?php elseif ($group) : ?><span class="ho-group-art" data-count="<?php echo min(3, count($group)); ?>"><?php foreach (array_slice($group, 0, 3) as $item) : ?><img src="<?php echo esc_url($item['image']); ?>" alt="" width="240" height="240" loading="lazy" decoding="async"><?php endforeach; ?></span><?php else : ?><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"><?php endif; ?></a>
-        <div class="ho-card-body"><h3><a href="<?php echo esc_url($row['url']); ?>"><?php echo esc_html($row['product_name']); ?></a></h3><ul class="ho-benefits"><?php foreach ($offers as $offer) : $offer_until = min($offer['end'] ? $offer['end'] + 1 : PHP_INT_MAX, $offer['verified_at'] + HITHEAN_OFFERS_FRESHNESS); ?>
+        <div class="ho-card-body"><?php echo hithean_offers_gift_strips($offers); ?><h3><a href="<?php echo esc_url($row['url']); ?>"><?php echo esc_html($row['product_name']); ?></a></h3><ul class="ho-benefits"><?php foreach ($offers as $offer) : $offer_until = min($offer['end'] ? $offer['end'] + 1 : PHP_INT_MAX, $offer['verified_at'] + HITHEAN_OFFERS_FRESHNESS); ?>
         <li data-ho-rule data-ho-kind="<?php echo esc_attr($offer['kind']); ?>" data-ho-until="<?php echo (int) $offer_until; ?>"><p class="ho-benefit"><?php echo esc_html($offer['title']); ?></p>
         <?php if (!empty($offer['condition_note'])) : ?><p class="ho-date"><?php echo esc_html($offer['condition_note']); ?></p><?php endif; ?>
         <?php if ($offer['end']) : ?><p class="ho-date"><?php echo esc_html(hithean_offers_date_label($offer)); ?></p><?php endif; ?></li>
