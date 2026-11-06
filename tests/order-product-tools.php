@@ -2,7 +2,7 @@
 /** Auth/allowlist/document tests, using isolated WP stubs; no live shortcode/data calls. */
 define('ABSPATH', __DIR__);
 $GLOBALS['allowed'] = true; $GLOBALS['nonce_ok'] = true;
-function current_user_can($cap) { return $GLOBALS['allowed']; }
+function current_user_can($cap) { return $GLOBALS['allowed'] && (!isset($GLOBALS['caps']) || in_array($cap, $GLOBALS['caps'], true)); }
 function wp_die($message, $title = '', $args = []) { throw new RuntimeException($message, $args['response'] ?? 500); }
 function check_admin_referer($action) { $GLOBALS['nonce_checks'] = ($GLOBALS['nonce_checks'] ?? 0) + 1; if (!$GLOBALS['nonce_ok']) wp_die('Bad nonce', '', ['response' => 403]); }
 function sanitize_key($s) { return preg_replace('/[^a-z0-9_-]/', '', strtolower($s)); }
@@ -10,6 +10,8 @@ function wp_unslash($s) { return $s; }
 function shortcode_exists($name) { return true; }
 function wp_enqueue_script($name) { $GLOBALS['scripts'][] = $name; }
 function en_product_info_search_scripts() { $GLOBALS['scripts'][] = 'product-info-search'; }
+function thean_spx_render_embed() {} // dependency already loaded in this isolated harness
+function thean_export_confirm_assets() { echo '<script data-export-assets></script><div data-export-checklist></div>'; }
 function do_shortcode($tag) { return '<div data-shortcode="' . htmlspecialchars($tag, ENT_QUOTES, 'UTF-8') . '">Isolated tool fixture</div>'; }
 function nocache_headers() { $GLOBALS['nocache'] = true; }
 function send_frame_options_header() { $GLOBALS['sameorigin'] = true; }
@@ -33,6 +35,10 @@ function reject($status, $message) {
     throw new RuntimeException('Expected rejection: ' . $message);
 }
 check(array_keys(thean_order_product_tools()) === ['info', 'compare', 'protein'], 'only three fixed tool IDs');
+check(array_keys(thean_order_export_tools()) === ['export_review', 'export_waiting', 'export_upload'], 'export review and waiting list precede uploads');
+check(array_column(thean_order_export_tools(), 'shortcode') === ['list_unconfirmed_exports', 'list_uploaded_not_shipped_exports', 'upload_export_images_form'], 'export keys map to the three existing shortcodes');
+check(strpos(thean_order_product_tool_url('export_review'), 'thean_order_tool=export_review') !== false, 'export tool uses authenticated allowlisted URL');
+
 check(thean_order_product_tool_url('not-a-tool') === '', 'unknown tool has no endpoint URL');
 check(strpos(thean_order_product_tool_url('info'), 'thean_order_tool=info') !== false && strpos(thean_order_product_tool_url('info'), '_wpnonce=') !== false, 'iframe URL has allowlisted tool and nonce');
 $GLOBALS['allowed'] = false; $_GET = ['thean_order_tool' => 'info']; reject(403, 'unauthorized reader blocked');
@@ -40,10 +46,20 @@ check(empty($GLOBALS['nonce_checks']), 'capability checked before nonce or short
 $GLOBALS['allowed'] = true; $GLOBALS['nonce_ok'] = false; reject(403, 'bad nonce blocked');
 $GLOBALS['nonce_ok'] = true; $_GET = ['thean_order_tool' => '../../wp-config']; reject(400, 'path-like tool rejected');
 $_GET = ['thean_order_tool' => ['info']]; reject(400, 'array tool rejected without PHP warnings');
+$GLOBALS['caps'] = ['edit_shop_orders']; $_GET = ['thean_order_tool' => 'export_review']; reject(403, 'order-reader cannot use export workflow');
+ob_start(); thean_order_render_export_workspace(); $no_export = ob_get_clean();
+check($no_export === '', 'export panel hidden without Woo management capability');
+$GLOBALS['caps'] = ['manage_woocommerce']; $_GET = ['thean_order_tool' => 'export_upload']; reject(403, 'export uploads still require upload_files');
+unset($GLOBALS['caps']);
+ob_start(); thean_order_render_export_workspace(); $exports = ob_get_clean();
+check(substr_count($exports, '<iframe ') === 3 && !preg_match('/<iframe[^>]*\ssrc=/', $exports), 'export frames load only on selection');
+check(strpos($exports, 'data-product-tool="export_review"') < strpos($exports, 'data-product-tool="export_waiting"')
+    && strpos($exports, 'data-product-tool="export_waiting"') < strpos($exports, 'data-product-tool="export_upload"'), 'rendered export tabs follow requested order');
+check(strpos($exports, 'aria-selected="true" tabindex="0" data-product-tool="export_review"') !== false && strpos($exports, 'data-thean-ous-workflow-guide="exports"') !== false, 'review opens first and export help is available');
 ob_start(); thean_order_render_product_workspace(); $html = ob_get_clean();
 check(substr_count($html, '<iframe ') === 3 && substr_count($html, 'data-src=') === 3 && !preg_match('/<iframe[^>]*\ssrc=/', $html), 'tool iframes have no eager src');
 check(strpos($html, 'data-thean-ous-workflow-guide="products"') !== false && strpos($html, 'aria-controls="thean-product-compare"') !== false, 'product guide and accessible subtabs rendered');
-foreach (thean_order_product_tools() as $key => $tool) {
+foreach (thean_order_workspace_tools() as $key => $tool) {
     $cmd = [PHP_BINARY, __FILE__, 'render', $key];
     $pipes = []; $process = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     $document = stream_get_contents($pipes[1]); fclose($pipes[1]);
@@ -51,5 +67,6 @@ foreach (thean_order_product_tools() as $key => $tool) {
     check(proc_close($process) === 0 && $errors === '', 'standalone document renders without warnings: ' . $key . ' ' . $errors);
     check(strpos($document, '[' . $tool['shortcode'] . ']') !== false && strpos($document, 'data-test-footer') !== false, 'renders exact registered shortcode and footer assets: ' . $key);
     if ($key === 'info') check(strpos($document, 'jquery,product-info-search') !== false, 'product info loads its AJAX script and jQuery');
+    check((strpos($document, 'data-export-assets') !== false) === isset(thean_order_export_tools()[$key]), 'only export documents print their existing modal and script callback: ' . $key);
 }
 echo "OK ($checks product tool checks)\n";

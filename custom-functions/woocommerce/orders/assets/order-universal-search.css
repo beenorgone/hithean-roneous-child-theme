@@ -286,13 +286,13 @@ body.thean-ous-open { overflow:hidden; }
 }
 
 /* Main workspaces and isolated lazy product tools. */
-#thean-ous-orders-panel[hidden], #thean-ous-products-panel[hidden], [data-product-panel][hidden], [data-workflow-guide-scope][hidden], #thean-workspace-foot[hidden] { display:none !important; }
+#thean-ous-orders-panel[hidden], #thean-ous-products-panel[hidden], #thean-ous-exports-panel[hidden], [data-product-panel][hidden], [data-workflow-guide-scope][hidden], #thean-workspace-foot[hidden] { display:none !important; }
 .thean-workspace-tabs { display:flex; flex-wrap:wrap; gap:6px; padding:6px 0; }
 .thean-workspace-tabs button, .thean-workspace-foot button { min-height:40px; padding:8px 14px; border:1px solid #b9cdf0; border-radius:8px; background:#fff; color:#0047ba; font:inherit; font-weight:600; cursor:pointer; }
 .thean-workspace-tabs button[aria-selected="true"], .thean-workspace-foot button[aria-pressed="true"] { background:#0047ba; border-color:#0047ba; color:#fff; }
 .thean-workspace-tabs button:focus-visible, .thean-workspace-foot button:focus-visible { outline:2px solid #0047ba; outline-offset:2px; }
 .thean-ous-bar > .thean-workspace-tabs { border-radius:10px 10px 0 0; padding:6px 10px; background:#f3f7ff; border:1px solid #b9cdf0; }
-.thean-ous-bar.is-products .thean-ous-bar__row { display:none; }
+.thean-ous-bar.is-tools .thean-ous-bar__row { display:none; }
 .thean-ous-products { padding:14px 16px; border:1px solid #b9cdf0; border-radius:12px; background:#fff; }
 .thean-ous-products .thean-ous-board__head { justify-content:space-between; }
 .thean-ous-products h2 { margin:0; }
@@ -302,7 +302,7 @@ body.thean-ous-open { overflow:hidden; }
 body.folded .thean-workspace-foot { left:36px; }
 body.thean-ous-chrome-off .thean-workspace-foot { left:0; }
 body:has(#thean-workspace-foot) #wpbody-content { padding-bottom:90px; }
-body.thean-products-workspace #posts-filter, body.thean-products-workspace #wc-orders-filter { display:none; }
+body.thean-tools-workspace #posts-filter, body.thean-tools-workspace #wc-orders-filter { display:none; }
 #thean-workspace-order-shortcuts .thean-spx-foot { position:static; box-shadow:none; padding:6px 0; margin-bottom:12px; border:0; }
 @media (max-width:960px) { body.auto-fold .thean-workspace-foot { left:36px; } body.auto-fold.thean-ous-chrome-off .thean-workspace-foot { left:0; } }
 @media (max-width:782px) { .thean-workspace-foot, body.auto-fold .thean-workspace-foot, body.folded .thean-workspace-foot { left:0; } .thean-ous-products { padding:10px; } .thean-product-frame { height:72vh; min-height:360px; } }
@@ -312,6 +312,12 @@ body.thean-products-workspace #posts-filter, body.thean-products-workspace #wc-o
 .thean-ous-products .thean-ous__more-btn:focus-visible { outline:2px solid #0047ba; outline-offset:2px; }
 
 #thean-workspace-order-shortcuts { flex:1 0 100%; }
-#thean-workspace-order-shortcuts[hidden], body.thean-products-workspace #thean-workspace-order-shortcuts { display:none !important; }
+#thean-workspace-order-shortcuts[hidden], body.thean-tools-workspace #thean-workspace-order-shortcuts { display:none !important; }
 #thean-workspace-order-shortcuts .thean-spx-foot__row { padding:0; }
 body:has(#thean-workspace-order-shortcuts:not([hidden])) #wpbody-content { padding-bottom:140px; }
+
+@media (max-width:782px) {
+    #thean-ous-bar > .thean-workspace-tabs { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); }
+    #thean-ous-bar > .thean-workspace-tabs > button { padding:8px 6px; font-size:13px; white-space:nowrap; }
+    .thean-workspace-foot > button { flex:1 1 0; min-width:0; max-width:160px; padding:8px 6px; font-size:13px; white-space:nowrap; }
+}

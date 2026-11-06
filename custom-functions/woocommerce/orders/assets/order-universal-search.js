@@ -911,7 +911,7 @@
     // Đơn vừa đổi (popup luồng / thao tác nhanh) → đóng popup thao tác, cập nhật các dòng đơn liên quan.
     document.addEventListener('thean:order-updated', function () { if (!acts.hidden) setOpen(acts, false); });
     document.addEventListener('thean:workspace-changed', function (e) {
-        if (e.detail.workspace === 'products') [results, preview, invoice, acts].forEach(function (modal) { if (!modal.hidden) setOpen(modal, false); });
+        if (e.detail.workspace !== 'orders') [results, preview, invoice, acts].forEach(function (modal) { if (!modal.hidden) setOpen(modal, false); });
     });
 
     // Bảng đơn (kết quả tìm + board): chỉ nút "Xem nhanh" mở modal xem nhanh (bấm vào dòng không mở — dễ bấm nhầm khi chọn chữ / thao tác).
@@ -1003,7 +1003,7 @@
         var guideButton = e.target.closest('[data-thean-ous-workflow-guide]');
         if (guideButton) {
             var scope = guideButton.dataset.theanOusWorkflowGuide || 'orders';
-            var titles = { orders: 'Quy trình xử lý đơn', shopee: 'Hướng dẫn xử lý đơn Shopee', products: 'Hướng dẫn công cụ sản phẩm' };
+            var titles = { orders: 'Quy trình xử lý đơn', shopee: 'Hướng dẫn xử lý đơn Shopee', products: 'Hướng dẫn công cụ sản phẩm', exports: 'Hướng dẫn xuất kho' };
             if (!titles[scope]) scope = 'orders';
             guide.querySelector('#thean-ous-workflow-title').textContent = titles[scope];
             guide.querySelectorAll('[data-workflow-guide-scope]').forEach(function (section) { section.hidden = section.dataset.workflowGuideScope !== scope; });

@@ -888,7 +888,9 @@ add_action('wp_ajax_ajax_confirm_export', function () {
 
 
 // ===== Enqueue JS + Modal =====
-add_action('wp_footer', function () {
+add_action('wp_footer', 'hithean_export_confirm_assets');
+function hithean_export_confirm_assets(): void
+{
     if (!is_user_logged_in() || !current_user_can('manage_woocommerce')) return;
 
     $checklist = hithean_get_export_upload_checklist();
@@ -1343,6 +1345,7 @@ add_action('wp_footer', function () {
             }
             // force: sau thao tác của chính người dùng → chờ hết bận rồi làm mới, luôn render lại.
             window.uexeRefreshLists = function(force) {
+                if (window.frameElement && window.frameElement.closest('[hidden]')) return;
                 const boxes = Array.from(document.querySelectorAll('[data-uexe-live]'));
                 if (!boxes.length) return;
                 if (uexeLiveBusy(false)) {
@@ -1529,4 +1532,4 @@ add_action('wp_footer', function () {
         });
     </script>
 <?php
-});
+}

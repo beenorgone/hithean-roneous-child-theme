@@ -224,3 +224,42 @@ node tests/order-workspace-tabs.cjs
 python3 tests/order-return-backfill.py
 node --check custom-functions/woocommerce/orders/assets/order-workspace-tabs.js
 ```
+
+## Export shortcode workspace
+
+The main **Xuất kho** tab (also available in the sticky menu) is visible to
+`manage_woocommerce` users on both sites. Its ordered subtabs are:
+
+1. **Ảnh chờ duyệt** — `[list_unconfirmed_exports]` (default).
+2. **Đơn đã upload ảnh nhưng chưa giao đi** — `[list_uploaded_not_shipped_exports]`.
+3. **Up ảnh** — `[upload_export_images_form]`.
+
+These are the existing shortcodes, not new order status transitions. The shared
+standalone tool route additionally allowlists `export_review`, `export_waiting`
+and `export_upload`, requires WooCommerce management permission for all export
+tools, and preserves `upload_files` for the upload form. Products retain their
+existing order-reader/manager access. Includes remain fixed registry paths:
+Theanmarket uses `woocommerce/shipping/`, Hithean uses `shortcodes/`.
+Theanmarket also loads the same Shopee dependency as its existing tools page.
+
+Export scripts and checklist/gallery markup previously attached through an
+anonymous `wp_footer` callback now have a named callback, still registered on
+`wp_footer` for existing pages. Standalone export documents call just that
+callback after core footer scripts, so all native upload, AI, bulk and confirmation
+handlers/nonces remain available without invoking unrelated theme footer hooks.
+No existing stock, upload, audit or authorization endpoint is replaced.
+
+Only the selected document loads initially; switching workspaces/subtabs does
+not remount frames or clear selected upload files. Reopening an already loaded
+export list calls its existing read-only live-refresh function. Hidden export
+frames skip background list refreshes. The upload form stays intact; explicit
+**Tải lại công cụ** resets the selected frame. The export workspace has its own
+contextual help dialog and URL (`thean_workspace=exports`,
+`thean_export_tool=export_review|export_waiting|export_upload`). Product selection
+is tracked independently, and order-board DOM/cursor/selection are preserved.
+
+Additional regression check: `php tests/order-export-tool-assets.php` renders the
+real export module's named footer callback with WordPress stubs, verifies the
+checklist/gallery/nonces, compiles its inline JS, and verifies permission denial.
+Together with the tool-route and DOM suites this proves integration boundaries;
+it does not perform a real upload, AI request, export confirmation or stock change.

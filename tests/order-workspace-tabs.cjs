@@ -8,12 +8,13 @@ const dir = path.join(__dirname, '../custom-functions/woocommerce/orders/assets'
 let checks = 0;
 function check(value, message) { assert.ok(value, message); checks++; }
 const dom = new JSDOM(`<!doctype html><body>
-<div class="wrap"><form id="thean-ous-bar"><div role="tablist"><button role="tab" data-order-workspace="orders">Orders</button><button role="tab" data-order-workspace="products">Products</button></div><input name="q"><div id="thean-ous-suggest" hidden></div></form><section id="thean-ous-board"><table><tbody><tr data-order-id="5"><td><input value="keep-selection"></td></tr></tbody></table></section></div>
+<div class="wrap"><form id="thean-ous-bar"><div role="tablist"><button role="tab" data-order-workspace="orders">Orders</button><button role="tab" data-order-workspace="products">Products</button><button role="tab" data-order-workspace="exports">Exports</button></div><input name="q"><div id="thean-ous-suggest" hidden></div></form><section id="thean-ous-board"><table><tbody><tr data-order-id="5"><td><input value="keep-selection"></td></tr></tbody></table></section></div>
 <section id="thean-ous-orders-panel"></section>
 <section id="thean-ous-products-panel" hidden><div role="tablist">${['info','compare','protein'].map(key => `<button role="tab" data-product-tool="${key}">${key}</button>`).join('')}</div>${['info','compare','protein'].map(key => `<section data-product-panel="${key}" ${key !== 'info' ? 'hidden' : ''}><p data-product-status></p><button data-product-reload="${key}">Reload</button><iframe data-src="https://example.test/tool?tool=${key}"></iframe></section>`).join('')}</section>
-<nav id="thean-workspace-foot" hidden><button data-order-workspace="orders">Orders</button><button data-order-workspace="products">Products</button></nav>
-<button id="guide-orders" data-thean-ous-workflow-guide>Guide</button><button id="guide-shopee" data-thean-ous-workflow-guide="shopee">Shopee guide</button><button id="guide-products" data-thean-ous-workflow-guide="products">Products guide</button>
-<div id="thean-ous-workflow-guide" class="thean-ous-modal" hidden><div data-thean-ous-close></div><div class="thean-ous-modal__dialog" role="dialog"><button data-thean-ous-close>Close</button><h2 id="thean-ous-workflow-title"></h2>${['orders','shopee','products'].map(scope => `<section data-workflow-guide-scope="${scope}">Guide ${scope}</section>`).join('')}<button data-thean-ous-close>Done</button></div></div>
+<section id="thean-ous-exports-panel" hidden><div role="tablist">${['export_review','export_waiting','export_upload'].map(key => `<button role="tab" data-product-tool="${key}">${key}</button>`).join('')}</div>${['export_review','export_waiting','export_upload'].map(key => `<section data-product-panel="${key}" ${key !== 'export_review' ? 'hidden' : ''}><p data-product-status></p><button data-product-reload="${key}">Reload</button><iframe data-src="https://example.test/tool?tool=${key}"></iframe></section>`).join('')}</section>
+<nav id="thean-workspace-foot" hidden><button data-order-workspace="orders">Orders</button><button data-order-workspace="products">Products</button><button data-order-workspace="exports">Exports</button></nav>
+<button id="guide-orders" data-thean-ous-workflow-guide>Guide</button><button id="guide-shopee" data-thean-ous-workflow-guide="shopee">Shopee guide</button><button id="guide-exports" data-thean-ous-workflow-guide="exports">Export guide</button><button id="guide-products" data-thean-ous-workflow-guide="products">Products guide</button>
+<div id="thean-ous-workflow-guide" class="thean-ous-modal" hidden><div data-thean-ous-close></div><div class="thean-ous-modal__dialog" role="dialog"><button data-thean-ous-close>Close</button><h2 id="thean-ous-workflow-title"></h2>${['orders','shopee','products','exports'].map(scope => `<section data-workflow-guide-scope="${scope}">Guide ${scope}</section>`).join('')}<button data-thean-ous-close>Done</button></div></div>
 <section id="results" hidden></section><section id="preview" hidden></section><section id="invoice" hidden><iframe></iframe></section><section id="acts" hidden></section>
 </body>`, { url: 'https://example.test/wp-admin/edit.php?post_type=shop_order&thean_board=cod', runScripts: 'outside-only' });
 const w = dom.window, d = w.document, errors = [];
@@ -37,6 +38,30 @@ check(!d.querySelector('#thean-ous-orders-panel').hidden && d.querySelector('#th
 check(!w.location.search.includes('thean_workspace=') && w.location.search.includes('thean_board=cod'), 'return to orders removes product URL scope only');
 w.TheanOrderWorkspace.show('products');
 check(d.querySelector('[data-product-tool="protein"]').getAttribute('aria-selected') === 'true' && frames[0] === keepFrame, 'reopening Products remembers active tool');
+// Export tools use their own selected key and preserve upload forms across tab changes.
+const exportFrames = Array.from(d.querySelectorAll('#thean-ous-exports-panel iframe'));
+check(exportFrames.every(frame => !frame.getAttribute('src')), 'exports have no requests before selection');
+d.querySelector('#thean-workspace-foot [data-order-workspace="exports"]').click();
+check(!d.getElementById('thean-ous-exports-panel').hidden && d.getElementById('thean-ous-products-panel').hidden && d.getElementById('thean-ous-orders-panel').hidden, 'sticky Export opens a separate workspace');
+check(exportFrames[0].src.includes('export_review') && !exportFrames[1].getAttribute('src') && !exportFrames[2].getAttribute('src'), 'review loads by default without fetching uploads or waiting list');
+check(w.location.search.includes('thean_workspace=exports') && w.location.search.includes('thean_export_tool=export_review') && !w.location.search.includes('thean_product_tool='), 'export URL scope is separate from product tool');
+d.querySelector('[data-product-tool="export_review"]').dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+check(d.querySelector('[data-product-tool="export_waiting"]').getAttribute('aria-selected') === 'true' && exportFrames[1].src.includes('export_waiting'), 'waiting list is second in keyboard order');
+d.querySelector('[data-product-tool="export_upload"]').click();
+const uploadFrame = exportFrames[2];
+uploadFrame.contentDocument.open(); uploadFrame.contentDocument.write('<!doctype html><html><body></body></html>'); uploadFrame.contentDocument.close();
+const draft = uploadFrame.contentDocument.createElement('input'); draft.type = 'file'; uploadFrame.contentDocument.body.appendChild(draft);
+Object.defineProperty(draft, 'files', { value: [new w.File(['image'], 'export.jpg', { type: 'image/jpeg' })] });
+d.querySelector('[data-product-tool="export_review"]').click();
+let listRefreshes = 0; exportFrames[0].contentWindow.uexeRefreshLists = force => { if (force) listRefreshes++; };
+w.TheanOrderWorkspace.show('orders'); w.TheanOrderWorkspace.show('exports');
+check(listRefreshes === 1 && exportFrames[0].getAttribute('src'), 'returning to export list invokes read-only refresh rather than iframe reload');
+d.querySelector('[data-product-tool="export_upload"]').click();
+check(exportFrames[2] === uploadFrame && uploadFrame.contentDocument.querySelector('input[type="file"]') === draft && draft.files[0].name === 'export.jpg', 'switching subtabs retains selected file and original upload form');
+w.TheanOrderWorkspace.show('products');
+check(d.querySelector('[data-product-tool="protein"]').getAttribute('aria-selected') === 'true' && frames[0] === keepFrame, 'export navigation does not reset active product tool');
+w.TheanOrderWorkspace.show('exports');
+check(d.querySelector('[data-product-tool="export_upload"]').getAttribute('aria-selected') === 'true', 'each tool workspace retains its own selected subtab');
 // Run production modal helpers/listeners on the same DOM.
 const source = fs.readFileSync(path.join(dir, 'order-universal-search.js'), 'utf8');
 const ctx = vm.createContext({ document: d, window: w });
@@ -45,7 +70,7 @@ function section(start, end) { return source.slice(source.indexOf(start), source
 vm.runInContext(section('    function setOpen(', '    function body('), ctx);
 const clickStart = source.lastIndexOf("    document.addEventListener('click', function (e) {\n        var guideButton");
 vm.runInContext(source.slice(clickStart, source.lastIndexOf('}());')), ctx);
-for (const scope of ['orders','shopee','products']) {
+for (const scope of ['orders','shopee','products','exports']) {
  const button = d.getElementById('guide-' + scope);button.focus();button.click();
  const guide = ctx.guide;
  check(!guide.hidden && !guide.querySelector(`[data-workflow-guide-scope="${scope}"]`).hidden, `${scope} button opens the correct guide`);

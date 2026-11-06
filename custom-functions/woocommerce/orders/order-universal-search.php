@@ -1770,6 +1770,15 @@ function thean_ous_render_workflow_guide(): void
                 </ol>
                 <p class="thean-ous-guide__note">Xác nhận xuất kho và bàn giao vận chuyển là hai việc riêng. Nếu tải nhầm ảnh, sai mã hoặc kiện bị hủy, kiểm tra chi tiết và dùng thao tác phù hợp trên kiện trước khi tiếp tục.</p>
             </div>
+            <div data-workflow-guide-scope="exports" hidden>
+                <p>Ưu tiên duyệt ảnh và xử lý đơn đã có ảnh trước khi tải ảnh mới. Mỗi tab dùng công cụ xuất kho hiện có, giữ nguyên quyền và bước xác nhận.</p>
+                <ol class="thean-ous-guide">
+                    <li><h3>Ảnh chờ duyệt</h3><p>Đối chiếu ảnh với mã đơn, sản phẩm và số lượng. Chỉ xác nhận xuất kho khi đã kiểm tra; AI báo khớp chỉ hỗ trợ quyết định của người duyệt.</p></li>
+                    <li><h3>Đơn đã upload ảnh nhưng chưa giao đi</h3><p>Kiểm tra các đơn đã có ảnh để hoàn tất việc duyệt và chuẩn bị bàn giao. Có ảnh không đồng nghĩa đã được duyệt hoặc đã giao đi. Ghi nhận giao hàng bằng thao tác hiện có trên đơn.</p></li>
+                    <li><h3>Up ảnh</h3><p>Nhập đúng mã đơn, chọn ảnh, kiểm tra checklist rồi xác nhận tải lên. Có thể dùng chế độ nhiều đơn và AI theo các lựa chọn của biểu mẫu. Tải ảnh xong chuyển sang Ảnh chờ duyệt.</p></li>
+                </ol>
+                <p class="thean-ous-guide__note">Chuyển tab giữ dữ liệu đang nhập và ảnh đang chọn. Hai danh sách được làm mới khi mở lại; biểu mẫu Up ảnh giữ nguyên cho tới khi bạn chủ động tải lại. Dùng nút Tải lại công cụ khi cần khởi động lại toàn bộ công cụ.</p>
+            </div>
             <div data-workflow-guide-scope="products" hidden>
                 <p>Chọn một trong ba công cụ. Chuyển tab giữ kết quả và dữ liệu đang nhập; Tải lại công cụ sẽ khởi động lại công cụ đó.</p>
                 <ol class="thean-ous-guide">
@@ -1840,6 +1849,9 @@ function thean_ous_render_ui(): void
         <div class="thean-workspace-tabs" role="tablist" aria-label="Khu làm việc">
             <button type="button" id="thean-workspace-orders" role="tab" aria-controls="thean-ous-orders-panel" aria-selected="true" tabindex="0" data-order-workspace="orders">📋 Đơn hàng</button>
             <button type="button" id="thean-workspace-products" role="tab" aria-controls="thean-ous-products-panel" aria-selected="false" tabindex="-1" data-order-workspace="products">📦 Sản phẩm</button>
+            <?php if (current_user_can('manage_woocommerce')) : ?>
+                <button type="button" id="thean-workspace-exports" role="tab" aria-controls="thean-ous-exports-panel" aria-selected="false" tabindex="-1" data-order-workspace="exports">📤 Xuất kho</button>
+            <?php endif; ?>
         </div>
         <div class="thean-ous-bar__row">
             <a class="thean-ous-bar__brand" href="<?php echo esc_url(function_exists('thean_erp_get_home_url') ? thean_erp_get_home_url() : home_url('/')); ?>" target="_blank" rel="noopener" title="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php echo thean_ous_logo_html(); ?></a>
@@ -1897,9 +1909,13 @@ function thean_ous_render_ui(): void
 
     <section id="thean-ous-orders-panel" role="tabpanel" aria-labelledby="thean-workspace-orders"></section>
     <?php thean_order_render_product_workspace(); ?>
+    <?php thean_order_render_export_workspace(); ?>
     <nav class="thean-workspace-foot" id="thean-workspace-foot" aria-label="Khu làm việc" hidden>
         <button type="button" data-order-workspace="orders" aria-pressed="true">📋 Đơn hàng</button>
         <button type="button" data-order-workspace="products" aria-pressed="false">📦 Sản phẩm</button>
+        <?php if (current_user_can('manage_woocommerce')) : ?>
+            <button type="button" data-order-workspace="exports" aria-pressed="false">📤 Xuất kho</button>
+        <?php endif; ?>
         <div id="thean-workspace-order-shortcuts" hidden></div>
     </nav>
     <?php thean_ous_render_workflow_guide(); ?>
