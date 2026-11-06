@@ -535,13 +535,37 @@
     function renderTabs(tabs, current) {
         var nav = board.querySelector('.thean-ous-tabs');
         nav.replaceChildren();
-        tabs.forEach(function (t) {
+        // Thứ tự vận hành (thean_ops_step_flow): luồng chính đánh số + mũi tên, rồi vạch tách nhóm ngoại lệ / song song.
+        var mainTotal = tabs.filter(function (t) { return t.lane === 'main'; }).length, sideStarted = false;
+        tabs.forEach(function (t, i) {
+            if (t.lane === 'side' && !sideStarted) {
+                sideStarted = true;
+                var sep = document.createElement('span');
+                sep.className = 'thean-ous-tabs__sep';
+                sep.textContent = 'Ngoại lệ / song song';
+                nav.appendChild(sep);
+            } else if (t.lane === 'main' && i > 0) {
+                var arrow = document.createElement('span');
+                arrow.className = 'thean-ous-tabs__arrow';
+                arrow.setAttribute('aria-hidden', 'true');
+                arrow.textContent = '→';
+                nav.appendChild(arrow);
+            }
             var b = document.createElement('button');
             b.type = 'button';
             b.className = 'thean-ous-tab' + (t.key === current ? ' is-active' : '') + (t.count ? '' : ' is-empty');
             b.setAttribute('role', 'tab');
             b.setAttribute('aria-selected', t.key === current ? 'true' : 'false');
             b.dataset.theanOusTab = t.key;
+            if (t.lane === 'main' && t.no) {
+                b.classList.add('thean-ous-tab--main');
+                b.title = 'Bước ' + t.no + '/' + mainTotal + ' của luồng chính';
+                var no = document.createElement('i'); no.className = 'thean-ous-tab__no'; no.textContent = t.no;
+                b.appendChild(no);
+            } else if (t.lane === 'side') {
+                b.classList.add('thean-ous-tab--side');
+                b.title = 'Ngoại lệ / song song — không phải bước kế tiếp của luồng chính';
+            }
             var label = document.createElement('span'); label.textContent = t.label;
             var count = document.createElement('b'); count.textContent = t.count;
             b.append(label, count);
@@ -565,13 +589,19 @@
         }
         var select = nav.querySelector('select');
         select.replaceChildren();
-        var idx = 0;
+        var idx = 0, groups = {};
         tabs.forEach(function (t, i) {
             var o = document.createElement('option');
             o.value = t.key;
-            o.textContent = t.label + ' (' + t.count + ')';
+            o.textContent = (t.lane === 'main' && t.no ? t.no + '. ' : '') + t.label + ' (' + t.count + ')';
             if (t.key === current) { o.selected = true; idx = i; }
-            select.appendChild(o);
+            var lane = t.lane === 'side' ? 'side' : 'main';
+            if (!groups[lane]) {
+                groups[lane] = document.createElement('optgroup');
+                groups[lane].label = lane === 'main' ? 'Luồng chính' : 'Ngoại lệ / song song';
+                select.appendChild(groups[lane]);
+            }
+            groups[lane].appendChild(o);
         });
         // ‹ › nhảy sang tab kề có đơn (bỏ tab trống); không còn thì giữ tab kề bất kỳ.
         nav.querySelectorAll('.thean-ous-tabnav__btn').forEach(function (b) {
@@ -1009,6 +1039,8 @@
             guide.querySelectorAll('[data-workflow-guide-scope]').forEach(function (section) { section.hidden = section.dataset.workflowGuideScope !== scope; });
             setOpen(guide, true); return;
         }
+        var guideTab = e.target.closest('[data-thean-ous-guide-tab]');
+        if (guideTab) { setOpen(guide, false); loadBoard(guideTab.dataset.theanOusGuideTab, 1, false); board.scrollIntoView({ block: 'start' }); return; }
         var close = e.target.closest('[data-thean-ous-close]');
         if (close) setOpen(close.closest('.thean-ous-modal'), false);
     });

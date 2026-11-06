@@ -193,6 +193,29 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-tab.is-active { border-color:var(--ous-primary); background:var(--ous-primary); color:#fff; }
 .thean-ous-tab.is-active b { background:#fff; }
 .thean-ous-tab.is-empty:not(.is-active) { opacity:.55; }
+/* Thứ tự vận hành (thean_ops_step_flow): số bước + mũi tên ở luồng chính, nhóm ngoại lệ viền đứt sau vạch tách. */
+.thean-ous-tabs { align-items:center; }
+.thean-ous-tab__no { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--ous-primary); color:#fff; font-size:11px; font-style:normal; }
+.thean-ous-tab.is-active .thean-ous-tab__no { background:#fff; color:var(--ous-primary); }
+.thean-ous-tabs__arrow { color:#94a3b8; font-size:13px; margin:0 -2px; }
+.thean-ous-tabs__sep { flex-basis:100%; display:flex; align-items:center; gap:8px; color:#64748b; font-size:12px; font-weight:600; }
+.thean-ous-tabs__sep::after { content:""; flex:1; border-top:1px dashed var(--ous-border); }
+.thean-ous-tab--side { border-style:dashed; }
+.thean-ous-tab--side.is-active { border-style:solid; }
+/* Sơ đồ luồng ở 📖 Quy trình */
+.thean-ous-flowmap { margin:12px 0 18px; padding:12px; border:1px solid var(--ous-border); border-radius:8px; background:#fff; }
+.thean-ous-flowmap__lane { margin:0 0 8px; color:#64748b; font-size:12px; font-weight:600; }
+.thean-ous-flowmap__main, .thean-ous-flowmap__side { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0 0 12px; padding:0; list-style:none; }
+.thean-ous-flowmap__main > li + li::before { content:"→"; margin-right:6px; color:#94a3b8; }
+.thean-ous-flowmap__side { margin-bottom:0; }
+.thean-ous-flowmap__step { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--ous-primary); border-radius:999px; background:var(--ous-primary-lighter); color:var(--ous-primary-dark); font-size:13px; font-weight:600; cursor:pointer; text-align:left; }
+.thean-ous-flowmap__step:hover, .thean-ous-flowmap__step:focus-visible { background:var(--ous-primary); color:#fff; }
+.thean-ous-flowmap__step b { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--ous-primary); color:#fff; font-size:11px; }
+.thean-ous-flowmap__step--side { border-style:dashed; background:#fff; }
+.thean-ous-flowmap__end { color:#15803d; font-size:13px; font-weight:600; }
+.thean-ous-guide__lane { margin:18px 0 0; font-size:15px; }
+.thean-ous-guide--side li { border-style:dashed; background:#fff; }
+.thean-ous-guide__next { margin-top:6px !important; color:var(--ous-primary-dark); font-size:12px; font-weight:600; }
 .thean-ous__hint { margin-top:6px; padding:3px 7px; border-radius:6px; background:#fff7e0; color:#7c4a03; font-size:12px; line-height:1.45; }
 
 .thean-ous-preview__head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; margin-right:40px; }

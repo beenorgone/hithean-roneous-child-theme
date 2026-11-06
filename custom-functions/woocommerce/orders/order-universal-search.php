@@ -1245,8 +1245,11 @@ function thean_ous_board_tabs(string $range = 'auto'): array
         foreach (thean_ops_step_groups($key) as $step => $group_label) {
             $groups[] = ['key' => $step, 'label' => $group_label, 'count' => $stats['steps'][$step] ?? 0];
         }
-        $tabs[] = ['key' => $key, 'label' => $label, 'count' => $stats['counts'][$key] ?? 0, 'groups' => $groups];
+        $tabs[] = ['key' => $key, 'label' => $label, 'count' => $stats['counts'][$key] ?? 0, 'groups' => $groups] + thean_ops_step_position($key);
     }
+    // Hiển thị theo thứ tự vận hành: luồng chính trước, ngoại lệ sau (thean_ops_step_flow()).
+    $order = array_flip(array_merge(...array_values(thean_ops_step_flow())));
+    usort($tabs, static fn($a, $b) => ($order[$a['key']] ?? 99) <=> ($order[$b['key']] ?? 99));
     return $tabs;
 }
 
@@ -1753,11 +1756,39 @@ function thean_ous_render_workflow_guide(): void
             <h2 class="thean-ous-modal__title" id="thean-ous-workflow-title">Quy trình xử lý đơn</h2>
             <div data-workflow-guide-scope="orders">
             <p>Mở tab có việc cần làm, xử lý bằng nút trên từng đơn. Khi lưu thành công, dòng đơn và số đếm tự cập nhật sang bước phù hợp.</p>
-            <ol class="thean-ous-guide">
-                <?php foreach ($instructions as $key => $text) : ?>
-                    <li><h3><?php echo esc_html($labels[$key]); ?></h3><p><?php echo esc_html($text); ?></p></li>
-                <?php endforeach; ?>
-            </ol>
+            <?php
+            $flow = thean_ops_step_flow();
+            // Bước rẽ nhánh: ghi rõ thay vì "bước kế" theo vị trí.
+            $next_text = [
+                'export'   => '4. ' . $labels['delivery'] . ' — đơn giao nhanh COD: 6. ' . $labels['cod'],
+                'shipping' => '6. ' . $labels['cod'] . ' (đơn COD) — đơn đã thanh toán trước: Hoàn thành',
+            ];
+            ?>
+            <div class="thean-ous-flowmap" aria-label="Thứ tự vận hành">
+                <p class="thean-ous-flowmap__lane">Luồng chính — đơn đi lần lượt (bấm để mở tab)</p>
+                <ol class="thean-ous-flowmap__main">
+                    <?php foreach ($flow['main'] as $i => $key) : ?>
+                        <li><button type="button" class="thean-ous-flowmap__step" data-thean-ous-guide-tab="<?php echo esc_attr($key); ?>"><b><?php echo $i + 1; ?></b><?php echo esc_html($labels[$key]); ?></button></li>
+                    <?php endforeach; ?>
+                    <li class="thean-ous-flowmap__end">✅ Hoàn thành</li>
+                </ol>
+                <p class="thean-ous-flowmap__lane">Ngoại lệ / song song — không phải bước kế tiếp, kiểm tra thêm mỗi ngày</p>
+                <ul class="thean-ous-flowmap__side">
+                    <?php foreach ($flow['side'] as $key) : ?>
+                        <li><button type="button" class="thean-ous-flowmap__step thean-ous-flowmap__step--side" data-thean-ous-guide-tab="<?php echo esc_attr($key); ?>"><?php echo esc_html($labels[$key]); ?></button></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php foreach ($flow as $lane => $keys) : ?>
+                <h3 class="thean-ous-guide__lane"><?php echo $lane === 'main' ? 'Luồng chính' : 'Ngoại lệ / song song'; ?></h3>
+                <ol class="thean-ous-guide<?php echo $lane === 'side' ? ' thean-ous-guide--side' : ''; ?>">
+                    <?php foreach ($keys as $i => $key) : ?>
+                        <li><h3><?php echo esc_html($labels[$key]); ?></h3><p><?php echo esc_html($instructions[$key] ?? ''); ?></p>
+                            <?php if ($lane === 'main') : ?><p class="thean-ous-guide__next">→ Xong chuyển sang: <?php echo esc_html($next_text[$key] ?? (isset($keys[$i + 1]) ? ($i + 2) . '. ' . $labels[$keys[$i + 1]] : 'Hoàn thành')); ?></p><?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ol>
+            <?php endforeach; ?>
             <p class="thean-ous-guide__note">Bộ lọc Ngày tạo áp dụng cho mọi tab. Mỗi lần chỉ tải một phần danh sách; số “đang hiện / tổng” của từng nhóm cho biết còn đơn cần bấm Xem thêm. Tab ngoại lệ ảnh giữ giới hạn <?php echo (int) THEAN_OPS_PROOF_DAYS; ?> ngày và bộ lọc ngày đang chọn. Nếu vừa cập nhật quy trình, hệ thống sẽ phân bước lại ở nền; bấm Làm mới sau khi xử lý xong.</p>
             </div>
             <div data-workflow-guide-scope="shopee" hidden>

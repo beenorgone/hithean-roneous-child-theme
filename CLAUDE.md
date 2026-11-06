@@ -83,6 +83,8 @@ Xử lý đơn → "Khóa đơn cũ" (option `thean_order_age_lock_relax`). Boar
   Menu ⋯ trên thanh tìm → "⤓ Tải danh sách Woo" mở lại với `?thean_wc_list=1` (JS gắn tiếp vào phân trang / tab / sắp xếp), không nhớ cho lần sau.
   Ẩn với **mọi user**, kể cả khi URL có `?s=`, lọc khách / tháng hay kết quả thao tác hàng loạt — chỉ hiện khi có `?thean_wc_list=1`.
   Board "Tải đơn cần xử lý" tự tải khi mở trang (`boardAutoload` trong `thean_ous_ui_config()`), trừ lúc đang mở bảng Woo.
+  **Thứ tự vận hành board**: `thean_ops_step_flow()` (order-ops-step.php) — 'main' đánh số 1→6 + mũi tên, 'side' = ngoại lệ
+  (Thiếu CT XK / Hoàn / Đặt trước) sau vạch tách; cùng nguồn cho select mobile + sơ đồ bấm được ở 📖 Quy trình. Thêm tab → thêm vào đây.
   **Link thẳng tới tab**: `?thean_board=<tab>` (key của `thean_ops_step_tabs()`: confirm, payment, picking, export, delivery,
   shipping, cod, proof, return, preorder) luôn mở board ở tab đó; URL trên thanh địa chỉ đi theo tab đang xem (`history.replaceState`),
   nút "🔗 Link tab" sao chép link. PHP: `thean_ops_board_url($tab)` (order-ops-step.php, nạp mọi request).

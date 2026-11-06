@@ -62,6 +62,33 @@ function thean_ops_step_tabs(): array
     ];
 }
 
+/**
+ * Thứ tự vận hành của board — nguồn duy nhất cho tab (đánh số + mũi tên), select mobile và sơ đồ ở 📖 Quy trình.
+ * 'main' = luồng chính, đơn đi lần lượt từ trái sang phải; 'side' = hàng đợi ngoại lệ / song song (không phải bước
+ * kế tiếp của luồng chính, 1 đơn có thể vừa ở đây vừa ở tab chính). Mọi tab của thean_ops_step_tabs() phải có mặt.
+ *
+ * @return array{main: string[], side: string[]}
+ */
+function thean_ops_step_flow(): array
+{
+    return [
+        'main' => ['confirm', 'picking', 'export', 'delivery', 'shipping', 'cod'],
+        'side' => ['proof', 'return', 'preorder'],
+    ];
+}
+
+/** Vị trí tab trong luồng: ['lane' => main|side, 'no' => số thứ tự 1.. trong lane]. */
+function thean_ops_step_position(string $tab): array
+{
+    foreach (thean_ops_step_flow() as $lane => $keys) {
+        $i = array_search($tab, $keys, true);
+        if ($i !== false) {
+            return ['lane' => $lane, 'no' => $i + 1];
+        }
+    }
+    return ['lane' => 'side', 'no' => 0];
+}
+
 /** Bước lưu sẵn vẫn riêng biệt để giữ đúng thao tác; chỉ gộp ở lớp hiển thị board. */
 function thean_ops_step_tab(string $step): string
 {

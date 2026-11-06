@@ -18,6 +18,7 @@ define('ARRAY_A', 'ARRAY_A');
 function add_action($hook, $callback, ...$a) { $GLOBALS['__actions'][$hook][] = $callback; }
 function wp_strip_all_tags($s) { return strip_tags((string) $s); }
 function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
+if (!function_exists('esc_attr')) { function esc_attr($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); } }
 function get_user_meta() { return ''; }
 function add_filter(...$a) {}
 $GLOBALS['__transients'] = [];
@@ -504,6 +505,10 @@ foreach ([true, false] as $hpos) {
     $counts = thean_ous_board_counts('30');
     $tabs = array_column(thean_ous_board_tabs('30'), null, 'key');
     check($counts['confirm'] === 5 && $counts['cod'] === 9 && !isset($counts['payment']), 'group counts sum into parent tabs');
+    $flow = thean_ops_step_flow();
+    $flat = array_merge($flow['main'], $flow['side']);
+    check(count($flat) === count(array_unique($flat)) && !array_diff(array_keys(thean_ops_step_tabs()), $flat) && !array_diff($flat, array_keys(thean_ops_step_tabs())), 'flow covers every board tab exactly once');
+    check(array_column(thean_ous_board_tabs('30'), 'key') === $flat && $tabs['confirm']['lane'] === 'main' && $tabs['confirm']['no'] === 1 && $tabs['cod']['no'] === 6 && $tabs['proof']['lane'] === 'side', 'board tabs ordered + numbered by operating flow');
     check($tabs['confirm']['groups'][1]['count'] === 3 && $tabs['cod']['groups'][0]['count'] === 4 && count($wpdb->queries) === 2, 'group counts reuse same aggregate queries');
     $wpdb->board_memberships = [['order_id' => 910, 'step' => 'payment', 'proof' => 0], ['order_id' => 911, 'step' => 'cod_fast', 'proof' => 1]];
     check(thean_ous_board_memberships([910,911], '30') === [910 => ['confirm'], 911 => ['cod','proof']], 'row patches map raw steps to canonical tabs with proof overlap');
@@ -512,6 +517,8 @@ foreach ([true, false] as $hpos) {
 ob_start(); thean_ous_render_workflow_guide(); $guide = ob_get_clean();
 check(strpos($guide, 'aria-labelledby="thean-ous-workflow-title"') !== false && strpos($guide, 'Đơn chờ thanh toán trước') !== false
     && strpos($guide, 'Chờ đối soát đơn vị VC') !== false && strpos($guide, 'AI chỉ hỗ trợ') !== false, 'guide explains both grouped tabs and human export confirmation');
+check(strpos($guide, 'data-thean-ous-guide-tab="confirm"><b>1</b>') !== false && strpos($guide, 'data-thean-ous-guide-tab="cod"><b>6</b>') !== false
+    && strpos($guide, 'thean-ous-flowmap__step--side" data-thean-ous-guide-tab="proof"') !== false && strpos($guide, '→ Xong chuyển sang: 2. ') !== false, 'guide shows numbered main flow + side lanes');
 
 // Nhập VAT: bóc JSON trả lời của AI.
 $ai = thean_vat_request_parse_ai("Đây là kết quả:\n```json\n{\"tax_code\":\"MST: 0312 345 678\",\"company\":\" Công ty TNHH An \",\"address\":\"12 Lê Lợi, Q1\",\"email\":\"ketoan@an.vn\",\"note\":\"\"}\n```");
