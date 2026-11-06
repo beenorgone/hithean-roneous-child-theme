@@ -1724,7 +1724,7 @@ function thean_ous_ui_config(): array
         'wcList'         => function_exists('thean_wcl_state') ? thean_wcl_state() : null, // order-list-lazy.php
         // Tự tải board "Tải đơn cần xử lý" ngay khi mở danh sách đơn (theanmarket chưa bật — JS mặc định tắt).
         'boardAutoload'  => true,
-        'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden]), #thean-flow-modal:not([hidden]), #thean-vat-modal:not([hidden])',
+        'blockingModals' => '.hithean-order-modal:not([hidden]), .hithean-return-modal:not([hidden]), #thean-flow-modal:not([hidden]), #thean-vat-modal:not([hidden]), #thean-export-review-modal:not([hidden])',
     ];
 }
 

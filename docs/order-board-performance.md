@@ -263,3 +263,31 @@ real export module's named footer callback with WordPress stubs, verifies the
 checklist/gallery/nonces, compiles its inline JS, and verifies permission denial.
 Together with the tool-route and DOM suites this proves integration boundaries;
 it does not perform a real upload, AI request, export confirmation or stock change.
+
+## Export confirmation evidence modal
+
+On the order board and the native order list, clicking the export-confirm action
+now opens a dedicated evidence modal before any mutation. The shared capture
+handler recognizes both sites' existing action classes and prevents the older
+generic confirmation modal from also opening. Other quick actions are unchanged.
+
+`thean_order_export_review` is an authenticated AJAX read with its own nonce,
+`manage_woocommerce` and per-order edit checks. It loads one order, primary
+WooCommerce metadata with legacy-post fallback, its product quantities, safe
+image URLs, saved AI results and the latest matching AI note (up to 15 internal
+notes scanned). This preview never calls AI, restores metadata or confirms stock.
+Queued AI is identified separately from a previous result. Missing photos,
+already-confirmed orders, and the existing old-order lock disable confirmation.
+
+The modal supports photo thumbnails/full-size viewing and AI notes rendered as
+text. Closing/switching orders cancels the preview request; late or mismatched
+responses cannot replace current evidence. Confirmation remains disabled until
+preview data loads, then an explicit button invokes the existing
+`ajax_confirm_export` endpoint with its original nonce and order ID. No automatic
+retry or AI-only approval is introduced. Success emits the existing
+`thean:order-updated` event for the saved order, preserving incremental row sync.
+
+Checks: `php tests/order-export-review.php` and
+`node tests/order-export-review.cjs` cover read permissions, HPOS/legacy fallback,
+no preview writes, evidence rendering, stale responses, failed reads/writes,
+duplicate submit suppression, and mutation events after explicit success only.

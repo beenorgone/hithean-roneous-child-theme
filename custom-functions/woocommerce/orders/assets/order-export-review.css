@@ -1,0 +1,24 @@
+body.thean-export-review-open { overflow:hidden; }
+.thean-export-review[hidden] { display:none; }
+.thean-export-review { position:fixed; inset:0; z-index:1000010; display:grid; place-items:center; padding:20px; }
+.thean-export-review__backdrop { position:absolute; inset:0; background:#0f172a99; }
+.thean-export-review__dialog { position:relative; width:min(1100px,100%); max-height:calc(100dvh - 40px); overflow:auto; box-sizing:border-box; padding:20px; border-radius:12px; background:#fff; color:#1e293b; box-shadow:0 20px 60px #0f172a55; }
+.thean-export-review h2 { margin:0 40px 8px 0; font-size:20px; }
+.thean-export-review h3 { margin:0 0 10px; font-size:15px; }
+.thean-export-review__close { position:absolute; right:12px; top:12px; }
+.thean-export-review button { padding:8px 12px; border:1px solid #b9cdf0; border-radius:8px; background:#fff; color:#0047ba; font:inherit; cursor:pointer; }
+.thean-export-review button:focus-visible, .thean-export-review a:focus-visible { outline:2px solid #0047ba; outline-offset:2px; }
+.thean-export-review button:disabled { opacity:.5; cursor:default; }
+.thean-export-review__grid { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:18px; }
+.thean-export-review__hero { display:block; width:100%; height:clamp(220px,48vh,520px); object-fit:contain; background:#f1f5f9; border-radius:8px; }
+.thean-export-review__thumbs { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+.thean-export-review__thumbs button { padding:3px; }
+.thean-export-review__thumbs img { display:block; width:64px; height:64px; object-fit:cover; }
+.thean-export-review__thumbs button[aria-pressed="true"] { border:2px solid #0047ba; }
+.thean-export-review__ai { padding:12px; border:1px solid #b9cdf0; border-radius:8px; background:#f3f7ff; }
+.thean-export-review__ai pre { white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; font-size:13px; line-height:1.65; }
+.thean-export-review__actions { position:sticky; bottom:-20px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; padding:12px 0; border-top:1px solid #e2e8f0; background:#fff; }
+.thean-export-review .thean-export-review__confirm { background:#0047ba; color:#fff; }
+.thean-export-review__notice { color:#b42318; white-space:pre-wrap; }
+.thean-export-review__toast { position:fixed; bottom:100px; right:20px; z-index:1000011; padding:12px 16px; border-radius:8px; background:#166534; color:#fff; }
+@media (max-width:700px) { .thean-export-review { padding:8px; } .thean-export-review__dialog { padding:14px; max-height:calc(100dvh - 16px); } .thean-export-review__grid { grid-template-columns:minmax(0,1fr); } .thean-export-review__actions { bottom:-14px; } }

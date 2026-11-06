@@ -107,8 +107,9 @@ function hithean_render_export_image_gallery(array $urls): string
     $html = '<div class="order-images uexe-gallery-thumbs" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">';
     foreach ($safe_urls as $index => $url) {
         $u = esc_url($url);
-        $html .= '<a href="' . $u . '" class="uexe-gallery-link" data-gallery="' . $urls_json . '" data-index="' . esc_attr($index) . '" style="display:inline-block;cursor:zoom-in;">';
-        $html .= '<img src="' . $u . '" style="max-width:80px;height:auto;border:1px solid #ddd;border-radius:4px;">';
+        $html .= '<a href="' . $u . '" class="uexe-gallery-link skip-lazy" data-gallery="' . $urls_json . '" data-index="' . esc_attr($index) . '" style="display:block;flex:0 0 80px;width:80px;height:80px;cursor:zoom-in;">';
+        // AJAX-inserted evidence must not depend on the public theme's lazy loader.
+        $html .= '<img src="' . $u . '" class="skip-lazy" data-skip-lazy="1" loading="eager" decoding="async" width="80" height="80" alt="Ảnh xuất kho ' . esc_attr($index + 1) . '" style="display:block;width:80px;height:80px;max-width:100%;object-fit:contain;box-sizing:border-box;border:1px solid #ddd;border-radius:4px;">';
         $html .= '</a>';
     }
     $html .= '</div>';

@@ -1,5 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
+require_once __DIR__ . '/order-export-review.php';
 
 /**
  * Bước vận hành của đơn, lưu sẵn thành meta để board "Cần xử lý" (order-universal-search.php) chỉ cần
