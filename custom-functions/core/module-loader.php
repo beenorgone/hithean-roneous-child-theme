@@ -21,6 +21,7 @@ require_once dirname(__DIR__) . '/integrations/erp-mesh-adapter.php';
 // 1) General includes — nạp mọi request
 // =====================================================================
 $general_includes = [
+    'custom-functions/core/admin-chrome/admin-chrome.php', // compact backend navigation toggle; no frontend assets
     'custom-functions/core/backend-optimize.php',
     'custom-functions/core/functional.php',
     'custom-functions/core/theme-code-cache.php',

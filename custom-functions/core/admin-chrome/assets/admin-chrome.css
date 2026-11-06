@@ -1,0 +1,47 @@
+.hithean-admin-chrome-toggle {
+    position: fixed;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    z-index: 100000;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 48px;
+    min-height: 32px;
+    padding: 5px 10px;
+    border: 0;
+    border-radius: 16px;
+    background: #0047ba;
+    color: #fff;
+    box-shadow: 0 1px 4px #0003;
+    opacity: 0.55;
+    transition: opacity 150ms ease;
+    font: 500 11px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    cursor: pointer;
+}
+.hithean-admin-chrome-toggle:hover,
+.hithean-admin-chrome-toggle:focus-visible { background: #003a99; opacity: 1; }
+.hithean-admin-chrome-toggle:focus-visible { outline: 3px solid #ffbf47; outline-offset: 3px; }
+html.hithean-admin-chrome-hidden { padding-top: 0 !important; }
+html.hithean-admin-chrome-hidden #wpadminbar,
+html.hithean-admin-chrome-hidden #adminmenumain,
+html.hithean-admin-chrome-hidden #adminmenuback,
+html.hithean-admin-chrome-hidden #adminmenuwrap,
+html.hithean-admin-chrome-hidden .woocommerce-layout__header {
+    display: none !important;
+}
+html.hithean-admin-chrome-hidden #wpcontent,
+html.hithean-admin-chrome-hidden #wpfooter { margin-left: 0 !important; }
+html.hithean-admin-chrome-hidden body { --wp-admin--admin-bar--height: 0px; }
+html.hithean-admin-chrome-hidden .woocommerce-layout { padding-top: 0 !important; }
+@media print {
+    .hithean-admin-chrome-toggle { display: none !important; }
+}
+
+@media (pointer: coarse) {
+    .hithean-admin-chrome-toggle { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hithean-admin-chrome-toggle { transition: none; }
+}
