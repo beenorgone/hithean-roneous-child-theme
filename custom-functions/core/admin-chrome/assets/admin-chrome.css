@@ -31,6 +31,14 @@ html.hithean-admin-chrome-hidden #adminmenuwrap,
 html.hithean-admin-chrome-hidden .woocommerce-layout__header {
     display: none !important;
 }
+/* Keep notices in the DOM so showing the chrome restores them, including AJAX notices. */
+html.hithean-admin-chrome-hidden #wpbody-content .notice,
+html.hithean-admin-chrome-hidden #wpbody-content div.updated,
+html.hithean-admin-chrome-hidden #wpbody-content div.error,
+html.hithean-admin-chrome-hidden #wpbody-content .update-nag,
+html.hithean-admin-chrome-hidden #wpbody-content .components-notice {
+    display: none !important;
+}
 html.hithean-admin-chrome-hidden #wpcontent,
 html.hithean-admin-chrome-hidden #wpfooter { margin-left: 0 !important; }
 html.hithean-admin-chrome-hidden body { --wp-admin--admin-bar--height: 0px; }
