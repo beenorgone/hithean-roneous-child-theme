@@ -1817,7 +1817,7 @@ function thean_ous_render_workflow_guide(): void
                     <li><h3>So sánh sản phẩm</h3><p>Tìm và thêm các sản phẩm cần so sánh, kiểm tra biến thể và đơn vị. Đọc bảng so sánh theo tiêu chí khách quan tâm; nội dung AI chỉ hỗ trợ, cần kiểm tra thông tin trước khi tư vấn.</p></li>
                     <li><h3>Tính protein</h3><p>Nhập thông tin và lựa chọn phù hợp trong biểu mẫu để xem kết quả ước tính. Dùng kết quả làm thông tin tham khảo khi tư vấn và đọc các giải thích ngay trong công cụ.</p></li>
                 </ol>
-                <p class="thean-ous-guide__note">Các công cụ dùng lại chức năng hiện có của website. Chỉ công cụ đang chọn được tải lần đầu. Nếu nội dung không tải, bấm Tải lại công cụ; dùng Mở riêng khi cần đăng nhập lại hoặc xem rộng hơn. Muốn tiếp tục xử lý đơn, bấm Đơn hàng ở thanh trên hoặc menu sticky phía dưới.</p>
+                <p class="thean-ous-guide__note">Các công cụ dùng lại chức năng hiện có của website. Chỉ công cụ đang chọn được tải lần đầu. Nếu nội dung không tải, bấm Tải lại công cụ; dùng Mở riêng khi cần đăng nhập lại hoặc xem rộng hơn. Muốn tiếp tục xử lý đơn, bấm Đơn hàng ở thanh trên hoặc 📋 Website ở menu sticky phía dưới.</p>
             </div>
             <button type="button" class="thean-ous__more-btn" data-thean-ous-close>Đã hiểu, quay lại làm việc</button>
         </div>
@@ -1942,12 +1942,12 @@ function thean_ous_render_ui(): void
     <?php thean_order_render_product_workspace(); ?>
     <?php thean_order_render_export_workspace(); ?>
     <nav class="thean-workspace-foot" id="thean-workspace-foot" aria-label="Khu làm việc" hidden>
-        <button type="button" data-order-workspace="orders" aria-pressed="true">📋 Đơn hàng</button>
+        <?php // 1 dòng. Theanmarket: admin-embed.js (shopee-export) chèn nút 🛍️ Shopee ngay sau 📋 Website. ?>
+        <button type="button" data-order-workspace="orders" aria-pressed="true">📋 Website <b data-thean-foot-count hidden></b></button>
         <button type="button" data-order-workspace="products" aria-pressed="false">📦 Sản phẩm</button>
         <?php if (current_user_can('manage_woocommerce')) : ?>
             <button type="button" data-order-workspace="exports" aria-pressed="false">📤 Xuất kho</button>
         <?php endif; ?>
-        <div id="thean-workspace-order-shortcuts" hidden></div>
     </nav>
     <?php thean_ous_render_workflow_guide(); ?>
 

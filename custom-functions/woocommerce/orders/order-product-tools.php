@@ -21,6 +21,15 @@ function thean_order_export_tools(): array
     ];
 }
 
+/**
+ * Module Xuất kho Shopee có ở site này không (theanmarket có, hithean không). Có → khu Xuất kho thêm bộ chọn
+ * loại đơn Website / Shopee, truyền vào iframe bằng ?thean_export_kind=all|web|shopee (shortcode đọc thean_export_kind()).
+ */
+function thean_order_export_has_shopee(): bool
+{
+    return is_file(dirname(__DIR__) . '/shipping/shopee-export/shopee-export.php');
+}
+
 function thean_order_workspace_tools(): array
 {
     return array_merge(thean_order_product_tools(), thean_order_export_tools());
@@ -130,6 +139,13 @@ function thean_order_render_tool_workspace(string $scope): void
     <section class="thean-ous-products" id="thean-ous-<?php echo esc_attr($scope); ?>-panel" data-tool-workspace="<?php echo esc_attr($scope); ?>" role="tabpanel" aria-labelledby="thean-workspace-<?php echo esc_attr($scope); ?>" hidden>
         <div class="thean-ous-board__head">
             <h2><?php echo esc_html($title); ?></h2>
+            <?php if ($is_export && thean_order_export_has_shopee()) : ?>
+                <div class="thean-export-kind" role="group" aria-label="Loại đơn">
+                    <?php foreach (['all' => 'Tất cả', 'web' => '📋 Website', 'shopee' => '🛍️ Shopee'] as $kind => $kind_label) : ?>
+                        <button type="button" data-export-kind="<?php echo esc_attr($kind); ?>" aria-pressed="<?php echo $kind === 'all' ? 'true' : 'false'; ?>"><?php echo esc_html($kind_label); ?></button>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
             <button type="button" class="thean-ous__more-btn" data-thean-ous-workflow-guide="<?php echo esc_attr($scope); ?>" aria-haspopup="dialog" aria-controls="thean-ous-workflow-guide">📖 Hướng dẫn</button>
         </div>
         <div class="thean-workspace-tabs" role="tablist" aria-label="<?php echo esc_attr($title); ?>">

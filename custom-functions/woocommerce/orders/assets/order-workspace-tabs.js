@@ -83,10 +83,33 @@
         else updateUrl();
         document.dispatchEvent(new CustomEvent('thean:workspace-changed', { detail: { workspace: key } }));
     }
+    // Xuất kho: loại đơn Website / Shopee (chỉ site có module Shopee render nút) → ?thean_export_kind= cho mọi iframe xuất kho.
+    var KIND_KEY = 'theanExportKind', exportKind = 'all';
+    try { exportKind = localStorage.getItem(KIND_KEY) || 'all'; } catch (e) {}
+    var kindButtons = exports ? Array.from(exports.querySelectorAll('[data-export-kind]')) : [];
+    function setExportKind(kind, reload) {
+        if (!kindButtons.length) return;
+        if (!kindButtons.some(function (b) { return b.dataset.exportKind === kind; })) kind = 'all';
+        exportKind = kind;
+        try { localStorage.setItem(KIND_KEY, kind); } catch (e) {}
+        kindButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.exportKind === kind)); });
+        exports.querySelectorAll('[data-product-panel]').forEach(function (panel) {
+            var frame = panel.querySelector('iframe'), link = panel.querySelector('a[target="_blank"]');
+            var u = new URL(frame.dataset.src, location.href);
+            u.searchParams.set('thean_export_kind', kind);
+            frame.dataset.src = u.toString();
+            if (link) link.href = u.toString();
+            if (reload && frame.getAttribute('src')) frame.removeAttribute('src'); // tải lại khi mở (đang xem → tải ngay)
+        });
+        if (reload && current === 'exports') selectTool(tools.exports.key, 'exports');
+    }
+    setExportKind(exportKind, false);
     function toolWorkspace(button) {
         return exports && exports.contains(button) ? 'exports' : 'products';
     }
     document.addEventListener('click', function (event) {
+        var kindButton = event.target.closest('[data-export-kind]');
+        if (kindButton) { if (kindButton.dataset.exportKind !== exportKind) setExportKind(kindButton.dataset.exportKind, true); return; }
         var button = event.target.closest('[data-order-workspace]');
         if (button) { show(button.dataset.orderWorkspace); return; }
         button = event.target.closest('[data-product-tool]');
@@ -102,6 +125,23 @@
         index = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
         event.preventDefault(); buttons[index].click(); buttons[index].focus();
     });
+    // 📋 Website ở footer: tổng đơn board = cộng số các tab, trừ "Thiếu chứng từ XK" (đơn đó đã nằm ở tab bước chính).
+    var footCount = foot.querySelector('[data-thean-foot-count]');
+    var boardTabs = board.querySelector('.thean-ous-tabs');
+    function syncFootCount() {
+        if (!footCount) return;
+        var sum = 0, any = false;
+        board.querySelectorAll('.thean-ous-tabs [data-thean-ous-tab]').forEach(function (t) {
+            if (t.dataset.theanOusTab === 'proof') return;
+            var n = parseInt((t.querySelector('b') || {}).textContent, 10);
+            if (!isNaN(n)) { sum += n; any = true; }
+        });
+        footCount.textContent = String(sum);
+        footCount.hidden = !any || board.hidden;
+    }
+    if (boardTabs) new MutationObserver(syncFootCount).observe(boardTabs, { subtree: true, childList: true, characterData: true });
+    new MutationObserver(syncFootCount).observe(board, { attributes: true, attributeFilter: ['hidden'] });
+    syncFootCount();
     window.TheanOrderWorkspace = { show: show, product: function (key) { selectTool(key, 'products'); }, exports: function (key) { selectTool(key, 'exports'); } };
     var url = new URL(location.href);
     Object.keys(tools).forEach(function (workspace) {
