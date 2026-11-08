@@ -35,7 +35,6 @@
         const empty = root.querySelector('[data-ho-empty]');
         const productGrid = root.querySelector('.ho-product-grid');
         const productsEmpty = root.querySelector('[data-ho-products-empty]');
-        const modebar = root.querySelector('[data-ho-modebar]');
         let active = 'all';
         let mode = 'programs';
         let expiryTimer;
@@ -93,11 +92,20 @@
         });
         if (search) { search.addEventListener('input', update); }
         const section = root.querySelector('#ho-offers');
-        const modeButtons = modebar ? modebar.querySelectorAll('[data-ho-mode]') : [];
+        // Nút đổi chế độ nằm trên thanh menu đáy toàn site (ngoài root, đã được portal ra <body>).
+        const modeToggles = document.querySelectorAll('[data-ho-mode-toggle]');
+        function syncToggles() {
+            const toProducts = mode !== 'products';
+            modeToggles.forEach(function (button) {
+                const label = button.querySelector('[data-ho-mode-label]');
+                if (label) { label.textContent = toProducts ? 'Theo SP' : 'Theo CT'; }
+                button.setAttribute('aria-label', toProducts ? 'Xem ưu đãi theo sản phẩm' : 'Xem ưu đãi theo chương trình');
+            });
+        }
         function setMode(next, scroll) {
             mode = next === 'products' ? 'products' : 'programs';
             root.dataset.hoMode = mode;
-            modeButtons.forEach(function (item) { item.setAttribute('aria-pressed', String(item.dataset.hoMode === mode)); });
+            syncToggles();
             root.querySelectorAll('[data-ho-panel]').forEach(function (panel) { panel.hidden = panel.dataset.hoPanel !== mode; });
             update();
             try { window.sessionStorage.setItem('ho-mode', mode); } catch (e) {}
@@ -109,12 +117,10 @@
             } catch (e) {}
             if (scroll && section) { section.scrollIntoView({block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}); }
         }
-        if (modebar) {
-            modebar.hidden = false;
-            modeButtons.forEach(function (button) {
-                button.addEventListener('click', function () { setMode(button.dataset.hoMode, true); });
-            });
-        }
+        modeToggles.forEach(function (button) {
+            button.addEventListener('click', function () { setMode(mode === 'products' ? 'programs' : 'products', true); });
+        });
+        syncToggles();
         // Hỏi nhanh khi vừa vào trang: xem theo sản phẩm hay theo chương trình. Không hỏi lại khi URL đã chọn
         // (?xem=…) hoặc khách đã chọn trong phiên này.
         const ask = root.querySelector('[data-ho-ask]');
@@ -125,7 +131,7 @@
             if (!chosen) { chosen = window.sessionStorage.getItem('ho-mode') || ''; }
         } catch (e) {}
         if (chosen) {
-            if (chosen === 'products' && modebar) { setMode('products', false); }
+            if (chosen === 'products') { setMode('products', false); }
         } else if (ask && typeof ask.showModal === 'function' && cards.length) {
             ask.showModal();
             document.documentElement.classList.add('ho-modal-open');

@@ -533,7 +533,7 @@ function tpc_cond_is_checkout()
 /**
  * Thanh menu đáy toàn site: trang chủ + mọi trang trừ trang sản phẩm, cửa hàng / danh mục (đã có thanh riêng),
  * giỏ / thanh toán / cảm ơn (flow mua hàng), landing ANC / Yeast Hero (có thanh đáy riêng), trang nội bộ.
- * /uu-dai/ vẫn nạp (chỉ panel "Ưu đãi của tôi", không in thanh — hithean_sfm_has_bar()).
+ * /uu-dai/ có thanh, ô "Nhận ưu đãi" thành nút đổi chế độ xem (hithean_sfm_on_offers_page()).
  */
 function tpc_cond_site_footer_menu()
 {

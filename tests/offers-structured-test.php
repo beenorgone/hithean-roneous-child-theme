@@ -72,7 +72,7 @@ unset($GLOBALS['options']['hithean_offers_settings']['banner_layout']);
 hithean_offers_set_banner($id, 0); hithean_offers_publish(); $html = hithean_offers_shortcode();
 ok(!str_contains($html, 'ho-has-banner') && str_contains(programs($html), 'ho-group-art'), 'Removing the banner restores product images');
 $panel = product_panel($html);
-ok(substr_count($panel, 'data-ho-card') === 2 && substr_count($panel, 'data-ho-rule ') === 2 && str_contains($panel, '>Test product 11</a>') && !str_contains($panel, 'ho-card-group') && substr_count($html, 'data-ho-mode="') === 3 && str_contains($html, '>Sản phẩm ưu đãi</button>'), 'Product mode renders one full card per product and the sticky bar switches modes');
+ok(substr_count($panel, 'data-ho-card') === 2 && substr_count($panel, 'data-ho-rule ') === 2 && str_contains($panel, '>Test product 11</a>') && !str_contains($panel, 'ho-card-group') && substr_count($html, 'data-ho-mode="') === 1 && !str_contains($html, 'ho-modebar'), 'Product mode renders one full card per product; mode switch lives on the site footer menu');
 $GLOBALS['products'][11]->stock = false; $stock_html = hithean_offers_shortcode(); $GLOBALS['products'][11]->stock = true;
 ok(strpos(product_panel($stock_html), '>Test product 12</a>') < strpos(product_panel($stock_html), '>Test product 11</a>') && str_contains(product_card($stock_html, 'Test product 11'), 'Tạm hết hàng') && str_contains($stock_html, 'class="ho-group-stock is-out">Tạm hết'), 'Live stock moves sold-out products last, even before the next sync');
 ok(!str_contains($html, 'ho-logo'), 'Landing falls back to the text wordmark without a site logo');

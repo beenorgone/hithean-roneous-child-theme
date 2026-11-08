@@ -17,7 +17,7 @@
     });
 
     // Trang đã có thanh đáy riêng (landing ANC, thanh danh mục, thanh trang SP…) → bỏ thanh này, giữ panel.
-    if (bar && document.querySelector('.anc-sticky-menu, .anc-pf-thumbnav, #apfm-root, .pcn, .ho-modebar')) {
+    if (bar && document.querySelector('.anc-sticky-menu, .anc-pf-thumbnav, #apfm-root, .pcn')) {
         bar.remove();
         bar = null;
         document.body.classList.remove('has-sfm');

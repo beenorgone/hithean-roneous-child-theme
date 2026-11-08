@@ -664,66 +664,8 @@
 .ho-group-stock.is-out {
     color: #8b3f29;
 }
-.ho-page:has(.ho-modebar:not([hidden])) {
-    padding-bottom: 54px;
-}
 [data-ho-mode="products"] .ho-filters {
     display: none;
-}
-/* Mode switcher, styled like the product page's .pcn__item bar (product-navigation.css). */
-.ho-modebar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-    background: #fff;
-    box-shadow: 0 -2px 14px rgba(0, 0, 0, 0.12);
-}
-.ho-modebar button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-height: 38px;
-    margin: 0;
-    padding: 6px 12px;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    color: #3a3a3a;
-    font-family: "Be Vietnam", sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.2;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-.ho-modebar button:hover,
-.ho-modebar button:focus-visible {
-    background: #f1f5f3;
-    color: #087a5a;
-    outline: none;
-}
-.ho-modebar button[aria-pressed="true"] {
-    background: #e6f3ee;
-    color: #087a5a;
-}
-.ho-modebar-icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-}
-.ho-modebar-icon svg {
-    width: 100%;
-    height: 100%;
 }
 .ho-badge {
     position: absolute;
@@ -1232,4 +1174,12 @@
 }
 @media (prefers-reduced-motion: reduce) {
     .ho-page .ho-ask-option { transition: none; }
+}
+
+/* Thanh menu đáy toàn site có mọi nút điều hướng → điện thoại chỉ giữ logo (+ đổi ngôn ngữ) ở nav đầu trang. */
+@media (max-width: 767px) {
+    body.has-sfm .ho-nav > div > a,
+    body.has-sfm .ho-nav .ho-nav-mine {
+        display: none;
+    }
 }

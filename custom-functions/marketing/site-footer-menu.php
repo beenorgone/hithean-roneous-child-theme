@@ -5,7 +5,7 @@
  *   Trang chủ · Sản phẩm · [Giỏ hàng] · Nhận ưu đãi · Ưu đãi của tôi (panel — my-offers.php).
  *   Giỏ hàng (giữa) mở popup giỏ của add-to-cart-popup.php; "Nhận ưu đãi" mở popup "Ưu đãi tiêu biểu" (khung
  *   .hithean-offers-dialog + thẻ .hithean-offer-card — y hệt popup ưu đãi trang SP) + nút "Xem toàn bộ" sang /uu-dai/.
- * Trang /uu-dai/ có thanh đổi chế độ riêng → không in thanh, chỉ in panel (nút "Ưu đãi của tôi" ở nav của trang).
+ * Trang /uu-dai/: ô "Nhận ưu đãi" thành nút đổi chế độ xem "Theo SP ⇄ Theo CT" (data-ho-mode-toggle, uu-dai.js xử lý).
  * Kiểu thanh giống thanh đáy trang danh mục (product-archive-footer-menu.css). CSS/JS: marketing/assets/site-footer-menu.*
  */
 defined('ABSPATH') || exit;
@@ -18,8 +18,12 @@ function hithean_sfm_my_offers_enabled(): bool {
 
 /** Trang có thanh đáy riêng → chỉ in panel "Ưu đãi của tôi". */
 function hithean_sfm_has_bar(): bool {
-    $own_bar = function_exists('hithean_offers_is_page') && hithean_offers_is_page();
-    return (bool) apply_filters('hithean_sfm_has_bar', !$own_bar);
+    return (bool) apply_filters('hithean_sfm_has_bar', true);
+}
+
+/** Đang ở trang /uu-dai/ (hoặc trang có shortcode [hithean_offers]). */
+function hithean_sfm_on_offers_page(): bool {
+    return function_exists('hithean_offers_is_page') && hithean_offers_is_page();
 }
 
 function hithean_sfm_offers_url(): string {
@@ -35,7 +39,10 @@ function hithean_sfm_items(): array {
     if (function_exists('hithean_atc_popup_is_enabled') && hithean_atc_popup_is_enabled()) {
         $items[] = ['key' => 'cart', 'label' => 'Giỏ hàng', 'href' => wc_get_cart_url(), 'current' => false];
     }
-    if (($offers = hithean_sfm_offers_url()) !== '') {
+    if (hithean_sfm_on_offers_page()) {
+        // Đang ở trang ưu đãi: "Nhận ưu đãi" thừa → nút đổi chế độ xem (nhãn = chế độ sẽ chuyển sang, JS cập nhật).
+        $items[] = ['key' => 'mode', 'label' => 'Theo SP', 'href' => '', 'current' => false];
+    } elseif (($offers = hithean_sfm_offers_url()) !== '') {
         $items[] = ['key' => 'offers', 'label' => 'Nhận ưu đãi', 'href' => $offers, 'current' => false];
     }
     if (hithean_sfm_my_offers_enabled()) {
@@ -56,6 +63,7 @@ function hithean_sfm_icon(string $key): string {
         'home' => '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/>',
         'products' => '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
         'offers' => '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
+        'mode' => '<path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="m17 20 4-4-4-4"/><path d="M21 16H7"/>',
         'mine' => '<path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M9 9.5h.01M15 14.5h.01M15.5 9 8.5 15"/>',
     ];
     return isset($paths[$key]) ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . $paths[$key] . '</svg>' : '';
@@ -165,7 +173,7 @@ add_action('wp_enqueue_scripts', static function (): void {
 add_action('wp_footer', static function (): void {
     if (hithean_sfm_has_bar()) { hithean_sfm_render_bar(); }
     if (hithean_sfm_my_offers_enabled()) { hithean_sfm_render_panel(); }
-    if (hithean_sfm_has_bar() && hithean_sfm_offers_url() !== '') { hithean_sfm_render_offers(); }
+    if (hithean_sfm_has_bar() && !hithean_sfm_on_offers_page() && hithean_sfm_offers_url() !== '') { hithean_sfm_render_offers(); }
 }, 25);
 
 function hithean_sfm_render_bar(): void {
@@ -188,6 +196,11 @@ function hithean_sfm_render_bar(): void {
                             <span class="sfm__icon"><?php echo hithean_sfm_icon($key); ?></span>
                             <span class="sfm__label"><?php echo esc_html($item['label']); ?></span>
                         </a>
+                    <?php elseif ($key === 'mode') : ?>
+                        <button type="button" class="sfm__link sfm__mode" data-ho-mode-toggle aria-label="Xem ưu đãi theo sản phẩm">
+                            <span class="sfm__icon"><?php echo hithean_sfm_icon($key); ?></span>
+                            <span class="sfm__label" data-ho-mode-label><?php echo esc_html($item['label']); ?></span>
+                        </button>
                     <?php elseif ($key === 'mine') : ?>
                         <button type="button" class="sfm__link" data-hmo-open aria-haspopup="dialog" aria-controls="hmo-dialog">
                             <span class="sfm__icon"><?php echo hithean_sfm_icon($key); ?><span class="sfm__badge" data-hmo-badge hidden></span></span>
