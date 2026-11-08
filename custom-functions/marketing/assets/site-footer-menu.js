@@ -9,9 +9,10 @@
     var cfg = window.hitheanSfm || {};
     var bar = document.getElementById('sfm-root');
     var dialog = document.getElementById('hmo-dialog');
+    var offersDialog = document.getElementById('sfm-offers-dialog');
 
     // Portal ra thẳng <body>: tổ tiên có transform làm lệch position:fixed (như apfm / product-navigation).
-    [bar, dialog].forEach(function (el) {
+    [bar, dialog, offersDialog].forEach(function (el) {
         if (el && el.parentNode !== document.body) document.body.appendChild(el);
     });
 
@@ -20,6 +21,82 @@
         bar.remove();
         bar = null;
         document.body.classList.remove('has-sfm');
+        if (offersDialog) { offersDialog.remove(); offersDialog = null; }
+    }
+
+    /*
+     * "Nhận ưu đãi" → popup "Ưu đãi tiêu biểu" (khung + thẻ y hệt popup ưu đãi trang SP). Danh sách tải AJAX lần mở đầu.
+     * Như trang SP: nút nổi của vòng quay được gộp vào popup này (thẻ "Quay ngay") → ẩn nút nổi để không chồng lên thanh.
+     */
+    function lwTrigger() { return document.querySelector('#thean-lw-root .thean-lw-trigger'); }
+    if (offersDialog) {
+        var offersList = offersDialog.querySelector('[data-sfm-offers-list]');
+        var offersLoaded = false;
+        var offersOpener = null;
+        if (offersDialog.querySelector('[data-sfm-wheel]')) document.body.classList.add('sfm-wheel-in-offers');
+        var loadOffers = function () {
+            if (offersLoaded) return;
+            offersLoaded = true;
+            var body = new URLSearchParams();
+            body.set('action', 'hithean_sfm_featured');
+            fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: body })
+                .then(function (res) { return res.json(); })
+                .then(function (json) {
+                    var data = (json && json.success && json.data) || {};
+                    var loadingRow = offersList.querySelector('[data-sfm-offers-loading]');
+                    if (loadingRow) loadingRow.remove();
+                    offersList.insertAdjacentHTML('beforeend', data.html || '');
+                    var total = offersList.querySelectorAll('.hithean-offer-card').length;
+                    var meta = offersDialog.querySelector('[data-sfm-offers-meta]');
+                    if (meta) meta.textContent = total ? total + ' chương trình nổi bật đang áp dụng' : 'Xem toàn bộ chương trình tại trang ưu đãi';
+                    if (!total) offersList.insertAdjacentHTML('beforeend', '<li class="sfm-offers__loading">Chưa có ưu đãi tiêu biểu — xem toàn bộ tại trang ưu đãi.</li>');
+                })
+                .catch(function () {
+                    offersLoaded = false;
+                    var loadingRow = offersList.querySelector('[data-sfm-offers-loading]');
+                    if (loadingRow) loadingRow.textContent = 'Không tải được ưu đãi. Bấm "Xem toàn bộ ưu đãi" để xem tại trang ưu đãi.';
+                });
+        };
+        var closeOffers = function () {
+            if (offersDialog.open && typeof offersDialog.close === 'function') offersDialog.close();
+            else offersDialog.removeAttribute('open');
+        };
+        offersDialog.addEventListener('close', function () {
+            document.documentElement.classList.remove('hithean-offers-open');
+            if (offersOpener && document.contains(offersOpener)) offersOpener.focus({ preventScroll: true });
+        });
+        document.addEventListener('click', function (event) {
+            var trigger = event.target.closest && event.target.closest('[data-sfm-offers-open]');
+            if (!trigger) return;
+            event.preventDefault();
+            offersOpener = trigger;
+            if (!offersDialog.open) {
+                if (typeof offersDialog.showModal === 'function') offersDialog.showModal();
+                else offersDialog.setAttribute('open', '');
+            }
+            document.documentElement.classList.add('hithean-offers-open');
+            loadOffers();
+        });
+        offersDialog.addEventListener('click', function (event) {
+            var target = event.target;
+            if (target === offersDialog) {
+                var rect = offersDialog.getBoundingClientRect();
+                if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeOffers();
+                return;
+            }
+            if (target.closest('[data-sfm-offers-close]')) { closeOffers(); return; }
+            if (target.closest('[data-sfm-wheel]')) {
+                var wheel = lwTrigger();
+                closeOffers();
+                if (wheel) wheel.click();
+            }
+        });
+        // Tải trước khi khách chạm / rê vào nút (không gọi AJAX ở mọi lượt xem trang).
+        ['pointerenter', 'touchstart', 'focusin'].forEach(function (type) {
+            document.addEventListener(type, function (event) {
+                if (event.target.closest && event.target.closest('[data-sfm-offers-open]')) loadOffers();
+            }, { passive: true, capture: true });
+        });
     }
 
     var STORE = 'hmo-count';
@@ -204,7 +281,7 @@
             return;
         }
         if (target.closest('[data-hmo-wheel]')) {
-            var wheel = document.querySelector('#thean-lw-root .thean-lw-trigger');
+            var wheel = lwTrigger();
             close();
             if (wheel) wheel.click();
         }

@@ -1,4 +1,4 @@
-/* Thanh menu đáy toàn site + panel "Ưu đãi của tôi" (site-footer-menu.php). Kiểu thanh theo .apfm (trang danh mục). */
+/* Thanh menu đáy toàn site + panel "Ưu đãi của tôi" (site-footer-menu.php). Kiểu thanh theo .apfm (trang danh mục) + chữ / nút giỏ như sticky trang SP. */
 
 .sfm,
 .sfm *,
@@ -65,13 +65,14 @@ body.site-scrolled.admin-bar #sfm-root {
     border-radius: 10px;
     background: transparent;
     box-shadow: none;
-    color: #4a4a4a;
-    font-family: inherit;
-    font-size: 11.5px;
-    font-weight: 600;
+    color: #3a3a3a;
+    /* Cùng kiểu chữ nút sticky trang SP (.pcn-mobile: Oswald in hoa). */
+    font-family: "Oswald", sans-serif;
+    font-size: 11px;
+    font-weight: var(--default-button-font-weight, 500);
     line-height: 1.2;
-    letter-spacing: 0;
-    text-transform: none;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
     text-decoration: none;
     white-space: nowrap;
     cursor: pointer;
@@ -81,7 +82,7 @@ body.site-scrolled.admin-bar #sfm-root {
 .sfm .sfm__link:hover,
 .sfm .sfm__link:focus-visible {
     background: #f1f5f3;
-    color: var(--default-color-dark-blue, #0047ba);
+    color: #087a5a;
     text-decoration: none;
     outline: none;
 }
@@ -106,9 +107,71 @@ body.site-scrolled.admin-bar #sfm-root {
     color: #c27c00;
 }
 
-.sfm__item--mine .sfm__link {
-    background: #eef3fb;
+/* Giỏ hàng chính giữa: ô vuông nổi như nút giỏ ở cụm sticky trang SP (.pcn-mobile__cart). */
+.sfm__item--cart {
+    flex: 0 0 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sfm .sfm__link.sfm__cart {
+    width: 48px;
+    min-height: 0;
+    height: 48px;
+    margin-top: -16px;
+    padding: 0;
+    border: 3px solid #fff;
+    border-radius: 8px;
+    background: var(--default-color-light-blue, #b0dded);
+    box-shadow: 0 4px 12px rgba(0, 71, 186, 0.22);
     color: var(--default-color-dark-blue, #0047ba);
+}
+
+.sfm .sfm__link.sfm__cart:hover,
+.sfm .sfm__link.sfm__cart:focus-visible {
+    background: var(--default-color-dark-blue, #0047ba);
+    color: #fff;
+}
+
+.sfm__cart .hithean-cart-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border: 2px solid #fff;
+    border-radius: 10px;
+    background: #e53935;
+    color: #fff;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+}
+
+.sfm__cart .hithean-cart-count[hidden] {
+    display: none;
+}
+
+/* Vòng quay đã nằm trong popup "Nhận ưu đãi" (thẻ Quay ngay) — như trang SP, bỏ nút nổi để không chồng lên thanh. */
+body.has-sfm.sfm-wheel-in-offers #thean-lw-root .thean-lw-trigger {
+    display: none !important;
+}
+
+/* Popup "Ưu đãi tiêu biểu": khung .hithean-offers-dialog ở offer-card.css; chỉ thêm dòng tải + nút xem toàn bộ. */
+.sfm-offers__loading {
+    padding: 20px 0;
+    list-style: none;
+    font-size: 13px;
+    text-align: center;
+    opacity: 0.7;
+}
+
+.hithean-offers-dialog .hithean-offer-card__action.sfm-offers__all {
+    margin: 0 !important;
 }
 
 .sfm__icon {
@@ -124,10 +187,15 @@ body.site-scrolled.admin-bar #sfm-root {
     height: 100%;
 }
 
+/* 5 mục trên mobile hẹp: nhãn dài ("Ưu đãi của tôi") xuống tối đa 2 dòng thay vì bị cắt. */
 .sfm__label {
+    display: -webkit-box;
     max-width: 100%;
     overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    text-align: center;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
 .sfm__badge {
@@ -156,7 +224,13 @@ body.site-scrolled.admin-bar #sfm-root {
         flex-direction: row;
         gap: 8px;
         min-height: 44px;
-        font-size: 14px;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+    }
+
+    .sfm .sfm__link.sfm__cart {
+        height: 44px;
+        margin-top: 0;
     }
 
     .sfm .sfm__link.is-current::before {

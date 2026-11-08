@@ -310,5 +310,22 @@ ok($built[1]['badge'] === 'Mua nhiều giảm giá' && array_column($built[1]['t
 $tier_html = hithean_offer_card_html($built[1]);
 ok(substr_count($tier_html, '<li><span class="hithean-offer-tiers__label">') === 2 && str_contains($tier_html, '<small>Mua từ 3 sản phẩm</small>'), 'Tier list markup matches the product popup');
 ok(str_contains($pinned_html, 'data-ho-ask') && str_contains($pinned_html, 'data-ho-ask-pick="products"') && str_contains($pinned_html, 'data-ho-ask-pick="programs"'), 'Offers page asks whether to browse by product or by program');
+// Popup "Ưu đãi tiêu biểu" (site-footer-menu.php): 1 thẻ / chương trình, chương trình nhiều SP đứng đầu, không lặp vòng quay.
+foreach (['add_filter', 'wp_send_json_success', 'wp_send_json_error'] as $stub) { if (!function_exists($stub)) { eval("function $stub(...\$args) {}"); } }
+foreach (['is_user_logged_in', 'shortcode_exists'] as $stub) { if (!function_exists($stub)) { eval("function $stub(...\$args) { return false; }"); } }
+require_once dirname(__DIR__) . '/custom-functions/marketing/site-footer-menu.php';
+$base = hithean_offers_visible_items()[0];
+$fixture = static fn(array $over) => array_merge($base, ['family' => 'sale', 'kind' => 'discount', 'in_stock' => true, 'source_config' => [], 'condition_note' => '', 'gift_strip' => []], $over);
+$GLOBALS['options'][HITHEAN_OFFERS_SNAPSHOT] = ['items' => [
+    $fixture(['source_id' => 'sale:31', 'product_id' => 31, 'product_name' => 'SP giảm giá', 'url' => 'https://hithean.test/product/31', 'title' => 'Giảm 10%']),
+    $fixture(['source_id' => 'ship:1', 'family' => 'other', 'kind' => 'shipping', 'product_id' => 32, 'product_name' => 'SP A', 'title' => 'Freeship']),
+    $fixture(['source_id' => 'ship:1', 'family' => 'other', 'kind' => 'shipping', 'product_id' => 33, 'product_name' => 'SP B', 'title' => 'Freeship']),
+    $fixture(['source_id' => 'wheel:program', 'family' => 'wheel', 'kind' => 'other', 'product_id' => 31, 'product_name' => 'SP giảm giá']),
+    $fixture(['source_id' => 'sale:34', 'product_id' => 34, 'product_name' => 'SP hết hàng', 'in_stock' => false]),
+]];
+$featured = hithean_sfm_featured_cards();
+ok(count($featured) === 2 && !array_filter($featured, static fn($card) => $card['badge'] === 'Vòng quay may mắn'), 'Featured offers: one card per in-stock program, wheel left to its own card');
+ok($featured[0]['badge'] === 'Ưu đãi vận chuyển' && $featured[0]['notes'][0] === 'Áp dụng cho 2 sản phẩm: SP A, SP B' && str_contains($featured[0]['actions_html'], 'Xem sản phẩm áp dụng'), 'A program covering several products leads');
+ok($featured[1]['notes'][0] === 'Áp dụng cho SP giảm giá' && str_contains($featured[1]['actions_html'], 'product/31#uu-dai'), 'Single-product offers open the product page offers popup');
 echo "PASS: $count structured-offer assertions\n";
 }

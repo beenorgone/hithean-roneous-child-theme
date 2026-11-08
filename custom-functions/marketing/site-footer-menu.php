@@ -2,7 +2,9 @@
 /**
  * Thanh menu dính đáy toàn site (trang chủ + các trang KHÔNG phải: sản phẩm, danh mục / cửa hàng, giỏ / thanh toán /
  * cảm ơn, trang đã có thanh đáy riêng). Điều kiện nạp: tpc_cond_site_footer_menu() trong module-loader.
- *   Trang chủ · Sản phẩm · Nhận ưu đãi (/uu-dai/) · Ưu đãi của tôi (panel — my-offers.php).
+ *   Trang chủ · Sản phẩm · [Giỏ hàng] · Nhận ưu đãi · Ưu đãi của tôi (panel — my-offers.php).
+ *   Giỏ hàng (giữa) mở popup giỏ của add-to-cart-popup.php; "Nhận ưu đãi" mở popup "Ưu đãi tiêu biểu" (khung
+ *   .hithean-offers-dialog + thẻ .hithean-offer-card — y hệt popup ưu đãi trang SP) + nút "Xem toàn bộ" sang /uu-dai/.
  * Trang /uu-dai/ có thanh đổi chế độ riêng → không in thanh, chỉ in panel (nút "Ưu đãi của tôi" ở nav của trang).
  * Kiểu thanh giống thanh đáy trang danh mục (product-archive-footer-menu.css). CSS/JS: marketing/assets/site-footer-menu.*
  */
@@ -30,16 +32,26 @@ function hithean_sfm_items(): array {
         ['key' => 'home', 'label' => 'Trang chủ', 'href' => home_url('/'), 'current' => is_front_page()],
         ['key' => 'products', 'label' => 'Sản phẩm', 'href' => function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/'), 'current' => false],
     ];
+    if (function_exists('hithean_atc_popup_is_enabled') && hithean_atc_popup_is_enabled()) {
+        $items[] = ['key' => 'cart', 'label' => 'Giỏ hàng', 'href' => wc_get_cart_url(), 'current' => false];
+    }
     if (($offers = hithean_sfm_offers_url()) !== '') {
         $items[] = ['key' => 'offers', 'label' => 'Nhận ưu đãi', 'href' => $offers, 'current' => false];
     }
     if (hithean_sfm_my_offers_enabled()) {
         $items[] = ['key' => 'mine', 'label' => 'Ưu đãi của tôi', 'href' => '', 'current' => false];
     }
+    // Giỏ hàng luôn nằm chính giữa thanh.
+    $keys = array_column($items, 'key');
+    if (($at = array_search('cart', $keys, true)) !== false) {
+        $cart = array_splice($items, $at, 1);
+        array_splice($items, intdiv(count($items), 2), 0, $cart);
+    }
     return (array) apply_filters('hithean_sfm_items', $items);
 }
 
 function hithean_sfm_icon(string $key): string {
+    if ($key === 'cart' && function_exists('hithean_atc_cart_icon_svg')) { return hithean_atc_cart_icon_svg(); }
     $paths = [
         'home' => '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/>',
         'products' => '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
@@ -48,6 +60,69 @@ function hithean_sfm_icon(string $key): string {
     ];
     return isset($paths[$key]) ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . $paths[$key] . '</svg>' : '';
 }
+
+/**
+ * "Ưu đãi tiêu biểu" (popup nút "Nhận ưu đãi"): 1 thẻ / chương trình từ snapshot /uu-dai/ — ưu tiên chương trình áp dụng
+ * nhiều sản phẩm, rồi quà tặng → mua nhiều → giá ưu đãi → vận chuyển. Vòng quay không lấy từ đây (thẻ tĩnh in ở footer
+ * khi trang có vòng quay). Thẻ dựng bằng hithean_offer_cards_from_rows() → nhãn / ảnh / bậc giá khớp popup trang SP.
+ */
+function hithean_sfm_featured_cards(int $limit = 6): array {
+    if (!function_exists('hithean_offers_visible_items') || !function_exists('hithean_offer_cards_from_rows')) { return []; }
+    $programs = [];
+    foreach (hithean_offers_visible_items() as $row) {
+        if (empty($row['product_id']) || empty($row['product_name']) || empty($row['in_stock']) || ($row['family'] ?? '') === 'wheel') { continue; }
+        $key = (string) ($row['source_id'] ?? '');
+        $programs[$key !== '' ? $key : $row['product_id'] . ':' . md5((string) ($row['title'] ?? ''))][(int) $row['product_id']] = $row;
+    }
+    $rank = ['gift' => 0, 'quantity' => 1, 'discount' => 2, 'shipping' => 3, 'other' => 4];
+    uasort($programs, static function (array $a, array $b) use ($rank): int {
+        return [count($b), $rank[reset($a)['kind'] ?? 'other'] ?? 9] <=> [count($a), $rank[reset($b)['kind'] ?? 'other'] ?? 9];
+    });
+    $offers_url = hithean_sfm_offers_url();
+    $cards = [];
+    foreach (array_slice($programs, 0, $limit) as $rows) {
+        $row = reset($rows);
+        $card = hithean_offer_cards_from_rows([$row])[0] ?? null;
+        if (!$card) { continue; }
+        $names = array_column($rows, 'product_name');
+        if (count($rows) > 1) {
+            $group = ($row['family'] ?? '') === 'wdr' ? hithean_offers_group_label($row) : ['site_wide' => false, 'url' => $offers_url !== '' ? add_query_arg('xem', 'chuong-trinh', $offers_url) : (function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/'))];
+            $scope = !empty($group['site_wide']) ? 'Áp dụng cho mọi sản phẩm'
+                : 'Áp dụng cho ' . count($names) . ' sản phẩm: ' . implode(', ', array_slice($names, 0, 3)) . (count($names) > 3 ? '…' : '');
+            $url = (string) $group['url'];
+            $label = 'Xem sản phẩm áp dụng';
+        } else {
+            $scope = 'Áp dụng cho ' . $names[0];
+            $url = (string) $row['url'] . '#uu-dai';
+            $label = 'Xem sản phẩm & ưu đãi';
+        }
+        array_unshift($card['notes'], $scope);
+        if ($url !== '') { $card['actions_html'] = '<a class="hithean-offer-card__action is-ghost" href="' . esc_url($url) . '">' . esc_html($label) . ' ↗</a>'; }
+        $cards[] = $card;
+    }
+    return $cards;
+}
+
+/** Thẻ vòng quay (in sẵn ở footer, chỉ trang có vòng quay) — cùng thẻ vòng quay của popup trang SP. */
+function hithean_sfm_wheel_card(): string {
+    if (!function_exists('thean_lw_is_eligible_page') || !thean_lw_is_eligible_page() || !function_exists('hithean_offer_card_html')) { return ''; }
+    return hithean_offer_card_html([
+        'kind' => 'other', 'badge' => 'Vòng quay may mắn', 'title' => 'Quay vòng quay may mắn — nhận mã giảm giá / quà tặng',
+        'media' => ['icon' => 'wheel'], 'notes' => ['Mỗi lượt quay có thể trúng mã giảm giá hoặc quà tặng'],
+        'actions_html' => '<button type="button" class="hithean-offer-card__action" data-sfm-wheel>Quay ngay</button>',
+    ]);
+}
+
+/** AJAX: nội dung popup "Ưu đãi tiêu biểu" — tải khi mở (trang có thể cache, snapshot đổi theo lịch). Chỉ đọc, không nonce. */
+function hithean_sfm_featured_ajax(): void {
+    $cards = hithean_sfm_featured_cards();
+    wp_send_json_success([
+        'count' => count($cards),
+        'html' => implode('', array_map('hithean_offer_card_html', $cards)),
+    ]);
+}
+add_action('wp_ajax_hithean_sfm_featured', 'hithean_sfm_featured_ajax');
+add_action('wp_ajax_nopriv_hithean_sfm_featured', 'hithean_sfm_featured_ajax');
 
 /** Trang đăng nhập (tài khoản) — quay lại đúng trang đang xem + mở panel sau khi đăng nhập. */
 function hithean_sfm_login_url(): string {
@@ -90,6 +165,7 @@ add_action('wp_enqueue_scripts', static function (): void {
 add_action('wp_footer', static function (): void {
     if (hithean_sfm_has_bar()) { hithean_sfm_render_bar(); }
     if (hithean_sfm_my_offers_enabled()) { hithean_sfm_render_panel(); }
+    if (hithean_sfm_has_bar() && hithean_sfm_offers_url() !== '') { hithean_sfm_render_offers(); }
 }, 25);
 
 function hithean_sfm_render_bar(): void {
@@ -102,7 +178,17 @@ function hithean_sfm_render_bar(): void {
             <?php foreach ($items as $item) :
                 $key = (string) $item['key']; ?>
                 <li class="sfm__item sfm__item--<?php echo esc_attr($key); ?>">
-                    <?php if ($key === 'mine') : ?>
+                    <?php if ($key === 'cart') : ?>
+                        <a class="sfm__link sfm__cart" href="<?php echo esc_url($item['href']); ?>" data-atc-cart-open aria-label="Xem giỏ hàng" title="Giỏ hàng">
+                            <span class="sfm__icon"><?php echo hithean_sfm_icon($key); ?></span>
+                            <?php echo function_exists('hithean_atc_cart_count_html') ? hithean_atc_cart_count_html() : ''; ?>
+                        </a>
+                    <?php elseif ($key === 'offers') : ?>
+                        <a class="sfm__link" href="<?php echo esc_url($item['href']); ?>" data-sfm-offers-open aria-haspopup="dialog" aria-controls="sfm-offers-dialog">
+                            <span class="sfm__icon"><?php echo hithean_sfm_icon($key); ?></span>
+                            <span class="sfm__label"><?php echo esc_html($item['label']); ?></span>
+                        </a>
+                    <?php elseif ($key === 'mine') : ?>
                         <button type="button" class="sfm__link" data-hmo-open aria-haspopup="dialog" aria-controls="hmo-dialog">
                             <span class="sfm__icon"><?php echo hithean_sfm_icon($key); ?><span class="sfm__badge" data-hmo-badge hidden></span></span>
                             <span class="sfm__label"><?php echo esc_html($item['label']); ?></span>
@@ -117,6 +203,27 @@ function hithean_sfm_render_bar(): void {
             <?php endforeach; ?>
         </ul>
     </div>
+    <?php
+}
+
+/** Popup "Ưu đãi tiêu biểu": khung giống hệt popup "Ưu đãi đang áp dụng" trang SP (product-purchase.js → makeDialog). */
+function hithean_sfm_render_offers(): void {
+    $offers_url = hithean_sfm_offers_url();
+    ?>
+    <dialog class="hithean-offers-dialog sfm-offers" id="sfm-offers-dialog" aria-labelledby="sfm-offers-title">
+        <div class="hithean-offers-dialog__head">
+            <div><h3 id="sfm-offers-title">Ưu đãi tiêu biểu</h3><p data-sfm-offers-meta>Chương trình nổi bật đang áp dụng</p></div>
+            <button type="button" class="hithean-offers-dialog__close" data-sfm-offers-close aria-label="Đóng">×</button>
+        </div>
+        <ul class="hithean-offers-dialog__list" data-sfm-offers-list>
+            <?php echo hithean_sfm_wheel_card(); ?>
+            <li class="sfm-offers__loading" data-sfm-offers-loading>Đang tải ưu đãi…</li>
+        </ul>
+        <div class="hithean-offers-dialog__foot">
+            <p>Mỗi chương trình có điều kiện riêng. Giá trị cuối cùng được xác nhận trong giỏ hàng.</p>
+            <a class="hithean-offer-card__action sfm-offers__all" href="<?php echo esc_url($offers_url); ?>">Xem toàn bộ ưu đãi</a>
+        </div>
+    </dialog>
     <?php
 }
 

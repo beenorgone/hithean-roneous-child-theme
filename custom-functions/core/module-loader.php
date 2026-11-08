@@ -432,11 +432,11 @@ function tpc_loader_modules()
             'condition' => 'tpc_cond_is_product_taxonomy',
         ],
         [
-            // Thanh menu đáy toàn site (Trang chủ · Sản phẩm · Nhận ưu đãi · Ưu đãi của tôi) + panel "Ưu đãi của tôi".
+            // Thanh menu đáy toàn site (Trang chủ · Sản phẩm · Giỏ hàng · Nhận ưu đãi · Ưu đãi của tôi) + panel "Ưu đãi của tôi".
             'id' => 'site_footer_menu',
             'file' => 'custom-functions/marketing/site-footer-menu.php',
             'condition' => 'tpc_cond_site_footer_menu',
-            'ajax_actions' => ['hithean_my_offers_load', 'hithean_my_offers_lookup', 'hithean_my_offers_forget', 'hithean_my_offers_send', 'hithean_my_offers_apply'],
+            'ajax_actions' => ['hithean_my_offers_load', 'hithean_my_offers_lookup', 'hithean_my_offers_forget', 'hithean_my_offers_send', 'hithean_my_offers_apply', 'hithean_sfm_featured'],
         ],
         [
             'id' => 'checkout_page',
