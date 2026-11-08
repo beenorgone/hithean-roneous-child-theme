@@ -8,24 +8,49 @@
         root.querySelectorAll('[data-ho-wheel-open]').forEach(function (link) {
             link.addEventListener('click', function (event) {
                 const trigger = document.querySelector('#thean-lw-root .thean-lw-trigger');
-                if (trigger) { event.preventDefault(); trigger.click(); }
+                if (trigger) {
+                    event.preventDefault();
+                    const dialog = link.closest('dialog');
+                    if (dialog && dialog.open) { dialog.close(); }
+                    trigger.click();
+                }
             });
         });
-        // The link stays a category/shop fallback; with JS it opens the group's product list.
+        // Keep product links usable without dialog support; share one lifecycle per dialog.
+        const dialogLinks = new Map();
         root.querySelectorAll('[data-ho-open]').forEach(function (link) {
-            const dialog = document.getElementById(link.dataset.hoOpen);
-            if (!dialog || typeof dialog.showModal !== 'function') { return; }
-            link.addEventListener('click', function (event) {
-                event.preventDefault();
-                dialog.showModal();
-                document.documentElement.classList.add('ho-modal-open');
+            const id = link.dataset.hoOpen;
+            if (!dialogLinks.has(id)) { dialogLinks.set(id, []); }
+            dialogLinks.get(id).push(link);
+        });
+        root.querySelectorAll('dialog[id]').forEach(function (dialog) {
+            if (typeof dialog.showModal !== 'function') { return; }
+            let opener;
+            (dialogLinks.get(dialog.id) || []).forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    opener = link;
+                    update();
+                    if (link.closest('[hidden]')) { return; }
+                    dialog.showModal();
+                    document.documentElement.classList.add('ho-modal-open');
+                });
             });
-            dialog.addEventListener('close', function () { document.documentElement.classList.remove('ho-modal-open'); link.focus(); });
+            dialog.addEventListener('close', function () {
+                document.documentElement.classList.remove('ho-modal-open');
+                if (opener && !opener.closest('[hidden]')) { opener.focus(); }
+            });
             dialog.addEventListener('click', function (event) {
                 if (event.target.closest('[data-ho-close]')) { dialog.close(); return; }
                 if (event.target !== dialog) { return; }
                 const rect = dialog.getBoundingClientRect();
                 if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) { dialog.close(); }
+            });
+        });
+        root.querySelectorAll('[data-ho-product-card]').forEach(function (card) {
+            card.addEventListener('click', function (event) {
+                if (event.target.closest('a, button, dialog, input, select, textarea')) { return; }
+                card.querySelector('.ho-offer-preview').click();
             });
         });
         const cards = Array.from(root.querySelectorAll('[data-ho-panel="programs"] [data-ho-card]'));
@@ -56,7 +81,7 @@
                 if (visible) { count++; }
             });
             let status = count + ' sản phẩm / chương trình phù hợp';
-            if (mode === 'products' && productGrid) {
+            if (productGrid) {
                 let shown = 0;
                 Array.from(productGrid.children).forEach(function (item) {
                     // Expired rules drop out individually; a card with none left is hidden.
@@ -66,13 +91,20 @@
                         if (!rule.hidden) { live++; }
                     });
                     const badge = item.querySelector('.ho-badge');
-                    if (badge && live > 1) { badge.textContent = live + ' ưu đãi'; }
+                    if (badge) { badge.textContent = live + ' ưu đãi'; }
+                    const previewCount = item.querySelector('[data-ho-preview-count]');
+                    const previewTitle = item.querySelector('[data-ho-preview-title]');
+                    const first = item.querySelector('[data-ho-rule]:not([hidden]) .hithean-offer-card__title');
+                    if (previewCount) { previewCount.textContent = 'Xem ' + live + ' ưu đãi'; }
+                    if (previewTitle) { previewTitle.textContent = first ? first.textContent : 'Ưu đãi đã kết thúc'; }
+                    const dialog = item.querySelector('dialog');
+                    if (!live && dialog && dialog.open) { dialog.close(); }
                     const match = live > 0 && normalize(item.querySelector('h3')?.textContent || '').includes(query);
                     item.hidden = !match;
                     if (match) { shown++; }
                 });
                 if (productsEmpty) { productsEmpty.hidden = shown > 0; }
-                status = shown + ' sản phẩm có ưu đãi';
+                if (mode === 'products') { status = shown + ' sản phẩm có ưu đãi'; }
             }
             if (result && result.textContent !== status) { result.textContent = status; }
             if (empty) { empty.hidden = count > 0; }

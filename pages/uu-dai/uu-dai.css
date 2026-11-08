@@ -1073,13 +1073,25 @@
 }
 .ho-product-price del { opacity: 0.55; font-weight: 400; }
 .ho-product-price ins { text-decoration: none; }
-.ho-offer-list {
-    padding: 12px;
-    border-radius: 16px;
-    background: var(--ho-cream);
+.ho-card-product { cursor: pointer; }
+.ho-product-dialog { cursor: auto; }
+.ho-offer-preview { text-transform: none; letter-spacing: normal; text-align: left; }
+.ho-offer-preview > span:first-child { min-width: 0; }
+.ho-offer-preview strong { display: block; font-size: 14px; }
+.ho-offer-preview small {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
 }
-.ho-offer-list .hithean-offer-card { padding: 14px; }
-.ho-offer-list .hithean-offer-card__action { min-height: 40px; }
+.ho-product-dialog .hithean-offers-dialog__head,
+.ho-product-dialog .hithean-offers-dialog__foot { flex-shrink: 0; }
+.ho-product-dialog .hithean-offers-dialog__list { min-height: 0; }
 
 /* ===== Hỏi nhanh khi vào trang: xem theo sản phẩm hay chương trình ===== */
 .ho-ask {

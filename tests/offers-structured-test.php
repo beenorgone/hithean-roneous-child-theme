@@ -73,8 +73,14 @@ hithean_offers_set_banner($id, 0); hithean_offers_publish(); $html = hithean_off
 ok(!str_contains($html, 'ho-has-banner') && str_contains(programs($html), 'ho-group-art'), 'Removing the banner restores product images');
 $panel = product_panel($html);
 ok(substr_count($panel, 'data-ho-card') === 2 && substr_count($panel, 'data-ho-rule ') === 2 && str_contains($panel, '>Test product 11</a>') && !str_contains($panel, 'ho-card-group') && substr_count($html, 'data-ho-mode="') === 1 && !str_contains($html, 'ho-modebar'), 'Product mode renders one full card per product; mode switch lives on the site footer menu');
-$GLOBALS['products'][11]->stock = false; $stock_html = hithean_offers_shortcode(); $GLOBALS['products'][11]->stock = true;
-ok(strpos(product_panel($stock_html), '>Test product 12</a>') < strpos(product_panel($stock_html), '>Test product 11</a>') && str_contains(product_card($stock_html, 'Test product 11'), 'Tạm hết hàng') && str_contains($stock_html, 'class="ho-group-stock is-out">Tạm hết'), 'Live stock moves sold-out products last, even before the next sync');
+$GLOBALS['products'][11]->stock = false;
+$stock_html = hithean_offers_shortcode();
+ok(!str_contains($stock_html, 'Test product 11') && str_contains(product_panel($stock_html), '>Test product 12</a>'), 'Live sold-out products without backorders disappear from both views and groups');
+$GLOBALS['products'][11]->backorders = true;
+$backorder_html = hithean_offers_shortcode();
+ok(str_contains(product_panel($backorder_html), '>Test product 11</a>'), 'Sold-out products allowing backorders remain available');
+$GLOBALS['products'][11]->backorders = false;
+$GLOBALS['products'][11]->stock = true;
 ok(!str_contains($html, 'ho-logo'), 'Landing falls back to the text wordmark without a site logo');
 $GLOBALS['theme_mods']['custom_logo'] = 7;
 ok(substr_count(hithean_offers_shortcode(), '<img src="https://hithean.test/image.png" alt="The An">') === 1, 'Landing navigation uses the site logo');
@@ -182,7 +188,9 @@ ok(get_option(HITHEAN_OFFERS_SNAPSHOT)['items'][0]['family'] === 'wdr' && strpos
 $product_card = product_card($pinned_html, 'Test product 11');
 ok(substr_count($product_card, 'data-ho-rule ') === 2 && str_contains($product_card, '<span class="hithean-offer-card__badge">Vòng quay may mắn</span>') && !str_contains($product_card, 'Cần quay') && str_contains($product_card, 'Miễn phí vận chuyển'), 'Product card lists every program that applies to it, wheel and shipping included');
 // Chế độ sản phẩm hiển thị như popup "Ưu đãi đang áp dụng" của trang sản phẩm: thẻ .hithean-offer-card, chip theo loại,
-// icon vận chuyển / vòng quay, thứ tự vận chuyển trước vòng quay, nút "Quay ngay", CTA mở popup ở trang SP (#uu-dai).
+// icon vận chuyển / vòng quay, thứ tự vận chuyển trước vòng quay, nút "Quay ngay", popup tại chỗ và link dự phòng (#uu-dai).
+$dialog_start = strpos($product_card, '<dialog');
+ok($dialog_start !== false && !str_contains(substr($product_card, 0, $dialog_start), 'data-ho-rule') && str_contains(substr($product_card, 0, $dialog_start), 'data-ho-preview-title') && str_contains($product_card, 'class="hithean-offers-dialog ho-product-dialog"'), 'Product grid shows a compact preview and keeps full shared offer cards inside a closed dialog');
 ok(substr_count($product_card, 'class="hithean-offer-card is-tone-') === 2 && str_contains($product_card, 'is-tone-shipping') && str_contains($product_card, 'is-tone-wheel') && str_contains($product_card, '>Ưu đãi vận chuyển</span>') && str_contains($product_card, 'hithean-offer-card__media--icon is-ship') && str_contains($product_card, 'hithean-offer-card__media--icon is-wheel')
     && strpos($product_card, 'is-ship') < strpos($product_card, 'is-wheel') && str_contains($product_card, 'data-ho-wheel-open>Quay ngay</a>') && str_contains($product_card, '#uu-dai"'), 'Product card offers use the product-page popup card layout');
 ok(substr_count(programs($shipping_html), 'data-ho-kind="shipping" data-ho-until') === 2 && substr_count(programs($shipping_html), 'data-ho-card') === 2 && str_contains($shipping_html, '>Miễn phí vận chuyển<') && str_contains($shipping_html, 'Áp dụng cho mọi sản phẩm') && str_contains($shipping_html, '>Mua sắm ngay<') && !str_contains($shipping_html, 'ho-group-dialog'), 'Site-wide free shipping renders one shop card without a product list');

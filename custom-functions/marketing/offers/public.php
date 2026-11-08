@@ -94,9 +94,7 @@ function hithean_offers_card(array $row): string {
     <?php return (string) ob_get_clean();
 }
 /**
- * Chế độ "Theo sản phẩm": 1 thẻ / sản phẩm, danh sách ưu đãi hiển thị Y HỆT popup "Ưu đãi đang áp dụng"
- * của trang sản phẩm (thẻ .hithean-offer-card — offers/offer-card.php). Nút chính mở trang sản phẩm kèm
- * #uu-dai → product-purchase.js tự mở popup ưu đãi.
+ * Compact product preview; full offers use the shared product-page dialog and card styles.
  */
 function hithean_offers_product_card(array $offers): string {
     $row = $offers[0];
@@ -105,14 +103,19 @@ function hithean_offers_product_card(array $offers): string {
     $price = $product ? $product->get_price_html() : '';
     $until = max(array_map(static fn($card) => (int) $card['until'], $cards) ?: [0]);
     $url = (string) $row['url'];
+    $dialog = wp_unique_id('ho-product-offers-');
     ob_start(); ?>
-    <article class="ho-card ho-card-product" data-ho-card data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-until="<?php echo (int) $until; ?>" data-ho-search="<?php echo esc_attr($row['product_name']); ?>">
-        <a class="ho-card-visual" href="<?php echo esc_url($url); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($cards) > 1 ? count($cards) . ' ưu đãi' : esc_html($cards[0]['badge'] ?? 'Ưu đãi'); ?></span><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"></a>
-        <div class="ho-card-body"><h3><a href="<?php echo esc_url($url); ?>"><?php echo esc_html($row['product_name']); ?></a></h3>
+    <article data-ho-product-card class="ho-card ho-card-product" data-ho-card data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-until="<?php echo (int) $until; ?>" data-ho-search="<?php echo esc_attr($row['product_name']); ?>">
+        <a class="ho-card-visual" href="<?php echo esc_url($url . '#uu-dai'); ?>" data-ho-open="<?php echo esc_attr($dialog); ?>" aria-haspopup="dialog" aria-controls="<?php echo esc_attr($dialog); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($cards) > 1 ? count($cards) . ' ưu đãi' : esc_html($cards[0]['badge'] ?? 'Ưu đãi'); ?></span><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"></a>
+        <div class="ho-card-body"><h3><a href="<?php echo esc_url($url . '#uu-dai'); ?>" data-ho-open="<?php echo esc_attr($dialog); ?>" aria-haspopup="dialog" aria-controls="<?php echo esc_attr($dialog); ?>"><?php echo esc_html($row['product_name']); ?></a></h3>
         <?php if ($price !== '') : ?><p class="ho-product-price"><?php echo wp_kses_post($price); ?></p><?php endif; ?>
-        <ul class="hithean-offer-list ho-offer-list"><?php foreach ($cards as $card) { echo hithean_offer_card_html($card); } ?></ul>
         <?php if (!$row['in_stock']) : ?><p class="ho-stock">Tạm hết hàng</p><?php endif; ?>
-        <a class="ho-button <?php echo $row['in_stock'] ? 'ho-button-dark' : 'ho-button-quiet'; ?>" href="<?php echo esc_url($url . '#uu-dai'); ?>"><?php echo $row['in_stock'] ? ($row['variable'] ? 'Chọn phân loại & nhận ưu đãi' : 'Xem sản phẩm & ưu đãi') : 'Xem sản phẩm'; ?><span aria-hidden="true">↗</span></a></div>
+        <a class="ho-button ho-button-dark ho-offer-preview" href="<?php echo esc_url($url . '#uu-dai'); ?>" data-ho-open="<?php echo esc_attr($dialog); ?>" aria-haspopup="dialog" aria-controls="<?php echo esc_attr($dialog); ?>"><span><strong data-ho-preview-count>Xem <?php echo count($cards); ?> ưu đãi</strong><small data-ho-preview-title><?php echo esc_html($cards[0]['title'] ?? 'Khám phá ưu đãi đang áp dụng'); ?></small></span><span aria-hidden="true">↗</span></a></div>
+        <dialog class="hithean-offers-dialog ho-product-dialog" id="<?php echo esc_attr($dialog); ?>" aria-labelledby="<?php echo esc_attr($dialog); ?>-title">
+            <div class="hithean-offers-dialog__head"><div><h3 id="<?php echo esc_attr($dialog); ?>-title">Ưu đãi đang áp dụng</h3><p><?php echo esc_html($row['product_name']); ?></p></div><button type="button" class="hithean-offers-dialog__close" data-ho-close aria-label="Đóng">×</button></div>
+            <ul class="hithean-offers-dialog__list"><?php foreach ($cards as $card) { echo hithean_offer_card_html($card); } ?></ul>
+            <div class="hithean-offers-dialog__foot"><a class="hithean-offer-card__action" href="<?php echo esc_url($url); ?>"><?php echo $row['variable'] ? 'Chọn phân loại & mua hàng' : 'Xem sản phẩm & mua hàng'; ?><span aria-hidden="true"> ↗</span></a></div>
+        </dialog>
     </article>
     <?php return (string) ob_get_clean();
 }
@@ -125,14 +128,20 @@ function hithean_offers_visible_items(): array {
 function hithean_offers_shortcode(): string {
     $preview = hithean_offers_settings()['preview'];
     $items = hithean_offers_visible_items();
-    // Snapshot stock is only as fresh as the last sync; read it live and move sold-out products last (usort is stable).
+    // Check live availability once per product before building either view or group membership.
     $stock = [];
+    $available = [];
     foreach ($items as &$row) {
         $id = (int) $row['product_id'];
-        if (!isset($stock[$id])) { $product = $id ? wc_get_product($id) : null; $stock[$id] = $product ? $product->is_in_stock() : !empty($row['in_stock']); }
+        if (!isset($stock[$id])) {
+            $product = $id ? wc_get_product($id) : null;
+            $stock[$id] = $product ? $product->is_in_stock() : !empty($row['in_stock']);
+            $available[$id] = $stock[$id] || ($product && $product->backorders_allowed());
+        }
         $row['in_stock'] = $stock[$id];
     }
     unset($row);
+    $items = array_values(array_filter($items, static fn($row) => $available[(int) $row['product_id']]));
     usort($items, static fn($a, $b) => $b['in_stock'] <=> $a['in_stock']);
     // Product mode shows one card per product with every rule that applies to it, shared programs included.
     $catalog = [];

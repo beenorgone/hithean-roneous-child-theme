@@ -75,9 +75,12 @@ function wp_date($format, $date, $tz = null) { return (new DateTimeImmutable('@'
 function wc_get_cart_url() { return home_url('/cart'); } function wc_get_page_permalink($page) { return home_url('/shop'); }
 function get_theme_mod($name, $default = false) { return $GLOBALS["theme_mods"][$name] ?? $default; } function get_bloginfo($show = "") { return "The An"; } function wp_kses_post($html) { return $html; } function get_term($id, $taxonomy = '') { return $id === 160 ? (object) ['term_id' => 160, 'name' => 'Trà thảo mộc'] : null; } function get_term_link($term) { return home_url('/danh-muc/' . $term->term_id); } function wp_list_pluck($list, $field) { return array_map(static fn($item) => is_object($item) ? $item->$field : $item[$field], $list); }
 $GLOBALS['products'] = [];
+function wp_unique_id($prefix = '') { static $id = 0; return $prefix . ++$id; }
 class OfferTestProduct {
     public function __construct(public $id, public $name, public $stock = true, public $status = 'publish', public $visibility = 'visible') {}
     function get_id() { return $this->id; } function get_name() { return $this->name; } function get_status() { return $this->status; }
+    public $backorders = false;
+    function backorders_allowed() { return $this->backorders; }
     public $type = 'simple', $children = [], $categories = [], $on_sale = false;
     function get_children() { return $this->children; }
     function get_sale_price(...$args) { return ''; } function get_regular_price(...$args) { return ''; }
