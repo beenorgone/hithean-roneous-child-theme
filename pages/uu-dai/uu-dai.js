@@ -1,5 +1,6 @@
 (function () {
     'use strict';
+    function init() {
     document.querySelectorAll('[data-ho-page]').forEach(function (root) {
         // This page has no theme header, so the language switcher would float over the cart link; dock it in the nav.
         const lang = document.querySelector('.hithean-lang-switch--mobile-fixed');
@@ -125,10 +126,10 @@
         if (search) { search.addEventListener('input', update); }
         const section = root.querySelector('#ho-offers');
         // Nút đổi chế độ nằm trên thanh menu đáy toàn site (ngoài root, đã được portal ra <body>).
-        const modeToggles = document.querySelectorAll('[data-ho-mode-toggle]');
+
         function syncToggles() {
             const toProducts = mode !== 'products';
-            modeToggles.forEach(function (button) {
+            document.querySelectorAll('[data-ho-mode-toggle]').forEach(function (button) {
                 const label = button.querySelector('[data-ho-mode-label]');
                 if (label) { label.textContent = toProducts ? 'Theo SP' : 'Theo CT'; }
                 button.setAttribute('aria-label', toProducts ? 'Xem ưu đãi theo sản phẩm' : 'Xem ưu đãi theo chương trình');
@@ -149,8 +150,11 @@
             } catch (e) {}
             if (scroll && section) { section.scrollIntoView({block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}); }
         }
-        modeToggles.forEach(function (button) {
-            button.addEventListener('click', function () { setMode(mode === 'products' ? 'programs' : 'products', true); });
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-ho-mode-toggle]');
+            if (!button) { return; }
+            event.preventDefault();
+            setMode(mode === 'products' ? 'programs' : 'products', true);
         });
         syncToggles();
         // Hỏi nhanh khi vừa vào trang: xem theo sản phẩm hay theo chương trình. Không hỏi lại khi URL đã chọn
@@ -180,4 +184,10 @@
         document.addEventListener('visibilitychange', function () { if (!document.hidden) { update(); } });
         if (cards.length) { update(); }
     });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init, { once: true });
+    } else {
+        init();
+    }
 })();

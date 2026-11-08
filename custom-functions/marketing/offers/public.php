@@ -9,7 +9,7 @@ function hithean_offers_enqueue(): void {
     foreach (['css', 'js'] as $ext) {
         $path = '/pages/uu-dai/uu-dai.' . $ext;
         if ($ext === 'css') { wp_enqueue_style('hithean-offers', get_stylesheet_directory_uri() . $path, ['hithean-custom-style', 'hithean-offer-card'], filemtime(HITHEAN_THEME_DIR . $path)); }
-        else { wp_enqueue_script('hithean-offers', get_stylesheet_directory_uri() . $path, [], filemtime(HITHEAN_THEME_DIR . $path), true); wp_script_add_data('hithean-offers', 'defer', true); }
+        else { wp_enqueue_script('hithean-offers', get_stylesheet_directory_uri() . $path, [], filemtime(HITHEAN_THEME_DIR . $path), true); wp_script_add_data('hithean-offers', 'strategy', 'defer'); }
     }
 }
 // Snapshot data is cached; time-sensitive HTML is rendered fresh, even if cron is late.

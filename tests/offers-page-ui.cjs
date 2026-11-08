@@ -9,8 +9,27 @@ const dom = new JSDOM(html, { url: 'https://hithean.test/uu-dai/?xem=san-pham', 
 const w = dom.window;
 w.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
 w.HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); this.dispatchEvent(new w.Event('close')); };
+Object.defineProperty(w.document, 'readyState', { configurable: true, value: 'loading' });
 w.eval(fs.readFileSync('pages/uu-dai/uu-dai.js', 'utf8'));
 const d = w.document;
+w.HTMLElement.prototype.scrollIntoView = function () {};
+w.matchMedia = () => ({ matches: false });
+// WordPress prints the footer bar after footer scripts; it is absent during script evaluation.
+d.body.insertAdjacentHTML('beforeend', '<button data-ho-mode-toggle><span data-ho-mode-label>Theo SP</span></button>');
+Object.defineProperty(d, 'readyState', { configurable: true, value: 'complete' });
+d.dispatchEvent(new w.Event('DOMContentLoaded'));
+const toggle = d.querySelector('[data-ho-mode-toggle]');
+assert.equal(toggle.textContent, 'Theo CT', 'late footer button reflects URL-selected product view');
+toggle.querySelector('span').click();
+assert.equal(d.querySelector('[data-ho-page]').dataset.hoMode, 'programs', 'late footer button switches to programs');
+assert.ok(!d.querySelector('[data-ho-panel="programs"]').hidden && d.querySelector('[data-ho-panel="products"]').hidden);
+assert.equal(toggle.textContent, 'Theo SP');
+toggle.click();
+assert.equal(d.querySelector('[data-ho-page]').dataset.hoMode, 'products', 'late footer button switches back to products');
+assert.ok(!d.querySelector('[data-ho-panel="products"]').hidden && d.querySelector('[data-ho-panel="programs"]').hidden);
+assert.equal(new URL(w.location.href).searchParams.get('xem'), 'san-pham');
+assert.equal(w.sessionStorage.getItem('ho-mode'), 'products');
+
 const card = d.querySelector('[data-ho-product-card]:not([hidden])');
 assert.ok(card, 'fixture has a visible product');
 const dialog = card.querySelector('dialog');
