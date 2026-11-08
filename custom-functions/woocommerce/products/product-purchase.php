@@ -27,7 +27,7 @@ function hithean_product_purchase_enqueue(): void
         $relative = $base . '.' . $extension;
         $version = (string) filemtime(get_stylesheet_directory() . $relative);
         if ($extension === 'css') {
-            wp_enqueue_style('hithean-product-purchase', get_stylesheet_directory_uri() . $relative, ['hithean-custom-style', 'hithean-product-navigation'], $version);
+            wp_enqueue_style('hithean-product-purchase', get_stylesheet_directory_uri() . $relative, ['hithean-custom-style', 'hithean-product-navigation', 'hithean-offer-card'], $version);
         } else {
             wp_enqueue_script('hithean-product-purchase', get_stylesheet_directory_uri() . $relative, ['jquery', 'hithean-product-navigation'], $version, true);
             wp_script_add_data('hithean-product-purchase', 'strategy', 'defer');

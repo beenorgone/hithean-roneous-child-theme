@@ -8,7 +8,7 @@ function hithean_offers_enqueue(): void {
     if (!hithean_offers_is_page()) { return; }
     foreach (['css', 'js'] as $ext) {
         $path = '/pages/uu-dai/uu-dai.' . $ext;
-        if ($ext === 'css') { wp_enqueue_style('hithean-offers', get_stylesheet_directory_uri() . $path, ['hithean-custom-style'], filemtime(HITHEAN_THEME_DIR . $path)); }
+        if ($ext === 'css') { wp_enqueue_style('hithean-offers', get_stylesheet_directory_uri() . $path, ['hithean-custom-style', 'hithean-offer-card'], filemtime(HITHEAN_THEME_DIR . $path)); }
         else { wp_enqueue_script('hithean-offers', get_stylesheet_directory_uri() . $path, [], filemtime(HITHEAN_THEME_DIR . $path), true); wp_script_add_data('hithean-offers', 'defer', true); }
     }
 }
@@ -93,6 +93,29 @@ function hithean_offers_card(array $row): string {
     </article>
     <?php return (string) ob_get_clean();
 }
+/**
+ * Chế độ "Theo sản phẩm": 1 thẻ / sản phẩm, danh sách ưu đãi hiển thị Y HỆT popup "Ưu đãi đang áp dụng"
+ * của trang sản phẩm (thẻ .hithean-offer-card — offers/offer-card.php). Nút chính mở trang sản phẩm kèm
+ * #uu-dai → product-purchase.js tự mở popup ưu đãi.
+ */
+function hithean_offers_product_card(array $offers): string {
+    $row = $offers[0];
+    $cards = hithean_offer_cards_from_rows($offers);
+    $product = !empty($row['product_id']) ? wc_get_product((int) $row['product_id']) : null;
+    $price = $product ? $product->get_price_html() : '';
+    $until = max(array_map(static fn($card) => (int) $card['until'], $cards) ?: [0]);
+    $url = (string) $row['url'];
+    ob_start(); ?>
+    <article class="ho-card ho-card-product" data-ho-card data-ho-kind="<?php echo esc_attr($row['kind']); ?>" data-ho-until="<?php echo (int) $until; ?>" data-ho-search="<?php echo esc_attr($row['product_name']); ?>">
+        <a class="ho-card-visual" href="<?php echo esc_url($url); ?>" tabindex="-1" aria-hidden="true"><span class="ho-badge"><?php echo count($cards) > 1 ? count($cards) . ' ưu đãi' : esc_html($cards[0]['badge'] ?? 'Ưu đãi'); ?></span><img src="<?php echo esc_url($row['image']); ?>" alt="" width="480" height="480" loading="lazy" decoding="async"></a>
+        <div class="ho-card-body"><h3><a href="<?php echo esc_url($url); ?>"><?php echo esc_html($row['product_name']); ?></a></h3>
+        <?php if ($price !== '') : ?><p class="ho-product-price"><?php echo wp_kses_post($price); ?></p><?php endif; ?>
+        <ul class="hithean-offer-list ho-offer-list"><?php foreach ($cards as $card) { echo hithean_offer_card_html($card); } ?></ul>
+        <?php if (!$row['in_stock']) : ?><p class="ho-stock">Tạm hết hàng</p><?php endif; ?>
+        <a class="ho-button <?php echo $row['in_stock'] ? 'ho-button-dark' : 'ho-button-quiet'; ?>" href="<?php echo esc_url($url . '#uu-dai'); ?>"><?php echo $row['in_stock'] ? ($row['variable'] ? 'Chọn phân loại & nhận ưu đãi' : 'Xem sản phẩm & ưu đãi') : 'Xem sản phẩm'; ?><span aria-hidden="true">↗</span></a></div>
+    </article>
+    <?php return (string) ob_get_clean();
+}
 /** Active snapshot rows; preview mode limits them to managers. */
 function hithean_offers_visible_items(): array {
     if (hithean_offers_settings()['preview'] && !current_user_can('manage_woocommerce')) { return []; }
@@ -163,7 +186,7 @@ function hithean_offers_shortcode(): string {
     $count = count($products);
     ob_start(); ?>
     <div class="ho-page ho-banners-<?php echo hithean_offers_settings()['banner_layout'] === 'grid' ? 'grid' : 'full'; ?>" data-ho-page data-ho-mode="programs">
-        <nav class="ho-nav" aria-label="Điều hướng ưu đãi"><?php echo hithean_offers_logo(); ?><div><a href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/')); ?>">Khám phá sản phẩm</a><a class="ho-nav-cart" href="<?php echo esc_url(wc_get_cart_url()); ?>">Giỏ hàng <span aria-hidden="true">↗</span></a></div></nav>
+        <nav class="ho-nav" aria-label="Điều hướng ưu đãi"><?php echo hithean_offers_logo(); ?><div><a href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/')); ?>">Khám phá sản phẩm</a><?php if (function_exists('hithean_sfm_my_offers_enabled') && hithean_sfm_my_offers_enabled()) : ?><button type="button" class="ho-nav-mine" data-hmo-open aria-haspopup="dialog">Ưu đãi của tôi</button><?php endif; ?><a class="ho-nav-cart" href="<?php echo esc_url(wc_get_cart_url()); ?>">Giỏ hàng <span aria-hidden="true">↗</span></a></div></nav>
         <?php if ($preview && current_user_can('manage_woocommerce')) : ?><p class="ho-preview" role="status">Bản xem trước dành cho quản trị viên. Bật hiển thị công khai trong WooCommerce → Ưu đãi sản phẩm khi đã kiểm tra nguồn.</p><?php endif; ?>
         <main>
         <section class="ho-hero" aria-labelledby="ho-heading"><div class="ho-hero-copy"><p class="ho-eyebrow"><span></span> ĐIỀU LÀNH, THÊM MỘT CHÚT</p><h1 id="ho-heading">Chọn điều lành.<br><em>Nhận niềm vui.</em></h1><p class="ho-lead">Khám phá những ưu đãi dành cho sản phẩm bạn yêu thích — quà tặng, giá tốt và những lựa chọn đáng để ghé xem.</p><a class="ho-button ho-button-dark ho-hero-cta" href="#ho-offers">Khám phá ưu đãi <span aria-hidden="true">↓</span></a><p class="ho-hero-note">Dành cho khách mua tại website The An</p></div>
@@ -175,14 +198,23 @@ function hithean_offers_shortcode(): string {
         <p class="ho-result" data-ho-result role="status" aria-live="polite"><?php echo (int) $count; ?> sản phẩm / chương trình có ưu đãi</p>
         <div data-ho-panel="programs"><div class="ho-grid"><?php foreach ($products as $row) { echo hithean_offers_card($row); } ?></div>
         <p class="ho-empty" data-ho-empty hidden>Chưa có ưu đãi phù hợp. Thử tên sản phẩm khác hoặc chọn “Tất cả”.</p></div>
-        <div data-ho-panel="products" hidden><div class="ho-grid ho-product-grid"><?php foreach ($catalog as $offers) { echo hithean_offers_card(array_merge($offers[0], ['offers' => $offers, 'banner' => ''])); /* Chế độ sản phẩm giữ ảnh sản phẩm. */ } ?></div>
+        <div data-ho-panel="products" hidden><div class="ho-grid ho-product-grid"><?php foreach ($catalog as $offers) { echo hithean_offers_product_card($offers); } ?></div>
         <p class="ho-empty" data-ho-products-empty hidden>Không tìm thấy sản phẩm phù hợp.</p></div>
         <?php else : ?><div class="ho-empty"><span aria-hidden="true">✳</span><h3>Hẹn bạn ở ưu đãi tiếp theo</h3><p>Các chương trình mới sẽ xuất hiện tại đây sau khi được cập nhật.</p><a class="ho-button ho-button-dark" href="<?php echo esc_url(wc_get_page_permalink('shop')); ?>">Khám phá sản phẩm <span aria-hidden="true">↗</span></a></div><?php endif; ?>
         </section>
         <section class="ho-how" aria-labelledby="ho-how-heading"><div><p class="ho-eyebrow">TỪ LỰA CHỌN ĐẾN NIỀM VUI</p><h2 id="ho-how-heading">Nhận ưu đãi,<br>thật nhẹ nhàng.</h2></div><ol><li><span>01</span><div><h3>Chọn sản phẩm</h3><p>Tìm món bạn yêu thích trong các chương trình đang áp dụng.</p></div></li><li><span>02</span><div><h3>Xem điều kiện</h3><p>Kiểm tra số lượng, phân loại, giá trị đơn và thời hạn tại trang sản phẩm.</p></div></li><li><span>03</span><div><h3>Kiểm tra giỏ hàng</h3><p>Xác nhận ưu đãi thực tế trước khi hoàn tất đặt hàng.</p></div></li></ol></section>
         <p class="ho-terms">Mỗi chương trình có điều kiện áp dụng riêng. Khả năng kết hợp ưu đãi và giá trị cuối cùng được xác nhận trong giỏ hàng. Ưu đãi trên website có thể khác các kênh mua hàng khác.</p>
         </main>
-        <?php if ($count) : ?><nav class="ho-modebar" data-ho-modebar aria-label="Chế độ xem ưu đãi" hidden><button type="button" data-ho-mode="programs" aria-pressed="true"><span class="ho-modebar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>Xem chương trình</button><button type="button" data-ho-mode="products" aria-pressed="false"><span class="ho-modebar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Sản phẩm ưu đãi</button></nav><?php endif; ?>
+        <?php if ($count) : ?><nav class="ho-modebar" data-ho-modebar aria-label="Chế độ xem ưu đãi" hidden><button type="button" data-ho-mode="programs" aria-pressed="true"><span class="ho-modebar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>Xem chương trình</button><button type="button" data-ho-mode="products" aria-pressed="false"><span class="ho-modebar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Sản phẩm ưu đãi</button></nav>
+        <dialog class="ho-ask" data-ho-ask aria-labelledby="ho-ask-title"><div class="ho-ask-inner">
+            <p class="ho-eyebrow"><span></span> CHÀO BẠN</p>
+            <h2 id="ho-ask-title">Bạn muốn xem ưu đãi theo cách nào?</h2>
+            <div class="ho-ask-options">
+                <button type="button" class="ho-ask-option" data-ho-ask-pick="products"><span class="ho-ask-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="ho-ask-text"><strong>Theo sản phẩm</strong><small>Đã biết mình cần gì? Xem mọi ưu đãi của từng sản phẩm (<?php echo count($catalog); ?> sản phẩm).</small></span><span class="ho-ask-arrow" aria-hidden="true">→</span></button>
+                <button type="button" class="ho-ask-option" data-ho-ask-pick="programs"><span class="ho-ask-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><span class="ho-ask-text"><strong>Theo chương trình</strong><small>Quà tặng, giảm giá, mua nhiều, vận chuyển… (<?php echo (int) $count; ?> chương trình).</small></span><span class="ho-ask-arrow" aria-hidden="true">→</span></button>
+            </div>
+            <button type="button" class="ho-ask-later" data-ho-ask-pick="">Để sau, tôi xem trang trước</button>
+        </div></dialog><?php endif; ?>
     </div>
     <?php return (string) ob_get_clean();
 }

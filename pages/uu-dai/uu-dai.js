@@ -92,19 +92,51 @@
             });
         });
         if (search) { search.addEventListener('input', update); }
+        const section = root.querySelector('#ho-offers');
+        const modeButtons = modebar ? modebar.querySelectorAll('[data-ho-mode]') : [];
+        function setMode(next, scroll) {
+            mode = next === 'products' ? 'products' : 'programs';
+            root.dataset.hoMode = mode;
+            modeButtons.forEach(function (item) { item.setAttribute('aria-pressed', String(item.dataset.hoMode === mode)); });
+            root.querySelectorAll('[data-ho-panel]').forEach(function (panel) { panel.hidden = panel.dataset.hoPanel !== mode; });
+            update();
+            try { window.sessionStorage.setItem('ho-mode', mode); } catch (e) {}
+            // Link chia sẻ giữ đúng chế độ đang xem (?xem=san-pham | chuong-trinh).
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.set('xem', mode === 'products' ? 'san-pham' : 'chuong-trinh');
+                window.history.replaceState(null, '', url);
+            } catch (e) {}
+            if (scroll && section) { section.scrollIntoView({block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}); }
+        }
         if (modebar) {
-            const buttons = modebar.querySelectorAll('[data-ho-mode]');
-            const section = root.querySelector('#ho-offers');
             modebar.hidden = false;
-            buttons.forEach(function (button) {
-                button.addEventListener('click', function () {
-                    mode = button.dataset.hoMode;
-                    root.dataset.hoMode = mode;
-                    buttons.forEach(function (item) { item.setAttribute('aria-pressed', String(item === button)); });
-                    root.querySelectorAll('[data-ho-panel]').forEach(function (panel) { panel.hidden = panel.dataset.hoPanel !== mode; });
-                    update();
-                    if (section) { section.scrollIntoView({block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}); }
-                });
+            modeButtons.forEach(function (button) {
+                button.addEventListener('click', function () { setMode(button.dataset.hoMode, true); });
+            });
+        }
+        // Hỏi nhanh khi vừa vào trang: xem theo sản phẩm hay theo chương trình. Không hỏi lại khi URL đã chọn
+        // (?xem=…) hoặc khách đã chọn trong phiên này.
+        const ask = root.querySelector('[data-ho-ask]');
+        let chosen = '';
+        try {
+            const param = new URL(window.location.href).searchParams.get('xem');
+            chosen = param === 'san-pham' ? 'products' : (param === 'chuong-trinh' ? 'programs' : '');
+            if (!chosen) { chosen = window.sessionStorage.getItem('ho-mode') || ''; }
+        } catch (e) {}
+        if (chosen) {
+            if (chosen === 'products' && modebar) { setMode('products', false); }
+        } else if (ask && typeof ask.showModal === 'function' && cards.length) {
+            ask.showModal();
+            document.documentElement.classList.add('ho-modal-open');
+            ask.addEventListener('close', function () { document.documentElement.classList.remove('ho-modal-open'); });
+            ask.addEventListener('cancel', function () { try { window.sessionStorage.setItem('ho-mode', 'programs'); } catch (e) {} });
+            ask.addEventListener('click', function (event) {
+                const pick = event.target.closest('[data-ho-ask-pick]');
+                if (!pick) { return; }
+                ask.close();
+                if (pick.dataset.hoAskPick) { setMode(pick.dataset.hoAskPick, true); }
+                else { try { window.sessionStorage.setItem('ho-mode', 'programs'); } catch (e) {} }
             });
         }
         document.addEventListener('visibilitychange', function () { if (!document.hidden) { update(); } });

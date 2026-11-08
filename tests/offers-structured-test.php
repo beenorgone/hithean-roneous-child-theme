@@ -180,7 +180,11 @@ $shipping_row = get_post_meta($shipping_id, '_ho_data', true); hithean_offers_re
 $pinned_html = hithean_offers_shortcode();
 ok(get_option(HITHEAN_OFFERS_SNAPSHOT)['items'][0]['family'] === 'wdr' && strpos($pinned_html, 'Vòng quay may mắn') < strpos($pinned_html, '>Miễn phí vận chuyển<'), 'An approved wheel program leads the grid even ahead of pinned rules');
 $product_card = product_card($pinned_html, 'Test product 11');
-ok(substr_count($product_card, 'data-ho-rule ') === 2 && str_contains($product_card, '<p class="ho-benefit">Vòng quay may mắn</p>') && !str_contains($product_card, 'Cần quay') && str_contains($product_card, 'Miễn phí vận chuyển') && !str_contains($product_card, 'data-ho-wheel-open'), 'Product card lists every program that applies to it, wheel and shipping included');
+ok(substr_count($product_card, 'data-ho-rule ') === 2 && str_contains($product_card, '<span class="hithean-offer-card__badge">Vòng quay may mắn</span>') && !str_contains($product_card, 'Cần quay') && str_contains($product_card, 'Miễn phí vận chuyển'), 'Product card lists every program that applies to it, wheel and shipping included');
+// Chế độ sản phẩm hiển thị như popup "Ưu đãi đang áp dụng" của trang sản phẩm: thẻ .hithean-offer-card, chip theo loại,
+// icon vận chuyển / vòng quay, thứ tự vận chuyển trước vòng quay, nút "Quay ngay", CTA mở popup ở trang SP (#uu-dai).
+ok(substr_count($product_card, 'class="hithean-offer-card"') === 2 && str_contains($product_card, '>Ưu đãi vận chuyển</span>') && str_contains($product_card, 'hithean-offer-card__media--icon is-ship') && str_contains($product_card, 'hithean-offer-card__media--icon is-wheel')
+    && strpos($product_card, 'is-ship') < strpos($product_card, 'is-wheel') && str_contains($product_card, 'data-ho-wheel-open>Quay ngay</a>') && str_contains($product_card, '#uu-dai"'), 'Product card offers use the product-page popup card layout');
 ok(substr_count(programs($shipping_html), 'data-ho-kind="shipping" data-ho-until') === 2 && substr_count(programs($shipping_html), 'data-ho-card') === 2 && str_contains($shipping_html, '>Miễn phí vận chuyển<') && str_contains($shipping_html, 'Áp dụng cho mọi sản phẩm') && str_contains($shipping_html, '>Mua sắm ngay<') && !str_contains($shipping_html, 'ho-group-dialog'), 'Site-wide free shipping renders one shop card without a product list');
 $GLOBALS['rewards'][0]['amount'] = 30000;
 $changed_wheel = hithean_offers_wheel_sources($GLOBALS['products'])[0];
@@ -292,5 +296,19 @@ preg_match_all('/<article class="ho-offer">.*?<\/article>/s', $admin_html, $card
 $compact_cards = preg_replace('/<dialog\b.*?<\/dialog>/s', '', $cards[0]);
 ok(count($compact_cards) > 0 && !preg_grep('/<(form|details|p)\b/', $compact_cards), 'Board cards expose only a title; all details and actions live inside dialogs');
 if (getenv('HITHEAN_OFFERS_ADMIN_PREVIEW')) { file_put_contents(getenv('HITHEAN_OFFERS_ADMIN_PREVIEW'), $admin_html); }
+// Thẻ ưu đãi dùng chung (offer-card.php): bậc giá WDR thành danh sách bậc, add-on lấy ảnh quà + ghi chú tự áp dụng,
+// thứ tự add-on → bậc giá giống popup trang sản phẩm; trang /uu-dai/ có popup hỏi nhanh 2 lựa chọn.
+$card_rows = [
+    ['family' => 'wdr', 'kind' => 'quantity', 'title' => 'x', 'end' => 0, 'verified_at' => time(), 'image' => 'p.jpg',
+        'source_config' => ['bulk_adjustments' => json_encode(['operator' => 'product_cumulative', 'ranges' => [['from' => 3, 'to' => '', 'type' => 'percentage', 'value' => 10], ['from' => 2, 'to' => 2, 'type' => 'flat', 'value' => 5000]]])]],
+    ['family' => 'addon', 'kind' => 'gift', 'title' => 'raw', 'end' => 0, 'verified_at' => time(), 'image' => 'p.jpg',
+        'source_config' => ['name' => 'Tặng bình lắc', 'mode' => 'auto', 'ranges' => [['min' => 2]], 'sale_message' => ''], 'gift_strip' => ['gifts' => [['image' => 'gift.jpg']]]],
+];
+$built = hithean_offer_cards_from_rows($card_rows);
+ok($built[0]['badge'] === 'Ưu đãi kèm' && $built[0]['title'] === 'Tặng bình lắc' && $built[0]['media']['src'] === 'gift.jpg' && $built[0]['notes'][0] === 'Tự động áp dụng khi mua từ 2 sản phẩm', 'Add-on offer card matches the product popup (gift image, auto note) and leads');
+ok($built[1]['badge'] === 'Mua nhiều giảm giá' && array_column($built[1]['tiers'], 'range') === ['2', 'từ 3'] && $built[1]['tiers'][1]['label'] === 'Giảm 10%' && in_array('Tính cộng dồn số lượng các sản phẩm đủ điều kiện', $built[1]['notes'], true), 'Quantity rule renders sorted tiers like the product page table');
+$tier_html = hithean_offer_card_html($built[1]);
+ok(substr_count($tier_html, '<li><span class="hithean-offer-tiers__label">') === 2 && str_contains($tier_html, '<small>Mua từ 3 sản phẩm</small>'), 'Tier list markup matches the product popup');
+ok(str_contains($pinned_html, 'data-ho-ask') && str_contains($pinned_html, 'data-ho-ask-pick="products"') && str_contains($pinned_html, 'data-ho-ask-pick="programs"'), 'Offers page asks whether to browse by product or by program');
 echo "PASS: $count structured-offer assertions\n";
 }

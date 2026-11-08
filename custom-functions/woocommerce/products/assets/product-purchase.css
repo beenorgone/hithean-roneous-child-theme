@@ -220,31 +220,6 @@ html.hithean-offers-open { overflow: hidden; }
 .hithean-offers-dialog__head p { margin: 4px 0 0; font-size: 13px; opacity: .7; }
 .hithean-offers-dialog .hithean-offers-dialog__close { flex-shrink: 0; width: 40px; height: 40px; min-height: 0; margin: 0; padding: 0; border: 1px solid #3b22223a; border-radius: 0; background: #fff; color: var(--ho-ink); font-size: 22px; line-height: 1; cursor: pointer; box-shadow: none; }
 .hithean-offers-dialog__list { display: grid; gap: 12px; margin: 0; padding: 16px; overflow-y: auto; list-style: none; background: var(--ho-cream); }
-.hithean-offer-card { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 18px; border: 1px solid #3b222210; border-radius: 16px; background: #fff; box-shadow: 0 3px 12px #3b222206; }
-.hithean-offer-card__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-/* Ảnh / icon góc phải trên, cao bằng chip + 1 dòng tiêu đề (JS đo → --ho-media, kẹp 40–72px). */
-.hithean-offer-card__head { display: flex; align-items: flex-start; gap: 14px; }
-.hithean-offer-card__main { display: flex; flex: 1 1 auto; flex-direction: column; gap: 10px; min-width: 0; }
-.hithean-offer-card__media { --ho-media-size: clamp(40px, var(--ho-media, 60px), 72px); flex: 0 0 var(--ho-media-size); width: var(--ho-media-size); height: var(--ho-media-size); overflow: hidden; border: 1px solid #3b22221a; border-radius: 12px; background: var(--ho-cream); }
-.hithean-offer-card__media img { display: block; width: 100%; height: 100%; margin: 0; object-fit: cover; }
-.hithean-offer-card__media--icon { display: grid; place-items: center; border: 0; color: var(--default-color-dark-blue, #0047ba); background: #e8f0fb; }
-.hithean-offer-card__media--icon.is-wheel { color: #9a6a00; background: #fff4d6; }
-.hithean-offer-card__media--icon svg { width: 36%; height: 36%; min-width: 20px; min-height: 20px; }
-.hithean-offer-card__badge { padding: 5px 12px; border-radius: 99px; background: #ecefe6; color: var(--ho-green); font-size: 11px; font-weight: 700; }
-.hithean-offer-card__price,
-.hithean-offer-card__price .amount { font-size: 15px !important; font-weight: 700; color: var(--ho-green); }
-.hithean-offer-card__title { font-size: 15px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
-.hithean-offer-card__title * { color: inherit !important; background: none !important; }
-.hithean-offer-card__extra { font-size: 13px; opacity: .85; }
-.hithean-offer-card__extra > :last-child { margin-bottom: 0; }
-.hithean-offer-card__note { margin: 0; font-size: 12px; color: var(--ho-green); }
-.hithean-offer-card__price small { font-size: 12px; font-weight: 400; opacity: .75; }
-.hithean-offer-card.is-active { border-color: #214f3c55; box-shadow: inset 0 0 0 1px #214f3c33; }
-/* Nút đặt số lượng theo ưu đãi — cùng màu nút Thêm vào giỏ; theme cha ép style button nên dùng !important. */
-.hithean-offers-dialog .hithean-offer-card__action { display: flex !important; align-items: center; justify-content: center; width: 100%; height: auto !important; min-height: 44px; margin: 4px 0 0 !important; padding: 10px 16px !important; border: 2px solid var(--default-color-dark-blue, #0047ba) !important; border-radius: 8px !important; background: var(--default-color-dark-blue, #0047ba) !important; color: #fff !important; box-shadow: none !important; font-family: inherit; font-size: 14px !important; font-weight: 600; line-height: 1.3 !important; letter-spacing: 0 !important; text-transform: none !important; cursor: pointer; }
-.hithean-offers-dialog .hithean-offer-card__action:hover:not(:disabled) { background: var(--default-color-light-blue, #b0dded) !important; border-color: var(--default-color-light-blue, #b0dded) !important; color: var(--default-color-dark-blue, #0047ba) !important; }
-.hithean-offers-dialog .hithean-offer-card__action:focus-visible { outline: 2px solid #0047ba; outline-offset: 3px; }
-.hithean-offers-dialog .hithean-offer-card__action:disabled { border-color: #3b22221c !important; background: #f7f6f2 !important; color: #214f3c !important; cursor: default; font-weight: 500; }
 .hithean-offers-dialog__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 14px 24px 18px; border-top: 1px solid #3b22221c; font-size: 12px; }
 .hithean-offers-dialog__foot p { margin: 0; opacity: .7; }
 .hithean-offers-dialog__all { font-weight: 600; color: var(--default-color-dark-blue, #0047ba) !important; text-decoration: none !important; }
@@ -254,12 +229,6 @@ html.hithean-offers-open { overflow: hidden; }
     .hithean-offers-dialog__list { padding: 12px; }
     .hithean-offers-dialog__foot { padding: 12px 18px 16px; }
 }
-/* Thẻ bậc giá gộp: danh sách bậc. */
-.hithean-offer-tiers { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.hithean-offer-tiers li { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 8px 12px; border: 1px solid #3b22221c; border-radius: 10px; }
-.hithean-offer-tiers li.is-current { border-color: #214f3c; background: #edf5ec; }
-.hithean-offer-tiers__label { display: flex; flex-direction: column; min-width: 0; font-size: 14px; font-weight: 600; }
-.hithean-offer-tiers__label small { font-size: 12px; font-weight: 400; opacity: .7; }
 /* Popup nhỏ chọn số lượng. */
 .hithean-offers-dialog.hithean-offers-qty { width: min(400px, calc(100vw - 32px)); }
 .hithean-offers-qty__body { display: grid; gap: 14px; padding: 18px 24px; overflow-y: auto; }

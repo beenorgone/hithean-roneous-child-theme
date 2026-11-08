@@ -405,6 +405,13 @@
             if (!dialog.open) openDialog(dialog);
         }
         trigger.addEventListener('click', function () { opener = trigger; showOffers(); });
+        // Từ trang /uu-dai/ (chế độ sản phẩm) sang: link có #uu-dai → mở sẵn popup ưu đãi (cùng kiểu thẻ với trang đó).
+        if (window.location.hash === '#uu-dai') {
+            window.setTimeout(function () {
+                showOffers();
+                try { window.history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
+            }, 400);
+        }
         // Nút sticky "Nhận ưu đãi" của vòng quay mở popup ưu đãi chung; thẻ vòng quay trong popup mới mở vòng quay
         // (bấm hộ nút gốc với cờ bỏ qua). Tự mở vòng quay của plugin gọi thẳng openModal nên không bị chặn.
         var wheelPassThrough = false;

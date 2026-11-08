@@ -11,6 +11,7 @@ require_once __DIR__ . '/offers/extract.php';
 require_once __DIR__ . '/offers/structured.php';
 require_once __DIR__ . '/offers/worker.php';
 require_once __DIR__ . '/offers/public.php';
+require_once __DIR__ . '/offers/offer-card.php';
 if (is_admin()) { require_once __DIR__ . '/offers/admin.php'; }
 if (defined('WP_CLI') && WP_CLI) { require_once __DIR__ . '/offers/cli.php'; }
 
@@ -51,3 +52,8 @@ add_action('switch_theme', static function (): void {
 });
 add_shortcode('hithean_offers', 'hithean_offers_shortcode');
 add_action('wp_enqueue_scripts', 'hithean_offers_enqueue');
+// Thẻ ưu đãi dùng chung (popup trang SP, /uu-dai/ chế độ sản phẩm, "Ưu đãi của tôi") — chỉ đăng ký, nơi dùng tự enqueue.
+add_action('wp_enqueue_scripts', static function (): void {
+    $path = '/custom-functions/marketing/assets/offer-card.css';
+    wp_register_style('hithean-offer-card', get_stylesheet_directory_uri() . $path, [], (string) @filemtime(HITHEAN_THEME_DIR . $path));
+}, 1);

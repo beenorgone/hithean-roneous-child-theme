@@ -39,7 +39,8 @@ woocommerce/
                product-archive-footer-menu, proof-embed-cache, product-nutrition-label…
 shortcodes/    order-export-confirm (+ export-bulk-web), order-shipped, order-return-manager, product-compare(-ai),
                protein-calculator, anc-product-cards, anc-new-partner-offer, company-info, google-docs/sheet…
-marketing/     offers/ (ưu đãi), lucky-wheel/, popup-widget, cro-landing-agent (chạy theo lịch, không chạy ở front)
+marketing/     offers/ (ưu đãi), lucky-wheel/, popup-widget, cro-landing-agent (chạy theo lịch, không chạy ở front),
+               site-footer-menu + my-offers (thanh menu đáy toàn site + "Ưu đãi của tôi" — xem dưới)
 auth/          email-login (OTP), firebase-sms-login, email-issue, email-tasks
 integrations/  erp-mesh-adapter (plugin mcp-site-link), plugin-devvn-ghtk-tweaks
 admin/         shortcodes-guide, blogpost-metabox, plugins-page, editor-tools/
@@ -60,6 +61,26 @@ Ngoài ra: `pages/` (landing tĩnh: an-new-chapter*, doi-tac-yeast-hero, uu-dai,
 
 Mã đơn hiển thị giống nhau: ID + hậu tố (`thean_change_woocommerce_order_number()` ở order-number.php).
 Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_map` / `eim_order_shipper_label` trong bootstrap.php.
+
+## Thanh menu đáy toàn site & ưu đãi
+
+- `marketing/site-footer-menu.php` (module `site_footer_menu`, điều kiện `tpc_cond_site_footer_menu()`): Trang chủ · Sản phẩm ·
+  Nhận ưu đãi (/uu-dai/) · Ưu đãi của tôi. Ở trang chủ + mọi trang **trừ** trang SP, cửa hàng / danh mục (đã có thanh `apfm`),
+  giỏ / thanh toán / cảm ơn, landing `anc_landing`, /tao-don, /tien-ich-admin. /uu-dai/ chỉ in panel (nút ở nav trang).
+  JS tự bỏ thanh khi trang có thanh đáy khác (`.anc-sticky-menu`, `#apfm-root`, `.pcn`, `.ho-modebar`).
+- "Ưu đãi của tôi" (`marketing/my-offers.php`): mã vòng quay (cùng hash định danh lucky-wheel) + coupon giới hạn email, còn hạn / còn lượt.
+  Đăng nhập (user, email, billing, SĐT login SMS) hoặc mã vòng quay của phiên → hiện mã đầy đủ + Sao chép / Dùng cho giỏ.
+  Khách tự nhập email/SĐT (kèm tài khoản gắn với nó) → **mã bị che**; email → "Gửi mã về email", SĐT → đăng nhập SMS.
+  Liên hệ đã tra nhớ theo phiên (cookie `hithean_mo` → transient) + tài khoản (user meta `hithean_my_offers_contacts`).
+  Nội dung tải AJAX khi mở (trang có thể cache; nonce lấy từ phản hồi load). Đăng nhập từ panel → trang tài khoản `?hmo_return=` →
+  quay lại trang cũ `#uu-dai-cua-toi` (tự mở panel). Thêm action AJAX → khai cả ở module-loader lẫn (nếu cần state vòng quay)
+  `thean_lw_is_feature_ajax_request()`.
+- **Thẻ ưu đãi dùng chung** `.hithean-offer-card` (`marketing/assets/offer-card.css`, handle `hithean-offer-card`; PHP
+  `hithean_offer_card_html()` ở `offers/offer-card.php`): popup "Ưu đãi đang áp dụng" trang SP (product-purchase.js), /uu-dai/ chế độ
+  "Theo sản phẩm" (`hithean_offer_cards_from_rows()` — chip / ảnh / bậc giá / thứ tự khớp popup) và panel "Ưu đãi của tôi". Sửa kiểu thẻ ở 1 chỗ.
+  Link `…/san-pham/x/#uu-dai` mở sẵn popup ưu đãi ở trang SP.
+- /uu-dai/: vừa vào hỏi nhanh (dialog `data-ho-ask`) xem theo sản phẩm hay chương trình; bỏ qua khi URL có `?xem=san-pham|chuong-trinh`
+  hoặc đã chọn trong phiên (sessionStorage `ho-mode`).
 
 ## Khóa đơn cũ (`woocommerce/orders/order-age-lock.php`, dùng chung theanmarket)
 
@@ -164,6 +185,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
+- `my-offers.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
 - `create-order-ai-address.php` (quy đổi địa chỉ AI tạo đơn); UI popup "Chỉnh đơn" chế độ AI: `node tests/create-order-ai-ui.cjs` (cần jsdom).
 
 ## Quy ước

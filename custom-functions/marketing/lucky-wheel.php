@@ -469,7 +469,8 @@ function thean_lw_is_feature_ajax_request(): bool
 
     $action = isset($_REQUEST['action']) ? sanitize_key(wp_unslash((string) $_REQUEST['action'])) : '';
 
-    return in_array($action, ['thean_lw_status', 'thean_lw_spin', 'thean_lw_claim', 'thean_lw_apply_coupon'], true);
+    // hithean_my_offers_load / _apply ("Ưu đãi của tôi", my-offers.php): đọc mã vòng quay của phiên + luật 1 mã vòng quay / đơn.
+    return in_array($action, ['thean_lw_status', 'thean_lw_spin', 'thean_lw_claim', 'thean_lw_apply_coupon', 'hithean_my_offers_load', 'hithean_my_offers_apply'], true);
 }
 
 require_once thean_lw_feature_dir() . '/cleanup.php';

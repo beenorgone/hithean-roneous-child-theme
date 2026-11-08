@@ -432,6 +432,13 @@ function tpc_loader_modules()
             'condition' => 'tpc_cond_is_product_taxonomy',
         ],
         [
+            // Thanh menu đáy toàn site (Trang chủ · Sản phẩm · Nhận ưu đãi · Ưu đãi của tôi) + panel "Ưu đãi của tôi".
+            'id' => 'site_footer_menu',
+            'file' => 'custom-functions/marketing/site-footer-menu.php',
+            'condition' => 'tpc_cond_site_footer_menu',
+            'ajax_actions' => ['hithean_my_offers_load', 'hithean_my_offers_lookup', 'hithean_my_offers_forget', 'hithean_my_offers_send', 'hithean_my_offers_apply'],
+        ],
+        [
             'id' => 'checkout_page',
             'file' => 'custom-functions/woocommerce/checkout/checkout-page.php',
             'condition' => 'tpc_cond_is_checkout',
@@ -521,6 +528,30 @@ function tpc_cond_is_product_taxonomy()
 function tpc_cond_is_checkout()
 {
     return function_exists('is_checkout') && is_checkout();
+}
+
+/**
+ * Thanh menu đáy toàn site: trang chủ + mọi trang trừ trang sản phẩm, cửa hàng / danh mục (đã có thanh riêng),
+ * giỏ / thanh toán / cảm ơn (flow mua hàng), landing ANC / Yeast Hero (có thanh đáy riêng), trang nội bộ.
+ * /uu-dai/ vẫn nạp (chỉ panel "Ưu đãi của tôi", không in thanh — hithean_sfm_has_bar()).
+ */
+function tpc_cond_site_footer_menu()
+{
+    if (is_admin() || is_feed() || is_embed() || is_robots()) {
+        return false;
+    }
+    if (function_exists('is_woocommerce') && (is_product() || is_product_taxonomy() || is_shop())) {
+        return false;
+    }
+    if (function_exists('is_cart') && (is_cart() || is_checkout())) {
+        return false;
+    }
+    $groups = tpc_loader_path_groups();
+    $excluded = array_merge((array) ($groups['anc_landing'] ?? []), ['/tao-don', '/tien-ich-admin']);
+    if (in_array(tpc_loader_current_path(), array_map('tpc_loader_normalize_path', $excluded), true)) {
+        return false;
+    }
+    return (bool) apply_filters('hithean_sfm_enabled', true);
 }
 
 function tpc_loader_front_module_matches(array $module)
