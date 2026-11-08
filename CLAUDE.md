@@ -68,7 +68,7 @@ Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_m
   **Giỏ hàng (giữa, mở popup giỏ add-to-cart-popup)** · Nhận ưu đãi · Ưu đãi của tôi. "Nhận ưu đãi" mở popup "Ưu đãi tiêu biểu"
   (khung `.hithean-offers-dialog` dùng chung với popup trang SP, AJAX `hithean_sfm_featured` → `hithean_sfm_featured_cards()`:
   1 thẻ / chương trình, nhiều SP trước) + thẻ vòng quay tĩnh + nút "Xem toàn bộ ưu đãi" → /uu-dai/; nút nổi vòng quay bị ẩn
-  (body `sfm-wheel-in-offers`) như trang SP. Ở trang chủ + mọi trang **trừ** trang SP, cửa hàng / danh mục (đã có thanh `apfm`),
+  (body `sfm-wheel-in-offers`) như trang SP. Ở trang chủ, /shop + mọi trang **trừ** trang SP, danh mục (đã có thanh `apfm`),
   giỏ / thanh toán / cảm ơn, landing `anc_landing`, /tao-don, /tien-ich-admin. /uu-dai/ chỉ in panel (nút ở nav trang).
   JS tự bỏ thanh khi trang có thanh đáy khác (`.anc-sticky-menu`, `#apfm-root`, `.pcn`, `.ho-modebar`).
 - "Ưu đãi của tôi" (`marketing/my-offers.php`): mã vòng quay (cùng hash định danh lucky-wheel) + coupon giới hạn email, còn hạn / còn lượt.
@@ -80,7 +80,7 @@ Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_m
   `thean_lw_is_feature_ajax_request()`.
 - **Thẻ ưu đãi dùng chung** `.hithean-offer-card` + khung popup `.hithean-offers-dialog` (`marketing/assets/offer-card.css`, handle `hithean-offer-card`; PHP
   `hithean_offer_card_html()` ở `offers/offer-card.php`): popup "Ưu đãi đang áp dụng" trang SP (product-purchase.js), /uu-dai/ chế độ
-  "Theo sản phẩm" (`hithean_offer_cards_from_rows()` — chip / ảnh / bậc giá / thứ tự khớp popup) và panel "Ưu đãi của tôi". Sửa kiểu thẻ ở 1 chỗ.
+  "Theo sản phẩm" (`hithean_offer_cards_from_rows()` — chip / ảnh / bậc giá / thứ tự khớp popup) và panel "Ưu đãi của tôi". Sửa kiểu thẻ ở 1 chỗ. Màu theo loại: lớp `.is-tone-{addon|tiers|shipping|discount|wheel|coupon|other}` (PHP: `tone` → `group` → `kind`; JS trang SP: `card.tone || card.kind`).
   Link `…/san-pham/x/#uu-dai` mở sẵn popup ưu đãi ở trang SP.
 - /uu-dai/: vừa vào hỏi nhanh (dialog `data-ho-ask`) xem theo sản phẩm hay chương trình; bỏ qua khi URL có `?xem=san-pham|chuong-trinh`
   hoặc đã chọn trong phiên (sessionStorage `ho-mode`).

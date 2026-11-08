@@ -31,6 +31,21 @@
 .hithean-offer-card__note { margin: 0; font-size: 12px; color: var(--ho-green); }
 .hithean-offer-card__price small { font-size: 12px; font-weight: 400; opacity: .75; }
 .hithean-offer-card.is-active { border-color: #214f3c55; box-shadow: inset 0 0 0 1px #214f3c33; }
+/*
+ * Màu theo loại ưu đãi (.is-tone-*; PHP offer-card.php + product-purchase.js) — mỗi loại 1 dải màu trái, nền nhạt,
+ * chip và ghi chú cùng tông → danh sách nhiều thẻ không bị đều màu, khó lẫn.
+ */
+.hithean-offer-card { --ho-tone: var(--ho-green); --ho-tone-bg: #fff; --ho-tone-soft: #ecefe6; border-left: 4px solid var(--ho-tone); background: var(--ho-tone-bg); }
+.hithean-offer-card.is-tone-addon { --ho-tone: #b4235a; --ho-tone-bg: #fff7fa; --ho-tone-soft: #fde4ee; }
+.hithean-offer-card.is-tone-tiers { --ho-tone: #0047ba; --ho-tone-bg: #f5f8ff; --ho-tone-soft: #e2ecfb; }
+.hithean-offer-card.is-tone-shipping { --ho-tone: #0e7a5f; --ho-tone-bg: #f2faf6; --ho-tone-soft: #d9f1e6; }
+.hithean-offer-card.is-tone-discount { --ho-tone: #c2410c; --ho-tone-bg: #fff8f2; --ho-tone-soft: #ffe7d4; }
+.hithean-offer-card.is-tone-wheel { --ho-tone: #9a6a00; --ho-tone-bg: #fffbef; --ho-tone-soft: #fff0c2; }
+.hithean-offer-card.is-tone-coupon { --ho-tone: #6d28d9; --ho-tone-bg: #f9f6ff; --ho-tone-soft: #ece4ff; }
+.hithean-offer-card .hithean-offer-card__badge { background: var(--ho-tone-soft); color: var(--ho-tone); }
+.hithean-offer-card .hithean-offer-card__note { color: var(--ho-tone); }
+.hithean-offer-card .hithean-offer-card__media--icon { background: var(--ho-tone-soft); color: var(--ho-tone); }
+.hithean-offer-card.is-active { border-left-color: var(--ho-tone); }
 /* Nút trong thẻ — cùng màu nút Thêm vào giỏ; theme cha ép style button / a.button nên dùng !important. */
 .hithean-offers-dialog .hithean-offer-card__action,
 .hithean-offer-card .hithean-offer-card__action { display: flex !important; align-items: center; justify-content: center; gap: 6px; width: 100%; height: auto !important; min-height: 44px; margin: 4px 0 0 !important; padding: 10px 16px !important; border: 2px solid var(--default-color-dark-blue, #0047ba) !important; border-radius: 8px !important; background: var(--default-color-dark-blue, #0047ba) !important; color: #fff !important; box-shadow: none !important; font-family: inherit; font-size: 14px !important; font-weight: 600; line-height: 1.3 !important; letter-spacing: 0 !important; text-align: center; text-decoration: none !important; text-transform: none !important; cursor: pointer; }

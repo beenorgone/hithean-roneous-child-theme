@@ -5,6 +5,7 @@ define('ABSPATH', __DIR__); define('HITHEAN_THEME_DIR', dirname(__DIR__));
 define('HOUR_IN_SECONDS', 3600); define('DAY_IN_SECONDS', 86400); define('MB_IN_BYTES', 1048576);
 $GLOBALS['options'] = ['hithean_offers_settings' => ['source' => 'frontend']]; $GLOBALS['posts'] = []; $GLOBALS['meta'] = []; $GLOBALS['events'] = []; $GLOBALS['http'] = []; $GLOBALS['requests'] = [];
 function add_action(...$args) {} function add_shortcode(...$args) {} function is_admin() { return false; }
+function sanitize_html_class($value) { return preg_replace("/[^A-Za-z0-9_-]/", "", (string) $value); }
 function get_option($key, $default = false) { return $GLOBALS['options'][$key] ?? $default; }
 function update_option($key, $value, ...$args) { $GLOBALS['options'][$key] = $value; return true; }
 function add_option($key, $value, ...$args) { if (array_key_exists($key, $GLOBALS['options'])) { return false; } return update_option($key, $value); }

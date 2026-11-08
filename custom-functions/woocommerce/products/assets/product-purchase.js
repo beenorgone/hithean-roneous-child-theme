@@ -85,7 +85,7 @@
                     var until = endLabel(row);
                     if (until) notes.push('⏳ ' + until);
                     cards.push({
-                        media: addonMedia(name), badge: 'Ưu đãi kèm', title: name, notes: notes, price: price, extra: message,
+                        tone: 'addon', media: addonMedia(name), badge: 'Ưu đãi kèm', title: name, notes: notes, price: price, extra: message,
                         active: row.classList.contains('is-active'), qty: minimum > 1 ? minimum : 0, blocked: minimum > 1 ? blockedReason(minimum, null) : ''
                     });
                 });
@@ -120,7 +120,7 @@
                 var content = bar.querySelector('.awdr_discount_bar_content') || bar;
                 var shipping = /free ?ship|miễn phí (vận chuyển|giao)|phí (ship|vận chuyển)/i.test(label);
                 cards.push({
-                    media: shipping ? { icon: 'ship' } : productMedia(),
+                    tone: shipping ? 'shipping' : 'discount', media: shipping ? { icon: 'ship' } : productMedia(),
                     badge: shipping ? 'Ưu đãi vận chuyển' : 'Ưu đãi',
                     html: content, label: label, notes: [], active: true
                 });
@@ -273,7 +273,8 @@
             if (mediaObserver) mediaObserver.disconnect();
             list.textContent = '';
             cards.forEach(function (card) {
-                var item = el('li', 'hithean-offer-card' + (card.active ? ' is-active' : ''));
+                // Màu theo loại ưu đãi — cùng lớp .is-tone-* với thẻ PHP (offer-card.php).
+                var item = el('li', 'hithean-offer-card is-tone-' + (card.tone || card.kind || 'other') + (card.active ? ' is-active' : ''));
                 var head = el('div', 'hithean-offer-card__head');
                 var main = el('div', 'hithean-offer-card__main');
                 var top = el('div', 'hithean-offer-card__top');

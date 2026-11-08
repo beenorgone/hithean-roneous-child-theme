@@ -1,6 +1,6 @@
 <?php
 /**
- * Thanh menu dính đáy toàn site (trang chủ + các trang KHÔNG phải: sản phẩm, danh mục / cửa hàng, giỏ / thanh toán /
+ * Thanh menu dính đáy toàn site (trang chủ, /shop + các trang KHÔNG phải: sản phẩm, danh mục, giỏ / thanh toán /
  * cảm ơn, trang đã có thanh đáy riêng). Điều kiện nạp: tpc_cond_site_footer_menu() trong module-loader.
  *   Trang chủ · Sản phẩm · [Giỏ hàng] · Nhận ưu đãi · Ưu đãi của tôi (panel — my-offers.php).
  *   Giỏ hàng (giữa) mở popup giỏ của add-to-cart-popup.php; "Nhận ưu đãi" mở popup "Ưu đãi tiêu biểu" (khung
@@ -30,7 +30,7 @@ function hithean_sfm_offers_url(): string {
 function hithean_sfm_items(): array {
     $items = [
         ['key' => 'home', 'label' => 'Trang chủ', 'href' => home_url('/'), 'current' => is_front_page()],
-        ['key' => 'products', 'label' => 'Sản phẩm', 'href' => function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/'), 'current' => false],
+        ['key' => 'products', 'label' => 'Sản phẩm', 'href' => function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/'), 'current' => function_exists('is_shop') && is_shop()],
     ];
     if (function_exists('hithean_atc_popup_is_enabled') && hithean_atc_popup_is_enabled()) {
         $items[] = ['key' => 'cart', 'label' => 'Giỏ hàng', 'href' => wc_get_cart_url(), 'current' => false];
@@ -107,7 +107,7 @@ function hithean_sfm_featured_cards(int $limit = 6): array {
 function hithean_sfm_wheel_card(): string {
     if (!function_exists('thean_lw_is_eligible_page') || !thean_lw_is_eligible_page() || !function_exists('hithean_offer_card_html')) { return ''; }
     return hithean_offer_card_html([
-        'kind' => 'other', 'badge' => 'Vòng quay may mắn', 'title' => 'Quay vòng quay may mắn — nhận mã giảm giá / quà tặng',
+        'kind' => 'other', 'tone' => 'wheel', 'badge' => 'Vòng quay may mắn', 'title' => 'Quay vòng quay may mắn — nhận mã giảm giá / quà tặng',
         'media' => ['icon' => 'wheel'], 'notes' => ['Mỗi lượt quay có thể trúng mã giảm giá hoặc quà tặng'],
         'actions_html' => '<button type="button" class="hithean-offer-card__action" data-sfm-wheel>Quay ngay</button>',
     ]);

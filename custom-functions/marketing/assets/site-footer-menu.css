@@ -509,6 +509,7 @@ html.hmo-open {
     flex: 1 1 auto;
     min-width: 0;
     height: 44px;
+    min-height: 44px;
     margin: 0;
     padding: 0 12px;
     border: 1px solid #3b22223a;
@@ -516,6 +517,17 @@ html.hmo-open {
     background: #fff;
     box-shadow: none;
     font-size: 15px;
+}
+
+/* Nút "Kiểm tra" cao đúng bằng ô nhập, chữ 1 dòng (theme cha ép line-height / padding cho button). */
+.hmo .hmo__lookup .hmo__btn {
+    flex: 0 0 auto;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 18px;
+    border-width: 1px;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .hmo .hmo__lookup input:focus {

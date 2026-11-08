@@ -540,7 +540,7 @@ function tpc_cond_site_footer_menu()
     if (is_admin() || is_feed() || is_embed() || is_robots()) {
         return false;
     }
-    if (function_exists('is_woocommerce') && (is_product() || is_product_taxonomy() || is_shop())) {
+    if (function_exists('is_woocommerce') && (is_product() || is_product_taxonomy())) {
         return false;
     }
     if (function_exists('is_cart') && (is_cart() || is_checkout())) {

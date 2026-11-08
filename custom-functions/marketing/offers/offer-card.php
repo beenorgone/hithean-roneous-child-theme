@@ -21,7 +21,7 @@ function hithean_offer_card_icon(string $icon): string {
 
 /**
  * $card: badge, title, price_html?, media ['src'|'icon'], tiers [[label, range, price_html]], extra (text),
- * notes [string], until (timestamp hết hiệu lực — JS trang /uu-dai/ ẩn thẻ khi quá hạn), kind, actions_html, active.
+ * notes [string], until (timestamp hết hiệu lực — JS trang /uu-dai/ ẩn thẻ khi quá hạn), kind, tone (màu; mặc định group → kind), actions_html, active.
  */
 function hithean_offer_card_html(array $card): string {
     $media = (array) ($card['media'] ?? []);
@@ -33,7 +33,9 @@ function hithean_offer_card_html(array $card): string {
     }
     $attrs = ' data-ho-rule data-ho-kind="' . esc_attr($card['kind'] ?? 'other') . '"';
     if (!empty($card['until'])) { $attrs .= ' data-ho-until="' . (int) $card['until'] . '"'; }
-    $html = '<li class="hithean-offer-card' . (!empty($card['active']) ? ' is-active' : '') . '"' . $attrs . '>';
+    // Màu theo loại ưu đãi (offer-card.css .is-tone-*): quà kèm / bậc giá / vận chuyển / giá / vòng quay / mã riêng.
+    $tone = sanitize_html_class((string) ($card['tone'] ?? $card['group'] ?? $card['kind'] ?? 'other'));
+    $html = '<li class="hithean-offer-card is-tone-' . $tone . (!empty($card['active']) ? ' is-active' : '') . '"' . $attrs . '>';
     $html .= '<div class="hithean-offer-card__head' . ($media_html ? ' has-media' : '') . '"><div class="hithean-offer-card__main"><div class="hithean-offer-card__top">';
     $html .= '<span class="hithean-offer-card__badge">' . esc_html((string) ($card['badge'] ?? 'Ưu đãi')) . '</span>';
     if (!empty($card['price_html'])) { $html .= '<span class="hithean-offer-card__price">' . wp_kses_post($card['price_html']) . '</span>'; }
