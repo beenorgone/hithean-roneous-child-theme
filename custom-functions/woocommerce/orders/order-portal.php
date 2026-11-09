@@ -45,6 +45,10 @@ add_action('template_redirect', function (): void {
     $spx = dirname(__DIR__) . '/shipping/shopee-export/admin-embed.php';
     if (current_user_can('manage_woocommerce') && is_file($spx)) require_once $spx;
     wp_enqueue_style('dashicons');
+    // Font chữ của website (Be Vietnam + Oswald) — đúng URL storefront nên dùng lại cache trình duyệt.
+    foreach (['theanmarket_enqueue_brand_fonts', 'hithean_enqueue_consolidated_fonts'] as $font_fn) {
+        if (function_exists($font_fn)) { $font_fn(); break; }
+    }
     thean_ous_enqueue_assets();
     thean_export_review_enqueue();
     if (function_exists('thean_spx_embed_enqueue')) thean_spx_embed_enqueue();
@@ -63,7 +67,7 @@ add_action('template_redirect', function (): void {
     ?>
     <!doctype html>
     <html <?php language_attributes(); ?>>
-    <head><meta charset="<?php bloginfo('charset'); ?>"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Quản lý đơn hàng</title><?php wp_print_styles(); wp_print_head_scripts(); ?></head>
+    <head><meta charset="<?php bloginfo('charset'); ?>"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Quản lý đơn hàng</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><?php wp_print_styles(); wp_print_head_scripts(); ?></head>
     <body class="thean-order-portal<?php echo function_exists('thean_spx_embed_enabled') && thean_spx_embed_enabled() ? ' thean-spx-has-foot' : ''; // Shopee toast clears the footer menu ?>"><main class="wrap" id="thean-order-portal">
         <h1 class="screen-reader-text">Quản lý đơn hàng</h1><div class="wp-header-end"></div>
         <?php thean_ous_render_ui(); ?>

@@ -3449,6 +3449,10 @@ function order_creator_js_config(): array
 function order_creator_render_page(): void
 {
     wp_enqueue_style('dashicons');
+    // Font chữ của website (Be Vietnam + Oswald) — đúng URL storefront nên dùng lại cache trình duyệt.
+    foreach (['theanmarket_enqueue_brand_fonts', 'hithean_enqueue_consolidated_fonts'] as $font_fn) {
+        if (function_exists($font_fn)) { $font_fn(); break; }
+    }
     $css_ver = file_exists(order_creator_assets_path('create-order.css')) ? filemtime(order_creator_assets_path('create-order.css')) : '1';
     $js_ver  = file_exists(order_creator_assets_path('create-order.js')) ? filemtime(order_creator_assets_path('create-order.js')) : '1';
     $config  = wp_json_encode(order_creator_js_config(), JSON_UNESCAPED_UNICODE);

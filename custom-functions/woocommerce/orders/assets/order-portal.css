@@ -1,6 +1,8 @@
 /* Standalone staff workspace: Material surfaces without admin/storefront chrome. */
 :root{color-scheme:light}
-body.thean-order-portal{margin:0;background:#f3f6fa;color:#1e293b;font:14px/1.5 system-ui,-apple-system,sans-serif}
+body.thean-order-portal{margin:0;background:#f3f6fa;color:#1e293b;font:14px/1.5 "Be Vietnam",system-ui,-apple-system,sans-serif}
+/* Font website: thân "Be Vietnam", tiêu đề "Oswald" (style.css của theme). :where giữ độ ưu tiên thấp (mã kiện Shopee vẫn monospace). */
+.thean-order-portal :where(h1,h2,h3,h4){font-family:"Oswald","Be Vietnam",sans-serif;font-weight:500;letter-spacing:.01em}
 .thean-order-portal *{box-sizing:border-box}
 .thean-order-portal [hidden]{display:none!important}
 .thean-order-portal a{color:#0047ba;text-decoration:none}

@@ -14,10 +14,12 @@ button {
     height: 40px;
 }
 
+.order-creator-body :where(h1, h2, h3, h4) { font-family: "Oswald", "Be Vietnam", sans-serif; }
+
 .order-creator-body {
     margin: 0;
     background: var(--oc-surface);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: "Be Vietnam", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* font website */
     color: var(--oc-text);
     line-height: 1.5;
     font-size: 14px;
@@ -31,7 +33,7 @@ button {
     /* trang dùng layout HTML riêng nhưng vẫn nạp CSS theme cha qua wp_head(); ép tĩnh để header theme cha không biến <header> này thành sticky/fixed */
     position: static !important;
 }
-.oc-topbar h1 { font-size: 20px; margin: 0; }
+.oc-topbar h1 { font-size: 20px; margin: 0; font-family: "Oswald", "Be Vietnam", sans-serif; font-weight: 500; }
 .oc-topbar__actions { display: flex; gap: 8px; }
 .oc-topbar__title { display: inline-flex; align-items: center; gap: 10px; font-size: 20px; }
 .oc-logo { height: 55px; width: auto; display: block; object-fit: contain; } /* gấp rưỡi chiều cao tiêu đề */
