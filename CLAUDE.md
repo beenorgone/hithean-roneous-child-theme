@@ -5,6 +5,20 @@ WordPress child theme (parent: `roneous`) cho hithean.com — cửa hàng bán s
 xem `docs/erp-mesh.md`. Nhiều module được port qua lại với theme theanmarket
 (`../theanmarket-wr-nitro-child-theme`) — khi port, xem mục "Khác biệt với theanmarket".
 
+> `AGENTS.md` là bản chép của file này, sinh bởi `tools/docs-sync.php` — **sửa CLAUDE.md, đừng sửa AGENTS.md**.
+
+## Đọc gì, khi nào
+
+| Cần | Đọc |
+|---|---|
+| Request đi đâu, tpc_loader, **bảng route**, tầng, module, thêm tính năng ở đâu | [`docs/architecture.md`](docs/architecture.md) |
+| Tìm hàm / AJAX / hook / shortcode / cron của một khu | [`docs/code-map/`](docs/code-map/README.md) (sinh tự động) |
+| Mục lục docs + cơ chế tự cập nhật | [`docs/README.md`](docs/README.md) |
+
+Tài liệu tự đồng bộ với code (cùng cơ chế theanmarket / ivarvietnam): bật hook một lần mỗi bản clone
+`git config core.hooksPath .githooks`; kiểm `php tools/docs-sync.php --check`. Thêm route mới → thêm dòng vào bảng
+`<!-- ROUTES -->` ở `docs/architecture.md` (máy kiểm, thiếu là chặn commit).
+
 ## Nạp code
 
 ```
@@ -55,8 +69,8 @@ Ngoài ra: `pages/` (landing tĩnh: an-new-chapter*, doi-tac-yeast-hero, uu-dai,
 | Meta vận hành đơn | `ship_code`, `shipper`, `export_date`, `paid_date`, `bank_account_received`, `handling_status` | Tiền tố `order_`: `order_ship_code`, `order_shipper` (select **nhiều giá trị**, mã `self/ghtk/ahamove/viettel`), `order_ship_date`, `order_paid_date`, `order_bank_account_received`, `order_handling_status`, `order_export_by`. Đơn cũ còn key không tiền tố → đọc `order_*` trước rồi fallback |
 | Nút thao tác nhanh danh sách đơn | `thean-order-*` | `hithean-order-*`. 4 popup (thanh toán / khách XN COD / ảnh xuất kho / xác nhận XK) **dùng chung file** `orders/order-quick-modals.php` (`.thean-quick-modal`, giống hệt 2 site — khác biệt qua `thean_qm_site()`); popup hoàn hàng vẫn riêng (`.hithean-return-modal`) |
 | Hàm màn danh sách đơn | `thean_order_admin_is_list_screen()` | `hithean_order_admin_is_list_screen()` |
-| QR thanh toán | Sepay cứng trong orders-admin | `hithean_payment_qr_url()` + `hithean_primary_bank_account()` (bank-accounts.php, luôn nạp) |
-| Nạp file | `bootstrap.php` (`child_theme_require_files`, `theanmarket_is_ajax_action`) | `core/admin.php` + `tpc_loader_modules()` |
+| QR thanh toán | `thean_payment_qr_url()` + `thean_primary_bank_account()` (payment-bank-accounts.php) | `hithean_payment_qr_url()` + `hithean_primary_bank_account()` (bank-accounts.php, luôn nạp) |
+| Nạp file | Cùng cấu trúc: `core/module-loader.php` + `core/admin.php`; thêm `core/request.php` (`child_theme_is_ajax_action`) + `erp/core/erp-loader.php` (gate ERP). AJAX ngoài tpc nạp bằng `child_theme_is_ajax_action([...])`; test `tests/bootstrap-ajax.php` | `core/admin.php` + `tpc_loader_modules()` |
 | Kho | Có kho, trừ tồn | Không kho; plugin `mcp-site-link` ghi nhật ký phát sinh, Theanmarket trừ tồn hộ |
 
 Mã đơn hiển thị giống nhau: ID + hậu tố (`thean_change_woocommerce_order_number()` ở order-number.php).

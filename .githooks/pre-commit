@@ -1,0 +1,47 @@
+#!/bin/sh
+# Tự đồng bộ tài liệu với code trước mỗi commit.
+#   - Sinh lại docs/code-map/, khối AUTO trong docs/architecture.md, AGENTS.md
+#     từ đúng nội dung ĐÃ STAGE (git index), rồi stage kết quả.
+#   - Chặn commit nếu audit lỗi (route chưa ghi vào docs/architecture.md,
+#     đường dẫn trùng hoa/thường; guide.md không lên web nếu config bật).
+#   Hook DÙNG CHUNG theanmarket + hithean (gốc: ivarvietnam) — sửa thì chép sang repo kia.
+#   - Nhắc (không chặn) tài liệu viết tay có applies_to khớp file vừa đổi.
+#
+# Bật một lần cho mỗi bản clone:  git config core.hooksPath .githooks
+# Bỏ qua khẩn cấp:                 git commit --no-verify   (rồi chạy php tools/docs-sync.php sau)
+
+changed=$(git diff --cached --name-only --diff-filter=ACMRD)
+[ -z "$changed" ] && exit 0
+
+echo "$changed" | grep -qE '^(custom-functions/|CLAUDE\.md|docs/|tools/docs-sync(\.config)?\.php)' || exit 0
+
+if ! command -v php >/dev/null 2>&1; then
+    echo "⚠ pre-commit: không có php — bỏ qua đồng bộ tài liệu. Chạy tay: php tools/docs-sync.php"
+    exit 0
+fi
+
+# File viết tay có khối AUTO / nguồn của AGENTS.md: nếu đang có sửa CHƯA stage thì
+# không tự stage (không quét việc dở của người khác vào commit).
+dirty=""
+for f in docs/architecture.md CLAUDE.md; do
+    git diff --quiet -- "$f" || dirty="$dirty $f"
+done
+
+php tools/docs-sync.php --index --quiet || {
+    echo ""
+    echo "✗ Tài liệu chưa khớp code (xem lỗi ở trên). Sửa rồi commit lại."
+    exit 1
+}
+
+# docs/code-map/ chỉ chứa file sinh tự động — stage cả thư mục (kể cả file bị xoá) là an toàn.
+git add -A -- docs/code-map
+if [ -z "$dirty" ]; then
+    git add -- docs/architecture.md AGENTS.md
+else
+    echo "⚠ pre-commit: có sửa chưa stage ở:$dirty — không tự stage docs/architecture.md / AGENTS.md."
+    echo "  Kiểm rồi tự: git add docs/architecture.md AGENTS.md"
+fi
+
+# shellcheck disable=SC2086
+php tools/docs-sync.php --changed $changed
+exit 0
