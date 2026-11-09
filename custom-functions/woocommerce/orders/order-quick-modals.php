@@ -26,13 +26,15 @@ function thean_qm_site(): array
 
 /**
  * TK nhận tiền cho ô chọn "Tài khoản nhận". Thứ tự nguồn:
- * hithean_payment_bank_accounts() (hithean, đã gộp eim) → eim_payment_bank_accounts() (TK eim + BACS)
- * → BACS WooCommerce. Luôn có "tiền mặt".
+ * hithean_payment_bank_accounts() / thean_payment_bank_accounts() (nguồn chung của mỗi site, đã gộp eim + BACS)
+ * → eim_payment_bank_accounts() → BACS WooCommerce. Luôn có "tiền mặt".
  */
 function thean_qm_bank_accounts(): array
 {
     if (function_exists('hithean_payment_bank_accounts')) {
         $accounts = hithean_payment_bank_accounts();
+    } elseif (function_exists('thean_payment_bank_accounts')) {
+        $accounts = thean_payment_bank_accounts();
     } elseif (function_exists('eim_payment_bank_accounts')) {
         $accounts = eim_payment_bank_accounts();
     } else {
