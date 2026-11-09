@@ -28,6 +28,14 @@ workspace; Hithean retains its own metadata and action adapters.
   until the Orders tab is selected. `order_id` can open an existing order in the
   creator; the existing creator endpoint controls edit permissions.
 
+## Layout
+
+No page header: the workspace tabs row carries a right-aligned "Phiên bản cũ ↗" link
+(`thean_order_portal_legacy_url()`, the Woo list with `thean_wc_list=1`). The search
+form is `display:contents`; only `.thean-ous-bar__sticky` (search row + range filter +
+suggestions) sticks on the Orders tab. Workspace tabs and the board's flow-step tabs
+scroll away. JS measuring the bar uses `.thean-ous-bar__sticky` (the form has no box).
+
 ## First board page and timings
 
 The portal pre-renders the first board page of the tab the client will open

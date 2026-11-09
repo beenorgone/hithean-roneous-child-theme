@@ -169,7 +169,7 @@
     function setOpen(modal, open) {
         if (modal === results && open) {
             // Chừa chỗ cho thanh tìm (đang nổi trên modal) để vẫn thấy mình gõ gì.
-            results.style.paddingTop = Math.round(bar.getBoundingClientRect().bottom + 8) + 'px';
+            results.style.paddingTop = Math.round((bar.querySelector('.thean-ous-bar__sticky') || bar).getBoundingClientRect().bottom + 8) + 'px'; // /quan-ly-don: form là display:contents
         }
         if (modal === guide && open) guideOpener = document.activeElement;
         modal.hidden = !open;

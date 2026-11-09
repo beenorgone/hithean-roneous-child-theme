@@ -1923,7 +1923,12 @@ function thean_ous_render_ui(): void
             <?php if (current_user_can('manage_woocommerce')) : ?>
                 <button type="button" id="thean-workspace-exports" role="tab" aria-controls="thean-ous-exports-panel" aria-selected="false" tabindex="-1" data-order-workspace="exports">📤 Xuất kho</button>
             <?php endif; ?>
+            <?php if (function_exists('thean_order_portal_legacy_url')) : // /quan-ly-don: link về danh sách Woo, căn phải cùng hàng tab ?>
+                <a class="thean-workspace-legacy" href="<?php echo esc_url(thean_order_portal_legacy_url()); ?>" title="Mở danh sách đơn WooCommerce gốc">Phiên bản cũ ↗</a>
+            <?php endif; ?>
         </div>
+        <?php // Khối bọc hàng tìm + gợi ý: /quan-ly-don cho riêng khối này sticky (tab cuộn đi); ở admin là khối thường. ?>
+        <div class="thean-ous-bar__sticky">
         <div class="thean-ous-bar__row">
             <a class="thean-ous-bar__brand" href="<?php echo esc_url(function_exists('thean_erp_get_home_url') ? thean_erp_get_home_url() : home_url('/')); ?>" target="_blank" rel="noopener" title="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php echo thean_ous_logo_html(); ?></a>
             <span class="dashicons dashicons-search" aria-hidden="true"></span>
@@ -1954,6 +1959,7 @@ function thean_ous_render_ui(): void
             </div>
         </div>
         <div class="thean-ous-suggest" id="thean-ous-suggest" role="listbox" hidden></div>
+        </div>
     </form>
 
     <div class="thean-ous-modal" id="thean-ous-results" hidden>

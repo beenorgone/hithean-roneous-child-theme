@@ -2,6 +2,13 @@
 if (!defined('ABSPATH')) exit;
 require_once __DIR__ . '/order-navigation.php';
 
+/** Danh sách đơn WooCommerce gốc (đường lui, không bị chuyển hướng) — nút "Phiên bản cũ" ở hàng tab. */
+function thean_order_portal_legacy_url(): string
+{
+    $hpos = function_exists('thean_ous_hpos_enabled') && thean_ous_hpos_enabled();
+    return admin_url($hpos ? 'admin.php?page=wc-orders&thean_wc_list=1' : 'edit.php?post_type=shop_order&thean_wc_list=1');
+}
+
 function thean_order_portal_render_create_tab(): void
 {
     if (!function_exists('thean_order_portal_is_route') || !thean_order_portal_is_route()) return;
@@ -31,6 +38,7 @@ add_action('template_redirect', function (): void {
     require_once __DIR__ . '/order-list-lazy.php';
     require_once __DIR__ . '/orders-admin.php';
     require_once __DIR__ . '/order-universal-search.php';
+    require_once __DIR__ . '/order-export-review.php'; // order-ops-step chỉ nạp nó ở wp-admin
     // Row actions come from woocommerce_admin_order_actions; keep pre-rendered rows identical to the admin-ajax ones.
     $pxk = dirname(__DIR__) . '/shipping/print-pxk.php';
     if (is_file($pxk)) require_once $pxk;
@@ -57,7 +65,7 @@ add_action('template_redirect', function (): void {
     <html <?php language_attributes(); ?>>
     <head><meta charset="<?php bloginfo('charset'); ?>"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Quản lý đơn hàng</title><?php wp_print_styles(); wp_print_head_scripts(); ?></head>
     <body class="thean-order-portal<?php echo function_exists('thean_spx_embed_enabled') && thean_spx_embed_enabled() ? ' thean-spx-has-foot' : ''; // Shopee toast clears the footer menu ?>"><main class="wrap" id="thean-order-portal">
-        <header class="thean-portal-heading"><h1>Quản lý đơn hàng</h1><a href="<?php echo esc_url(admin_url(thean_ous_hpos_enabled() ? 'admin.php?page=wc-orders&thean_wc_list=1' : 'edit.php?post_type=shop_order&thean_wc_list=1')); ?>">Danh sách WooCommerce ↗</a></header><div class="wp-header-end"></div>
+        <h1 class="screen-reader-text">Quản lý đơn hàng</h1><div class="wp-header-end"></div>
         <?php thean_ous_render_ui(); ?>
         <?php if (function_exists('thean_spx_embed_render')) thean_spx_embed_render(); ?>
     </main>

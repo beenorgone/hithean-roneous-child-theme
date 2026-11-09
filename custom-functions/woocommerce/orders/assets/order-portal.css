@@ -8,9 +8,15 @@ body.thean-order-portal{margin:0;background:#f3f6fa;color:#1e293b;font:14px/1.5 
 .thean-order-portal button{cursor:pointer}
 .thean-order-portal button:focus-visible,.thean-order-portal a:focus-visible,.thean-order-portal input:focus-visible{outline:3px solid #80b0ff;outline-offset:2px}
 .thean-order-portal .wrap{max-width:1800px;margin:auto;padding:12px 20px 88px}
-.thean-portal-heading,.thean-portal-tool-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.thean-portal-heading h1{margin:0;font-size:20px}
-.thean-order-portal .thean-ous-bar{background:#f3f6fa;padding:8px 0;top:0}
+.thean-portal-tool-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.thean-order-portal .screen-reader-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Form chỉ là khung: tab cuộn theo trang, riêng hàng tìm + bộ lọc (khối __sticky) bám đầu trang. */
+.thean-order-portal #thean-ous-bar{display:contents}
+.thean-order-portal .thean-ous-bar__sticky{position:sticky;top:0;z-index:90;background:#f3f6fa;padding:8px 0}
+.thean-order-portal.thean-ous-open .thean-ous-bar__sticky{z-index:99200}
+.thean-order-portal .thean-ous-bar.is-tools .thean-ous-bar__sticky{display:none}
+.thean-order-portal #thean-ous-bar > .thean-workspace-tabs{align-items:center;margin-top:4px;border-radius:12px}
+.thean-order-portal .thean-workspace-legacy{margin-left:auto;padding:8px 4px 8px 12px;white-space:nowrap;font-weight:600;font-size:13px}
 .thean-order-portal .thean-ous-bar__row{background:#fff;padding:10px;border-radius:12px;box-shadow:0 2px 6px #1232}
 .thean-order-portal .thean-ous-menu{display:none}
 .thean-order-portal #thean-ous-bar > .thean-workspace-tabs{display:flex;overflow-x:auto;flex-wrap:nowrap}
@@ -19,5 +25,5 @@ body.thean-order-portal{margin:0;background:#f3f6fa;color:#1e293b;font:14px/1.5 
 .thean-order-portal .thean-ous-board{margin-top:8px}
 .thean-order-portal #thean-ous-create-panel{padding:12px;background:#fff;border-radius:12px}
 .thean-order-portal #thean-ous-create-panel h2{font-size:18px;margin:0}
-.thean-order-portal #thean-ous-create-panel iframe{display:block;width:100%;height:calc(100dvh - 235px);min-height:480px;border:0;border-radius:10px;background:#fff}
-@media(max-width:782px){.thean-order-portal .wrap{padding:8px 8px 86px}.thean-portal-heading{align-items:flex-start}.thean-portal-heading h1{font-size:18px}.thean-portal-heading a{font-size:12px}.thean-order-portal #thean-ous-create-panel{padding:8px}.thean-order-portal #thean-ous-create-panel iframe{height:calc(100dvh - 245px)}}
+.thean-order-portal #thean-ous-create-panel iframe{display:block;width:100%;height:calc(100dvh - 190px);min-height:480px;border:0;border-radius:10px;background:#fff}
+@media(max-width:782px){.thean-order-portal .wrap{padding:8px 8px 86px}.thean-order-portal #thean-ous-create-panel{padding:8px}.thean-order-portal #thean-ous-create-panel iframe{height:calc(100dvh - 200px)}}
