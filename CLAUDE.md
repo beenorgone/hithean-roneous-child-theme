@@ -9,13 +9,13 @@ xem `docs/erp-mesh.md`. Nhiều module được port qua lại với theme thean
 
 ```
 functions.php                 ← define HITHEAN_THEME_DIR, require bootstrap
-custom-functions/bootstrap.php← nạp core/* rồi core/module-loader.php; filter eim (shipper, meta xuất kho)
+custom-functions/bootstrap.php← CHỈ nạp file: core/* hạ tầng rồi core/module-loader.php (không viết hook ở đây)
 custom-functions/core/admin.php        ← admin_enqueue_scripts: nạp file theo screen (danh sách/sửa đơn…)
 custom-functions/core/module-loader.php← TOÀN BỘ logic what-loads-when
 ```
 
 `module-loader.php`:
-- `$general_includes` — nạp mọi request.
+- `$general_includes` — nạp mọi request (thiếu file → `error_log` khi `WP_DEBUG`). Hook/filter mới luôn chạy → file riêng + khai ở đây.
 - `tpc_loader_modules()` — mỗi module `['id', 'file', 'paths'|'path_groups'|'paths_filter', 'condition', 'shortcodes', 'ajax_actions', 'admin', 'cron_hooks']`.
   Front nạp ở `wp` khi khớp path / conditional tag / trang có shortcode (dò chuỗi, không dùng `has_shortcode`);
   AJAX nạp ở `init` priority 1 theo `ajax_actions`; `admin => true` nạp ngay khi include (không trong AJAX).
@@ -26,7 +26,7 @@ custom-functions/core/module-loader.php← TOÀN BỘ logic what-loads-when
 
 ```
 core/          admin, module-loader, template-router, enqueue, ai-settings + ai-providers (Cài đặt ERP → AI),
-               email-overrides, upload-guard, public-file-guard, vn-address, theme-code-cache, company-info-settings
+               email-overrides, upload-guard, public-file-guard, site-guards (CSP cho hub nhúng /tien-ich-admin), vn-address, theme-code-cache, company-info-settings
 woocommerce/
   orders/      orders-admin (cột Thao tác + modal thao tác nhanh hithean-order-*), order-actions-column,
                order-search (filter tìm mặc định của WC), order-universal-search (ô tìm đơn sticky — xem dưới),
@@ -42,7 +42,7 @@ shortcodes/    order-export-confirm (+ export-bulk-web), order-shipped, order-re
 marketing/     offers/ (ưu đãi), lucky-wheel/, popup-widget, cro-landing-agent (chạy theo lịch, không chạy ở front),
                site-footer-menu + my-offers (thanh menu đáy toàn site + "Ưu đãi của tôi" — xem dưới)
 auth/          email-login (OTP), firebase-sms-login, email-issue, email-tasks
-integrations/  erp-mesh-adapter (plugin mcp-site-link), plugin-devvn-ghtk-tweaks
+integrations/  erp-mesh-adapter (plugin mcp-site-link), eim-order-shipper (filter eim: shipper, mã VĐ, meta xuất kho), plugin-devvn-ghtk-tweaks
 admin/         shortcodes-guide, blogpost-metabox, plugins-page, editor-tools/
 ```
 
@@ -64,7 +64,8 @@ Mã đơn hiển thị giống nhau: ID + hậu tố (`thean_change_woocommerce_
 `thean_qm_open()` / `thean_qm_close()`; TK nhận tiền lấy từ `thean_qm_bank_accounts()` (hithean_payment_bank_accounts → eim → BACS, luôn có
 "tiền mặt") — **không viết cứng số TK**. Popup "📦 Ảnh xuất kho" (nút "Ảnh XK" luôn hiện ở cột Thao tác): ảnh đã up + AI + trạng thái xác nhận
 (AJAX `thean_export_images_list`, cùng tên 2 site) + up thêm (popup không đóng, tải lại ảnh) + nút "✓ Xác nhận xuất kho".
-Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_map` / `eim_order_shipper_label` trong bootstrap.php.
+Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_map` / `eim_order_shipper_label` ở `integrations/eim-order-shipper.php`.
+Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels()` / `hithean_order_shipper_names()` (`orders/order-shipper.php`) — metabox, eim, ô tìm đơn, trang xác nhận TT đều đọc từ đây.
 
 ## Thanh menu đáy toàn site & ưu đãi
 

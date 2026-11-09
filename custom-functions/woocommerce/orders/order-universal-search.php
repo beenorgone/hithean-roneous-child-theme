@@ -73,10 +73,12 @@ function thean_ous_meta(WC_Order $order, array $keys): string
     return '';
 }
 
-/** Shipper (mã self/ghtk/…) → nhãn, đồng bộ filter eim_order_shipper_label ở bootstrap.php. */
+/** Shipper (mã self/ghtk/…) → nhãn ngắn. Nhãn: hithean_shipper_labels() (order-shipper.php); map dưới là dự phòng khi port. */
 function thean_ous_shipper(WC_Order $order): string
 {
-    $map = ['self' => 'THEAN', 'ghtk' => 'GHTK', 'ahamove' => 'Ahamove', 'viettel' => 'Viettel Post'];
+    $map = function_exists('hithean_shipper_labels')
+        ? hithean_shipper_labels(true)
+        : ['self' => 'THEAN', 'ghtk' => 'GHTK', 'ahamove' => 'Ahamove', 'viettel' => 'Viettel Post'];
     $raw = $order->get_meta('order_shipper');
     $raw = is_array($raw) ? $raw : ($raw === '' || $raw === null ? [] : [$raw]);
     $names = [];

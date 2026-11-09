@@ -39,15 +39,8 @@ function thean_register_order_meta_boxes($meta_boxes)
     $bank_list    = hithean_payment_bank_accounts($current_bank);
     $bank_options = array_combine($bank_list, $bank_list);
 
-    $shipper_options = [
-        // 'Giao Hang Tiet Kiem' => 'Giao Hang Tiet Kiem',
-        // 'Ahamove'             => 'Ahamove',
-        // 'Viettel Post'        => 'Viettel Post',
-		'self'				  => 'THEAN',
-		'ghtk' => 'Giao Hang Tiet Kiem',
-		'ahamove' => 'Ahamove',
-		'viettel' => 'Viettel Post',
-    ];
+    // Mã → nhãn: nguồn duy nhất ở order-shipper.php (dùng chung filter eim, ô tìm đơn…).
+    $shipper_options = hithean_shipper_labels();
 
     // Mọi user quản lý đơn (cùng quyền upload ảnh xuất kho) → người upload tự điền
     // vào "Xuất kho bởi" luôn có trong options. Giữ các tài khoản cũ để giá trị đã lưu không mất.

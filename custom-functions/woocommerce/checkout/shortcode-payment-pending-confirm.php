@@ -923,10 +923,14 @@ function oppc_get_order_shippers(WC_Order $order): array
 }
 
 /**
- * Map key đối tác giao hàng sang nhãn hiển thị (đồng bộ với order-metabox.php).
+ * Map key đối tác giao hàng sang nhãn hiển thị — đọc từ hithean_shipper_labels()
+ * (order-shipper.php, luôn nạp); mảng dưới chỉ là dự phòng.
  */
 function oppc_get_shipper_labels(): array
 {
+    if (function_exists('hithean_shipper_labels')) {
+        return hithean_shipper_labels();
+    }
     return [
         'self' => 'THEAN',
         'ghtk' => 'Giao Hang Tiet Kiem',

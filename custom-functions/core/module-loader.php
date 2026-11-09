@@ -1,11 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-// Cross-site MCP lives in the mcp-site-link plugin; the theme only adds its policy.
-require_once dirname(__DIR__) . '/integrations/erp-mesh-adapter.php';
-
-
-
 /**
  * Module loader — TOÀN BỘ logic "what-loads-when":
  *  - $general_includes: nạp mọi request.
@@ -73,6 +68,7 @@ $general_includes = [
     // TK nhận tiền (đọc WooCommerce BACS + plugin eim) — dùng ở metabox, tạo đơn, QR, trang cảm ơn.
     'custom-functions/woocommerce/checkout/bank-accounts.php',
     'custom-functions/woocommerce/orders/order-admin-error-solver.php',
+    'custom-functions/woocommerce/orders/order-shipper.php', // nhãn đơn vị vận chuyển — nguồn duy nhất (metabox, eim, ô tìm đơn)
     'custom-functions/woocommerce/orders/order-metabox.php',
     'custom-functions/woocommerce/orders/customer-note-templates.php',
     'custom-functions/woocommerce/orders/order-number.php',
@@ -97,13 +93,24 @@ $general_includes = [
 
     /* Plugins */
     'custom-functions/integrations/plugin-devvn-ghtk-tweaks.php',
+    // Cross-site MCP nằm ở plugin mcp-site-link; theme chỉ thêm policy.
+    'custom-functions/integrations/erp-mesh-adapter.php',
+    // Đơn vị vận chuyển + mã vận đơn + map meta xuất kho cho hóa đơn eim (REST pull → phải luôn nạp).
+    'custom-functions/integrations/eim-order-shipper.php',
+
+    /* Site */
+    'custom-functions/core/site-guards.php', // CSP cho hub nhúng /tien-ich-admin
 ];
 
 foreach ($general_includes as $include) {
-    if (file_exists(HITHEAN_THEME_DIR . '/' . $include)) {
-        require_once(HITHEAN_THEME_DIR . '/' . $include);
+    if (is_file(HITHEAN_THEME_DIR . '/' . $include)) {
+        require_once HITHEAN_THEME_DIR . '/' . $include;
+    } elseif (defined('WP_DEBUG') && WP_DEBUG) {
+        // File bị đổi tên / xoá mà quên sửa danh sách → báo thay vì bỏ qua im lặng.
+        error_log('[hithean] general include thiếu file: ' . $include);
     }
 }
+unset($general_includes, $include);
 
 if (is_admin() && (!function_exists('wp_doing_ajax') || !wp_doing_ajax())) {
     $shortcodes_guide_file = HITHEAN_THEME_DIR . '/custom-functions/admin/shortcodes-guide.php';

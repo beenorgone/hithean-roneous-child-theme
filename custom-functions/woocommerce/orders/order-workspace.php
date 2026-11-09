@@ -29,7 +29,7 @@ const THEAN_OW_NONCE = 'thean_order_workspace';
 
 /**
  * Tên field trong bảng điều phối → meta key thật của hithean (order-metabox.php, cùng bảng
- * với filter eim_export_meta_map ở bootstrap.php). Key không có trong map giữ nguyên.
+ * với filter eim_export_meta_map ở integrations/eim-order-shipper.php). Key không có trong map giữ nguyên.
  */
 function thean_ow_key(string $key): string
 {
