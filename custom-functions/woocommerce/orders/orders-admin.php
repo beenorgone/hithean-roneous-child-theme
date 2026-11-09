@@ -110,8 +110,7 @@ function add_custom_actions($actions, $order)
         $actions['qr-code'] = [
             'url' => $qr_url,
             'name' => __('QR', 'woocommerce'),
-            'action' => 'qr-code',
-            'target' => '_blank'
+            'action' => 'qr-code'
         ];
     }
 

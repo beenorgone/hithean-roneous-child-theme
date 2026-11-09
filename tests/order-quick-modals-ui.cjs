@@ -12,7 +12,7 @@ for(const s of w.document.querySelectorAll('script')) w.eval(s.textContent);
 const d=w.document; const tick=()=>new Promise(r=>setTimeout(r,20));
 (async()=>{
  const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m); if(!c) process.exitCode=1;};
- ok([...d.querySelectorAll('#thean-payment-form [name=bank_account] option')].map(o=>o.value).join('|')==='ACB 51364767|VietinBank 113600098383|tiền mặt','bank options from code + tiền mặt');
+ ok([...d.querySelectorAll('#thean-payment-form [name=bank_account] option')].map(o=>o.value).join('|')==='ACB 51364767|Vietinbank 113600098383|tiền mặt','bank options from code + tiền mặt');
  d.querySelector('.wc-action-button-hithean-order-payment').click(); await tick();
  ok(!d.getElementById('thean-payment-modal').hidden && d.querySelector('#thean-payment-form [name=amount_received]').value==='500000','payment modal opens with amount');
  d.querySelector('#thean-payment-modal [data-thean-close]').click();

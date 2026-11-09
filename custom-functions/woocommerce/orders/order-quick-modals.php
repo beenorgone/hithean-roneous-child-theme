@@ -1,7 +1,7 @@
 <?php
 /**
- * Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn, board, Xem nhanh) — 4 modal riêng:
- *   Xác nhận thanh toán · Khách đã xác nhận COD · Ảnh xuất kho (xem ảnh đã up + up thêm + xác nhận xuất kho) · Xác nhận xuất kho.
+ * Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn, board, Xem nhanh) — các modal riêng:
+ *   QR thanh toán · Xác nhận thanh toán · Khách đã xác nhận COD · Ảnh xuất kho (xem ảnh đã up + up thêm + xác nhận xuất kho) · Xác nhận xuất kho.
  *
  * FILE GIỐNG HỆT ở theanmarket & hithean — sửa thì chép sang cả 2 site. Khác biệt giữa 2 site lấy qua
  * thean_qm_site() (tiền tố nút thao tác, hàm danh sách đơn / checklist), không sửa trong thân file.
@@ -166,6 +166,18 @@ function thean_qm_render(): void
         <p>Chỉ xác nhận khi ảnh xuất kho đã được tải lên và hàng đã bàn giao cho đơn này.</p>
     <?php thean_qm_close('Xác nhận xuất kho'); ?>
 
+    <div class="thean-quick-modal" id="thean-qr-modal" hidden aria-hidden="true">
+        <div class="thean-quick-modal__backdrop" data-thean-close></div>
+        <div class="thean-quick-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="thean-qr-title">
+            <button type="button" class="thean-quick-modal__close" data-thean-close aria-label="Đóng">&times;</button>
+            <h2 id="thean-qr-title">QR thanh toán</h2>
+            <p>Quét mã để chuyển khoản thanh toán đơn hàng.</p>
+            <div data-thean-qr-image style="text-align:center"></div>
+            <div class="thean-quick-modal__notice" aria-live="polite"></div>
+            <div class="thean-quick-modal__actions"><button type="button" class="thean-quick-modal__button" data-thean-close>Đóng</button></div>
+        </div>
+    </div>
+
     <script>
     (function () {
         var cfg = <?php echo wp_json_encode($config); ?>;
@@ -180,7 +192,7 @@ function thean_qm_render(): void
         function esc(v) { return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
         function setNotice(form, message, isError) { var el = form.querySelector('.thean-quick-modal__notice'); el.textContent = message || ''; el.classList.toggle('is-error', !!isError); el.classList.toggle('is-success', !!message && !isError); }
         function setLoading(form, loading, label) { var submit = form.querySelector('[type="submit"]'); if (!submit.dataset.defaultLabel) submit.dataset.defaultLabel = submit.textContent; submit.disabled = loading; submit.textContent = loading ? (label || 'Đang xử lý...') : submit.dataset.defaultLabel; }
-        function closeModal(modal) { modal.hidden = true; modal.setAttribute('aria-hidden', 'true'); document.body.classList.remove('thean-quick-modal-open'); activeButton = null; activeOrder = ''; }
+        function closeModal(modal) { if (modal.id === 'thean-qr-modal') { modal.querySelector('[data-thean-qr-image]').replaceChildren(); if (qrTrigger && qrTrigger.isConnected) qrTrigger.focus(); qrTrigger = null; } modal.hidden = true; modal.setAttribute('aria-hidden', 'true'); document.body.classList.remove('thean-quick-modal-open'); activeButton = null; activeOrder = ''; }
         function toast(message) { var el = document.createElement('div'); el.className = 'thean-quick-toast'; el.textContent = message; document.body.appendChild(el); window.setTimeout(function () { el.remove(); }, 5000); }
         function messageFrom(response, fallback) { if (!response || !response.data) return fallback; return typeof response.data === 'string' ? response.data : (response.data.message || fallback); }
         function request(action, fd) {
@@ -245,7 +257,33 @@ function thean_qm_render(): void
             } }).catch(function (error) { toast(error.message || 'Không mở được công cụ xác nhận thanh toán.'); }).then(function () { delete button.dataset.theanBusy; });
         }
 
+        var qrTrigger = null;
+        function openQr(button) {
+            var url;
+            try { url = new URL(button.href, window.location.origin); } catch (error) { return; }
+            if (!['https:', 'http:'].includes(url.protocol)) return;
+            var modal = document.getElementById('thean-qr-modal'), holder = modal.querySelector('[data-thean-qr-image]'), notice = modal.querySelector('.thean-quick-modal__notice');
+            var img = document.createElement('img');
+            img.alt = 'QR chuyển khoản thanh toán đơn hàng';
+            img.style.cssText = 'display:block;width:360px;max-width:100%;height:auto;margin:0 auto;background:#fff';
+            notice.classList.remove('is-error'); notice.textContent = 'Đang tải mã QR…';
+            img.onload = function () { if (holder.contains(img)) notice.textContent = ''; };
+            img.onerror = function () { if (holder.contains(img)) { notice.textContent = 'Không tải được mã QR. Đóng và bấm QR thanh toán để thử lại.'; notice.classList.add('is-error'); } };
+            holder.replaceChildren(img); img.src = url.href;
+            qrTrigger = button;
+            modal.hidden = false; modal.setAttribute('aria-hidden', 'false'); document.body.classList.add('thean-quick-modal-open');
+            modal.querySelector('[data-thean-close].thean-quick-modal__close').focus();
+        }
+        document.addEventListener('keydown', function (event) {
+            var modal = document.getElementById('thean-qr-modal');
+            if (modal.hidden || event.key !== 'Tab') return;
+            var buttons = modal.querySelectorAll('button'), first = buttons[0], last = buttons[buttons.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        });
         document.addEventListener('click', function (event) {
+            var qr = event.target.closest('a.wc-action-button-qr-code');
+            if (qr) { event.preventDefault(); openQr(qr); return; }
             var selector = KEYS.map(function (k) { return '.wc-action-button-' + P + k; }).join(', ');
             var button = event.target.closest(selector);
             if (!button || button.classList.contains('is-thean-complete') || button.classList.contains('is-hithean-complete')) return;
@@ -255,7 +293,7 @@ function thean_qm_render(): void
             KEYS.some(function (k) { if (!button.classList.contains('wc-action-button-' + P + k)) return false; openModal(k, button); return true; });
         });
         document.addEventListener('click', function (event) { if (!event.target.closest('[data-thean-close]')) return; var modal = event.target.closest('.thean-quick-modal'); if (modal) closeModal(modal); });
-        document.addEventListener('keydown', function (event) { if (event.key === 'Escape') document.querySelectorAll('.thean-quick-modal:not([hidden])').forEach(closeModal); });
+        document.addEventListener('keydown', function (event) { if (event.key === 'Escape') { var qr = document.getElementById('thean-qr-modal'); if (!qr.hidden) { closeModal(qr); return; } document.querySelectorAll('.thean-quick-modal:not([hidden])').forEach(closeModal); } });
 
         function submit(key, run) {
             formOf(key).addEventListener('submit', function (event) { event.preventDefault(); run(event.currentTarget); });
