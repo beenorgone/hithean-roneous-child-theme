@@ -28,10 +28,21 @@ $url = thean_order_portal_redirect_url();
 check(str_contains($url, 'thean_board=cod') && str_contains($url, 'thean_range=90'), 'board filters preserved');
 $_GET['post_status'] = 'wc-processing'; $_GET['s'] = 'sample';
 check(str_contains(thean_order_portal_redirect_url(), 's=%2Ftt+processing+sample'), 'native status mapped to search');
-foreach ([['action' => 'edit'], ['action' => 'mark_completed'], ['action2' => 'trash'], ['_wpnonce' => 'nonce'], ['thean_wc_list' => '1'], ['_customer_user' => 9], ['m' => '202611']] as $extra) {
+foreach ([['action' => 'edit'], ['action' => 'mark_completed'], ['action2' => 'trash'], ['_wpnonce' => 'nonce'], ['thean_wc_list' => '1'], ['post_status' => 'trash']] as $extra) {
     $_GET = array_merge(['post_type' => 'shop_order'], $extra);
-    check(thean_order_portal_redirect_url() === '', 'native mutation/edit/filter/fallback stays in Woo');
+    check(thean_order_portal_redirect_url() === '', 'native mutation/edit/trash/fallback stays in Woo');
 }
+foreach ([['_customer_user' => 9], ['m' => '202611'], ['orderby' => 'total', 'order' => 'asc', 'paged' => 3]] as $extra) {
+    $_GET = array_merge(['post_type' => 'shop_order'], $extra);
+    check(thean_order_portal_redirect_url() === home_url('/quan-ly-don/'), 'Woo-only filters / sort / paging dropped, list still opens the portal');
+}
+// Bookmarked Admin Columns Pro filtered list (smart filter rules + plugin filters + "Lọc" submit).
+$_GET = ['ac-actions-form' => '1', 'orderby' => 'date', 'order' => 'desc', 's' => '', 'post_status' => 'all', 'post_type' => 'shop_order',
+    'm' => '0', 'wwpp_fbwr' => 'all_order_types', 'layout' => '662dc60f44895', '_created_via' => '', '_customer_user' => '',
+    'mbr_filter_nonce' => 'b0ff641192', 'acp_filter' => ['order_date' => ''], 'wpo_order_type' => 'all', 'filter_action' => 'Lọc',
+    'action' => '-1', 'paged' => '1', 'action2' => '-1',
+    'ac-rules' => '{"condition":"AND","rules":[{"id":"order_status","operator":"not_equal","value":"wc-cancelled"}]}'];
+check(thean_order_portal_redirect_url() === home_url('/quan-ly-don/'), 'Admin Columns filtered list link redirects to the portal');
 $_GET = ['post_type' => 'shop_order']; $_SERVER['REQUEST_METHOD'] = 'POST';
 check(thean_order_portal_redirect_url() === '', 'POST never redirected'); $_SERVER['REQUEST_METHOD'] = 'GET';
 $ajax = true; check(thean_order_portal_redirect_url() === '', 'AJAX untouched'); $ajax = false;

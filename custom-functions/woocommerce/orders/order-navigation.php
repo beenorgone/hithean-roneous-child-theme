@@ -34,13 +34,11 @@ function thean_order_portal_redirect_url(): string
     $phone = $pagenow === 'admin.php' && ($_GET['page'] ?? '') === 'phone-orders-for-woocommerce';
     $new = $pagenow === 'post-new.php' && ($_GET['post_type'] ?? '') === 'shop_order';
     if (!$list && !$phone && !$new) return '';
-    // Preserve native filters not supported by the board by leaving their Woo list available.
-    foreach (['_customer_user', 'customer', 'm', 'orderby', 'paged', 'filter_action'] as $key) {
-        if (!empty($_GET[$key])) return '';
-    }
+    // Every list link lands on the portal; Woo-only filters (customer, month, sort, Admin Columns rules…) are
+    // dropped — the native list stays reachable with ?thean_wc_list=1 ("Phiên bản cũ").
     $args = [];
     foreach (['s', 'thean_board', 'thean_range', 'thean_workspace', 'thean_product_tool', 'thean_export_tool'] as $key) {
-        if (isset($_GET[$key]) && is_scalar($_GET[$key])) $args[$key] = sanitize_text_field(wp_unslash($_GET[$key]));
+        if (isset($_GET[$key]) && is_scalar($_GET[$key]) && $_GET[$key] !== '') $args[$key] = sanitize_text_field(wp_unslash($_GET[$key]));
     }
     $status = $_GET['status'] ?? ($_GET['post_status'] ?? '');
     if (in_array($status, ['trash', 'draft', 'auto-draft', 'checkout-draft'], true)) return '';

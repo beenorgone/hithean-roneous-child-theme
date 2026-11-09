@@ -64,8 +64,10 @@ and text-search parameters survive; native order statuses become `/tt` searches.
 New-order and Phone Orders navigation opens the creator tab.
 
 POSTs, AJAX, edit screens, nonce-bearing and bulk-action URLs remain in WooCommerce.
-Unsupported native filters and trash/draft lists also retain the native list.
-`thean_wc_list=1` explicitly bypasses redirection; the portal header links to it.
+Trash/draft lists also retain the native list. Every other list link — including bookmarked
+filtered views (customer, month, sort/paging, Admin Columns Pro `ac-rules` / `acp_filter`, plugin
+order-type filters) — lands on the portal; filters the board can't apply are simply dropped.
+`thean_wc_list=1` explicitly bypasses redirection; the "Phiên bản cũ" tab-row button links to it.
 No database page or rewrite flush is required: routing uses the same path-driven
 frontend module mechanism as the existing full-page tools.
 
