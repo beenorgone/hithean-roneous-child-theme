@@ -26,7 +26,7 @@ function hithean_order_action_meta(string $slug): array
         'thean-order-preorder'            => ['other', '📅', 'Chuyển sang đặt trước', 'Đặt trước'],
         'thean-order-preorder-confirm'    => ['pay', '📞', 'Xác nhận giao (đặt trước)', 'Xác nhận giao'],
         'qr-code'                          => ['pay', '▦', 'QR thanh toán', 'QR thanh toán'],
-        'hithean-order-export-images'      => ['kho', '📦', 'Up ảnh xuất kho', 'Ảnh xuất kho'],
+        'hithean-order-export-images'      => ['kho', '📦', 'Ảnh xuất kho', 'Ảnh xuất kho'],
         'hithean-order-export-confirm'     => ['kho', '✓', 'Xác nhận xuất kho', 'XN xuất kho'],
         'in-van-don-ghtk'                  => ['kho', '🖨', 'In phiếu GHTK', 'In phiếu GHTK'],
         'print_pxk'                        => ['kho', '🖨', 'In PXK IVAR', 'PXK IVAR'],
@@ -192,6 +192,10 @@ function hithean_oac_render($order): void
             // Có chữ "Sửa" (không chỉ biểu tượng) để dễ nhận ra; title giữ nhãn đầy đủ.
             $head .= '<a class="hithean-oa__btn wc-action-button-' . esc_attr($slug) . '"' . $attrs . '>' . $inner
                 . '<span class="hithean-oa__txt">Sửa</span></a>';
+        } elseif ($slug === 'hithean-order-export-images' && $key !== $primary) {
+            // Luôn hiện thẳng trên cột (không giấu trong menu ⋯): popup xem ảnh đã up + up thêm + xác nhận xuất kho.
+            $head .= '<a class="hithean-oa__btn wc-action-button-' . esc_attr($slug) . '"' . $attrs . '>' . $inner
+                . '<span class="hithean-oa__txt">Ảnh XK</span></a>';
         } elseif ($key === $primary) {
             $head = '<a class="hithean-oa__btn hithean-oa__btn--primary wc-action-button-' . esc_attr($slug) . '"' . $attrs . '>' . $inner
                 . '<span class="hithean-oa__txt">' . esc_html($label) . '</span></a>' . $head;

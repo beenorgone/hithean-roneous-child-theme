@@ -829,6 +829,29 @@ add_action('wp_ajax_ajax_upload_images', function () {
     wp_send_json_error("Không upload được ảnh");
 });
 
+// Ảnh xuất kho đã có của đơn — modal "Upload ảnh xuất kho" ở danh sách đơn hiện trước để không up trùng.
+add_action('wp_ajax_hithean_export_images_list', function () {
+    check_ajax_referer('ajax_upload_images_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
+    $order = wc_get_order(absint($_POST['order_id'] ?? 0));
+    if (!$order) wp_send_json_error('Không tìm thấy đơn hàng.');
+    $raw = (string) $order->get_meta('warehouse_export_images');
+    if (trim($raw) === '') $raw = (string) get_post_meta($order->get_id(), 'warehouse_export_images', true);
+    $urls = array_values(array_unique(array_filter(array_map('trim', explode("\n", str_replace("\r", '', $raw))))));
+    $confirmed_by = (int) ($order->get_meta('export_confirmed_by') ?: get_post_meta($order->get_id(), 'export_confirmed_by', true));
+    $user = $confirmed_by ? get_userdata($confirmed_by) : null;
+    $review = get_post_meta($order->get_id(), 'warehouse_export_ai_review_status', true);
+    $result = get_post_meta($order->get_id(), 'warehouse_export_ai_check', true);
+    $ai = (is_array($review) && ($review['state'] ?? '') === 'queued') ? 'Đang kiểm tra'
+        : (hithean_export_ai_is_confirmable($order->get_id()) ? 'Khớp' : ((is_array($result) && $result) ? 'Cần kiểm tra' : ''));
+    wp_send_json_success([
+        'images'       => array_map('esc_url_raw', $urls),
+        'confirmed'    => $confirmed_by > 0,
+        'confirmed_by' => $user ? $user->display_name : '',
+        'ai'           => sanitize_text_field($ai),
+    ]);
+});
+
 add_action('wp_ajax_hithean_export_ai_check', function () {
     check_ajax_referer('hithean_export_ai_check_nonce', 'nonce');
     if (!current_user_can('manage_woocommerce')) wp_send_json_error(['message' => 'Không có quyền.'], 403);
@@ -867,11 +890,13 @@ add_action('wp_ajax_ajax_confirm_export', function () {
     $order = wc_get_order($order_id);
     if (!$order) wp_send_json_error("Không tìm thấy đơn");
 
-    if (get_post_meta($order_id, 'export_confirmed_by', true)) {
+    if (get_post_meta($order_id, 'export_confirmed_by', true) || $order->get_meta('export_confirmed_by')) {
         wp_send_json_error('Đơn này đã được xác nhận xuất kho.');
     }
 
-    $image_urls = array_filter(array_map('trim', explode("\n", (string) get_post_meta($order_id, 'warehouse_export_images', true))));
+    $images_raw = (string) get_post_meta($order_id, 'warehouse_export_images', true);
+    if (trim($images_raw) === '') $images_raw = (string) $order->get_meta('warehouse_export_images');
+    $image_urls = array_filter(array_map('trim', explode("\n", $images_raw)));
     if (empty($image_urls)) {
         wp_send_json_error('Hãy upload ít nhất một ảnh xuất kho trước khi xác nhận.');
     }

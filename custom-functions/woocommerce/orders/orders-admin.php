@@ -77,7 +77,7 @@ function add_custom_actions($actions, $order)
 
         $actions['hithean-order-export-images'] = [
             'url'    => hithean_order_admin_action_url('export-images', $order_id),
-            'name'   => __('Upload ảnh xuất kho', 'woocommerce'),
+            'name'   => __('Ảnh xuất kho: xem / up / xác nhận', 'woocommerce'),
             'action' => 'hithean-order-export-images',
         ];
 
@@ -209,6 +209,12 @@ function hithean_order_admin_render_quick_action_modal(): void
         .hithean-order-modal__field--wide { grid-column:1 / -1; }
         .hithean-order-modal input:not([type="checkbox"]), .hithean-order-modal select, .hithean-order-modal textarea { width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:7px; color:#172033; background:#fff; }
         .hithean-order-modal textarea { min-height:70px; resize:vertical; }
+        .hithean-order-modal__existing { display:grid; gap:4px; margin-bottom:14px; padding:12px; border:1px solid #dbe4ee; border-radius:8px; background:#f8fafc; color:#334155; }
+        .hithean-order-modal__existing[hidden] { display:none; }
+        .hithean-order-modal__existing small { color:#52606d; }
+        .hithean-order-modal__thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+        .hithean-order-modal__thumbs a { display:block; width:80px; height:80px; border-radius:6px; overflow:hidden; border:1px solid #cbd5e1; }
+        .hithean-order-modal__thumbs img { display:block; width:100%; height:100%; object-fit:cover; }
         .hithean-order-modal__checklist { display:grid; gap:9px; padding:12px; border:1px solid #dbe4ee; border-radius:8px; background:#f8fafc; }
         .hithean-order-modal__checklist label { display:flex; gap:8px; align-items:flex-start; color:#334155; }
         .hithean-order-modal__checklist input[type="checkbox"] { width:auto; margin:2px 0 0; flex:0 0 auto; }
@@ -218,6 +224,9 @@ function hithean_order_admin_render_quick_action_modal(): void
         .hithean-order-modal__actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0; }
         .hithean-order-modal__button { padding:9px 15px; border:1px solid #cbd5e1; border-radius:7px; background:#fff; color:#334155; font-weight:600; cursor:pointer; }
         .hithean-order-modal__button--primary { border-color:#007a52; background:#08a875; color:#fff; }
+        .hithean-order-modal__button--confirm { border-color:#0047ba; background:#0047ba; color:#fff; }
+        .hithean-order-modal__button--confirm[hidden] { display:none; }
+        .hithean-order-modal__existing .is-ok { color:#087443; font-weight:600; }
         .hithean-order-modal__button:disabled { opacity:.55; cursor:wait; }
         .hithean-order-modal__notice { min-height:20px; margin-top:12px; font-weight:600; }
         .hithean-order-modal__notice.is-error { color:#b42318; }.hithean-order-modal__notice.is-success { color:#087443; }
@@ -231,7 +240,7 @@ function hithean_order_admin_render_quick_action_modal(): void
             <button type="button" class="hithean-order-modal__close" data-hithean-close aria-label="Đóng">&times;</button>
             <h2 data-hithean-title></h2><div class="hithean-order-modal__summary" data-hithean-summary></div>
             <div data-hithean-fields></div>
-            <div class="hithean-order-modal__actions"><button type="button" class="hithean-order-modal__button" data-hithean-close>Hủy</button><button class="hithean-order-modal__button hithean-order-modal__button--primary" type="submit" data-hithean-submit></button></div>
+            <div class="hithean-order-modal__actions"><button type="button" class="hithean-order-modal__button" data-hithean-close>Hủy</button><button class="hithean-order-modal__button hithean-order-modal__button--confirm" type="button" data-hithean-export-confirm hidden>✓ Xác nhận xuất kho</button><button class="hithean-order-modal__button hithean-order-modal__button--primary" type="submit" data-hithean-submit></button></div>
             <div class="hithean-order-modal__notice" aria-live="polite"></div>
         </form>
     </div>
@@ -256,16 +265,46 @@ function hithean_order_admin_render_quick_action_modal(): void
         function fieldsFor(mode, data) {
             if (mode === 'payment') return '<input type="hidden" name="order_id" value="' + data.id + '"><div class="hithean-order-modal__grid"><label class="hithean-order-modal__field">Tài khoản nhận<select name="bank_account" required>' + bankOptions() + '</select></label><label class="hithean-order-modal__field">Ngày nhận<input type="date" name="paid_date" value="' + today() + '" required></label><label class="hithean-order-modal__field">Số tiền nhận<input type="number" name="amount_received" min="0" step="1000" value="' + data.amount + '"></label><label class="hithean-order-modal__field">Người chuyển khoản<select name="payer"><option value="customer">Khách hàng</option><option value="shipper">Shipper TT COD</option><option value="self">Nhân viên TT COD</option></select></label><label class="hithean-order-modal__field hithean-order-modal__field--wide" data-hithean-cod-note hidden>Ghi chú COD<textarea name="cod_note"></textarea></label></div>';
             if (mode === 'customer') return '<input type="hidden" name="order_id" value="' + data.id + '"><p>Hệ thống sẽ ghi nhận người xác nhận và chuyển đơn theo quy tắc giao nhanh / chuẩn bị bàn giao hiện có.</p>';
-            if (mode === 'images') return '<input type="hidden" name="ueif_order_id" value="' + data.id + '"><label class="hithean-order-modal__field">Ảnh xuất kho (tối đa 5 ảnh)<input type="file" name="ueif_images[]" accept="image/jpeg,image/png" multiple required></label><label class="hithean-order-modal__field hithean-order-modal__field--checkbox"><input type="checkbox" name="ueif_ai_check" value="1" checked><span><strong>Gọi AI kiểm tra ảnh sau khi upload</strong><small>Ảnh sẽ được gửi tới AI provider đã cấu hình để đối chiếu mã đơn, sản phẩm và số lượng; kết quả chỉ hỗ trợ kiểm tra, không tự xác nhận xuất kho.</small></span></label><div class="hithean-order-modal__checklist">' + cfg.checklist.map(function (item, index) { return '<label><input type="checkbox" name="checklist_' + index + '">' + item + '</label>'; }).join('') + '</div>';
+            if (mode === 'images') return '<input type="hidden" name="ueif_order_id" value="' + data.id + '"><div class="hithean-order-modal__existing" data-hithean-existing hidden></div><label class="hithean-order-modal__field">Up thêm ảnh xuất kho (tối đa 5 ảnh / lần)<input type="file" name="ueif_images[]" accept="image/jpeg,image/png" multiple></label><label class="hithean-order-modal__field hithean-order-modal__field--checkbox"><input type="checkbox" name="ueif_ai_check" value="1" checked><span><strong>Gọi AI kiểm tra ảnh sau khi upload</strong><small>Ảnh sẽ được gửi tới AI provider đã cấu hình để đối chiếu mã đơn, sản phẩm và số lượng; kết quả chỉ hỗ trợ kiểm tra, không tự xác nhận xuất kho.</small></span></label><div class="hithean-order-modal__checklist">' + cfg.checklist.map(function (item, index) { return '<label><input type="checkbox" name="checklist_' + index + '">' + item + '</label>'; }).join('') + '</div>';
             return '<input type="hidden" name="uexe_order_id" value="' + data.id + '"><p>Chỉ xác nhận khi ảnh xuất kho đã được tải lên và hàng đã bàn giao cho đơn này.</p>';
         }
         function open(button, mode) {
-            var data = payload(button), labels = { payment:'Xác nhận thanh toán', customer:'Khách đã xác nhận COD', images:'Upload ảnh xuất kho', export:'Xác nhận xuất kho' }, submits = { payment:'Xác nhận', customer:'Xác nhận khách đã đồng ý', images:'Xác nhận và upload', export:'Xác nhận xuất kho' };
+            var data = payload(button), labels = { payment:'Xác nhận thanh toán', customer:'Khách đã xác nhận COD', images:'📦 Ảnh xuất kho', export:'Xác nhận xuất kho' }, submits = { payment:'Xác nhận', customer:'Xác nhận khách đã đồng ý', images:'Upload ảnh', export:'Xác nhận xuất kho' };
             active = { button:button, mode:mode, data:data }; form.reset(); notice('', false);
             form.querySelector('[data-hithean-title]').textContent = labels[mode]; form.querySelector('[data-hithean-summary]').textContent = mode === 'customer' ? 'Xác nhận khách đã đồng ý nhận đơn COD #' + data.id + '.' : 'Đơn #' + data.id;
             form.querySelector('[data-hithean-fields]').innerHTML = fieldsFor(mode, data); form.querySelector('[data-hithean-submit]').textContent = submits[mode]; form.querySelector('[data-hithean-submit]').dataset.label = submits[mode];
+            form.querySelector('[data-hithean-export-confirm]').hidden = true;
             modal.hidden = false; modal.setAttribute('aria-hidden', 'false');
+            if (mode === 'images') loadExisting(data.id);
         }
+        // Popup "Ảnh xuất kho": ảnh đã up + up thêm (ảnh mới thêm lên đầu, không thay ảnh cũ) + nút Xác nhận xuất kho.
+        function loadExisting(orderId) {
+            var box = form.querySelector('[data-hithean-existing]'), confirmBtn = form.querySelector('[data-hithean-export-confirm]'); if (!box) return;
+            box.hidden = false; box.innerHTML = '<small>Đang tải ảnh đã up…</small>';
+            var fd = new FormData(); fd.append('action', 'hithean_export_images_list'); fd.append('order_id', orderId); fd.append('nonce', cfg.nonces.exportImages);
+            fetch(cfg.ajaxUrl, { method:'POST', credentials:'same-origin', body:fd }).then(function (r) { return r.json(); }).then(function (response) {
+                if (!active || active.mode !== 'images' || active.data.id !== orderId || !form.contains(box)) return;
+                var d = (response && response.success && response.data) || {}, urls = d.images || [];
+                var html = urls.length
+                    ? '<strong>Đã có ' + urls.length + ' ảnh xuất kho</strong><div class="hithean-order-modal__thumbs">' + urls.map(function (u) { return '<a href="' + escAttr(u) + '" target="_blank" rel="noopener"><img src="' + escAttr(u) + '" alt="Ảnh xuất kho" loading="lazy"></a>'; }).join('') + '</div>'
+                    : '<strong>Chưa có ảnh xuất kho</strong><small>Up ảnh bên dưới rồi mới xác nhận xuất kho được.</small>';
+                if (d.ai) html += '<small>🤖 AI: ' + escAttr(d.ai) + '</small>';
+                html += d.confirmed ? '<small class="is-ok">✅ Đã xác nhận xuất kho' + (d.confirmed_by ? ' bởi ' + escAttr(d.confirmed_by) : '') + '</small>' : '';
+                box.innerHTML = html;
+                confirmBtn.hidden = !(urls.length && !d.confirmed);
+            }).catch(function () { box.innerHTML = '<small>Không tải được ảnh đã up.</small>'; });
+        }
+        form.querySelector('[data-hithean-export-confirm]').addEventListener('click', function () {
+            if (!active || active.mode !== 'images') return;
+            var btn = this, fd = new FormData(); fd.append('uexe_order_id', active.data.id); fd.append('nonce', cfg.nonces.exportConfirm);
+            btn.disabled = true;
+            request('ajax_confirm_export', fd).then(function (response) {
+                if (!response.success) throw new Error(message(response, 'Không thể xác nhận xuất kho.'));
+                var current = row(active.data.id, active.button), done = current && current.querySelector('.wc-action-button-hithean-order-export-confirm');
+                if (done) complete(done, 'Đã xuất kho');
+                close(); toast(message(response, 'Đã xác nhận xuất kho.'));
+            }).catch(function (error) { notice(error.message || 'Lỗi kết nối. Vui lòng thử lại.', true); }).finally(function () { btn.disabled = false; });
+        });
         function request(action, data) { data.append('action', action); var ids = String(data.get('order_id') || data.get('ueif_order_id') || data.get('uexe_order_id') || data.get('order_ids') || ''); return fetch(cfg.ajaxUrl, { method:'POST', credentials:'same-origin', body:data }).then(function (response) { return response.json(); }).then(function (response) { if (response.success && ids) document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderIds: ids.split(',') } })); return response; }); }
         function message(response, fallback) { return !response || !response.data ? fallback : (typeof response.data === 'string' ? response.data : (response.data.message || fallback)); }
         function row(orderId, button) { return (button && button.closest('tr')) || document.getElementById('post-' + orderId) || document.getElementById('order-' + orderId) || document.querySelector('tr[data-order-id="' + String(parseInt(orderId, 10) || 0) + '"]'); }
@@ -295,6 +334,7 @@ function hithean_order_admin_render_quick_action_modal(): void
                 if (!response.success) throw new Error(message(response, 'Không thể cập nhật đơn hàng.'));
                 if (active.mode === 'payment') ((response.data && response.data.orders) || []).forEach(function (order) { updateStatus(order.order_id, order.status, order.status_label, active.button); });
                 if (active.mode === 'customer') { updateStatus(response.data.order_id, response.data.status, response.data.status_label, active.button); complete(active.button, 'Đã xác nhận'); }
+                if (active.mode === 'images') { form.querySelector('[type="file"]').value = ''; notice(message(response, 'Đã upload ảnh.'), false); loadExisting(active.data.id); return; }
                 if (active.mode === 'export') complete(active.button, 'Đã xuất kho'); close(); toast(message(response, 'Đã cập nhật đơn hàng.'));
             }).catch(function (error) { notice(error.message || 'Lỗi kết nối. Vui lòng thử lại.', true); }).finally(function () { setLoading(false); });
         });

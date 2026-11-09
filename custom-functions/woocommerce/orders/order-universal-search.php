@@ -1015,6 +1015,19 @@ function thean_ous_render_address_block(WC_Order $order, string $type): string
     return $html;
 }
 
+/**
+ * URL ảnh xuất kho của đơn (meta warehouse_export_images, mỗi dòng 1 URL). Đọc meta đơn (HPOS) trước, trống thì
+ * đọc postmeta — đơn cũ / luồng ghi thẳng update_post_meta chưa sync sang HPOS.
+ */
+function thean_ous_export_images(WC_Order $order): array
+{
+    $raw = (string) $order->get_meta('warehouse_export_images');
+    if (trim($raw) === '') {
+        $raw = (string) get_post_meta($order->get_id(), 'warehouse_export_images', true);
+    }
+    return array_values(array_unique(array_filter(array_map('trim', explode("\n", str_replace("\r", '', $raw))))));
+}
+
 function thean_ous_render_preview(WC_Order $order): string
 {
     $id   = $order->get_id();
@@ -1029,6 +1042,7 @@ function thean_ous_render_preview(WC_Order $order): string
         'Hoàn hàng'        => thean_ous_meta($order, ['return_status']),
     ], static fn($v) => $v !== '');
     $notes = function_exists('wc_get_order_notes') ? wc_get_order_notes(['order_id' => $id, 'limit' => 5]) : [];
+    $export_images = thean_ous_export_images($order);
 
     ob_start();
     ?>
@@ -1083,6 +1097,15 @@ function thean_ous_render_preview(WC_Order $order): string
     </table>
     </div>
 
+    <?php if ($export_images) : ?>
+        <h3>📦 Ảnh xuất kho <small>(<?php echo count($export_images); ?>)</small></h3>
+        <div class="thean-ous-preview__thumbs">
+            <?php foreach ($export_images as $url) : ?>
+                <a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener"><img src="<?php echo esc_url($url); ?>" alt="Ảnh xuất kho" loading="lazy"></a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
     <?php if ($order->get_customer_note()) : ?>
         <div class="thean-ous-preview__note"><strong>Ghi chú của khách:</strong> <?php echo esc_html($order->get_customer_note()); ?></div>
     <?php endif; ?>
@@ -1111,6 +1134,7 @@ function thean_ous_preview_html(WC_Order $order): string
 {
     $modified = $order->get_date_modified();
     $key = 'pv_' . $order->get_id() . '_' . md5(implode('|', [
+        'tpl2', // đổi khi sửa mẫu HTML xem nhanh (vd thêm khối ảnh xuất kho)
         thean_ous_orders_version(),
         $modified ? $modified->getTimestamp() : 0,
         current_user_can('manage_woocommerce') ? 1 : 0,

@@ -234,6 +234,9 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-preview__items th, .thean-ous-preview__items td { padding:7px 8px; border-bottom:1px solid #e2e8f0; text-align:left; }
 .thean-ous-preview__items thead th { background:#f8fafc; }
 .thean-ous-preview__items tfoot th { text-align:right; font-weight:400; color:#475569; }
+.thean-ous-preview__thumbs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+.thean-ous-preview__thumbs a { display:block; width:96px; height:96px; border:1px solid #dbe4ee; border-radius:8px; overflow:hidden; background:#f8fafc; }
+.thean-ous-preview__thumbs img { display:block; width:100%; height:100%; object-fit:cover; }
 .thean-ous-preview__note { margin:12px 0; padding:10px 12px; border-radius:8px; background:#fff8e6; }
 .thean-ous-preview__notes { margin:0 0 4px; padding:0; list-style:none; }
 .thean-ous-preview__notes li { margin-bottom:6px; padding:8px 10px; border-radius:6px; background:#f1f5f9; overflow-wrap:anywhere; }
