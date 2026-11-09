@@ -829,8 +829,8 @@ add_action('wp_ajax_ajax_upload_images', function () {
     wp_send_json_error("Không upload được ảnh");
 });
 
-// Ảnh xuất kho đã có của đơn — modal "Upload ảnh xuất kho" ở danh sách đơn hiện trước để không up trùng.
-add_action('wp_ajax_hithean_export_images_list', function () {
+// Ảnh xuất kho đã up + trạng thái AI / xác nhận — popup "Ảnh xuất kho" (order-quick-modals.php, cùng tên action ở theanmarket).
+add_action('wp_ajax_thean_export_images_list', function () {
     check_ajax_referer('ajax_upload_images_nonce', 'nonce');
     if (!current_user_can('manage_woocommerce')) wp_send_json_error('Không có quyền');
     $order = wc_get_order(absint($_POST['order_id'] ?? 0));

@@ -53,13 +53,17 @@ Ngoài ra: `pages/` (landing tĩnh: an-new-chapter*, doi-tac-yeast-hero, uu-dai,
 | | theanmarket | hithean |
 |---|---|---|
 | Meta vận hành đơn | `ship_code`, `shipper`, `export_date`, `paid_date`, `bank_account_received`, `handling_status` | Tiền tố `order_`: `order_ship_code`, `order_shipper` (select **nhiều giá trị**, mã `self/ghtk/ahamove/viettel`), `order_ship_date`, `order_paid_date`, `order_bank_account_received`, `order_handling_status`, `order_export_by`. Đơn cũ còn key không tiền tố → đọc `order_*` trước rồi fallback |
-| Nút thao tác nhanh danh sách đơn | `thean-order-*`, modal `.thean-quick-modal` | `hithean-order-*`, modal `#hithean-order-modal` / `.hithean-return-modal` |
+| Nút thao tác nhanh danh sách đơn | `thean-order-*` | `hithean-order-*`. 4 popup (thanh toán / khách XN COD / ảnh xuất kho / xác nhận XK) **dùng chung file** `orders/order-quick-modals.php` (`.thean-quick-modal`, giống hệt 2 site — khác biệt qua `thean_qm_site()`); popup hoàn hàng vẫn riêng (`.hithean-return-modal`) |
 | Hàm màn danh sách đơn | `thean_order_admin_is_list_screen()` | `hithean_order_admin_is_list_screen()` |
 | QR thanh toán | Sepay cứng trong orders-admin | `hithean_payment_qr_url()` + `hithean_primary_bank_account()` (bank-accounts.php, luôn nạp) |
 | Nạp file | `bootstrap.php` (`child_theme_require_files`, `theanmarket_is_ajax_action`) | `core/admin.php` + `tpc_loader_modules()` |
 | Kho | Có kho, trừ tồn | Không kho; plugin `mcp-site-link` ghi nhật ký phát sinh, Theanmarket trừ tồn hộ |
 
 Mã đơn hiển thị giống nhau: ID + hậu tố (`thean_change_woocommerce_order_number()` ở order-number.php).
+**Popup thao tác nhanh** (`orders/order-quick-modals.php`, chép y nguyên sang theanmarket): 4 modal riêng, khung lặp lại gom ở
+`thean_qm_open()` / `thean_qm_close()`; TK nhận tiền lấy từ `thean_qm_bank_accounts()` (hithean_payment_bank_accounts → eim → BACS, luôn có
+"tiền mặt") — **không viết cứng số TK**. Popup "📦 Ảnh xuất kho" (nút "Ảnh XK" luôn hiện ở cột Thao tác): ảnh đã up + AI + trạng thái xác nhận
+(AJAX `thean_export_images_list`, cùng tên 2 site) + up thêm (popup không đóng, tải lại ảnh) + nút "✓ Xác nhận xuất kho".
 Plugin hóa đơn VAT (eim) đọc meta xuất kho qua filter `eim_export_meta_map` / `eim_order_shipper_label` trong bootstrap.php.
 
 ## Thanh menu đáy toàn site & ưu đãi
@@ -189,6 +193,7 @@ Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
 - `my-offers.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
+- Popup thao tác nhanh (order-quick-modals.php): `node tests/order-quick-modals-ui.cjs` (cần jsdom + php).
 - `create-order-ai-address.php` (quy đổi địa chỉ AI tạo đơn); UI popup "Chỉnh đơn" chế độ AI: `node tests/create-order-ai-ui.cjs` (cần jsdom).
 
 ## Quy ước
