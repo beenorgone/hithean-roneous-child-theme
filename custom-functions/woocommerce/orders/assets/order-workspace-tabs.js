@@ -5,6 +5,7 @@
     var board = document.getElementById('thean-ous-board');
     var orders = document.getElementById('thean-ous-orders-panel');
     var products = document.getElementById('thean-ous-products-panel');
+    var create = document.getElementById('thean-ous-create-panel');
     var exports = document.getElementById('thean-ous-exports-panel');
     var foot = document.getElementById('thean-workspace-foot');
     if (!bar || !board || !orders || !products || !foot) return;
@@ -12,9 +13,11 @@
     orders.appendChild(board);
     orders.parentNode.insertBefore(products, orders.nextSibling);
     if (exports) products.parentNode.insertBefore(exports, products.nextSibling);
+    if (create) products.parentNode.insertBefore(create, products);
     foot.hidden = false;
     var current = 'orders';
     var tools = {
+        create: { panel: create, key: 'create', param: 'thean_create_tool' },
         products: { panel: products, key: 'info', param: 'thean_product_tool' },
         exports: { panel: exports, key: 'export_review', param: 'thean_export_tool' }
     };
@@ -142,6 +145,22 @@
     if (boardTabs) new MutationObserver(syncFootCount).observe(boardTabs, { subtree: true, childList: true, characterData: true });
     new MutationObserver(syncFootCount).observe(board, { attributes: true, attributeFilter: ['hidden'] });
     syncFootCount();
+    // Warm the creator on intent (hover / focus / touch) so the tab opens already loaded. Read-only GET, once.
+    if (create) document.querySelectorAll('[data-order-workspace="create"]').forEach(function (button) {
+        ['pointerenter', 'focus', 'touchstart'].forEach(function (type) {
+            button.addEventListener(type, function () {
+                var panel = create.querySelector('[data-product-panel]'), frame = panel && panel.querySelector('iframe');
+                if (frame && !frame.getAttribute('src')) loadTool(panel, false);
+            }, { once: true, passive: true });
+        });
+    });
+    // Only the mounted same-origin creator can request an incremental board update.
+    window.addEventListener('message', function (event) {
+        var frame = create && create.querySelector('iframe');
+        if (!frame || event.origin !== location.origin || event.source !== frame.contentWindow || !event.data || event.data.type !== 'thean:order-created') return;
+        var id = Number(event.data.orderId);
+        if (Number.isSafeInteger(id) && id > 0) document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderId: id } }));
+    });
     window.TheanOrderWorkspace = { show: show, product: function (key) { selectTool(key, 'products'); }, exports: function (key) { selectTool(key, 'exports'); } };
     var url = new URL(location.href);
     Object.keys(tools).forEach(function (workspace) {

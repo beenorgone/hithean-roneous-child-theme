@@ -39,6 +39,8 @@ function fixture() {
     vm.runInContext(section('    function renderBoard(', '    // Chỉ tải 10 đơn'), ctx);
     vm.runInContext(section('    function loadBoard(', '\n    function changeRange('), ctx);
     vm.runInContext(section('    function changeRange(', '    if (rangeSelect)'), ctx);
+    ctx.cfg = {};
+    vm.runInContext(section('    // /quan-ly-don in sẵn', '    if (!portalBoardPending'), ctx);
     return { ctx, requests, rendered, notices, more, status };
 }
 function response(tab, shown = 10, total = 40) {
@@ -139,5 +141,21 @@ async function settle() { for (let i = 0; i < 6; i++) await Promise.resolve(); }
     q.ctx.rangeSelect.value = '7';
     q.ctx.changeRange();
     check(q.ctx.results.hidden, 'changing range with incomplete query hides old results');
+
+    // /quan-ly-don pre-rendered first page: used once when tab + range match, otherwise the normal AJAX read.
+    const p = fixture();
+    p.ctx.cfg.boardInitial = { requested: '', range: 'auto', data: response('confirm').data };
+    p.ctx.loadBoard(p.ctx.seedInitialBoard(''), 1, false);
+    check(p.requests.length === 0 && p.rendered.length === 1 && p.ctx.boardState.tab === 'confirm', 'matching pre-rendered board renders without a request');
+    check(p.ctx.cfg.boardInitial === null && p.ctx.seedInitialBoard('') === '', 'pre-rendered board is consumed once');
+    const m = fixture();
+    m.ctx.cfg.boardInitial = { requested: 'cod', range: 'auto', data: response('cod').data };
+    m.ctx.loadBoard(m.ctx.seedInitialBoard('picking'), 1, false);
+    check(m.requests.length === 1 && m.requests[0].data.tab === 'picking', 'different saved tab falls back to AJAX');
+    const rg = fixture();
+    rg.ctx.currentRange = '90';
+    rg.ctx.cfg.boardInitial = { requested: 'cod', range: 'auto', data: response('cod').data };
+    rg.ctx.loadBoard(rg.ctx.seedInitialBoard('cod'), 1, false);
+    check(rg.requests.length === 1 && rg.requests[0].data.range === '90', 'different range falls back to AJAX');
     console.log(`OK (${checks} checks)`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

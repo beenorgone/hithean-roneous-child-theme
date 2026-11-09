@@ -1305,27 +1305,37 @@ function thean_ous_ajax_board(): void
     if (!thean_ous_user_can()) {
         wp_send_json_error(['message' => 'Không có quyền.'], 403);
     }
+    $out = thean_ous_board_payload(wp_unslash($_POST));
+    thean_ous_timing_header($out['timings']);
+    wp_send_json_success($out['data']);
+}
 
-    $range = thean_ous_range((string) wp_unslash($_POST['range'] ?? 'auto'));
+/**
+ * Dữ liệu board (dùng chung AJAX thean_order_usearch_board + trang /quan-ly-don in sẵn trang đầu).
+ * $req = tham số đã unslash: range, tab, refresh, all, before_id, offset, limit. Trả ['data' => …, 'timings' => ms].
+ */
+function thean_ous_board_payload(array $req): array
+{
+    $range = thean_ous_range((string) ($req['range'] ?? 'auto'));
     $started = microtime(true);
     $pending = thean_ops_step_request_backfill();
     // Làm mới chủ động phải bỏ cache server, kể cả khi không có đơn đổi bước.
-    if (!empty($_POST['refresh'])) {
+    if (!empty($req['refresh'])) {
         thean_ops_board_invalidate();
     }
 
     $labels = thean_ops_step_tabs();
-    $before_id = absint($_POST['before_id'] ?? 0);
-    $offset = absint($_POST['offset'] ?? 0); // "Xem thêm": số đơn đang hiện của tab
-    $limit  = min(50, max(1, absint($_POST['limit'] ?? ($offset === 0 ? THEAN_OUS_BOARD_FIRST : THEAN_OUS_BOARD_MORE))));
-    $tab    = thean_ops_step_tab(sanitize_key(wp_unslash($_POST['tab'] ?? '')));
+    $before_id = absint($req['before_id'] ?? 0);
+    $offset = absint($req['offset'] ?? 0); // "Xem thêm": số đơn đang hiện của tab
+    $limit  = min(50, max(1, absint($req['limit'] ?? ($offset === 0 ? THEAN_OUS_BOARD_FIRST : THEAN_OUS_BOARD_MORE))));
+    $tab    = thean_ops_step_tab(sanitize_key((string) ($req['tab'] ?? '')));
     $counts = thean_ous_board_counts($range);
     if (!isset($labels[$tab])) {
         $tab = (string) (array_key_first(array_filter($counts)) ?? array_key_first($labels));
     }
 
     // Giữ all=1 cho client cũ; client mới chỉ yêu cầu tab đang xem.
-    $all  = !empty($_POST['all']);
+    $all  = !empty($req['all']);
     $load = $all ? array_keys(array_filter($counts)) : [];
     if (!in_array($tab, $load, true)) {
         $load[] = $tab;
@@ -1401,19 +1411,21 @@ function thean_ous_ajax_board(): void
         ];
     }
     $tabs = thean_ous_board_tabs($range);
-    thean_ous_timing_header([
-        'board_query' => ($queried - $started) * 1000,
-        'board_sync' => ($synced - $queried) * 1000,
-        'board_render' => (microtime(true) - $synced) * 1000,
-        'board_total' => (microtime(true) - $started) * 1000,
-    ]);
-    wp_send_json_success($panes[$tab] + [
-        'tabs'    => $tabs,
-        'panes'   => $all ? $panes : null,
-        'pending' => $pending,
-        'at'      => wp_date('H:i:s'),
-        'ver'     => thean_ous_build_ver(),
-    ]);
+    return [
+        'data' => $panes[$tab] + [
+            'tabs'    => $tabs,
+            'panes'   => $all ? $panes : null,
+            'pending' => $pending,
+            'at'      => wp_date('H:i:s'),
+            'ver'     => thean_ous_build_ver(),
+        ],
+        'timings' => [
+            'board_query' => ($queried - $started) * 1000,
+            'board_sync' => ($synced - $queried) * 1000,
+            'board_render' => (microtime(true) - $synced) * 1000,
+            'board_total' => (microtime(true) - $started) * 1000,
+        ],
+    ];
 }
 
 /** Membership của đúng các đơn vừa đổi, kể cả tab chứng từ chồng lên bước chính. */
@@ -1748,7 +1760,8 @@ function thean_ous_ui_config(): array
         // Modal thao tác nhanh của orders-admin.php — Esc nhường chúng đóng trước.
         'canChangeStatus' => function_exists('thean_can_change_any_status') && thean_can_change_any_status(), // order-ops-step.php
         'canSkipProof'   => function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof(),
-        'wcList'         => function_exists('thean_wcl_state') ? thean_wcl_state() : null, // order-list-lazy.php
+        'standalone'     => function_exists('thean_order_portal_is_route') && thean_order_portal_is_route(),
+        'wcList'         => (function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()) ? null : (function_exists('thean_wcl_state') ? thean_wcl_state() : null), // order-list-lazy.php
         // Tự tải board "Tải đơn cần xử lý" ngay khi mở danh sách đơn (theanmarket chưa bật — JS mặc định tắt).
         'boardAutoload'  => true,
         'blockingModals' => '.thean-quick-modal:not([hidden]), .hithean-return-modal:not([hidden]), #thean-flow-modal:not([hidden]), #thean-vat-modal:not([hidden]), #thean-export-review-modal:not([hidden])',
@@ -1903,6 +1916,9 @@ function thean_ous_render_ui(): void
     <form class="thean-ous-bar" id="thean-ous-bar" role="search" autocomplete="off" hidden>
         <div class="thean-workspace-tabs" role="tablist" aria-label="Khu làm việc">
             <button type="button" id="thean-workspace-orders" role="tab" aria-controls="thean-ous-orders-panel" aria-selected="true" tabindex="0" data-order-workspace="orders">📋 Đơn hàng</button>
+            <?php if (function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()) : ?>
+                <button type="button" id="thean-workspace-create" role="tab" aria-controls="thean-ous-create-panel" aria-selected="false" tabindex="-1" data-order-workspace="create">＋ Tạo đơn</button>
+            <?php endif; ?>
             <button type="button" id="thean-workspace-products" role="tab" aria-controls="thean-ous-products-panel" aria-selected="false" tabindex="-1" data-order-workspace="products">📦 Sản phẩm</button>
             <?php if (current_user_can('manage_woocommerce')) : ?>
                 <button type="button" id="thean-workspace-exports" role="tab" aria-controls="thean-ous-exports-panel" aria-selected="false" tabindex="-1" data-order-workspace="exports">📤 Xuất kho</button>
@@ -1963,11 +1979,15 @@ function thean_ous_render_ui(): void
     </section>
 
     <section id="thean-ous-orders-panel" role="tabpanel" aria-labelledby="thean-workspace-orders"></section>
+    <?php if (function_exists('thean_order_portal_render_create_tab')) thean_order_portal_render_create_tab(); ?>
     <?php thean_order_render_product_workspace(); ?>
     <?php thean_order_render_export_workspace(); ?>
     <nav class="thean-workspace-foot" id="thean-workspace-foot" aria-label="Khu làm việc" hidden>
         <?php // 1 dòng. Theanmarket: admin-embed.js (shopee-export) chèn nút 🛍️ Shopee ngay sau 📋 Website. ?>
         <button type="button" data-order-workspace="orders" aria-pressed="true">📋 Website <b data-thean-foot-count hidden></b></button>
+        <?php if (function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()) : ?>
+            <button type="button" data-order-workspace="create" aria-pressed="false">＋ Tạo đơn</button>
+        <?php endif; ?>
         <button type="button" data-order-workspace="products" aria-pressed="false">📦 Sản phẩm</button>
         <?php if (current_user_can('manage_woocommerce')) : ?>
             <button type="button" data-order-workspace="exports" aria-pressed="false">📤 Xuất kho</button>

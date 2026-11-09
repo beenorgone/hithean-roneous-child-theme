@@ -517,7 +517,11 @@
     }
 
     /* ---------- Board "Cần xử lý" (tab theo bước của bảng điều phối) ---------- */
-    function rememberTab(tab) { try { localStorage.setItem('theanOusBoardTab', tab); } catch (e) {} }
+    // Cookie = bản sao tab đã xem để /quan-ly-don in sẵn đúng tab đó (thean_ous_portal_board_initial).
+    function rememberTab(tab) {
+        try { localStorage.setItem('theanOusBoardTab', tab); } catch (e) {}
+        try { document.cookie = 'thean_ous_tab=' + encodeURIComponent(tab) + '; path=/; max-age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
+    }
     function savedTab() { try { return localStorage.getItem('theanOusBoardTab') || ''; } catch (e) { return ''; } }
     // Link thẳng tới 1 tab: ?thean_board=<tab> (confirm, payment, picking, export, delivery, shipping, cod, proof,
     // return, preorder — thean_ops_step_tabs()). URL trên thanh địa chỉ đi theo tab đang xem → sao chép là gửi được.
@@ -940,7 +944,9 @@
     });
     // Đơn vừa đổi (popup luồng / thao tác nhanh) → đóng popup thao tác, cập nhật các dòng đơn liên quan.
     document.addEventListener('thean:order-updated', function () { if (!acts.hidden) setOpen(acts, false); });
+    var portalBoardPending = !!cfg.standalone && new URLSearchParams(location.search).get('thean_workspace') === 'create';
     document.addEventListener('thean:workspace-changed', function (e) {
+        if (e.detail.workspace === 'orders' && portalBoardPending) { portalBoardPending = false; loadBoard(urlTab() || savedTab(), 1, false); }
         if (e.detail.workspace !== 'orders') [results, preview, invoice, acts].forEach(function (modal) { if (!modal.hidden) setOpen(modal, false); });
     });
 
@@ -997,8 +1003,16 @@
     }
     // ?thean_board=<tab>: luôn mở board đúng tab đó. Không có → cfg.boardAutoload: tải board luôn (tab đã xem lần
     // trước), trừ khi người dùng vừa chủ động mở bảng Woo (?thean_wc_list=1).
-    if (urlTab()) loadBoard(urlTab(), 1, false);
-    else if (cfg.boardAutoload && !(cfg.wcList && !cfg.wcList.off)) loadBoard(savedTab(), 1, false);
+    // /quan-ly-don in sẵn trang đầu board (cfg.boardInitial): dùng khi đúng tab + khoảng ngày client định mở, không thì gọi AJAX như cũ.
+    function seedInitialBoard(want) {
+        var init = cfg.boardInitial;
+        cfg.boardInitial = null; // chỉ dùng 1 lần, dữ liệu theo thời điểm tải trang
+        if (!init || !init.data || !init.data.tab || init.range !== currentRange || init.requested !== want) return want;
+        boardCache.set(init.data.tab + '|1', { at: Date.now(), data: init.data });
+        return init.data.tab;
+    }
+    if (!portalBoardPending && urlTab()) loadBoard(seedInitialBoard(urlTab()), 1, false);
+    else if (!portalBoardPending && cfg.boardAutoload && !(cfg.wcList && !cfg.wcList.off)) loadBoard(seedInitialBoard(savedTab()), 1, false);
 
     /* ---------- 🧹 Xoá cache: bỏ cache trình duyệt + server (version cache orders), tính lại bước flow các đơn mở ---------- */
     var flushBtn = bar.querySelector('[data-thean-ous-flush]');

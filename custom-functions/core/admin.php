@@ -10,6 +10,19 @@ if (is_admin()) {
     require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/order-list-lazy.php';
 }
 
+// Order navigation: never on frontend/AJAX. Order screens load it up front (admin_init redirect → /quan-ly-don/);
+// other admin pages load it only at admin_menu to point the order menus straight at the portal (no redirect hop).
+if (is_admin() && !wp_doing_ajax()) {
+    if (($_GET['post_type'] ?? '') === 'shop_order'
+        || in_array($_GET['page'] ?? '', ['wc-orders', 'phone-orders-for-woocommerce'], true)) {
+        require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/order-navigation.php';
+    }
+    add_action('admin_menu', static function (): void {
+        require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/order-navigation.php';
+        thean_order_portal_rewrite_menu();
+    }, PHP_INT_MAX);
+}
+
 // Conditionally load admin-specific files
 function load_custom_admin_files()
 {

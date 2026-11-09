@@ -1,0 +1,23 @@
+/* Standalone staff workspace: Material surfaces without admin/storefront chrome. */
+:root{color-scheme:light}
+body.thean-order-portal{margin:0;background:#f3f6fa;color:#1e293b;font:14px/1.5 system-ui,-apple-system,sans-serif}
+.thean-order-portal *{box-sizing:border-box}
+.thean-order-portal [hidden]{display:none!important}
+.thean-order-portal a{color:#0047ba;text-decoration:none}
+.thean-order-portal button,.thean-order-portal input,.thean-order-portal select,.thean-order-portal textarea{font:inherit}
+.thean-order-portal button{cursor:pointer}
+.thean-order-portal button:focus-visible,.thean-order-portal a:focus-visible,.thean-order-portal input:focus-visible{outline:3px solid #80b0ff;outline-offset:2px}
+.thean-order-portal .wrap{max-width:1800px;margin:auto;padding:12px 20px 88px}
+.thean-portal-heading,.thean-portal-tool-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.thean-portal-heading h1{margin:0;font-size:20px}
+.thean-order-portal .thean-ous-bar{background:#f3f6fa;padding:8px 0;top:0}
+.thean-order-portal .thean-ous-bar__row{background:#fff;padding:10px;border-radius:12px;box-shadow:0 2px 6px #1232}
+.thean-order-portal .thean-ous-menu{display:none}
+.thean-order-portal #thean-ous-bar > .thean-workspace-tabs{display:flex;overflow-x:auto;flex-wrap:nowrap}
+.thean-order-portal .thean-workspace-tabs button{white-space:nowrap;min-height:44px}
+.thean-order-portal .thean-workspace-foot{left:0}
+.thean-order-portal .thean-ous-board{margin-top:8px}
+.thean-order-portal #thean-ous-create-panel{padding:12px;background:#fff;border-radius:12px}
+.thean-order-portal #thean-ous-create-panel h2{font-size:18px;margin:0}
+.thean-order-portal #thean-ous-create-panel iframe{display:block;width:100%;height:calc(100dvh - 235px);min-height:480px;border:0;border-radius:10px;background:#fff}
+@media(max-width:782px){.thean-order-portal .wrap{padding:8px 8px 86px}.thean-portal-heading{align-items:flex-start}.thean-portal-heading h1{font-size:18px}.thean-portal-heading a{font-size:12px}.thean-order-portal #thean-ous-create-panel{padding:8px}.thean-order-portal #thean-ous-create-panel iframe{height:calc(100dvh - 245px)}}

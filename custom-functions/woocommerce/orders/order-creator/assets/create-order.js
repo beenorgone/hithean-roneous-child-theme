@@ -2292,6 +2292,7 @@
             btn.disabled = false; btn.textContent = label;
             if (!res.success) { alert((res.data && res.data.message) || 'Lỗi tạo đơn.'); return; }
             state.lastOrder = res.data;
+            if (window.parent !== window) window.parent.postMessage({ type: 'thean:order-created', orderId: res.data.order_id }, window.location.origin);
             setEditorDisabled(true);
             renderResult(res.data, isDraft);
         }).catch(function () { btn.disabled = false; btn.textContent = label; });

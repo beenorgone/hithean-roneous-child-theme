@@ -3316,6 +3316,9 @@ add_action('template_redirect', function () {
         wp_die('Bạn không có quyền truy cập trang này.', 'Không có quyền', ['response' => 403]);
     }
 
+    if (!defined('DONOTCACHEPAGE')) define('DONOTCACHEPAGE', true);
+    header('X-Robots-Tag: noindex, nofollow, noarchive');
+    send_frame_options_header();
     add_filter('show_admin_bar', '__return_false'); // ẩn thanh admin trên trang tạo đơn
     status_header(200);
     nocache_headers();
@@ -3456,11 +3459,11 @@ function order_creator_render_page(): void
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tạo đơn hàng</title>
-    <?php wp_head(); ?>
+    <?php if (($_GET['thean_order_embed'] ?? '') === '1') { wp_print_styles(); wp_print_head_scripts(); } else { wp_head(); } ?>
     <link rel="stylesheet" href="<?php echo esc_url(order_creator_assets_uri('create-order.css')); ?>?ver=<?php echo esc_attr($css_ver); ?>">
 </head>
 <body class="order-creator-body">
-<?php wp_body_open(); ?>
+<?php if (($_GET['thean_order_embed'] ?? '') !== '1') wp_body_open(); ?>
 <div class="oc-app" id="oc-app">
     <?php
     $oc_logo_id  = get_theme_mod('custom_logo');
@@ -4166,7 +4169,7 @@ function order_creator_render_page(): void
 <script>window.OrderCreator = <?php echo $config; // phpcs:ignore ?>;</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="<?php echo esc_url(order_creator_assets_uri('create-order.js')); ?>?ver=<?php echo esc_attr($js_ver); ?>"></script>
-<?php wp_footer(); ?>
+<?php if (($_GET['thean_order_embed'] ?? '') === '1') { if (function_exists('child_theme_payment_hub_link_script')) child_theme_payment_hub_link_script(); wp_print_footer_scripts(); } else { wp_footer(); } ?>
 </body>
 </html>
     <?php

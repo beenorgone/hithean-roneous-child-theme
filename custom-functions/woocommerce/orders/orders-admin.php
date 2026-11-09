@@ -150,6 +150,7 @@ function add_custom_actions($actions, $order)
 
 function hithean_order_admin_is_list_screen(): bool
 {
+    if (function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()) return thean_order_portal_can();
     if (!function_exists('get_current_screen')) {
         return false;
     }

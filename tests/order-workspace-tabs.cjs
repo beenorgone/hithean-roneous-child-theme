@@ -8,8 +8,9 @@ const dir = path.join(__dirname, '../custom-functions/woocommerce/orders/assets'
 let checks = 0;
 function check(value, message) { assert.ok(value, message); checks++; }
 const dom = new JSDOM(`<!doctype html><body>
-<div class="wrap"><form id="thean-ous-bar"><div role="tablist"><button role="tab" data-order-workspace="orders">Orders</button><button role="tab" data-order-workspace="products">Products</button><button role="tab" data-order-workspace="exports">Exports</button></div><input name="q"><div id="thean-ous-suggest" hidden></div></form><section id="thean-ous-board"><table><tbody><tr data-order-id="5"><td><input value="keep-selection"></td></tr></tbody></table></section></div>
+<div class="wrap"><form id="thean-ous-bar"><div role="tablist"><button role="tab" data-order-workspace="orders">Orders</button><button role="tab" data-order-workspace="create">Create</button><button role="tab" data-order-workspace="products">Products</button><button role="tab" data-order-workspace="exports">Exports</button></div><input name="q"><div id="thean-ous-suggest" hidden></div></form><section id="thean-ous-board"><table><tbody><tr data-order-id="5"><td><input value="keep-selection"></td></tr></tbody></table></section></div>
 <section id="thean-ous-orders-panel"></section>
+<section id="thean-ous-create-panel" hidden><section data-product-panel="create"><p data-product-status></p><input id="creator-draft" value="draft"><iframe data-src="https://example.test/tao-don/?thean_order_embed=1"></iframe></section></section>
 <section id="thean-ous-products-panel" hidden><div role="tablist">${['info','compare','protein'].map(key => `<button role="tab" data-product-tool="${key}">${key}</button>`).join('')}</div>${['info','compare','protein'].map(key => `<section data-product-panel="${key}" ${key !== 'info' ? 'hidden' : ''}><p data-product-status></p><button data-product-reload="${key}">Reload</button><iframe data-src="https://example.test/tool?tool=${key}"></iframe></section>`).join('')}</section>
 <section id="thean-ous-exports-panel" hidden><div role="tablist">${['export_review','export_waiting','export_upload'].map(key => `<button role="tab" data-product-tool="${key}">${key}</button>`).join('')}</div>${['export_review','export_waiting','export_upload'].map(key => `<section data-product-panel="${key}" ${key !== 'export_review' ? 'hidden' : ''}><p data-product-status></p><button data-product-reload="${key}">Reload</button><iframe data-src="https://example.test/tool?tool=${key}"></iframe></section>`).join('')}</section>
 <nav id="thean-workspace-foot" hidden><button data-order-workspace="orders">Orders</button><button data-order-workspace="products">Products</button><button data-order-workspace="exports">Exports</button></nav>
@@ -21,7 +22,28 @@ const w = dom.window, d = w.document, errors = [];
 w.addEventListener('error', event => errors.push(event.error || event.message));
 w.eval(fs.readFileSync(path.join(dir, 'order-workspace-tabs.js'), 'utf8'));
 const rows = d.querySelector('#thean-ous-board tr'), boardInput = rows.querySelector('input');
-const frames = Array.from(d.querySelectorAll('[data-product-panel] iframe'));
+const creator = d.querySelector('#thean-ous-create-panel iframe');
+check(!creator.getAttribute('src'), 'create frame is not fetched during initial orders load');
+d.querySelector('#thean-ous-bar [data-order-workspace="create"]').dispatchEvent(new w.Event('pointerenter'));
+check(creator.src.includes('thean_order_embed=1') && d.querySelector('#thean-ous-create-panel').hidden, 'hovering the create tab warms the creator without switching');
+w.TheanOrderWorkspace.show('create');
+check(!d.querySelector('#thean-ous-create-panel').hidden && creator.src.includes('thean_order_embed=1'), 'create tab lazy loads existing creator');
+const originalCreatorDocument = creator.contentWindow;
+d.querySelector('#creator-draft').value = 'keep draft';
+w.TheanOrderWorkspace.show('orders');
+w.TheanOrderWorkspace.show('create');
+check(creator.contentWindow === originalCreatorDocument && d.querySelector('#creator-draft').value === 'keep draft', 'switching tabs preserves mounted creator and draft');
+let created = [];
+d.addEventListener('thean:order-updated', event => created.push(event.detail.orderId));
+for (const [origin, source, orderId] of [['https://evil.test', creator.contentWindow, 42], [w.location.origin, w, 42], [w.location.origin, creator.contentWindow, 'bad']]) {
+    w.dispatchEvent(new w.MessageEvent('message', { origin, source, data: { type: 'thean:order-created', orderId } }));
+}
+check(created.length === 0, 'reject cross-origin, unrelated-frame and invalid-ID messages');
+w.dispatchEvent(new w.MessageEvent('message', { origin: w.location.origin, source: creator.contentWindow, data: { type: 'thean:order-created', orderId: 42 } }));
+check(created.join() === '42', 'successful creator save patches only the changed order');
+w.TheanOrderWorkspace.show('orders');
+
+const frames = Array.from(d.querySelectorAll('#thean-ous-products-panel [data-product-panel] iframe, #thean-ous-exports-panel [data-product-panel] iframe'));
 check(frames.every(frame => !frame.getAttribute('src')), 'order-first navigation does not request product tools');
 check(d.querySelector('#thean-ous-orders-panel').contains(rows), 'board belongs to order panel');
 d.querySelector('#thean-workspace-foot [data-order-workspace="products"]').click();

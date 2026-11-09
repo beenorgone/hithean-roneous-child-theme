@@ -4,7 +4,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const source = fs.readFileSync(path.join(__dirname, '../custom-functions/woocommerce/orders/orders-admin.php'), 'utf8');
+// Shared payment/export helpers now live in order-quick-modals.php; returns remain in orders-admin.php.
+const source = ['order-quick-modals.php', 'orders-admin.php'].map(file =>
+    fs.readFileSync(path.join(__dirname, '../custom-functions/woocommerce/orders', file), 'utf8')
+).join('\n');
 let checks = 0;
 for (const match of source.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
     new vm.Script(match[1].replace(/<\?php[\s\S]*?\?>/g, 'null'));

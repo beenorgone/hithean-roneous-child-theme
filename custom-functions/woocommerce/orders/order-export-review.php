@@ -79,11 +79,14 @@ function thean_export_review_ajax(): void
 function thean_export_review_is_list(): bool
 {
     if (!current_user_can('manage_woocommerce') || in_array($_GET['action'] ?? '', ['edit', 'new'], true)) return false;
-    $screen = get_current_screen();
+    if (function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()) return true;
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
     return $screen && in_array($screen->id, ['edit-shop_order', 'woocommerce_page_wc-orders'], true);
 }
 
-add_action('admin_enqueue_scripts', function () {
+add_action('admin_enqueue_scripts', 'thean_export_review_enqueue', 30);
+function thean_export_review_enqueue(): void
+{
     if (!thean_export_review_is_list()) return;
     $path = '/custom-functions/woocommerce/orders/assets/';
     $dir = get_stylesheet_directory() . $path;
@@ -94,9 +97,11 @@ add_action('admin_enqueue_scripts', function () {
         'ajaxUrl' => admin_url('admin-ajax.php'), 'readNonce' => wp_create_nonce('thean_order_export_review'),
         'confirmNonce' => wp_create_nonce('ajax_confirm_export_nonce'),
     ]) . ';', 'before');
-}, 30);
+}
 
-add_action('admin_footer', function () {
+add_action('admin_footer', 'thean_export_review_render', 30);
+function thean_export_review_render(): void
+{
     if (!thean_export_review_is_list()) return;
     ?>
     <div class="thean-export-review" id="thean-export-review-modal" hidden>
@@ -117,4 +122,4 @@ add_action('admin_footer', function () {
         </section>
     </div>
     <?php
-}, 30);
+}

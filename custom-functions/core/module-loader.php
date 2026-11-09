@@ -482,6 +482,11 @@ function tpc_loader_modules()
             'ajax_actions' => ['thean_order_workspace'],
         ],
         [
+            'id' => 'order_portal',
+            'file' => 'custom-functions/woocommerce/orders/order-portal.php',
+            'paths' => ['/quan-ly-don'],
+        ],
+        [
             // Tìm đơn nhanh ở danh sách đơn admin (UI nạp qua core/admin.php) — HPOS + legacy.
             'id' => 'order_universal_search',
             'file' => 'custom-functions/woocommerce/orders/order-universal-search.php',
