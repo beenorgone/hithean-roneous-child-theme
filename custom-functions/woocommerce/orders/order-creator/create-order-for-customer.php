@@ -40,7 +40,7 @@ if (!defined('ORDER_CREATOR_CAP')) {
 
 function &order_creator_state(): array
 {
-    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'manual_shipping' => false, 'shipping_cost' => null, 'source_prices' => [], 'coupon_results' => [], 'editing_order_coupons' => [], 'editing_order_customer_id' => 0];
+    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'manual_shipping' => false, 'shipping_cost' => null, 'source_prices' => [], 'coupon_results' => [], 'editing_order_coupons' => [], 'editing_order_customer_id' => 0, 'operator_id' => 0];
     return $state;
 }
 
@@ -395,6 +395,7 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
     $orig_chosen         = WC()->session ? WC()->session->get('chosen_shipping_methods') : null;
 
     $state['active']   = true;
+    $state['operator_id'] = $orig_user; // nhân viên thao tác (ghi chú đơn dùng tên này, không phải tên khách)
     $state['is_admin'] = current_user_can('manage_options'); // operator hiện tại (trước khi mạo danh)
 
     try {
@@ -417,6 +418,7 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
         $state['coupon_results'] = [];
         $state['editing_order_coupons'] = [];
         $state['editing_order_customer_id'] = 0;
+        $state['operator_id'] = 0;
 
         WC()->cart->empty_cart(false);
         if (WC()->session) {
@@ -679,6 +681,66 @@ function order_creator_populate_cart(array $payload): void
     // filter woocommerce_package_rates chạy lại với shipping_cost mới mỗi lần tính.
     order_creator_reset_shipping_cache();
     WC()->cart->calculate_shipping();
+}
+
+/**
+ * Đối chiếu kết quả áp mã với giỏ SAU KHI tính tổng xong.
+ *
+ * apply_coupon() thành công chỉ nghĩa là mã vào được danh sách mã của giỏ; ở lần
+ * calculate_totals sau, WooCommerce có thể loại mã (WC_Discounts trả lỗi) nhưng vẫn
+ * để mã nằm trong giỏ với giá trị 0đ → UI từng hiện ✓ mà không trừ tiền, và đơn
+ * được tạo thiếu khoản giảm. Ở đây hạ các mã đó về "thất bại" kèm lý do thật.
+ */
+function order_creator_verify_coupon_results(): void
+{
+    $state = &order_creator_state();
+    if (empty($state['coupon_results']) || !WC()->cart) {
+        return;
+    }
+    $cart = WC()->cart;
+    foreach ($state['coupon_results'] as $code => $result) {
+        if (empty($result['applied'])) {
+            continue;
+        }
+        $code = (string) $code;
+        if (!$cart->has_discount($code)) {
+            $state['coupon_results'][$code] = ['applied' => false, 'message' => 'Mã bị WooCommerce gỡ khỏi giỏ khi tính tổng.'];
+            continue;
+        }
+        $discount = (float) $cart->get_coupon_discount_amount($code, false);
+        $coupon   = new WC_Coupon($code);
+        // Mã chỉ miễn phí ship / giá trị 0 thì giảm 0đ là đúng.
+        if ($discount > 0 || $coupon->get_free_shipping() || (float) $coupon->get_amount() <= 0) {
+            continue;
+        }
+        $reason  = '';
+        $checker = new WC_Discounts($cart);
+        $valid   = $checker->is_coupon_valid($coupon);
+        if (is_wp_error($valid)) {
+            $reason = wp_strip_all_tags($valid->get_error_message());
+        }
+        $state['coupon_results'][$code] = [
+            'applied' => false,
+            'message' => $reason !== ''
+                ? $reason
+                : 'Mã có trong giỏ nhưng không trừ được tiền (giảm 0đ) — WooCommerce loại mã khi tính tổng.',
+        ];
+    }
+}
+
+/** Tạo / cập nhật đơn: chặn khi có mã đã chọn mà không áp được (tránh đơn thiếu khoản giảm). */
+function order_creator_assert_coupons_applied(): void
+{
+    order_creator_verify_coupon_results();
+    $failed = [];
+    foreach (order_creator_state()['coupon_results'] as $code => $result) {
+        if (empty($result['applied'])) {
+            $failed[] = '"' . $code . '": ' . ($result['message'] ?? 'không áp dụng được');
+        }
+    }
+    if ($failed) {
+        throw new Exception("Chưa tạo đơn vì mã ưu đãi không áp dụng được:\n- " . implode("\n- ", $failed) . "\nGỡ mã hoặc sửa mã rồi thử lại.");
+    }
 }
 
 /**
@@ -1175,7 +1237,9 @@ function order_creator_apply_status_and_notes(WC_Order $order, array $payload, b
     if ($is_draft) {
         $order->add_order_note('Đơn được lưu dạng nháp.', false);
     }
-    $creator = wp_get_current_user();
+    // Lúc này đang mạo danh khách → lấy tên nhân viên đã snapshot, không dùng wp_get_current_user().
+    $operator_id = (int) (order_creator_state()['operator_id'] ?? 0);
+    $creator     = $operator_id > 0 ? get_userdata($operator_id) : wp_get_current_user();
     $order->add_order_note(sprintf('%s qua trang Tạo đơn (/%s) bởi %s.', $action_label, ORDER_CREATOR_ROUTE, $creator ? $creator->display_name : '—'), false);
 }
 
@@ -1197,6 +1261,7 @@ function order_creator_update_order(int $order_id, array $payload): WC_Order
     if (WC()->cart->is_empty()) {
         throw new Exception('Đơn không có sản phẩm.');
     }
+    order_creator_assert_coupons_applied();
 
     $order->set_customer_id(absint($payload['customer_id'] ?? 0));
     order_creator_apply_addresses($order, $payload);
@@ -1237,6 +1302,7 @@ function order_creator_build_order(array $payload): WC_Order
     if (WC()->cart->is_empty()) {
         throw new Exception('Chưa có sản phẩm nào trong đơn.');
     }
+    order_creator_assert_coupons_applied();
 
     $billing  = isset($payload['billing']) && is_array($payload['billing']) ? $payload['billing'] : [];
     $shipping = isset($payload['shipping']) && is_array($payload['shipping']) ? $payload['shipping'] : [];
@@ -2859,6 +2925,7 @@ add_action('wp_ajax_order_creator_recalculate', function () {
         $result = order_creator_with_customer_context(absint($payload['customer_id'] ?? 0), function () use ($payload) {
             order_creator_populate_cart($payload);
             order_creator_calculate_cart_totals();
+            order_creator_verify_coupon_results();
             $snapshot = order_creator_snapshot_cart();
             $snapshot['customer_coupons'] = order_creator_customer_coupons($payload, true);
             return $snapshot;
