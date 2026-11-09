@@ -53,13 +53,23 @@ function thean_order_portal_redirect_url(): string
     return thean_order_portal_url($args);
 }
 
+/** Woo order screens (list, edit, new, Phone Orders) — their own menu slugs must stay registered. */
+function thean_order_portal_is_order_screen(): bool
+{
+    return ($_GET['post_type'] ?? '') === 'shop_order'
+        || in_array($_GET['page'] ?? '', ['wc-orders', 'phone-orders-for-woocommerce'], true);
+}
+
 /**
  * Menu destinations → portal, so routine navigation skips the wp-admin redirect hop.
- * Hooked from the theme loader on every non-AJAX admin page (admin_menu, PHP_INT_MAX), not here.
+ * Hooked from the theme loader at admin_init (PHP_INT_MAX), NOT admin_menu: wp-admin/menu.php checks
+ * user_can_access_admin_page() against $menu/$submenu right after admin_menu, so a rewritten slug
+ * makes WordPress deny the Woo order pages ("không được phép truy cập"). admin_init runs after that
+ * check and before the menu is printed. Order screens keep native slugs (page title / fallback list).
  */
 function thean_order_portal_rewrite_menu(): void
 {
-    if (!thean_order_portal_can()) return;
+    if (!thean_order_portal_can() || thean_order_portal_is_order_screen()) return;
     global $menu, $submenu;
     $replace = static function (&$items): void {
         foreach ($items as &$item) {

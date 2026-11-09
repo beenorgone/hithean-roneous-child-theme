@@ -9,7 +9,7 @@ workspace; Hithean retains its own metadata and action adapters.
 - The existing frontend module registry loads `order-portal.php` only for the
   exact normalized `/quan-ly-don` path. It has no AJAX or shortcode loader entry.
 - `order-navigation.php` is required on WooCommerce order admin requests (before
-  `admin_init`), lazily at `admin_menu` on other admin pages (menu links only), and
+  `admin_init`), lazily at `admin_init` on other admin pages (menu links only), and
   by the portal itself. Frontend and AJAX requests load neither.
 - The portal requires login and `edit_shop_orders` or `manage_woocommerce` before
   requiring any UI modules. Individual existing endpoints still check their own
@@ -46,8 +46,11 @@ The document is buffered and sends `Server-Timing` (`wp_boot`, `board_*`,
 ## Navigation and fallback
 
 Order list menu links are rewritten on every non-AJAX admin page: the theme loader
-requires `order-navigation.php` at `admin_menu` (PHP_INT_MAX) and calls
-`thean_order_portal_rewrite_menu()`. Order screens load it earlier for the redirect.
+requires `order-navigation.php` at `admin_init` (PHP_INT_MAX) and calls
+`thean_order_portal_rewrite_menu()`. Never at `admin_menu`: `wp-admin/menu.php` runs
+`user_can_access_admin_page()` against the menu right after it, so rewritten slugs make
+WordPress deny the Woo order pages. Order screens keep native slugs and load the module
+earlier for the redirect.
 Existing HPOS/legacy list URLs redirect early on safe GET navigation. Board/date
 and text-search parameters survive; native order statuses become `/tt` searches.
 New-order and Phone Orders navigation opens the creator tab.

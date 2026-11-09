@@ -49,6 +49,12 @@ check(empty($hooks['admin_menu']), 'menu rewrite is hooked by the theme loader, 
 thean_order_portal_rewrite_menu();
 check($menu[0][2] === home_url('/quan-ly-don/') && $submenu['woocommerce'][0][2] === home_url('/quan-ly-don/'), 'order menus link directly to portal');
 check($submenu['woocommerce'][1][2] === 'wc-settings', 'other menu destinations unchanged');
+foreach ([['page' => 'wc-orders'], ['page' => 'wc-orders', 'action' => 'edit', 'id' => 7], ['post_type' => 'shop_order'], ['page' => 'phone-orders-for-woocommerce']] as $screen) {
+    $_GET = $screen; $menu = [[0, 0, 'edit.php?post_type=shop_order']]; $submenu = ['woocommerce' => [[0, 0, 'wc-orders']]];
+    thean_order_portal_rewrite_menu();
+    check($menu[0][2] === 'edit.php?post_type=shop_order' && $submenu['woocommerce'][0][2] === 'wc-orders', 'order screens keep native menu slugs (WP page access check)');
+}
+$_GET = [];
 $admin = false; $_GET = []; $_SERVER['REQUEST_URI'] = '/store/quan-ly-don/?thean_workspace=create';
 check(thean_order_portal_is_route(), 'subdirectory route with query');
 foreach (['/store/quan-ly-don/other', '/store/shop/', '/quan-ly-don/'] as $path) {

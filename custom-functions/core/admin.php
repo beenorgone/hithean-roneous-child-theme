@@ -11,13 +11,14 @@ if (is_admin()) {
 }
 
 // Order navigation: never on frontend/AJAX. Order screens load it up front (admin_init redirect → /quan-ly-don/);
-// other admin pages load it only at admin_menu to point the order menus straight at the portal (no redirect hop).
+// other admin pages load it only at admin_init to point the order menus straight at the portal (no redirect hop).
+// KHÔNG dùng admin_menu: đổi slug trước user_can_access_admin_page() → WP chặn trang đơn Woo.
 if (is_admin() && !wp_doing_ajax()) {
     if (($_GET['post_type'] ?? '') === 'shop_order'
         || in_array($_GET['page'] ?? '', ['wc-orders', 'phone-orders-for-woocommerce'], true)) {
         require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/order-navigation.php';
     }
-    add_action('admin_menu', static function (): void {
+    add_action('admin_init', static function (): void {
         require_once HITHEAN_THEME_DIR . '/custom-functions/woocommerce/orders/order-navigation.php';
         thean_order_portal_rewrite_menu();
     }, PHP_INT_MAX);
