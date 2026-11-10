@@ -170,3 +170,50 @@
     var initialWorkspace = url.searchParams.get('thean_workspace');
     show(tools[initialWorkspace] && tools[initialWorkspace].panel ? initialWorkspace : 'orders');
 }());
+
+/* Mobile /quan-ly-don: header chỉ 4 tab, phần còn lại + "Phiên bản cũ" nằm trong popup nút "…" (bấm hộ nút gốc). */
+(function () {
+    'use strict';
+    var tabs = document.querySelector('.thean-order-portal #thean-ous-bar > .thean-workspace-tabs');
+    if (!tabs || !window.matchMedia) return;
+    var MAX = 4, pop = null;
+    var more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'thean-tabs-more';
+    more.textContent = '…';
+    more.title = 'Thêm';
+    more.setAttribute('aria-haspopup', 'dialog');
+    var legacy = tabs.querySelector('.thean-workspace-legacy');
+    tabs.insertBefore(more, legacy || null);
+    var list = Array.prototype.slice.call(tabs.querySelectorAll('[role="tab"]'));
+    list.forEach(function (b, i) { if (i >= MAX) b.classList.add('thean-tab-over'); });
+    if (list.length > MAX || legacy) tabs.classList.add('has-more');
+    function close() { if (pop) pop.hidden = true; }
+    more.addEventListener('click', function () {
+        if (!pop) {
+            pop = document.createElement('div');
+            pop.className = 'thean-tabs-pop';
+            pop.innerHTML = '<div class="thean-tabs-pop__bg"></div><div class="thean-tabs-pop__box" role="dialog" aria-modal="true"></div>';
+            document.body.appendChild(pop);
+            pop.querySelector('.thean-tabs-pop__bg').addEventListener('click', close);
+        }
+        var box = pop.querySelector('.thean-tabs-pop__box');
+        box.innerHTML = '';
+        list.forEach(function (orig) {
+            if (!orig.classList.contains('thean-tab-over')) return;
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = orig.textContent;
+            b.addEventListener('click', function () { close(); orig.click(); });
+            box.appendChild(b);
+        });
+        if (legacy) {
+            var a = document.createElement('a');
+            a.href = legacy.href;
+            a.textContent = legacy.textContent;
+            a.addEventListener('click', close);
+            box.appendChild(a);
+        }
+        pop.hidden = false;
+    });
+}());

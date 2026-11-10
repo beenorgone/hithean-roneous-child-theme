@@ -1057,6 +1057,7 @@
     function markEditMode(orderNumber) {
         document.querySelector('.oc-topbar h1').textContent = 'Chỉnh sửa đơn #' + orderNumber;
         $('#oc-create').textContent = 'Cập nhật';
+        document.body.classList.add('oc-editing');
         setActionMode('edit');
         document.title = 'Chỉnh sửa đơn #' + orderNumber;
     }
@@ -1064,6 +1065,7 @@
     function markCopyMode(orderNumber) {
         document.querySelector('.oc-topbar h1').textContent = 'Tạo bản sao từ đơn #' + orderNumber;
         $('#oc-create').textContent = 'Tạo đơn';
+        document.body.classList.add('oc-editing');
         setActionMode('create');
         document.title = 'Tạo bản sao đơn #' + orderNumber;
     }
@@ -2867,4 +2869,15 @@
         new MutationObserver(refresh).observe(bar, { attributes: true, subtree: true, attributeFilter: ['class', 'hidden'] });
         refresh();
     })();
+
+    // Nút ? cạnh "Chuyển địa chỉ cũ": bật/tắt chú thích (không đổi trạng thái ô tích).
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('.oc-help-btn') : null;
+        if (!btn) { return; }
+        e.preventDefault();
+        e.stopPropagation();
+        var box = btn.closest('.oc-ai-convert-option');
+        if (!box) { return; }
+        btn.setAttribute('aria-expanded', box.classList.toggle('is-help-open') ? 'true' : 'false');
+    }, true);
 })();

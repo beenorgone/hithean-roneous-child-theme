@@ -687,3 +687,28 @@ body.oc-modal-open { overflow: hidden; }
 }
 .oc-more-list { display: grid; gap: 8px; margin-top: 12px; }
 .oc-more-list .oc-btn { width: 100%; padding: 11px 12px; font-size: 14px; }
+
+/* Chú thích "Chuyển địa chỉ cũ": ẩn, bấm nút ? mới hiện */
+.oc-ai-convert-option small { display: none !important; }
+.oc-ai-convert-option.is-help-open small { display: block !important; }
+.oc-help-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 4px; padding: 0; border: 1px solid var(--oc-border); border-radius: 50%; background: #fff; color: var(--oc-muted); font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer; vertical-align: middle; }
+.oc-help-btn:hover, .oc-help-btn[aria-expanded="true"] { border-color: var(--oc-primary); color: var(--oc-primary-dark); }
+
+/* Mobile: cụm Thủ công / AI tạo đơn trải full chiều rộng, mỗi nút 1/2 */
+@media (max-width: 640px) {
+    .oc-toolbar > .oc-mode-switch { display: flex; flex: 1 1 100%; width: 100%; max-width: 100%; box-sizing: border-box; }
+    .oc-toolbar > .oc-mode-switch .oc-mode-btn { flex: 1 1 0; min-width: 0; padding: 0 6px; }
+}
+
+/* Mobile: padding các nút nhỏ lại (đặt cuối file để thắng quy tắc cũ; thanh nút dưới giữ 6px 4px) */
+@media (max-width: 640px) {
+    .oc-btn { padding: 5px 8px; }
+    .oc-btn--sm { padding: 3px 7px; }
+    .oc-actionbar .oc-btn { padding: 5px 4px; }
+    .oc-more-list .oc-btn { padding: 9px 10px; }
+    .oc-toolbar > .oc-mode-switch { padding: 3px; gap: 3px; }
+    .oc-toolbar > .oc-mode-switch .oc-mode-btn { height: 32px; padding: 0 4px; }
+}
+
+/* Nhúng trong /quan-ly-don (tab đã ghi "Tạo đơn"): ẩn tiêu đề mặc định, vẫn hiện khi đang chỉnh đơn */
+.oc-embed:not(.oc-editing) .oc-topbar__title h1 { display: none; }

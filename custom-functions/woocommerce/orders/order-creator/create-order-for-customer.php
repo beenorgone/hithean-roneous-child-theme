@@ -3466,7 +3466,7 @@ function order_creator_render_page(): void
     <?php if (($_GET['thean_order_embed'] ?? '') === '1') { wp_print_styles(); wp_print_head_scripts(); } else { wp_head(); } ?>
     <link rel="stylesheet" href="<?php echo esc_url(order_creator_assets_uri('create-order.css')); ?>?ver=<?php echo esc_attr($css_ver); ?>">
 </head>
-<body class="order-creator-body">
+<body class="order-creator-body<?php echo ($_GET['thean_order_embed'] ?? '') === '1' ? ' oc-embed' : ''; ?>">
 <?php if (($_GET['thean_order_embed'] ?? '') !== '1') wp_body_open(); ?>
 <div class="oc-app" id="oc-app">
     <?php
@@ -3530,7 +3530,7 @@ function order_creator_render_page(): void
             <label class="oc-ai-convert-option" for="oc-ai-convert-address">
                 <input type="checkbox" id="oc-ai-convert-address" checked>
                 <span>
-                    <strong>Chuyển địa chỉ cũ sang địa chỉ hành chính 2026</strong>
+                    <strong>Chuyển địa chỉ cũ sang địa chỉ hành chính 2026 <button type="button" class="oc-help-btn" aria-expanded="false" aria-label="Giải thích" title="Giải thích">?</button></strong>
                     <small>Quy đổi địa chỉ trước sáp nhập năm 2025 sang Tỉnh/Thành → Phường/Xã hiện hành (Gemini dùng Google Search hỗ trợ).</small>
                 </span>
             </label>
@@ -4022,7 +4022,7 @@ function order_creator_render_page(): void
                 <label class="oc-ai-convert-option" for="oc-cust-ai-convert-address">
                     <input type="checkbox" id="oc-cust-ai-convert-address" checked>
                     <span>
-                        <strong>Chuyển địa chỉ cũ sang địa chỉ hành chính 2026</strong>
+                        <strong>Chuyển địa chỉ cũ sang địa chỉ hành chính 2026 <button type="button" class="oc-help-btn" aria-expanded="false" aria-label="Giải thích" title="Giải thích">?</button></strong>
                         <small>Khi dùng Gemini, Google Search hỗ trợ quy đổi địa chỉ trước sáp nhập năm 2025 sang Tỉnh/Thành → Phường/Xã hiện hành và bỏ cấp Quận/Huyện.</small>
                     </span>
                 </label>
