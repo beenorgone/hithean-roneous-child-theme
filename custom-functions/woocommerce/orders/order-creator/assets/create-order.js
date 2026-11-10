@@ -2374,7 +2374,23 @@
     }
 
     // ---------- invoice modal ----------
+    // html2canvas (~200KB, CDN) chỉ cần khi xuất / copy ảnh hóa đơn → nạp khi mở popup hóa đơn, không chặn lúc tải trang.
+    var html2canvasReady = null;
+    function loadHtml2canvas() {
+        if (typeof html2canvas !== 'undefined') { return Promise.resolve(); }
+        if (html2canvasReady) { return html2canvasReady; }
+        html2canvasReady = new Promise(function (resolve, reject) {
+            var s = document.createElement('script');
+            s.src = CFG.html2canvasUrl;
+            s.onload = function () { resolve(); };
+            s.onerror = function () { html2canvasReady = null; reject('Thư viện tạo ảnh chưa tải được.'); }; // lần bấm sau thử lại
+            document.head.appendChild(s);
+        });
+        return html2canvasReady;
+    }
+
     function openInvoice(url) {
+        loadHtml2canvas().catch(function () {}); // tải sẵn: lúc bấm Xuất JPG / Copy ảnh đã có
         $('#oc-invoice-msg').textContent = '';
         $('#oc-invoice-frame').src = url;
         openModal('#oc-invoice-modal');
@@ -2392,7 +2408,7 @@
                 img.addEventListener('error', resolve, { once: true });
             });
         });
-        return Promise.all(ready).then(function () {
+        return Promise.all(ready.concat(loadHtml2canvas())).then(function () {
             return html2canvas(doc.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
         });
     }
@@ -2402,7 +2418,6 @@
     }
 
     function invoiceToJpg() {
-        if (typeof html2canvas === 'undefined') { alert('Thư viện tạo ảnh chưa tải được.'); return; }
         $('#oc-invoice-msg').textContent = 'Đang tạo ảnh...';
         invoiceCanvas().then(function (canvas) {
             var a = document.createElement('a');
@@ -2414,7 +2429,6 @@
     }
 
     function invoiceCopy() {
-        if (typeof html2canvas === 'undefined') { alert('Thư viện tạo ảnh chưa tải được.'); return; }
         if (!navigator.clipboard || !window.ClipboardItem) { $('#oc-invoice-msg').textContent = 'Trình duyệt không hỗ trợ copy ảnh — hãy dùng Xuất JPG.'; return; }
         $('#oc-invoice-msg').textContent = 'Đang chuẩn bị ảnh...';
         invoiceCanvas().then(function (canvas) {

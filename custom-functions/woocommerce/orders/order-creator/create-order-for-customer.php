@@ -3442,6 +3442,7 @@ function order_creator_js_config(): array
         'bankAccounts' => apply_filters('order_creator_bank_accounts', hithean_payment_bank_accounts()),
         'currencySymbol' => html_entity_decode(get_woocommerce_currency_symbol()),
         'editOrderId'    => isset($_GET['order_id']) ? absint($_GET['order_id']) : 0,
+        'html2canvasUrl' => 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', // create-order.js nạp khi mở popup hóa đơn
         'aiOrderEnabled' => theme_ai_feature_enabled('order_creator_ai_create_order'),
     ];
 }
@@ -4172,7 +4173,6 @@ function order_creator_render_page(): void
 </div>
 
 <script>window.OrderCreator = <?php echo $config; // phpcs:ignore ?>;</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="<?php echo esc_url(order_creator_assets_uri('create-order.js')); ?>?ver=<?php echo esc_attr($js_ver); ?>"></script>
 <?php if (($_GET['thean_order_embed'] ?? '') === '1') { if (function_exists('child_theme_payment_hub_link_script')) child_theme_payment_hub_link_script(); wp_print_footer_scripts(); } else { wp_footer(); } ?>
 </body>

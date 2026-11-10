@@ -55,6 +55,26 @@ add_action('wp_ajax_child_theme_hub_pay_url', function (): void {
     wp_send_json_success(['url' => $url]);
 });
 
+/**
+ * URL iframe Hàng đợi Sepay của hub cho tab 🏦 Sepay ở /quan-ly-don (order-portal.php). Tab "sepay_all" = hiện đủ
+ * mọi giao dịch như trên hub, không thu gọn theo site này. Token dùng 1 lần, sống vài phút → ký lúc mở tab / Tải lại.
+ */
+add_action('wp_ajax_child_theme_hub_sepay_url', function (): void {
+    check_ajax_referer('child_theme_hub_pay', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => 'Không có quyền.'], 403);
+    }
+    if (!child_theme_hub_pay_enabled()) {
+        wp_send_json_error(['message' => 'Chưa bật plugin eim (công cụ xác nhận thanh toán ở hub).']);
+    }
+    $url = eim_pay_embed_iframe_url('sepay_all');
+    if (is_wp_error($url)) {
+        wp_send_json_error(['message' => $url->get_error_message()]);
+    }
+    nocache_headers();
+    wp_send_json_success(['url' => $url]);
+});
+
 function child_theme_payment_hub_link_script(): void
 {
     static $printed = false;

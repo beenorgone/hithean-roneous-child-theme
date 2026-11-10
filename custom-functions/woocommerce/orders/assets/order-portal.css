@@ -81,3 +81,8 @@ body.thean-order-portal{margin:0;background:#f3f6fa;color:#1e293b;font:14px/1.5 
 .thean-order-portal #thean-ous-bar > .thean-workspace-tabs > button{min-height:32px;padding:3px 1px;font-size:10.5px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .thean-order-portal #thean-ous-bar > .thean-workspace-tabs.has-more .thean-tabs-more{flex:0 0 26px;min-width:26px;max-width:26px;min-height:32px;font-size:14px}
 }
+/* Tab 🏦 Sepay: hàng đợi Sepay của hub (iframe widget eim) */
+.thean-order-portal #thean-ous-sepay-panel{padding:12px;background:#fff;border-radius:12px}
+.thean-order-portal #thean-ous-sepay-panel h2{font-size:18px;margin:0}
+.thean-order-portal #thean-ous-sepay-panel iframe{display:block;width:100%;height:calc(100dvh - 190px);min-height:480px;margin-top:8px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}
+@media(max-width:782px){.thean-order-portal #thean-ous-sepay-panel{padding:8px}.thean-order-portal #thean-ous-sepay-panel iframe{height:calc(100dvh - 200px)}}

@@ -244,24 +244,59 @@ function thean_ous_validate(array $f): string
 }
 
 /**
- * Các ID có thể ứng với chuỗi số người dùng gõ: ID trực tiếp, hoặc mã đơn hiển thị
- * (ID + hậu tố 1–2 chữ số, xem order-number.php). Chỉ nhận khi hậu tố khớp.
+ * Chuỗi số có thể là ID / mã đơn trong từ người dùng gõ — cùng cách bóc của eim (eim_order_ref_variants):
+ * bỏ "#", "*", khoảng trắng; bỏ 2 ký tự đầu P0/P1 (nội dung CK "P1<mã đơn>"); bỏ tiền tố chữ (mã site, vd TA87097).
+ * Tiền tố chữ + số không khai sẵn (vd "T1…") → thử cả 2 cách bóc.
+ *
+ * @return string[]
+ */
+function thean_ous_order_ref_digits(string $term): array
+{
+    $ref = preg_replace('/[#*\s]/', '', $term);
+    if (!is_string($ref) || $ref === '') {
+        return [];
+    }
+    // Có khoảng trắng giữa chữ và số ("Nguyen 10276") là từ khóa, không phải mã đơn — chỉ chuỗi toàn số mới được viết rời.
+    if (!ctype_digit($ref) && preg_match('/\s/', trim($term))) {
+        return [];
+    }
+    $out = [];
+    if (ctype_digit($ref)) {
+        $out[] = $ref;
+    } elseif (preg_match('/^P[01][\-_]?(\d+)$/i', $ref, $m)) {
+        $out[] = $m[1];
+    } else {
+        if (preg_match('/^[A-Za-z]+[\-_]?(\d+)$/', $ref, $m)) {
+            $out[] = $m[1];
+        }
+        if (preg_match('/^[A-Za-z]\d[\-_]?(\d+)$/', $ref, $m)) {
+            $out[] = $m[1];
+        }
+    }
+    // Có tiền tố: ≤ 9 số — mã vận đơn (SPXVN + 10–12 số…) không phải mã đơn.
+    $max = ctype_digit($ref) ? 12 : 9;
+    return array_values(array_unique(array_filter($out, static fn($v) => strlen($v) <= $max)));
+}
+
+/**
+ * Các ID có thể ứng với từ người dùng gõ: ID trực tiếp, hoặc mã đơn hiển thị (ID + hậu tố 1–2 chữ số,
+ * xem order-number.php) → bỏ 1–2 số cuối để tìm lại. Site có hàm đánh số: chỉ nhận khi hậu tố khớp
+ * (không ra nhầm đơn khác); không có hàm thì thử cả 2 như eim. Tiền tố P0/P1/chữ: thean_ous_order_ref_digits().
  */
 function thean_ous_candidate_ids(string $term): array
 {
-    $digits = preg_replace('/[#*\s]/', '', $term);
-    if ($digits === '' || !ctype_digit($digits) || strlen($digits) > 12) {
-        return [];
-    }
-
-    $ids = [(int) $digits];
-    foreach ([1, 2] as $cut) {
-        if (strlen($digits) - $cut < 3) {
-            continue;
-        }
-        $id = (int) substr($digits, 0, -$cut);
-        if (function_exists('thean_change_woocommerce_order_number') && (string) thean_change_woocommerce_order_number((string) $id) === $digits) {
-            $ids[] = $id;
+    $ids = [];
+    $numbered = function_exists('thean_change_woocommerce_order_number');
+    foreach (thean_ous_order_ref_digits($term) as $digits) {
+        $ids[] = (int) $digits;
+        foreach ([1, 2] as $cut) {
+            if (strlen($digits) - $cut < 3) {
+                continue;
+            }
+            $id = (int) substr($digits, 0, -$cut);
+            if (!$numbered || (string) thean_change_woocommerce_order_number((string) $id) === $digits) {
+                $ids[] = $id;
+            }
         }
     }
 
@@ -1925,6 +1960,9 @@ function thean_ous_render_ui(): void
             <?php if (current_user_can('manage_woocommerce')) : ?>
                 <button type="button" id="thean-workspace-exports" role="tab" aria-controls="thean-ous-exports-panel" aria-selected="false" tabindex="-1" data-order-workspace="exports">📤 Xuất kho</button>
             <?php endif; ?>
+            <?php if (function_exists('thean_order_portal_sepay_enabled') && thean_order_portal_sepay_enabled()) : ?>
+                <button type="button" id="thean-workspace-sepay" role="tab" aria-controls="thean-ous-sepay-panel" aria-selected="false" tabindex="-1" data-order-workspace="sepay">🏦 Sepay</button>
+            <?php endif; ?>
             <?php if (function_exists('thean_order_portal_legacy_url')) : // /quan-ly-don: link về danh sách Woo, căn phải cùng hàng tab ?>
                 <a class="thean-workspace-legacy" href="<?php echo esc_url(thean_order_portal_legacy_url()); ?>" title="Mở danh sách đơn WooCommerce gốc">Phiên bản cũ ↗</a>
             <?php endif; ?>
@@ -1990,6 +2028,7 @@ function thean_ous_render_ui(): void
     <?php if (function_exists('thean_order_portal_render_create_tab')) thean_order_portal_render_create_tab(); ?>
     <?php thean_order_render_product_workspace(); ?>
     <?php thean_order_render_export_workspace(); ?>
+    <?php if (function_exists('thean_order_portal_render_sepay_tab')) thean_order_portal_render_sepay_tab(); ?>
     <nav class="thean-workspace-foot" id="thean-workspace-foot" aria-label="Khu làm việc" hidden>
         <?php // 1 dòng. Theanmarket: admin-embed.js (shopee-export) chèn nút 🛍️ Shopee ngay sau 📋 Website. ?>
         <button type="button" data-order-workspace="orders" aria-pressed="true">📋 Website <b data-thean-foot-count hidden></b></button>

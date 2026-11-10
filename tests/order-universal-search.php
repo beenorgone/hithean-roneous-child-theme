@@ -153,6 +153,15 @@ $display = thean_change_woocommerce_order_number('10276');
 check(in_array(10276, thean_ous_candidate_ids($display), true), 'display number maps back to ID');
 check(thean_ous_candidate_ids('#10276**') === [10276], 'masked ID');
 check(thean_ous_candidate_ids('Nguyen') === [], 'text is not an ID');
+// Như eim: bỏ 2 ký tự đầu (P0/P1 của nội dung CK, mã site) rồi bỏ số đuôi của mã hiển thị.
+check(in_array(10276, thean_ous_candidate_ids('P1' . $display), true), 'P1 + display number maps back to ID');
+check(thean_ous_candidate_ids('p010276') === [10276], 'P0 + ID');
+check(!in_array((int) ('1' . $display), thean_ous_candidate_ids('P1' . $display), true), 'P1 is not read as a leading digit 1');
+check(in_array(10276, thean_ous_candidate_ids('TA' . $display), true), 'site-code prefix + display number');
+check(thean_ous_candidate_ids('#TA-10276') === [10276], 'prefix with dash');
+check(thean_ous_candidate_ids('T110276') === [110276, 10276], 'unknown letter+digit prefix tries both');
+check(thean_ous_candidate_ids('SPXVN012345678901') === [], 'long tracking code is not an order ID');
+check(thean_ous_candidate_ids('Nguyen 10276') === [], 'name with number is not an ID');
 
 // SĐT.
 check(thean_ous_phone_needle('0901 234 567') === '901234567', 'phone strips 0 and spaces');

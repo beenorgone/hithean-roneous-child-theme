@@ -26,6 +26,32 @@ function thean_order_portal_render_create_tab(): void
     <?php
 }
 
+/** Tab 🏦 Sepay: chỉ ở /quan-ly-don, cần plugin eim (widget hub) + quyền xác nhận thanh toán. */
+function thean_order_portal_sepay_enabled(): bool
+{
+    return function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()
+        && function_exists('child_theme_hub_pay_enabled') && child_theme_hub_pay_enabled()
+        && current_user_can('manage_woocommerce');
+}
+
+/**
+ * Hàng đợi Sepay của hub (widget eim, tab sepay_all = đủ mọi giao dịch, không lọc theo site). URL iframe mang token
+ * dùng 1 lần nên không in sẵn: order-workspace-tabs.js gọi AJAX child_theme_hub_sepay_url khi mở tab / bấm Tải lại.
+ */
+function thean_order_portal_render_sepay_tab(): void
+{
+    if (!thean_order_portal_sepay_enabled()) return;
+    ?>
+    <section id="thean-ous-sepay-panel" class="thean-products-workspace" role="tabpanel" aria-labelledby="thean-workspace-sepay" hidden>
+        <section data-product-panel="queue" data-src-action="child_theme_hub_sepay_url" data-src-ajax="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" data-src-nonce="<?php echo esc_attr(wp_create_nonce('child_theme_hub_pay')); ?>">
+            <div class="thean-portal-tool-head"><h2>🏦 Hàng đợi Sepay</h2><button type="button" class="thean-ous__more-btn" data-product-reload="queue" title="Mở phiên mới ở hub (dùng khi khung báo hết phiên)">↻ Tải lại</button></div>
+            <p data-product-status role="status" aria-live="polite">Mở tab để tải hàng đợi Sepay.</p>
+            <iframe title="Hàng đợi Sepay (hub)" referrerpolicy="no-referrer" allow="clipboard-write"></iframe>
+        </section>
+    </section>
+    <?php
+}
+
 add_action('template_redirect', function (): void {
     if (!thean_order_portal_is_route()) return;
     if (!defined('DONOTCACHEPAGE')) define('DONOTCACHEPAGE', true);

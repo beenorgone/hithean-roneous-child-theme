@@ -218,3 +218,10 @@ Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - Commit & push thẳng `main` (như theanmarket).
 - Comment / commit message bằng tiếng Việt, kiểu `feat(orders): …`, `fix(…)`.
 - `custom-functions/firebase_credentials.json` không commit (.gitignore).
+
+## Tab 🏦 Sepay ở `/quan-ly-don`
+
+`thean_order_portal_render_sepay_tab()` (order-portal.php, giống hệt bản theanmarket; chỉ khi có plugin eim + `manage_woocommerce`):
+iframe widget hub mở bằng tab `sepay_all` = Hàng đợi Sepay hiện đủ mọi giao dịch, không lọc theo site (cần eim ≥ 0.16.96 ở hub). URL mang token
+dùng 1 lần → `order-workspace-tabs.js` gọi AJAX `child_theme_hub_sepay_url` (payment-hub-link.php) lúc mở tab / "↻ Tải lại"; widget báo
+`eim:payment-confirmed` → quay lại tab Đơn hàng thì board tự làm mới.

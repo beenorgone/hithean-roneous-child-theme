@@ -7,6 +7,7 @@
     var products = document.getElementById('thean-ous-products-panel');
     var create = document.getElementById('thean-ous-create-panel');
     var exports = document.getElementById('thean-ous-exports-panel');
+    var sepay = document.getElementById('thean-ous-sepay-panel');
     var foot = document.getElementById('thean-workspace-foot');
     if (!bar || !board || !orders || !products || !foot) return;
     bar.parentNode.insertBefore(orders, bar.nextSibling);
@@ -14,12 +15,14 @@
     orders.parentNode.insertBefore(products, orders.nextSibling);
     if (exports) products.parentNode.insertBefore(exports, products.nextSibling);
     if (create) products.parentNode.insertBefore(create, products);
+    if (sepay) (exports || products).parentNode.insertBefore(sepay, (exports || products).nextSibling);
     foot.hidden = false;
-    var current = 'orders';
+    var current = 'orders', sepayDirty = false;
     var tools = {
         create: { panel: create, key: 'create', param: 'thean_create_tool' },
         products: { panel: products, key: 'info', param: 'thean_product_tool' },
-        exports: { panel: exports, key: 'export_review', param: 'thean_export_tool' }
+        exports: { panel: exports, key: 'export_review', param: 'thean_export_tool' },
+        sepay: { panel: sepay, key: 'queue', param: 'thean_sepay_tool' }
     };
     function updateUrl() {
         var url = new URL(location.href);
@@ -52,6 +55,29 @@
             status.textContent = 'Không tải được công cụ. Bấm Tải lại công cụ hoặc Mở riêng.';
             status.hidden = false;
         };
+        // Hàng đợi Sepay (hub): URL mang token dùng 1 lần → xin URL mới mỗi lần tải.
+        if (panel.dataset.srcAction) {
+            var fd = new FormData();
+            fd.append('action', panel.dataset.srcAction);
+            fd.append('nonce', panel.dataset.srcNonce || '');
+            var loaded = frame.onload;
+            frame.onload = null; // about:blank không tính là tải xong
+            frame.src = 'about:blank'; // đánh dấu đang tải: mở lại tab không xin thêm token
+            fetch(panel.dataset.srcAjax, { method: 'POST', body: fd, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (!res || !res.success) throw new Error((res && res.data && res.data.message) || 'Không mở được công cụ ở hub.');
+                    frame.onload = loaded;
+                    frame.src = res.data.url;
+                })
+                .catch(function (err) {
+                    frame.removeAttribute('src'); // lần mở tab sau thử lại
+                    frame.removeAttribute('aria-busy');
+                    status.textContent = (err && err.message) || 'Không tải được công cụ. Bấm Tải lại.';
+                    status.hidden = false;
+                });
+            return;
+        }
         frame.src = frame.dataset.src;
     }
     function selectTool(key, workspace) {
@@ -86,6 +112,11 @@
         if (suggest && key !== 'orders') suggest.hidden = true;
         if (key !== 'orders') selectTool(tools[key].key, key);
         else updateUrl();
+        if (key === 'orders' && sepayDirty) { // vừa xác nhận thanh toán ở tab Sepay → board đọc lại
+            sepayDirty = false;
+            var refresh = board.querySelector('[data-thean-ous-board-refresh]');
+            if (refresh) refresh.click();
+        }
         document.dispatchEvent(new CustomEvent('thean:workspace-changed', { detail: { workspace: key } }));
     }
     // Xuất kho: loại đơn Website / Shopee (chỉ site có module Shopee render nút) → ?thean_export_kind= cho mọi iframe xuất kho.
@@ -144,8 +175,10 @@
         footCount.textContent = String(sum);
         footCount.hidden = !any || board.hidden;
     }
-    if (boardTabs) new MutationObserver(syncFootCount).observe(boardTabs, { subtree: true, childList: true, characterData: true });
-    new MutationObserver(syncFootCount).observe(board, { attributes: true, attributeFilter: ['hidden'] });
+    if (window.MutationObserver) {
+        if (boardTabs) new MutationObserver(syncFootCount).observe(boardTabs, { subtree: true, childList: true, characterData: true });
+        new MutationObserver(syncFootCount).observe(board, { attributes: true, attributeFilter: ['hidden'] });
+    }
     syncFootCount();
     // Warm the creator on intent (hover / focus / touch) so the tab opens already loaded. Read-only GET, once.
     if (create) document.querySelectorAll('[data-order-workspace="create"]').forEach(function (button) {
@@ -155,6 +188,25 @@
                 if (frame && !frame.getAttribute('src')) loadTool(panel, false);
             }, { once: true, passive: true });
         });
+    });
+    // Không hover (bàn phím, mobile bấm thẳng): tải sẵn lúc trình duyệt rảnh sau khi trang + board xong. Bỏ qua khi tiết kiệm dữ liệu.
+    if (create && !(navigator.connection && navigator.connection.saveData)) {
+        var warmCreate = function () {
+            var idle = window.requestIdleCallback || function (fn) { return setTimeout(fn, 1); };
+            setTimeout(function () {
+                idle(function () {
+                    var panel = create.querySelector('[data-product-panel]'), frame = panel && panel.querySelector('iframe');
+                    if (frame && !frame.getAttribute('src') && document.visibilityState === 'visible') loadTool(panel, false);
+                }, { timeout: 4000 });
+            }, 2000);
+        };
+        if (document.readyState === 'complete') warmCreate();
+        else window.addEventListener('load', warmCreate, { once: true });
+    }
+    // Widget hub trong tab Sepay báo đã xác nhận thanh toán → làm mới board khi quay lại tab Đơn hàng.
+    if (sepay) window.addEventListener('message', function (event) {
+        var frame = sepay.querySelector('iframe');
+        if (frame && event.source === frame.contentWindow && event.data && event.data.type === 'eim:payment-confirmed' && !event.data.alreadyConfirmed) sepayDirty = true;
     });
     // Only the mounted same-origin creator can request an incremental board update.
     window.addEventListener('message', function (event) {

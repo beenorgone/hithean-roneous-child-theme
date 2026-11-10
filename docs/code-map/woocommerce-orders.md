@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-33 file · ~10.100 dòng · 379 hàm (60% có docblock)
+33 file · ~10.200 dòng · 382 hàm (60% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -13,6 +13,7 @@
 | Loại | Tên | File |
 |---|---|---|
 | AJAX | `child_theme_hub_pay_url` | payment-hub-link.php |
+| AJAX | `child_theme_hub_sepay_url` | payment-hub-link.php |
 | AJAX | `thean_customer_note_templates` | customer-note-templates.php |
 | AJAX | `thean_order_export_review` | order-export-review.php |
 | AJAX | `thean_order_usearch` | order-universal-search.php |
@@ -293,6 +294,8 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 |---|---|
 | `thean_order_portal_legacy_url()` | Danh sách đơn WooCommerce gốc (đường lui, không bị chuyển hướng) — nút "Phiên bản cũ" ở hàng tab. |
 | `thean_order_portal_render_create_tab()` | — |
+| `thean_order_portal_sepay_enabled()` | Tab 🏦 Sepay: chỉ ở /quan-ly-don, cần plugin eim (widget hub) + quyền xác nhận thanh toán. |
+| `thean_order_portal_render_sepay_tab()` | Hàng đợi Sepay của hub (widget eim, tab sepay_all = đủ mọi giao dịch, không lọc theo site). URL iframe mang token dùng 1 lần nên không in sẵn: order-workspace-tabs.js gọi AJAX c… |
 | `thean_order_portal_board_initial()` | Trang đầu board in sẵn vào trang (bỏ 1 lượt admin-ajax). Tab = ?thean_board, không có thì tab đã xem lần trước (cookie thean_ous_tab do JS ghi cùng localStorage). Mở thẳng tab T… |
 
 ### `woocommerce/orders/order-product-tools.php`
@@ -364,7 +367,8 @@ Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn
 | `thean_ous_resolve_status(string $arg)` | Tham số /tt → danh sách slug khớp (khớp đúng slug/tên ưu tiên, sau đó chứa chuỗi). |
 | `thean_ous_parse_query(string $query)` | Tách truy vấn thành bộ lọc. Lệnh không biết → giữ nguyên trong text tự do. /tt và /id chỉ lấy 1 từ làm tham số, phần sau trả về text tự do. |
 | `thean_ous_validate(array $f)` | Bộ lọc có đủ điều kiện để chạy không (tránh LIKE 1–2 ký tự quét cả bảng). |
-| `thean_ous_candidate_ids(string $term)` | Các ID có thể ứng với chuỗi số người dùng gõ: ID trực tiếp, hoặc mã đơn hiển thị (ID + hậu tố 1–2 chữ số, xem order-number.php). Chỉ nhận khi hậu tố khớp. |
+| `thean_ous_order_ref_digits(string $term)` | Chuỗi số có thể là ID / mã đơn trong từ người dùng gõ — cùng cách bóc của eim (eim_order_ref_variants): bỏ "#", "*", khoảng trắng; bỏ 2 ký tự đầu P0/P1 (nội dung CK "P1<mã đơn>"… |
+| `thean_ous_candidate_ids(string $term)` | Các ID có thể ứng với từ người dùng gõ: ID trực tiếp, hoặc mã đơn hiển thị (ID + hậu tố 1–2 chữ số, xem order-number.php) → bỏ 1–2 số cuối để tìm lại. Site có hàm đánh số: chỉ n… |
 | `thean_ous_phone_needle(string $term, int $min = 6)` | SĐT dạng chuẩn hóa để LIKE: bỏ ký tự không phải số, bỏ 84/0 đầu. |
 | `thean_ous_phone_sql(string $column)` | SQL biểu thức chuẩn hóa SĐT (bỏ khoảng trắng, chấm, gạch, ngoặc, +). |
 | `thean_ous_tokens_like(string $column, array $tokens)` | "col LIKE %t1% AND col LIKE %t2% ..." (đã prepare — không bọc thêm prepare()). |
