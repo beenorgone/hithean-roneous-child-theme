@@ -712,3 +712,19 @@ body.oc-modal-open { overflow: hidden; }
 
 /* Nhúng trong /quan-ly-don (tab đã ghi "Tạo đơn"): ẩn tiêu đề mặc định, vẫn hiện khi đang chỉnh đơn */
 .oc-embed:not(.oc-editing) .oc-topbar__title h1 { display: none; }
+
+/* Desktop / tablet (/tao-don và tab Tạo đơn của /quan-ly-don): nút gọn hơn; mobile đã có khối ≤640px ở trên */
+@media (min-width: 641px) {
+    .oc-btn { padding: 5px 10px; }
+    button.oc-btn { height: 34px; }
+    .oc-btn--sm { padding: 3px 8px; }
+    button.oc-btn--sm { height: 28px; }
+    .oc-order-result__actions .oc-btn { padding: 3px 7px; }
+    .oc-result-actions-bar .oc-btn { padding: 4px 9px; }
+    .oc-tab { padding: 6px 10px; }
+    .oc-mode-btn { height: 32px; padding: 0 12px; }
+}
+@media (max-width: 640px) {
+    button.oc-btn { height: auto; min-height: 32px; }
+    button.oc-btn--sm { min-height: 26px; }
+}
