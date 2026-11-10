@@ -2817,4 +2817,54 @@
     updateFlowState();
     if ($('#oc-ai-order')) { setMode(storedMode()); }
     if (state.editOrderId) { loadOrder(state.editOrderId); }
+
+    // Mobile (≤640px): 3 nút chính trên thanh; nút còn lại nằm trong popup "⋯ Khác" (bấm hộ nút gốc nên giữ nguyên handler).
+    (function initMobileActionBar() {
+        var bar = $('#oc-create-actions'), more = $('#oc-more-btn');
+        if (!bar || !more || !window.matchMedia) { return; }
+        var mq = window.matchMedia('(max-width: 640px)');
+        var EXTRA = {
+            create: [],
+            edit: ['copy', 'new'],
+            result: ['customer-confirm', 'pay', 'view', 'print', 'copy']
+        };
+        var modal = null;
+        function mode() { var m = bar.className.match(/mode-(create|edit|result)/); return m ? m[1] : 'create'; }
+        function extras() { return Array.prototype.slice.call(bar.querySelectorAll('.oc-extra')).filter(function (b) { return !b.hidden; }); }
+        function refresh() {
+            var list = EXTRA[mode()] || [];
+            bar.classList.toggle('oc-mob', mq.matches);
+            bar.querySelectorAll('[data-act]').forEach(function (b) {
+                b.classList.toggle('oc-extra', list.indexOf(b.getAttribute('data-act')) !== -1);
+            });
+            bar.classList.toggle('oc-has-extra', extras().length > 0);
+        }
+        function close() { if (modal) { modal.hidden = true; document.body.classList.remove('oc-modal-open'); } }
+        function open() {
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.className = 'oc-modal';
+                modal.innerHTML = '<div class="oc-modal__backdrop"></div><div class="oc-modal__dialog" role="dialog" aria-modal="true"><button type="button" class="oc-modal__close" aria-label="Đóng">&times;</button><h3>Thao tác khác</h3><div class="oc-more-list"></div></div>';
+                document.body.appendChild(modal);
+                modal.querySelector('.oc-modal__backdrop').addEventListener('click', close);
+                modal.querySelector('.oc-modal__close').addEventListener('click', close);
+            }
+            var box = modal.querySelector('.oc-more-list');
+            box.innerHTML = '';
+            extras().forEach(function (orig) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'oc-btn ' + (orig.classList.contains('oc-btn--primary') ? 'oc-btn--primary' : 'oc-btn--ghost');
+                b.textContent = orig.textContent;
+                b.addEventListener('click', function () { close(); orig.click(); });
+                box.appendChild(b);
+            });
+            modal.hidden = false;
+            document.body.classList.add('oc-modal-open');
+        }
+        more.addEventListener('click', open);
+        mq.addEventListener ? mq.addEventListener('change', refresh) : mq.addListener(refresh);
+        new MutationObserver(refresh).observe(bar, { attributes: true, subtree: true, attributeFilter: ['class', 'hidden'] });
+        refresh();
+    })();
 })();

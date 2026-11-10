@@ -37,3 +37,13 @@ body.thean-order-portal{margin:0;background:#f3f6fa;color:#1e293b;font:14px/1.5 
 .order-status.status-on-hold { background:#f8dda7; color:#94660c; }
 .order-status.status-failed, .order-status.status-trash { background:#eba3a3; color:#761919; }
 .order-status.status-processing { background:#c6e1c6; color:#5b841b; }
+
+/* Mobile: tab đầu trang co lại vừa chiều rộng (không thanh kéo ngang); thanh footer sticky chữ nhỏ để nút không vỡ */
+@media(max-width:782px){
+.thean-order-portal #thean-ous-bar > .thean-workspace-tabs{display:flex;overflow:visible;flex-wrap:nowrap;gap:3px;padding:4px}
+.thean-order-portal .thean-workspace-tabs button{flex:1 1 0;min-width:0;min-height:40px;padding:6px 2px;font-size:11.5px;line-height:1.2;white-space:normal}
+.thean-order-portal .thean-workspace-legacy{flex:0 0 auto;padding:6px 2px 6px 4px;font-size:11px;white-space:normal;max-width:22%}
+.thean-order-portal .thean-workspace-foot{gap:3px;padding-left:4px;padding-right:4px}
+.thean-order-portal .thean-workspace-foot > button{flex:1 1 0;min-width:0;max-width:none;padding:8px 2px;font-size:10.5px;gap:2px;line-height:1.2}
+.thean-order-portal .thean-workspace-foot > button b{min-width:0;padding:0 3px;font-size:10px}
+}

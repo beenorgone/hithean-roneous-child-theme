@@ -3525,7 +3525,7 @@ function order_creator_render_page(): void
                 <pre id="oc-ai-source-text"></pre>
             </details>
             <label for="oc-ai-text" id="oc-ai-text-label">Dán tin nhắn / comment đặt hàng của khách — hoặc dán (Ctrl+V) / chọn ảnh chụp màn hình (tối đa 4 ảnh)</label>
-            <textarea id="oc-ai-text" rows="12" placeholder="VD: Chị Hằng 0912345678, 25 Lê Lợi, P. Bến Nghé, TP.HCM. Lấy 2 hộp SKU ABC-01 + 1 chai dầu gội 500ml, có mã LW-XXXX, chuyển khoản."></textarea>
+            <textarea id="oc-ai-text" rows="5" placeholder="VD: Chị Hằng 0912345678, 25 Lê Lợi, P. Bến Nghé, TP.HCM. Lấy 2 hộp SKU ABC-01 + 1 chai dầu gội 500ml, có mã LW-XXXX, chuyển khoản."></textarea>
             <div class="oc-ai-thumbs" id="oc-ai-thumbs" hidden></div>
             <label class="oc-ai-convert-option" for="oc-ai-convert-address">
                 <input type="checkbox" id="oc-ai-convert-address" checked>
@@ -3837,6 +3837,7 @@ function order_creator_render_page(): void
         <a class="oc-btn oc-btn--ghost" id="oc-print-pxk" data-act="print" target="_blank" rel="noopener" href="#">In phiếu xuất kho</a>
         <button type="button" class="oc-btn oc-btn--ghost" id="oc-edit-inline" data-act="edit">Chỉnh sửa</button>
         <button type="button" class="oc-btn oc-btn--ghost" id="oc-new-order" data-act="new">Tạo đơn mới</button>
+        <button type="button" class="oc-btn oc-btn--ghost" id="oc-more-btn" aria-haspopup="dialog">⋯ Khác</button>
     </div>
     </div><!-- /oc-pane-create -->
 
