@@ -40,15 +40,17 @@
             return;
         }
         var status = panel.querySelector('[data-product-status]');
+        status.hidden = false;
         status.textContent = 'Đang tải công cụ…';
         frame.setAttribute('aria-busy', 'true');
         frame.onload = function () {
             frame.removeAttribute('aria-busy');
-            status.textContent = 'Công cụ đã tải. Nếu phiên đăng nhập hết hạn, mở riêng để đăng nhập lại.';
+            status.hidden = true; // đã tải xong: ẩn dòng trạng thái
         };
         frame.onerror = function () {
             frame.removeAttribute('aria-busy');
             status.textContent = 'Không tải được công cụ. Bấm Tải lại công cụ hoặc Mở riêng.';
+            status.hidden = false;
         };
         frame.src = frame.dataset.src;
     }
