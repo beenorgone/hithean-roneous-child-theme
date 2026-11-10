@@ -72,3 +72,12 @@ body.thean-order-portal{margin:0;background:#f3f6fa;color:#1e293b;font:14px/1.5 
 .thean-order-portal #thean-ous-create-panel .thean-portal-tool-head{justify-content:flex-end}
 /* Tab Tạo đơn: nút "↻ Tải lại" / "Mở riêng" gọn */
 .thean-order-portal #thean-ous-create-panel .thean-portal-tool-head .thean-ous__more-btn,.thean-order-portal #thean-ous-create-panel .thean-portal-tool-head a{padding:3px 9px;font-size:12.5px}
+/* Header tab /quan-ly-don: chữ nhỏ + padding gọn để không vỡ chiều rộng */
+.thean-order-portal #thean-ous-bar > .thean-workspace-tabs{gap:4px;padding:4px 6px}
+.thean-order-portal #thean-ous-bar > .thean-workspace-tabs > button{min-height:34px;padding:4px 10px;font-size:13px}
+.thean-order-portal .thean-workspace-legacy{font-size:12px;padding:4px 4px 4px 8px}
+@media(max-width:782px){
+.thean-order-portal #thean-ous-bar > .thean-workspace-tabs{gap:2px;padding:3px}
+.thean-order-portal #thean-ous-bar > .thean-workspace-tabs > button{min-height:32px;padding:3px 1px;font-size:10.5px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thean-order-portal #thean-ous-bar > .thean-workspace-tabs.has-more .thean-tabs-more{flex:0 0 26px;min-width:26px;max-width:26px;min-height:32px;font-size:14px}
+}
