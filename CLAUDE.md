@@ -101,6 +101,12 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   `hithean_offer_card_html()` ở `offers/offer-card.php`): popup "Ưu đãi đang áp dụng" trang SP (product-purchase.js), /uu-dai/ chế độ
   "Theo sản phẩm" (`hithean_offer_cards_from_rows()` — chip / ảnh / bậc giá / thứ tự khớp popup) và panel "Ưu đãi của tôi". Sửa kiểu thẻ ở 1 chỗ. Màu theo loại: lớp `.is-tone-{addon|tiers|shipping|discount|wheel|coupon|other}` (PHP: `tone` → `group` → `kind`; JS trang SP: `card.tone || card.kind`).
   Link `…/san-pham/x/#uu-dai` mở sẵn popup ưu đãi ở trang SP.
+- **Thông báo Lark khi /uu-dai/ đổi chương trình** (`marketing/offers/lark-notify.php`): nghe `update_option_hithean_offers_snapshot`
+  (mọi đường đổi snapshot: duyệt / loại / ghim, quét tuần, mốc hết hạn, khôi phục snapshot) → cron `hithean_offers_lark_flush` sau 5 phút,
+  so tóm tắt theo chương trình (`hithean_offers_lark_programs()` / `_diff()` / `_message()` — hàm thuần) với mốc đã báo (option
+  `hithean_offers_lark_state`) → 1 tin "post": mới / thay đổi (nội dung, thời gian, SP thêm-bỏ) / ngừng (hết hạn, gỡ). Lần bật đầu chỉ ghi mốc;
+  lỗi gửi giữ mốc, thử lại ≤3 lần. Cấu hình ở Ưu đãi sản phẩm → Cấu hình & xuất bản (option `hithean_offers_lark_settings`; webhook trống =
+  webhook nhóm "Thông báo xuất kho"), có nút gửi thử. Test: `php tests/offers-lark-notify.php`.
 - /uu-dai/: vừa vào hỏi nhanh (dialog `data-ho-ask`) xem theo sản phẩm hay chương trình; bỏ qua khi URL có `?xem=san-pham|chuong-trinh`
   hoặc đã chọn trong phiên (sessionStorage `ho-mode`).
 
@@ -205,7 +211,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 ## Test
 
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
-- `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`,
+- `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`, `offers-lark-notify.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
 - `my-offers.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
 - Popup thao tác nhanh (order-quick-modals.php): `node tests/order-quick-modals-ui.cjs` (cần jsdom + php).

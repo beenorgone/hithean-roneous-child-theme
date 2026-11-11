@@ -12,6 +12,7 @@ require_once __DIR__ . '/offers/structured.php';
 require_once __DIR__ . '/offers/worker.php';
 require_once __DIR__ . '/offers/public.php';
 require_once __DIR__ . '/offers/offer-card.php';
+require_once __DIR__ . '/offers/lark-notify.php';
 if (is_admin()) { require_once __DIR__ . '/offers/admin.php'; }
 if (defined('WP_CLI') && WP_CLI) { require_once __DIR__ . '/offers/cli.php'; }
 
@@ -48,7 +49,7 @@ add_action('hithean_offers_weekly', static function (): void {
 add_action('hithean_offers_work', 'hithean_offers_work');
 add_action('hithean_offers_boundary', 'hithean_offers_publish');
 add_action('switch_theme', static function (): void {
-    foreach (['hithean_offers_daily', 'hithean_offers_weekly', 'hithean_offers_work', 'hithean_offers_boundary'] as $hook) { wp_clear_scheduled_hook($hook); }
+    foreach (['hithean_offers_daily', 'hithean_offers_weekly', 'hithean_offers_work', 'hithean_offers_boundary', 'hithean_offers_lark_flush'] as $hook) { wp_clear_scheduled_hook($hook); }
 });
 add_shortcode('hithean_offers', 'hithean_offers_shortcode');
 add_action('wp_enqueue_scripts', 'hithean_offers_enqueue');

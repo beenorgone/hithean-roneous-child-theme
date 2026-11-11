@@ -4,7 +4,7 @@
 
 > Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền.
 
-8 file · ~1.500 dòng · 66 hàm (36% có docblock)
+9 file · ~1.700 dòng · 83 hàm (41% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -15,6 +15,7 @@
 | AJAX | `hithean_offers_status` | admin.php |
 | admin-post | `hithean_offers_action` | admin.php |
 | cron | `hithean_offers_boundary` | store.php |
+| cron | `hithean_offers_lark_flush` | lark-notify.php |
 | cron | `hithean_offers_work` | worker.php |
 
 ## Hook do khu này phát (điểm mở rộng)
@@ -27,7 +28,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`admin_enqueue_scripts` · `admin_menu` · `template_redirect`
+`add_option_hithean_offers_snapshot` · `admin_enqueue_scripts` · `admin_menu` · `hithean_offers_lark_flush` · `template_redirect` · `update_option_hithean_offers_snapshot`
 
 ## File
 
@@ -54,6 +55,30 @@ Class: `Hithean_Offers_CLI` — Collect and inspect product offers using the sam
 | `hithean_offers_parse(string $html)` | The expected product title + summary distinguish a product from a soft error page. |
 | `hithean_offers_node_text(DOMNode $node)` | — |
 | `hithean_offers_ai(array $snippets)` | AI selects evidence, never controls dates, scope, publication, tools or URLs. |
+
+### `marketing/offers/lark-notify.php`
+
+Thông báo nhóm Lark khi trang /uu-dai/ đổi chương trình ưu đãi.
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_offers_lark_settings()` | — |
+| `hithean_offers_lark_webhook()` | Webhook dùng thật: riêng của ưu đãi, trống thì webhook nhóm xuất kho. '' = chưa có webhook hợp lệ. |
+| `hithean_offers_lark_webhook_for(string $own)` | — |
+| `hithean_offers_lark_programs(array $items)` | Snapshot (dòng đã bung theo sản phẩm) → tóm tắt theo chương trình: [id => name, kind, family, start, end, products [id => tên]]. Hàm thuần — có test. |
+| `hithean_offers_lark_diff(array $old, array $new)` | So 2 tóm tắt → ['added' => [...], 'changed' => [[old, new, changes[]]], 'ended' => [...]]. Hàm thuần — có test. |
+| `hithean_offers_lark_is_empty(array $diff)` | — |
+| `hithean_offers_lark_date(int $ts)` | — |
+| `hithean_offers_lark_period(array $program)` | — |
+| `hithean_offers_lark_names(array $products, int $max = 4)` | Tối đa $max tên SP, còn lại "+N SP". |
+| `hithean_offers_lark_message(array $diff, array $ctx)` | Nội dung tin (Lark "post": tiêu đề + các dòng chữ / link). Hàm thuần — có test. $ctx: url (trang /uu-dai/), admin_url, total_programs, total_products, preview (trang chưa công k… |
+| `hithean_offers_lark_current()` | — |
+| `hithean_offers_lark_context(array $programs, bool $test = false)` | — |
+| `hithean_offers_lark_post(array $message)` | POST tin lên webhook. '' = thành công, ngược lại là lỗi (không chứa URL webhook). |
+| `hithean_offers_lark_schedule()` | Snapshot vừa đổi → hẹn gửi sau HITHEAN_OFFERS_LARK_DELAY (gom các thay đổi liền nhau). |
+| `hithean_offers_lark_flush()` | So snapshot hiện tại với mốc đã báo, gửi 1 tin nếu khác. Thành công → dời mốc. |
+| `hithean_offers_lark_test()` | Nút "Gửi thử": gửi danh sách đang áp dụng như "chương trình mới", không đổi mốc. |
+| `hithean_offers_lark_reset_baseline()` | Bật lần đầu (hoặc đổi webhook): ghi mốc = snapshot hiện tại để tin đầu chỉ chứa thay đổi về sau. |
 
 ### `marketing/offers/offer-card.php`
 
