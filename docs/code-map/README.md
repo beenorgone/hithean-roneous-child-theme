@@ -11,7 +11,7 @@ Cột *docblock* thấp = khu khó đọc với người mới và với AI: vi�
 | [`admin`](admin.md) | 4 | ~800 | 19 | 5% | wp-admin: hướng dẫn shortcode, metabox bài viết, trang plugins, editor tools. |
 | [`auth`](auth.md) | 4 | ~500 | 7 | 14% | Đăng nhập OTP email / SMS Firebase, email lỗi, email tác vụ. |
 | [`bootstrap`](bootstrap.md) | 2 | ~700 | 12 | 8% | Điểm vào: bootstrap.php chỉ require core/* rồi core/module-loader.php; shortcode-social-display.php (social fan/marquee… |
-| [`core`](core.md) | 20 | ~4.400 | 137 | 39% | Hạ tầng theme: module loader (what-loads-when), nạp theo màn admin, template router, enqueue, guard upload/file/CSP, AI… |
+| [`core`](core.md) | 20 | ~4.500 | 141 | 38% | Hạ tầng theme: module loader (what-loads-when), nạp theo màn admin, template router, enqueue, guard upload/file/CSP, AI… |
 | [`integrations`](integrations.md) | 3 | 90 | 2 | 0% | Adapter ngoài theme: MCP liên site (mcp-site-link), hóa đơn eim (shipper / mã vận đơn / meta xuất kho), GHTK. |
 | [`marketing`](marketing.md) | 6 | ~1.600 | 105 | 20% | Marketing: popup, thanh menu đáy + "Ưu đãi của tôi", vòng quay may mắn, CRO landing agent (chạy theo lịch). |
 | [`marketing/lucky-wheel`](marketing-lucky-wheel.md) | 3 | ~1.900 | 79 | 3% | Vòng quay may mắn: cài đặt, widget, dọn mã. |

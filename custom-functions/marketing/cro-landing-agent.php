@@ -320,6 +320,7 @@ add_action(HITHEAN_CRO_CRON_HOOK, static function (): void { hithean_cro_run(fal
 
 function hithean_cro_send_lark(int $report_id): bool {
     global $wpdb; $reports = hithean_cro_reports_table(); $report = $wpdb->get_row($wpdb->prepare("SELECT * FROM $reports WHERE id=%d", $report_id), ARRAY_A); if (!$report) { return false; }
+    child_theme_lark_load(); // cron: nạp core Lark đúng lúc gửi
     if (!child_theme_lark_ready('cro')) { return false; }
     $insights = json_decode((string) $report['insights_json'], true) ?: [];
     $lines = []; foreach (array_slice($insights, 0, 3) as $item) { $lines[] = '• ' . $item['path'] . ': ' . $item['title']; }

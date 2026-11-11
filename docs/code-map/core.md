@@ -4,7 +4,7 @@
 
 > Hạ tầng theme: module loader (what-loads-when), nạp theo màn admin, template router, enqueue, guard upload/file/CSP, AI settings/providers, địa chỉ VN, thông tin công ty, admin chrome.
 
-20 file · ~4.400 dòng · 137 hàm (39% có docblock)
+20 file · ~4.500 dòng · 141 hàm (38% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -178,7 +178,8 @@ Lark — kết nối dùng chung cho mọi thông báo của site (GIỐNG HỆT
 
 | Hàm | Mô tả |
 |---|---|
-| `child_theme_lark_register_channel(string $key, array $def)` | Khai kênh (gọi khi nạp file tính năng). $def: label, description, fallback (key kênh dự phòng), default_active. |
+| `child_theme_lark_register_channel(string $key, array $def)` | — |
+| `child_theme_lark_load()` | — |
 | `child_theme_lark_channel_defs()` | — |
 | `child_theme_lark_settings()` | — |
 | `child_theme_lark_channel_config(string $key)` | Cấu hình lưu của 1 kênh (chưa xét dự phòng). |
@@ -203,6 +204,9 @@ Lark — kết nối dùng chung cho mọi thông báo của site (GIỐNG HỆT
 
 | Hàm | Mô tả |
 |---|---|
+| `child_theme_lark_register_channel(string $key, array $def)` | — |
+| `child_theme_lark_load()` | — |
+| `child_theme_lark_should_preload()` | — |
 | `hithean_social_display_allowed()` | Social display shortcodes ([social_fan] / [social_marquee] / [social_collage] / [social_coverflow]) chỉ nạp ở: trang chủ, page "an-new-chapter", page "ve-chung-toi", và trang sả… |
 | `social_display_register_media_meta()` | — |
 | `child_theme_should_load_post_editor_tools()` | — |

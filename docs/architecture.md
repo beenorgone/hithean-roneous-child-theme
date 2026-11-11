@@ -77,7 +77,7 @@ Viết tay, máy kiểm (`docs-sync --check`): mọi `paths` / `tpc_loader_path_
 | `(file gốc)` | 2 | ~700 |
 | `admin/` | 4 | ~800 |
 | `auth/` | 4 | ~500 |
-| `core/` | 20 | ~4.400 |
+| `core/` | 20 | ~4.500 |
 | `integrations/` | 3 | 90 |
 | `marketing/` | 18 | ~5.300 |
 | `shortcodes/` | 22 | ~15.000 |

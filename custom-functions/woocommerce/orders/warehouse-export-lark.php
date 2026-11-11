@@ -16,6 +16,7 @@ function hithean_export_lark_settings(): array
 {
     $saved = get_option('hithean_export_lark_settings', []);
     $settings = wp_parse_args(is_array($saved) ? $saved : [], ['only_alerts' => '0', 'stop_reminder_user_ids' => []]);
+    child_theme_lark_load(); // nạp core Lark đúng lúc (cron / trang công cụ)
     // enabled = kênh "kho" đang bật VÀ có webhook hợp lệ.
     $settings['enabled'] = child_theme_lark_ready('kho') ? '1' : '0';
     return $settings;
@@ -24,17 +25,20 @@ function hithean_export_lark_settings(): array
 /** Tên cũ — kiểm webhook ở core/lark.php. */
 function hithean_export_lark_sanitize_webhook($value): string
 {
+    child_theme_lark_load();
     return child_theme_lark_sanitize_webhook($value);
 }
 
 function hithean_export_lark_response_error($response): string
 {
+    child_theme_lark_load();
     return child_theme_lark_response_error($response);
 }
 
 function hithean_export_lark_send($message): string
 {
     $payload = is_array($message) ? $message : ['msg_type' => 'text', 'content' => ['text' => (string) $message]];
+    child_theme_lark_load();
     $error = child_theme_lark_send('kho', $payload);
     update_option('hithean_export_lark_last_delivery', ['state' => $error === '' ? 'sent' : 'failed', 'error' => $error, 'updated_at' => current_time('mysql')], false);
     return $error;

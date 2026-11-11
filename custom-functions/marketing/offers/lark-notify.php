@@ -23,6 +23,7 @@ child_theme_lark_register_channel('uu_dai', [
 
 /** enabled = kênh "uu_dai" bật + có webhook; mention_all lưu ở option riêng của ưu đãi. */
 function hithean_offers_lark_settings(): array {
+    child_theme_lark_load(); // cron / admin: nạp core Lark đúng lúc
     $saved = get_option('hithean_offers_lark_settings', []);
     $saved = is_array($saved) ? $saved : [];
     return ['enabled' => child_theme_lark_ready('uu_dai'), 'mention_all' => !empty($saved['mention_all'])];
@@ -172,6 +173,7 @@ function hithean_offers_lark_context(array $programs, bool $test = false): array
 
 /** Gửi qua kênh "uu_dai". '' = thành công. */
 function hithean_offers_lark_post(array $message): string {
+    child_theme_lark_load();
     return child_theme_lark_send('uu_dai', $message);
 }
 

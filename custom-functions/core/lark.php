@@ -5,6 +5,8 @@
  * - Kênh đặt tên: mỗi tính năng tự khai kênh của mình bằng child_theme_lark_register_channel('kho', [...]) rồi gửi
  *   child_theme_lark_send('kho', $payload) / child_theme_lark_text() / child_theme_lark_notify(). Không tính năng nào tự
  *   giữ webhook hay tự wp_remote_post sang Lark nữa.
+ * - CHỈ nạp sẵn ở wp-admin + trang ERP / công cụ nội bộ (core/module-loader.php → child_theme_lark_should_preload()).
+ *   Code tính năng chạy được ở nơi khác (cron, REST…) phải gọi child_theme_lark_load() trước khi dùng hàm của file này.
  * - Cấu hình kênh lưu ở option `erp_lark_settings['channels']` = [{key, label, type webhook|chat_id, value, active}] —
  *   CÙNG định dạng bộ Lark ERP của ivarvietnam (erp/integrations/lark/), nên chép bộ đó sang sau này (phương án C)
  *   đọc được ngay cấu hình đang có, và kênh type chat_id tự đi qua Lark App (erp_lark_api_post) khi bộ đó có mặt.
@@ -21,9 +23,18 @@ defined('ABSPATH') || exit;
 
 const CHILD_THEME_LARK_MIGRATION = 1;
 
-/** Khai kênh (gọi khi nạp file tính năng). $def: label, description, fallback (key kênh dự phòng), default_active. */
-function child_theme_lark_register_channel(string $key, array $def): void {
-    $GLOBALS['child_theme_lark_channel_defs'][$key] = $def + ['label' => $key, 'description' => '', 'fallback' => '', 'default_active' => false];
+/*
+ * child_theme_lark_register_channel() + child_theme_lark_load() do core/module-loader.php định nghĩa (luôn nạp, rất nhẹ)
+ * để file tính năng khai kênh / nạp Lark đúng lúc gửi mà không kéo file này vào mọi request. Bản dưới chỉ dùng khi
+ * chạy file này độc lập (test). $def: label, description, fallback (key kênh dự phòng), default_active.
+ */
+if (!function_exists('child_theme_lark_register_channel')) {
+    function child_theme_lark_register_channel(string $key, array $def): void {
+        $GLOBALS['child_theme_lark_channel_defs'][$key] = $def + ['label' => $key, 'description' => '', 'fallback' => '', 'default_active' => false];
+    }
+}
+if (!function_exists('child_theme_lark_load')) {
+    function child_theme_lark_load(): bool { return true; }
 }
 
 function child_theme_lark_channel_defs(): array {

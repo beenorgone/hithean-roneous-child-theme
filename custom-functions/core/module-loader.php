@@ -15,8 +15,36 @@ if (!defined('ABSPATH')) exit;
 // =====================================================================
 // 1) General includes — nạp mọi request
 // =====================================================================
+/*
+ * Lark (core/lark.php) — CHỈ nạp sẵn ở wp-admin (gồm admin-ajax / admin-post) và trang ERP / công cụ nội bộ (/tien-ich-admin, /tao-don, /quan-ly-don).
+ * Trang khách không nạp. Việc nền cần gửi tin (cron nhắc xuất kho, ưu đãi, CRO, REST…) gọi child_theme_lark_load()
+ * ngay trước khi dùng → nạp đúng lúc gửi. Tính năng khai kênh bằng child_theme_lark_register_channel() (chỉ ghi khai báo,
+ * không cần core) để file tính năng không kéo core theo khi include.
+ */
+function child_theme_lark_register_channel(string $key, array $def): void
+{
+    $GLOBALS['child_theme_lark_channel_defs'][$key] = $def + ['label' => $key, 'description' => '', 'fallback' => '', 'default_active' => false];
+}
+function child_theme_lark_load(): bool
+{
+    if (!function_exists('child_theme_lark_send')) {
+        require_once __DIR__ . '/lark.php';
+    }
+    return true;
+}
+function child_theme_lark_should_preload(): bool
+{
+    if (is_admin()) {
+        return true;
+    }
+    $segments = array_values(array_filter(explode('/', (string) tpc_loader_current_path()), 'strlen'));
+    return in_array($segments[0] ?? '', ['tien-ich-admin', 'tao-don', 'quan-ly-don'], true);
+}
+if (child_theme_lark_should_preload()) {
+    child_theme_lark_load();
+}
+
 $general_includes = [
-    'custom-functions/core/lark.php', // kênh Lark dùng chung (giống hệt theanmarket) — trước mọi tính năng khai kênh
     'custom-functions/core/admin-chrome/admin-chrome.php', // compact backend navigation toggle; no frontend assets
     'custom-functions/core/backend-optimize.php',
     'custom-functions/core/functional.php',

@@ -124,7 +124,11 @@ actions, fields) — **không tự giữ webhook, không tự `wp_remote_post` s
 - Cài đặt: **Cài đặt ERP → tab Lark** (`child_theme_lark_settings_tab()`): bật / webhook / gửi thử / lần gửi gần nhất từng kênh; ô riêng của
   tính năng qua hook `child_theme_lark_settings_fields` + `child_theme_lark_settings_save`; bật kênh → `child_theme_lark_channel_enabled`.
 - Webhook riêng cũ của từng tính năng tự chuyển sang kênh 1 lần (`child_theme_lark_migrate()`, cờ `child_theme_lark_migrated`).
-- Nạp đầu `$general_includes` (trước mọi file khai kênh). Test file nạp `core/lark.php` trước file tính năng.
+- **Chỉ nạp ở wp-admin (gồm admin-ajax / admin-post) + trang ERP / công cụ nội bộ** — `child_theme_lark_should_preload()` ở
+  `core/module-loader.php`; trang khách KHÔNG nạp. Loader có sẵn 2 hàm nhẹ: `child_theme_lark_register_channel()` (khai kênh lúc include,
+  không cần core) và `child_theme_lark_load()` — code tính năng chạy được ngoài admin (cron, REST, form trang công cụ) **gọi
+  `child_theme_lark_load()` trước khi dùng hàm Lark** (đặt trong hàm settings / send của tính năng). Không gọi hàm Lark từ hook chạy mọi
+  request (`init`, `wp`…) — đặt lịch / kiểm trạng thái kênh ở `admin_init`. Test tính năng dùng shim như loader và kiểm include không kéo core.
 
 
 ## Khóa đơn cũ (`woocommerce/orders/order-age-lock.php`, dùng chung theanmarket)

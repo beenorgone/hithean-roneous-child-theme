@@ -23,11 +23,16 @@ function hithean_offers_lock($n, $t = 60) { return 'tok'; } function hithean_off
 function wp_remote_post($url, $args) { $GLOBALS['posts_sent'][] = ['url' => $url, 'body' => json_decode($args['body'], true)]; return ['http' => 200]; }
 function wp_remote_retrieve_response_code($r) { return $r['http']; }
 function wp_remote_retrieve_body($r) { return $GLOBALS['lark_fail'] !== '' ? '{"code":19021}' : '{"code":0}'; }
-require_once dirname(__DIR__) . '/custom-functions/core/lark.php';
+// Như core/module-loader.php: khai kênh không cần core; core Lark chỉ nạp khi tính năng thật sự dùng.
+$GLOBALS['lark_loads'] = 0;
+function child_theme_lark_register_channel(string $key, array $def): void { $GLOBALS['child_theme_lark_channel_defs'][$key] = $def + ['label' => $key, 'description' => '', 'fallback' => '', 'default_active' => false]; }
+function child_theme_lark_load(): bool { if (!function_exists('child_theme_lark_send')) { $GLOBALS['lark_loads']++; require_once dirname(__DIR__) . '/custom-functions/core/lark.php'; } return true; }
 require dirname(__DIR__) . '/custom-functions/marketing/offers/lark-notify.php';
+$GLOBALS['lark_preloaded'] = function_exists('child_theme_lark_send'); // include file tính năng không được kéo core Lark theo
 
 $count = 0;
 function check($c, $m) { global $count; $count++; if (!$c) { fwrite(STDERR, "FAIL: $m\n"); exit(1); } }
+check(!$GLOBALS['lark_preloaded'], 'include ưu đãi không nạp core Lark');
 function text_of(array $msg): string {
     $out = [];
     foreach ($msg['content']['post']['vi_vn']['content'] as $line) { foreach ($line as $el) { $out[] = $el['text'] ?? ('@' . ($el['user_id'] ?? '')); } }
@@ -77,6 +82,7 @@ check(strlen(json_encode($big, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
 update_option(HITHEAN_OFFERS_SNAPSHOT, ['items' => $old_items]);
 check(!wp_next_scheduled('hithean_offers_lark_flush'), 'Tắt thông báo → không hẹn gửi');
 // Ưu đãi là NHÓM RIÊNG: có webhook nhóm kho mà kênh "uu_dai" trống thì vẫn không gửi.
+check($GLOBALS['lark_loads'] === 1, 'Dùng tới mới nạp core Lark');
 child_theme_lark_save_channel(['key' => 'kho', 'type' => 'webhook', 'value' => 'https://open.larksuite.com/open-apis/bot/v2/hook/kho', 'active' => true]);
 child_theme_lark_save_channel(['key' => 'uu_dai', 'type' => 'webhook', 'value' => '', 'active' => true]);
 check(!hithean_offers_lark_settings()['enabled'], 'Kênh ưu đãi trống webhook → không dùng nhóm kho');

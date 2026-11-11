@@ -51,11 +51,16 @@ class WC_Order {
     public function add_order_note($text) { $GLOBALS['notes'][] = $text; }
 }
 function wc_get_order($id) { return $id > 0 ? new WC_Order($id) : false; }
-require_once dirname(__DIR__) . '/custom-functions/core/lark.php';
+// Như core/module-loader.php: khai kênh không cần core; core Lark chỉ nạp khi tính năng thật sự dùng.
+$GLOBALS['lark_loads'] = 0;
+function child_theme_lark_register_channel(string $key, array $def): void { $GLOBALS['child_theme_lark_channel_defs'][$key] = $def + ['label' => $key, 'description' => '', 'fallback' => '', 'default_active' => false]; }
+function child_theme_lark_load(): bool { if (!function_exists('child_theme_lark_send')) { $GLOBALS['lark_loads']++; require_once dirname(__DIR__) . '/custom-functions/core/lark.php'; } return true; }
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/warehouse-export-workflow.php';
+$GLOBALS['lark_preloaded'] = function_exists('child_theme_lark_send'); // include file tính năng không được kéo core Lark theo
 
 $checks = 0;
 function check($condition, $message) { global $checks; ++$checks; if (!$condition) throw new RuntimeException($message); }
+check(!$GLOBALS['lark_preloaded'], 'include xuất kho không nạp core Lark');
 function reset_state($only_alerts = '0') {
     $GLOBALS['options'] = ['hithean_export_lark_settings' => ['enabled' => '1', 'only_alerts' => $only_alerts, 'webhook_url' => 'https://open.larksuite.com/open-apis/bot/v2/hook/test-token']];
     $GLOBALS['meta'] = $GLOBALS['events'] = $GLOBALS['requests'] = [];
@@ -309,4 +314,6 @@ run_hook('hithean_export_lark_alert_async', 1, $new_hash, 0);
 check(count($GLOBALS['requests']) === 2, 'duplicate execution of the same review still sends once');
 check(count(array_filter($GLOBALS['events'], fn($e) => $e['hook'] === 'hithean_export_lark_remind_async')) === 1, 'rechecking does not extend or duplicate the reminder');
 
+check($GLOBALS['lark_loads'] === 1, 'core Lark nạp đúng 1 lần, khi gửi');
+check($GLOBALS['lark_loads'] === 1, 'core Lark nạp đúng 1 lần, khi tính năng dùng tới');
 echo "OK: $checks checks\n";
