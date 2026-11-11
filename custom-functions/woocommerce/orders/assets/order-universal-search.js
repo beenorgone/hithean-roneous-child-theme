@@ -22,13 +22,16 @@
     var boardState = { tab: '', page: 0, shown: 0, cursor: 0, loading: false };
     var boardCache = new Map(); // "tab|page" → {at, data}; chỉ giữ các tab đã xem (BOARD_TTL)
     var blockedUntil = 0; // server khóa tìm kiếm (quá nhiều lượt) — không tự gửi tới khi hết hạn
-    var state = { q: '', page: 0, shown: 0, cursor: 0, loading: false };
+    var state = { q: '', page: 0, shown: 0, cursor: 0, loading: false, per: cfg.perPage || 10 };
+    try { var savedPer = parseInt(localStorage.getItem('theanOusPer'), 10); if ((cfg.perPageOptions || []).indexOf(savedPer) !== -1) state.per = savedPer; } catch (e) {}
     var rowUpdates = Promise.resolve(), rowEpoch = 0, rowScope = 0;
     var rowPatches = new Map(), lastPatchTabs = null;
     var activeBoardData = null, activeSearchData = null;
     var cache = new Map(); // "q|page" → {at, data}; 60s, tránh gọi lại khi mở/đóng modal
     var items = [], active = -1;
     var statusCmds = ['tt'].concat(Object.keys(cfg.aliases).filter(function (k) { return cfg.aliases[k] === 'tt'; }));
+    var groupCmds = ['nhom'].concat(Object.keys(cfg.aliases).filter(function (k) { return cfg.aliases[k] === 'nhom'; }));
+    var stSel = []; // slug trạng thái chọn ở nút "Trạng thái" — ghép vào truy vấn thành /nhom + /tt (currentQuery)
 
     // Đặt thanh tìm ở đầu trang danh sách, ngay dưới tiêu đề.
     var anchor = document.querySelector('.wrap .wp-header-end') || document.querySelector('.wrap h1');
@@ -241,6 +244,13 @@
             }).map(function (s) { return { code: s.slug, text: s.name, replace: m[2], insert: s.slug + ' ', run: true }; }));
             return;
         }
+        if (m && groupCmds.indexOf(m[1].toLowerCase()) !== -1) {
+            var g = norm(m[2]);
+            renderSuggest('Nhóm trạng thái', (cfg.statusGroups || []).filter(function (gr) {
+                return !g || gr.key.indexOf(g) !== -1 || norm(gr.label).indexOf(g) !== -1;
+            }).map(function (gr) { return { code: gr.key, text: gr.label + ' (' + gr.slugs.length + ' trạng thái)', replace: m[2], insert: gr.key + ' ', run: true }; }));
+            return;
+        }
         var c = before.match(/(?:^|\s)(\/[a-z]*)$/i);
         if (c || input.value.trim() === '') {
             var typed = c ? c[1].slice(1).toLowerCase() : '';
@@ -258,9 +268,23 @@
         // Lệnh chưa có tham số ("/sp", "/tt ") → chờ gõ tiếp.
         return !/(?:^|\s)\/[a-z]*\s*$/i.test(q);
     }
+    // Ô tìm + bộ lọc trạng thái → 1 truy vấn (nhóm chọn đủ → /nhom, còn lại → /tt). Cache, giới hạn lượt, cập nhật dòng đều theo chuỗi này.
+    function statusTokens() {
+        var left = stSel.slice(), out = [];
+        (cfg.statusGroups || []).forEach(function (gr) {
+            if (gr.slugs.length > 1 && gr.slugs.every(function (sl) { return left.indexOf(sl) !== -1; })) {
+                out.push('/nhom ' + gr.key);
+                left = left.filter(function (sl) { return gr.slugs.indexOf(sl) === -1; });
+            }
+        });
+        return out.concat(left.map(function (sl) { return '/tt ' + sl; })).join(' ');
+    }
+    function currentQuery() {
+        return (input.value.trim() + ' ' + statusTokens()).trim();
+    }
     function schedule(delay) {
         clearTimeout(timer);
-        var q = input.value.trim();
+        var q = currentQuery();
         if (!ready(q) || Date.now() < blockedUntil) return;
         timer = setTimeout(function () { search(q, 1); }, delay);
     }
@@ -279,12 +303,40 @@
             + '<div class="thean-ous-bulk-result" hidden></div>'
             + '<table class="thean-ous__table"><colgroup><col class="c-check"><col class="c-order"><col class="c-cus"><col class="c-items"><col class="c-next"><col class="c-acts"></colgroup>'
             + '<thead><tr><th class="thean-ous__c-check"><input type="checkbox" data-thean-ous-check-all aria-label="Chọn tất cả đơn đang hiện"></th><th>Đơn · Trạng thái · Tổng</th><th>Khách hàng · Giao hàng</th><th>Sản phẩm</th><th>Thao tác tiếp theo</th><th>Thao tác</th></tr></thead><tbody></tbody></table>'
-            + '<div class="thean-ous__more" hidden><button type="button" class="thean-ous__more-btn" data-thean-ous-more></button></div>';
+            + '<div class="thean-ous__more" hidden><button type="button" class="thean-ous__more-btn" data-thean-ous-more></button></div>'
+            + (modal === results ? '<nav class="thean-ous-pager" aria-label="Phân trang kết quả" hidden></nav>' : '');
         body(modal).replaceChildren(wrap);
         selection(modal).clear();
         return wrap;
     }
+    function renderPager(data) {
+        var nav = body(results).querySelector('.thean-ous-pager');
+        if (!nav) return;
+        var per = data.per || state.per, pages = Math.max(1, Math.ceil((data.total || 0) / per)), cur = Math.min(data.page || 1, pages);
+        nav.hidden = !data.total;
+        if (!data.total) return;
+        var nums = [], i;
+        for (i = 1; i <= pages; i++) if (i === 1 || i === pages || Math.abs(i - cur) <= 2) nums.push(i);
+        var html = '<button type="button" class="thean-ous-pager__btn" data-thean-ous-page="' + (cur - 1) + '"' + (cur <= 1 ? ' disabled' : '') + ' aria-label="Trang trước">‹</button>';
+        nums.forEach(function (n, k) {
+            if (k && n - nums[k - 1] > 1) html += '<span class="thean-ous-pager__gap">…</span>';
+            html += '<button type="button" class="thean-ous-pager__btn' + (n === cur ? ' is-current' : '') + '" data-thean-ous-page="' + n + '"' + (n === cur ? ' aria-current="page"' : '') + '>' + n + '</button>';
+        });
+        html += '<button type="button" class="thean-ous-pager__btn" data-thean-ous-page="' + (cur + 1) + '"' + (cur >= pages ? ' disabled' : '') + ' aria-label="Trang sau">›</button>';
+        var from = (cur - 1) * per + 1, to = Math.min(data.total, cur * per);
+        html += '<span class="thean-ous-pager__info">' + from + '–' + to + ' / ' + (data.capped ? cfg.cap + '+' : data.total) + ' đơn</span>';
+        html += '<label class="thean-ous-pager__per"><select data-thean-ous-per aria-label="Số đơn mỗi trang">'
+            + (cfg.perPageOptions || [per]).map(function (o) { return '<option value="' + o + '"' + (o === per ? ' selected' : '') + '>' + o + ' / trang</option>'; }).join('')
+            + '</select></label>';
+        nav.innerHTML = html;
+    }
     function updateMore(modal, data) {
+        if (modal === results) { // kết quả tìm: phân trang số, không "Xem thêm"
+            var mr = body(results).querySelector('.thean-ous__more');
+            if (mr) mr.hidden = true;
+            renderPager(data);
+            return;
+        }
         var more = body(modal).querySelector('.thean-ous__more');
         if (!more) return;
         more.hidden = !data.has_more;
@@ -341,7 +393,8 @@
         var chips = results.querySelector('.thean-ous-chips');
         chips.replaceChildren();
         (data.summary || []).forEach(function (txt) { var s = document.createElement('span'); s.textContent = txt; chips.appendChild(s); });
-        status.textContent = '— ' + (data.capped ? cfg.cap + '+' : data.total) + ' đơn' + (data.total ? ', đang hiện ' + data.shown : '');
+        var pages = Math.max(1, Math.ceil((data.total || 0) / (data.per || state.per)));
+        status.textContent = '— ' + (data.capped ? cfg.cap + '+' : data.total) + ' đơn' + (data.total && pages > 1 ? ' · trang ' + (data.page || 1) + '/' + pages : '');
         if (!data.total) {
             notice(body(results), 'Không tìm thấy đơn nào khớp trong khoảng đang chọn.');
             if (currentRange !== 'all') {
@@ -354,26 +407,30 @@
             }
             return;
         }
-        fillTable(results, data, page);
+        fillTable(results, data, 1); // mỗi trang = bảng mới
         state.shown = data.shown;
-        state.cursor = page === 1 ? (data.next_cursor || 0) : (data.next_cursor || state.cursor);
+        if (page > 1 || data.page > 1) { var top = body(results); if (top.scrollTo) top.scrollTo({ top: 0 }); }
     }
     function search(q, page) {
-        var key = q + '|' + page, hit = cache.get(key);
+        var key = q + '|' + page + '|' + state.per, hit = cache.get(key);
         if (page === 1 && q === state.q && state.page >= 1 && !results.hidden) return;
         if (searchCtl) searchCtl.abort();
         var ctl = new AbortController();
         searchCtl = ctl;
+        var fresh = q !== state.q || page === 1; // truy vấn mới / trang đầu → báo "đang tìm"; chỉ đổi trang thì giữ bảng cũ tới khi có trang mới
         state.q = q;
         state.loading = false;
         setOpen(results, true);
         if (hit && Date.now() - hit.at < 60000) { state.page = page; render(hit.data, page); return; }
         state.loading = true;
-        var moreBtn = body(results).querySelector('[data-thean-ous-more]');
-        if (page === 1) { results.querySelector('.thean-ous-modal__status').textContent = '— đang tìm…'; notice(body(results), 'Đang tìm “' + q + '”…'); }
-        else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
+        var moreBtn = null, pager = body(results).querySelector('.thean-ous-pager');
+        if (fresh || !pager) { results.querySelector('.thean-ous-modal__status').textContent = '— đang tìm…'; notice(body(results), 'Đang tìm “' + q + '”…'); }
+        else {
+            results.querySelector('.thean-ous-modal__status').textContent = '— đang tải trang ' + page + '…';
+            if (pager) pager.querySelectorAll('button, select').forEach(function (el) { el.disabled = true; });
+        }
         var epoch = rowEpoch;
-        post('thean_order_usearch', { q: q, page: page, range: currentRange, before_id: page > 1 ? state.cursor : 0, shown: page > 1 ? state.shown : 0 }, ctl).then(async function (res) {
+        post('thean_order_usearch', { q: q, page: page, per: state.per, range: currentRange }, ctl).then(async function (res) {
             await rowUpdates;
             if (searchCtl !== ctl) return;
             if (!res.success) {
@@ -839,7 +896,7 @@
             history.replaceState(history.state, '', url.toString());
         } catch (e) {}
         if (!board.hidden) loadBoard(boardState.tab || savedTab(), 1, false);
-        var q = input.value.trim();
+        var q = currentQuery();
         if (!results.hidden) {
             if (ready(q)) search(q, 1);
             else setOpen(results, false);
@@ -865,7 +922,7 @@
         e.preventDefault();
         clearTimeout(timer);
         closeSuggest();
-        var q = input.value.trim();
+        var q = currentQuery();
         if (q.length < 2) return;
         if (Date.now() < blockedUntil) {
             setOpen(results, true);
@@ -881,7 +938,7 @@
     input.addEventListener('click', updateSuggest);
     input.addEventListener('focus', function () {
         updateSuggest();
-        if (input.value.trim() === state.q && state.page && results.hidden) setOpen(results, true);
+        if (currentQuery() === state.q && state.page && results.hidden) setOpen(results, true);
     });
     input.addEventListener('blur', function () { setTimeout(closeSuggest, 120); });
     input.addEventListener('keydown', function (e) {
@@ -961,11 +1018,89 @@
     }
     results.addEventListener('click', function (e) {
         if (e.target.closest('[data-thean-ous-all-dates]')) { rangeSelect.value = 'all'; changeRange(); return; }
-        if (e.target.closest('[data-thean-ous-more]')) { if (!state.loading) search(state.q, state.page + 1); return; }
+        var pg = e.target.closest('[data-thean-ous-page]');
+        if (pg) { var n = parseInt(pg.dataset.theanOusPage, 10); if (n >= 1 && n !== state.page && !pg.disabled) search(state.q, n); return; }
         if (onBulkClick(results, e)) return;
         tableClick(e);
     });
-    results.addEventListener('change', function (e) { onCheck(results, e); });
+    results.addEventListener('change', function (e) {
+        if (e.target.matches('[data-thean-ous-per]')) {
+            state.per = parseInt(e.target.value, 10) || cfg.perPage;
+            try { localStorage.setItem('theanOusPer', String(state.per)); } catch (err) {}
+            state.page = 0;
+            search(state.q, 1);
+            return;
+        }
+        onCheck(results, e);
+    });
+
+    /* ---------- Nút "Trạng thái": chọn nhóm / từng trạng thái → ghép /nhom, /tt vào truy vấn ---------- */
+    var stf = bar.querySelector('[data-thean-ous-stf]');
+    if (stf) (function () {
+        var btn = stf.querySelector('.thean-ous-stf__btn'), panel = stf.querySelector('.thean-ous-stf__panel');
+        var countEl = stf.querySelector('[data-thean-ous-stf-count]');
+        var names = {};
+        (cfg.statuses || []).forEach(function (st) { names[st.slug] = st.name; });
+        function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        panel.innerHTML = '<div class="thean-ous-stf__groups">' + (cfg.statusGroups || []).map(function (gr) {
+            return '<fieldset class="thean-ous-stf__group"><legend><label><input type="checkbox" data-stf-group="' + esc(gr.key) + '"> ' + esc(gr.label) + '</label></legend>'
+                + gr.slugs.map(function (sl) { return '<label class="thean-ous-stf__item"><input type="checkbox" value="' + esc(sl) + '" data-stf-status> ' + esc(names[sl] || sl) + '</label>'; }).join('')
+                + '</fieldset>';
+        }).join('') + '</div>'
+            + '<div class="thean-ous-stf__foot"><button type="button" class="thean-ous-btn" data-stf-clear>Bỏ chọn</button>'
+            + '<span class="thean-ous-stf__hint">Để trống ô tìm = liệt kê mọi đơn ở trạng thái đã chọn (theo khoảng Ngày tạo).</span>'
+            + '<button type="button" class="thean-ous-btn thean-ous-btn--primary" data-stf-apply>Lọc</button></div>';
+        function sync() {
+            panel.querySelectorAll('[data-stf-status]').forEach(function (box) { box.checked = stSel.indexOf(box.value) !== -1; });
+            panel.querySelectorAll('[data-stf-group]').forEach(function (box) {
+                var gr = (cfg.statusGroups || []).find(function (g) { return g.key === box.dataset.stfGroup; });
+                var on = gr ? gr.slugs.filter(function (sl) { return stSel.indexOf(sl) !== -1; }).length : 0;
+                box.checked = !!gr && on === gr.slugs.length;
+                box.indeterminate = on > 0 && !box.checked;
+            });
+            countEl.textContent = String(stSel.length);
+            countEl.hidden = !stSel.length;
+            btn.classList.toggle('is-active', stSel.length > 0);
+        }
+        function open(on) {
+            panel.hidden = !on;
+            btn.setAttribute('aria-expanded', String(on));
+        }
+        function run() {
+            clearTimeout(timer);
+            var q = currentQuery();
+            if (q === state.q && state.page && !results.hidden) return;
+            if (!q) { state.q = ''; state.page = 0; setOpen(results, false); return; }
+            state.page = 0;
+            schedule(500);
+        }
+        btn.addEventListener('click', function () { open(panel.hidden); });
+        document.addEventListener('click', function (e) { if (!panel.hidden && !stf.contains(e.target)) open(false); });
+        panel.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); open(false); btn.focus(); } });
+        panel.addEventListener('change', function (e) {
+            var box = e.target;
+            if (box.matches('[data-stf-group]')) {
+                var gr = (cfg.statusGroups || []).find(function (g) { return g.key === box.dataset.stfGroup; });
+                if (gr) stSel = box.checked ? stSel.concat(gr.slugs.filter(function (sl) { return stSel.indexOf(sl) === -1; })) : stSel.filter(function (sl) { return gr.slugs.indexOf(sl) === -1; });
+            } else if (box.matches('[data-stf-status]')) {
+                stSel = box.checked ? stSel.concat([box.value]) : stSel.filter(function (sl) { return sl !== box.value; });
+            }
+            sync();
+            run();
+        });
+        panel.addEventListener('click', function (e) {
+            if (e.target.closest('[data-stf-clear]')) { stSel = []; sync(); run(); return; }
+            if (e.target.closest('[data-stf-apply]')) {
+                open(false);
+                var q = currentQuery();
+                if (!q) return;
+                clearTimeout(timer);
+                state.page = 0;
+                search(q, 1);
+            }
+        });
+        sync();
+    })();
     board.addEventListener('change', function (e) {
         if (e.target.matches('[data-thean-ous-tabnav]')) { loadBoard(e.target.value, 1, false); return; }
         onCheck(board, e);

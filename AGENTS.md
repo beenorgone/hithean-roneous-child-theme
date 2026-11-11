@@ -166,10 +166,11 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 - UI nạp qua `core/admin.php`; AJAX `thean_order_usearch`, `thean_order_usearch_preview`, `thean_order_usearch_alerts`
   khai ở module `order_universal_search` trong module-loader.
 - Gõ tự do (≥3 ký tự): ID / mã đơn, tên, SĐT, email, địa chỉ, tên SP, mã vận đơn. Lệnh lọc kết hợp (AND), có dropdown gợi ý:
-  `/tt` trạng thái (lặp lại = OR, gõ không dấu được), `/sdt` (≥4 số), `/id`, `/sp`, `/kh`, `/vd`, `/email`.
+  `/tt` trạng thái (lặp lại = OR, gõ không dấu được), `/nhom` nhóm trạng thái (`thean_ous_status_groups()`, gộp OR với /tt), `/sdt` (≥4 số), `/id`, `/sp`, `/kh`, `/vd`, `/email`.
 - HPOS (`wc_orders`, `wc_order_addresses`, `wc_orders_meta`) + legacy (`postmeta`, `_billing/_shipping_address_index`).
   Mỗi nguồn lấy ≤1000 ứng viên, giao các tập, lọc cuối theo loại đơn/trạng thái, giữ ≤500 ID.
-- 10 đơn/trang, "Xem thêm" chỉ cắt từ danh sách ID đã cache (transient 3 phút, khóa theo truy vấn + version cache
+- Nút "Trạng thái ▾" cạnh Ngày tạo: chọn nhóm / từng trạng thái → ghép `/nhom` + `/tt` vào truy vấn (ô tìm trống = liệt kê đơn theo trạng thái).
+- Kết quả phân trang số 10/20/50 đơn/trang (`THEAN_OUS_PER_PAGE_OPTIONS`, nhớ ở localStorage; board vẫn "Xem thêm"), mỗi trang chỉ cắt từ danh sách ID đã cache (transient 3 phút, khóa theo truy vấn + version cache
   `orders` của WC) — không chạy lại LIKE.
 - Bảng 4 cột; mobile dạng thẻ. Nút theo nhóm màu: Xem (Xem nhanh / Chỉnh → `/tao-don/?order_id=` / Chi tiết),
   Thanh toán, Kho, Hoàn, Khác. Nút thao tác nhanh giữ class `.wc-action-button-hithean-order-*` để dùng modal của orders-admin.php.

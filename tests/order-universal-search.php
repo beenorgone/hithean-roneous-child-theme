@@ -183,6 +183,16 @@ check(thean_ous_parse_query('/tt huy')['statuses'] === ['cancelled'], 'status pa
 check(thean_ous_parse_query('/status wc-processing /tt pending')['statuses'] === ['processing', 'pending'], 'alias + wc- prefix + repeat = OR');
 check(thean_ous_validate(thean_ous_parse_query('/tt xyz')) !== '', 'unknown status errors');
 check(thean_ous_parse_query('/abc def')['text'] === '/abc def', 'unknown command stays free text');
+// Nhóm trạng thái: chỉ slug có thật, phần còn lại vào "Khác"; /nhom gộp OR với /tt.
+$groups = thean_ous_status_groups();
+check(($groups['cho-thanh-toan']['slugs'] ?? null) === ['pending'] && ($groups['huy']['slugs'] ?? null) === ['cancelled'] && !isset($groups['dang-giao']), 'groups keep existing slugs only');
+check(($groups['ghi-nhan']['slugs'] ?? null) === ['da-ghi-nhan'] && !isset($groups['khac']), 'every status grouped');
+check(thean_ous_parse_query('/nhom dang-xu-ly')['statuses'] === ['processing'], '/nhom by key');
+check(thean_ous_parse_query('/nhom huy /tt pending')['statuses'] === ['cancelled', 'pending'], '/nhom + /tt merged');
+check(thean_ous_parse_query('/group cho thanh')['statuses'] === ['pending'] && thean_ous_parse_query('/group cho thanh')['text'] === 'thanh', '/group alias, one word arg');
+check(thean_ous_validate(thean_ous_parse_query('/nhom xyz')) !== '', 'unknown group errors');
+check(thean_ous_validate(thean_ous_parse_query('/nhom huy')) === '', 'status-only query valid');
+check(thean_ous_per_page('20') === 20 && thean_ous_per_page(13) === THEAN_OUS_PER_PAGE && thean_ous_per_page('') === THEAN_OUS_PER_PAGE, 'per page whitelist');
 check(thean_ous_parse_query('/id 90433 thêm')['id'] === '90433', '/id takes one word');
 check(thean_ous_validate(thean_ous_parse_query('ab')) !== '', 'free text needs 3 chars');
 check(thean_ous_validate(thean_ous_parse_query('/sdt 12')) !== '', 'phone needs 4 digits');

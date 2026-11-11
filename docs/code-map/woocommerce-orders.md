@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-33 file · ~10.200 dòng · 384 hàm (60% có docblock)
+33 file · ~10.300 dòng · 387 hàm (61% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -50,6 +50,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `thean_hpos_read_private_keys` | order-hpos-compat.php |
 | `thean_legacy_meta_keys` | order-legacy-meta-sync.php |
 | `thean_ops_excluded_statuses` | order-ops-step.php |
+| `thean_ous_status_groups` | order-universal-search.php |
 | `woocommerce_admin_order_actions` | order-universal-search.php |
 | `woocommerce_order_tracking_form` | order-tracking.php |
 | `woocommerce_order_tracking_form_end` | order-tracking.php |
@@ -366,6 +367,8 @@ Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn
 | `thean_ous_tokens(string $term)` | Tách từ khóa thành các token, tối đa 6 token. |
 | `thean_ous_norm(string $text)` | Chuẩn hóa không dấu để so trạng thái. |
 | `thean_ous_statuses()` | [['slug' => 'processing', 'name' => 'Đang xử lý', 'norm' => 'dang-xu-ly'], ...] |
+| `thean_ous_status_groups()` | Nhóm trạng thái cho bộ lọc (nút "Trạng thái" ở thanh tìm + lệnh /nhom). Chỉ giữ slug có thật ở site; trạng thái chưa thuộc nhóm nào gom vào "Khác". Filter thean_ous_status_group… |
+| `thean_ous_resolve_status_group(string $arg)` | Tham số /nhom → slug của nhóm (khớp key hoặc tên nhóm không dấu; khớp đúng trước, sau đó chứa chuỗi). |
 | `thean_ous_resolve_status(string $arg)` | Tham số /tt → danh sách slug khớp (khớp đúng slug/tên ưu tiên, sau đó chứa chuỗi). |
 | `thean_ous_parse_query(string $query)` | Tách truy vấn thành bộ lọc. Lệnh không biết → giữ nguyên trong text tự do. /tt và /id chỉ lấy 1 từ làm tham số, phần sau trả về text tự do. |
 | `thean_ous_validate(array $f)` | Bộ lọc có đủ điều kiện để chạy không (tránh LIKE 1–2 ký tự quét cả bảng). |
@@ -430,6 +433,7 @@ Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn
 | `thean_ous_ajax_rows()` | — |
 | `thean_ous_bulk_status(WC_Order $order, string $status, string $note)` | Đổi trạng thái 1 đơn (thao tác hàng loạt). Trả [thành công?, thông báo]. |
 | `thean_ous_ajax_bulk()` | — |
+| `thean_ous_per_page($raw)` | Số đơn / trang kết quả tìm (ô chọn ở phân trang) — chỉ các mức cho phép, khác thì mặc định. |
 | `thean_ous_ajax_search()` | — |
 | `thean_ous_ajax_preview()` | — |
 | `thean_ous_ajax_flush()` | — |

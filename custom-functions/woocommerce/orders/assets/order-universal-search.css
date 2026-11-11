@@ -356,3 +356,36 @@ body.thean-tools-workspace #posts-filter, body.thean-tools-workspace #wc-orders-
     .thean-workspace-foot > button { flex:1 1 0; min-width:0; max-width:160px; padding:8px 4px; font-size:12px; gap:4px; overflow:hidden; text-overflow:ellipsis; }
     .thean-workspace-foot > button b { padding:0 4px; font-size:11px; }
 }
+
+/* Bộ lọc trạng thái (nút "Trạng thái" ở thanh tìm) */
+.thean-ous-stf { position:relative; flex:0 0 auto; }
+.thean-ous-stf__btn { min-height:36px; padding:0 10px; border:1px solid var(--ous-border-strong); border-radius:8px; background:#fff; color:#334155; font:inherit; font-size:13px; white-space:nowrap; cursor:pointer; }
+.thean-ous-stf__btn.is-active { border-color:var(--ous-primary); background:var(--ous-primary-light, #eef4ff); color:var(--ous-primary); font-weight:600; }
+.thean-ous-stf__btn b { display:inline-block; min-width:18px; padding:0 5px; border-radius:999px; background:var(--ous-primary); color:#fff; font-size:11px; line-height:18px; text-align:center; }
+.thean-ous-stf__btn:focus-visible { outline:2px solid var(--ous-primary); outline-offset:2px; }
+.thean-ous-stf__panel { position:absolute; right:0; top:calc(100% + 4px); z-index:97; width:min(640px, calc(100vw - 16px)); max-height:min(70vh, 560px); overflow:auto; box-sizing:border-box; padding:10px; border:1px solid var(--ous-border); border-radius:10px; background:#fff; box-shadow:0 12px 28px rgba(15,23,42,.18); color:#1e293b; font-size:13px; }
+.thean-ous-stf__panel[hidden] { display:none; }
+.thean-ous-stf__groups { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:8px; }
+.thean-ous-stf__group { margin:0; padding:6px 8px 8px; border:1px solid #e2e8f0; border-radius:8px; min-width:0; }
+.thean-ous-stf__group legend { padding:0 4px; font-weight:600; }
+.thean-ous-stf__group label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.thean-ous-stf__item { padding:2px 0 2px 4px; color:#334155; }
+.thean-ous-stf__foot { position:sticky; bottom:-10px; display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:10px -10px -10px; padding:8px 10px; border-top:1px solid #e2e8f0; background:#fff; }
+.thean-ous-stf__hint { flex:1 1 200px; color:#64748b; font-size:12px; }
+
+/* Phân trang kết quả tìm */
+.thean-ous-pager { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin:12px 0 4px; }
+.thean-ous-pager[hidden] { display:none; }
+.thean-ous-pager__btn { min-width:34px; min-height:34px; padding:0 8px; border:1px solid var(--ous-border); border-radius:8px; background:#fff; color:var(--ous-primary); font:inherit; font-weight:600; cursor:pointer; }
+.thean-ous-pager__btn.is-current { border-color:var(--ous-primary); background:var(--ous-primary); color:#fff; cursor:default; }
+.thean-ous-pager__btn:disabled { opacity:.45; cursor:default; }
+.thean-ous-pager__gap { padding:0 2px; color:#94a3b8; }
+.thean-ous-pager__info { margin-left:6px; color:#64748b; font-size:12px; }
+.thean-ous-pager__per { margin-left:auto; }
+.thean-ous-pager__per select { min-height:34px; border:1px solid var(--ous-border-strong); border-radius:8px; font-size:13px; }
+@media (max-width:782px) {
+    .thean-ous-stf { order:4; flex:0 1 auto; }
+    .thean-ous-stf__btn { height:38px; min-height:38px; padding:0 8px; }
+    .thean-ous-stf__panel { position:fixed; left:8px; right:8px; top:auto; bottom:8px; width:auto; max-height:75vh; }
+    .thean-ous-pager__per { margin-left:0; }
+}

@@ -6,7 +6,7 @@ require_once __DIR__ . '/order-product-tools.php';
  * Tìm kiếm đơn nhanh (sticky) ở trang danh sách đơn WooCommerce — thay ô tìm mặc định.
  *
  * Gõ tự do: ID / mã đơn (ID + hậu tố), tên khách, SĐT, email, địa chỉ, tên SP, mã vận đơn.
- * Lệnh lọc (kết hợp được, AND): /tt <trạng thái> (lặp lại = OR), /sdt, /id, /sp, /vd, /email, /kh.
+ * Lệnh lọc (kết hợp được, AND): /tt <trạng thái> (lặp lại = OR), /nhom <nhóm trạng thái> (gộp OR với /tt), /sdt, /id, /sp, /vd, /email, /kh.
  * Chạy cả HPOS (wc_orders / wc_order_addresses / wc_orders_meta) lẫn lưu trữ cũ (posts / postmeta).
  *
  * Tải VPS: danh sách ID khớp (≤ THEAN_OUS_CAP) cache transient (Redis) theo truy vấn + version cache
@@ -32,6 +32,7 @@ require_once __DIR__ . '/order-product-tools.php';
  */
 
 const THEAN_OUS_PER_PAGE  = 10;
+const THEAN_OUS_PER_PAGE_OPTIONS = [10, 20, 50]; // ô "đơn / trang" ở phân trang kết quả tìm
 const THEAN_OUS_CAP       = 500;  // tối đa số đơn khớp giữ trong cache cho 1 truy vấn
 const THEAN_OUS_SOURCE    = 1000; // tối đa ứng viên lấy từ mỗi nguồn
 const THEAN_OUS_CACHE_TTL = 180;
@@ -101,6 +102,7 @@ function thean_ous_commands(): array
 {
     return [
         'tt'    => ['Trạng thái', '/tt dang-xu-ly', 'Lọc theo trạng thái — lặp lại để lấy nhiều trạng thái'],
+        'nhom'  => ['Nhóm trạng thái', '/nhom dang-giao', 'Lọc theo nhóm trạng thái (Chờ thanh toán, Đang xử lý, Đang giao, Đã giao, Hủy…)'],
         'sdt'   => ['SĐT', '/sdt 0901234567', 'SĐT người đặt / người nhận (từ 4 số)'],
         'id'    => ['ID / mã đơn', '/id 90433', 'ID đơn hoặc mã đơn hiển thị'],
         'sp'    => ['Sản phẩm', '/sp whey gold', 'Tên sản phẩm trong đơn'],
@@ -113,7 +115,7 @@ function thean_ous_commands(): array
 function thean_ous_command_aliases(): array
 {
     return [
-        'status' => 'tt', 'trangthai' => 'tt', 'phone' => 'sdt', 'dt' => 'sdt',
+        'status' => 'tt', 'trangthai' => 'tt', 'group' => 'nhom', 'nhomtt' => 'nhom', 'phone' => 'sdt', 'dt' => 'sdt',
         'ma' => 'id', 'product' => 'sp', 'ship' => 'vd', 'vandon' => 'vd', 'khach' => 'kh', 'mail' => 'email',
     ];
 }
@@ -150,6 +152,62 @@ function thean_ous_statuses(): array
         $out[] = ['slug' => substr($key, 3), 'name' => $name, 'norm' => thean_ous_norm($name)];
     }
     return $out;
+}
+
+/**
+ * Nhóm trạng thái cho bộ lọc (nút "Trạng thái" ở thanh tìm + lệnh /nhom). Chỉ giữ slug có thật ở site; trạng thái chưa thuộc
+ * nhóm nào gom vào "Khác". Filter thean_ous_status_groups để site khác đổi nhóm.
+ *
+ * @return array<string, array{label:string, slugs:string[]}>
+ */
+function thean_ous_status_groups(): array
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $groups = (array) apply_filters('thean_ous_status_groups', [
+        'cho-thanh-toan' => ['label' => 'Chờ thanh toán', 'slugs' => ['pending', 'on-hold', 'partial-paid']],
+        'dang-xu-ly'     => ['label' => 'Đang xử lý', 'slugs' => ['processing', 'received-payment', 'pre-order', 'packaging', 'local-pickup']],
+        'dang-giao'      => ['label' => 'Đang giao', 'slugs' => ['shipping', 'local-shipping', 'partial-shipping']],
+        'da-giao'        => ['label' => 'Đã giao / Hoàn thành', 'slugs' => ['delivered', 'partial-shipped', 'completed']],
+        'huy'            => ['label' => 'Hủy / Hoàn tiền / Lỗi', 'slugs' => ['cancelled', 'refunded', 'failed']],
+        'ghi-nhan'       => ['label' => 'Ghi nhận (nội bộ)', 'slugs' => ['chua-ghi-nhan', 'da-ghi-nhan']],
+    ]);
+    $exists = array_column(thean_ous_statuses(), 'slug');
+    $used = [];
+    $out = [];
+    foreach ($groups as $key => $group) {
+        $slugs = array_values(array_intersect(array_map('strval', (array) ($group['slugs'] ?? [])), $exists));
+        if ($slugs) {
+            $out[sanitize_key((string) $key)] = ['label' => (string) ($group['label'] ?? $key), 'slugs' => $slugs];
+            $used = array_merge($used, $slugs);
+        }
+    }
+    $rest = array_values(array_diff($exists, $used));
+    if ($rest) {
+        $out['khac'] = ['label' => 'Khác', 'slugs' => $rest];
+    }
+    return $cache = $out;
+}
+
+/** Tham số /nhom → slug của nhóm (khớp key hoặc tên nhóm không dấu; khớp đúng trước, sau đó chứa chuỗi). */
+function thean_ous_resolve_status_group(string $arg): array
+{
+    $needle = thean_ous_norm($arg);
+    if ($needle === '') {
+        return [];
+    }
+    $exact = $partial = [];
+    foreach (thean_ous_status_groups() as $key => $group) {
+        $norm = thean_ous_norm($group['label']);
+        if ($key === $needle || $norm === $needle) {
+            $exact = array_merge($exact, $group['slugs']);
+        } elseif (strpos($key, $needle) !== false || strpos($norm, $needle) !== false) {
+            $partial = array_merge($partial, $group['slugs']);
+        }
+    }
+    return array_values(array_unique($exact ?: $partial));
 }
 
 /** Tham số /tt → danh sách slug khớp (khớp đúng slug/tên ưu tiên, sau đó chứa chuỗi). */
@@ -195,7 +253,7 @@ function thean_ous_parse_query(string $query): array
             $text[] = '/' . $parts[$i] . ' ' . $arg;
             continue;
         }
-        if ($cmd === 'tt' || $cmd === 'id') {
+        if ($cmd === 'tt' || $cmd === 'nhom' || $cmd === 'id') {
             $words = preg_split('/\s+/u', $arg, 2);
             $arg   = (string) ($words[0] ?? '');
             $text[] = (string) ($words[1] ?? '');
@@ -207,6 +265,14 @@ function thean_ous_parse_query(string $query): array
             $found = thean_ous_resolve_status($arg);
             if (!$found) {
                 $filters['errors'][] = sprintf('Không có trạng thái “%s”.', $arg);
+            }
+            $filters['statuses'] = array_values(array_unique(array_merge($filters['statuses'], $found)));
+            continue;
+        }
+        if ($cmd === 'nhom') {
+            $found = thean_ous_resolve_status_group($arg);
+            if (!$found) {
+                $filters['errors'][] = sprintf('Không có nhóm trạng thái “%s”.', $arg);
             }
             $filters['statuses'] = array_values(array_unique(array_merge($filters['statuses'], $found)));
             continue;
@@ -631,7 +697,16 @@ function thean_ous_filter_summary(array $f): array
 {
     $out = [];
     if ($f['statuses']) {
-        $out[] = 'Trạng thái: ' . implode(', ', array_map('wc_get_order_status_name', $f['statuses']));
+        $left = $f['statuses'];
+        $names = [];
+        foreach (thean_ous_status_groups() as $group) {
+            if (count($group['slugs']) > 1 && !array_diff($group['slugs'], $left)) {
+                $names[] = 'nhóm ' . $group['label'];
+                $left = array_diff($left, $group['slugs']);
+            }
+        }
+        $names = array_merge($names, array_map('wc_get_order_status_name', array_values($left)));
+        $out[] = 'Trạng thái: ' . implode(', ', $names);
     }
     $labels = ['id' => 'ID', 'phone' => 'SĐT', 'product' => 'SP', 'customer' => 'Khách', 'ship' => 'Vận đơn', 'email' => 'Email', 'text' => 'Từ khóa'];
     foreach ($labels as $key => $label) {
@@ -1609,6 +1684,13 @@ function thean_ous_ajax_bulk(): void
     ]);
 }
 
+/** Số đơn / trang kết quả tìm (ô chọn ở phân trang) — chỉ các mức cho phép, khác thì mặc định. */
+function thean_ous_per_page($raw): int
+{
+    $per = absint($raw);
+    return in_array($per, THEAN_OUS_PER_PAGE_OPTIONS, true) ? $per : THEAN_OUS_PER_PAGE;
+}
+
 add_action('wp_ajax_thean_order_usearch', 'thean_ous_ajax_search');
 function thean_ous_ajax_search(): void
 {
@@ -1621,6 +1703,7 @@ function thean_ous_ajax_search(): void
     $started = microtime(true);
     $query   = sanitize_text_field(wp_unslash($_POST['q'] ?? ''));
     $page    = max(1, absint($_POST['page'] ?? 1));
+    $per     = thean_ous_per_page($_POST['per'] ?? 0);
     $filters = thean_ous_parse_query($query);
     $error   = thean_ous_validate($filters);
     if ($error !== '') {
@@ -1648,7 +1731,7 @@ function thean_ous_ajax_search(): void
     $total = count($ids);
     $before_id = absint($_POST['before_id'] ?? 0);
     $available = $before_id > 0 ? array_values(array_filter($ids, static fn($id) => $id < $before_id)) : $ids;
-    $slice = array_slice($available, $before_id > 0 ? 0 : ($page - 1) * THEAN_OUS_PER_PAGE, THEAN_OUS_PER_PAGE);
+    $slice = array_slice($available, $before_id > 0 ? 0 : ($page - 1) * $per, $per);
 
     $rows = thean_ous_render_rows($slice, thean_ous_highlight_tokens($filters));
     thean_ous_timing_header([
@@ -1661,11 +1744,13 @@ function thean_ous_ajax_search(): void
         'rows'     => $rows,
         'total'    => $total,
         'capped'   => $total >= THEAN_OUS_CAP,
-        'shown'    => min($total, ($before_id > 0 ? absint($_POST['shown'] ?? 0) : ($page - 1) * THEAN_OUS_PER_PAGE) + count($slice)),
+        'shown'    => min($total, ($before_id > 0 ? absint($_POST['shown'] ?? 0) : ($page - 1) * $per) + count($slice)),
         'next_cursor' => $slice ? (int) end($slice) : 0,
-        'exhausted' => count($slice) < THEAN_OUS_PER_PAGE,
+        'exhausted' => count($slice) < $per,
         'page'     => $page,
-        'has_more' => $page * THEAN_OUS_PER_PAGE < $total,
+        'has_more' => $page * $per < $total,
+        'per'      => $per,
+        'pages'    => max(1, (int) ceil($total / $per)),
         'summary'  => array_merge([thean_ous_range_label($range) . ($range === 'auto' ? ' · ID/mã đơn: toàn bộ' : '')], thean_ous_filter_summary($filters)),
     ]);
 }
@@ -1792,6 +1877,8 @@ function thean_ous_ui_config(): array
         'commands'       => $commands,
         'aliases'        => thean_ous_command_aliases(),
         'statuses'       => thean_ous_statuses(),
+        'statusGroups'   => array_map(static fn($k, $g) => ['key' => $k, 'label' => $g['label'], 'slugs' => $g['slugs']], array_keys(thean_ous_status_groups()), thean_ous_status_groups()),
+        'perPageOptions' => THEAN_OUS_PER_PAGE_OPTIONS,
         'alertsOff'      => thean_ous_alerts_off(),
         'chromeOff'      => thean_ous_chrome_off(),
         // Modal thao tác nhanh của orders-admin.php — Esc nhường chúng đóng trước.
@@ -1982,6 +2069,10 @@ function thean_ous_render_ui(): void
                     <option value="all" title="Toàn bộ thời gian">Toàn bộ</option>
                 </select>
             </label>
+            <div class="thean-ous-stf" data-thean-ous-stf>
+                <button type="button" class="thean-ous-stf__btn" aria-haspopup="dialog" aria-expanded="false" title="Lọc đơn theo trạng thái / nhóm trạng thái (kết hợp với ô tìm; để trống ô tìm = liệt kê đơn theo trạng thái)">Trạng thái <b data-thean-ous-stf-count hidden></b> ▾</button>
+                <div class="thean-ous-stf__panel" role="dialog" aria-label="Lọc theo trạng thái" hidden></div>
+            </div>
             <kbd>/</kbd>
             <button type="submit" class="thean-ous-bar__submit">Tìm</button>
             <button type="button" class="thean-ous-bar__board" data-thean-ous-board title="Tải đơn cần xử lý ngay trên trang, chia tab theo bước (giống bảng điều phối)">📋 <span>Tải đơn cần xử lý</span></button>
