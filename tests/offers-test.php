@@ -88,6 +88,7 @@ class OfferTestProduct {
     function get_image_id() { return 1; } function get_price_html() { return '<span class="amount">100.000₫</span>'; } function is_in_stock() { return $this->stock; } function is_type($type) { return $this->type === $type; }
 }
 function wc_get_product($id) { return $GLOBALS['products'][$id] ?? false; }
+require_once dirname(__DIR__) . '/custom-functions/core/lark.php';
 require HITHEAN_THEME_DIR . '/custom-functions/marketing/offers.php';
 if (defined('HITHEAN_OFFERS_TEST_LIBRARY')) { return; }
 $count = 0;

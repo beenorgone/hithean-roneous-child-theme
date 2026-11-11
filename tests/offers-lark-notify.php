@@ -3,7 +3,7 @@
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 define('ABSPATH', __DIR__); define('MINUTE_IN_SECONDS', 60);
 const HITHEAN_OFFERS_SNAPSHOT = 'hithean_offers_snapshot';
-$GLOBALS['options'] = []; $GLOBALS['events'] = []; $GLOBALS['posts_sent'] = []; $GLOBALS['actions'] = []; $GLOBALS['lark_fail'] = '';
+$GLOBALS['options'] = ['child_theme_lark_migrated' => 1]; $GLOBALS['events'] = []; $GLOBALS['posts_sent'] = []; $GLOBALS['actions'] = []; $GLOBALS['lark_fail'] = '';
 function add_action($hook, $cb, $prio = 10, $args = 1) { $GLOBALS['actions'][$hook][] = $cb; }
 function get_option($k, $d = false) { return $GLOBALS['options'][$k] ?? $d; }
 function update_option($k, $v, ...$a) {
@@ -20,10 +20,10 @@ function admin_url($p) { return home_url('/wp-admin/' . $p); }
 function is_wp_error($v) { return false; }
 function hithean_offers_settings() { return ['preview' => !empty($GLOBALS['preview'])]; }
 function hithean_offers_lock($n, $t = 60) { return 'tok'; } function hithean_offers_unlock($n, $t) {}
-function hithean_export_lark_sanitize_webhook($u) { return str_starts_with((string) $u, 'https://open.larksuite.com/open-apis/bot/v2/hook/') ? $u : ''; }
-function hithean_export_lark_settings() { return ['webhook_url' => $GLOBALS['shared_hook'] ?? '']; }
-function hithean_export_lark_response_error($r) { return $GLOBALS['lark_fail']; }
-function wp_remote_post($url, $args) { $GLOBALS['posts_sent'][] = ['url' => $url, 'body' => json_decode($args['body'], true)]; return []; }
+function wp_remote_post($url, $args) { $GLOBALS['posts_sent'][] = ['url' => $url, 'body' => json_decode($args['body'], true)]; return ['http' => 200]; }
+function wp_remote_retrieve_response_code($r) { return $r['http']; }
+function wp_remote_retrieve_body($r) { return $GLOBALS['lark_fail'] !== '' ? '{"code":19021}' : '{"code":0}'; }
+require_once dirname(__DIR__) . '/custom-functions/core/lark.php';
 require dirname(__DIR__) . '/custom-functions/marketing/offers/lark-notify.php';
 
 $count = 0;
@@ -76,8 +76,13 @@ check(strlen(json_encode($big, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
 // Luồng: tắt → không hẹn; bật → snapshot đổi mới hẹn gửi.
 update_option(HITHEAN_OFFERS_SNAPSHOT, ['items' => $old_items]);
 check(!wp_next_scheduled('hithean_offers_lark_flush'), 'Tắt thông báo → không hẹn gửi');
-$GLOBALS['options']['hithean_offers_lark_settings'] = ['enabled' => true, 'webhook_url' => ''];
-$GLOBALS['shared_hook'] = 'https://open.larksuite.com/open-apis/bot/v2/hook/abc';
+// Ưu đãi là NHÓM RIÊNG: có webhook nhóm kho mà kênh "uu_dai" trống thì vẫn không gửi.
+child_theme_lark_save_channel(['key' => 'kho', 'type' => 'webhook', 'value' => 'https://open.larksuite.com/open-apis/bot/v2/hook/kho', 'active' => true]);
+child_theme_lark_save_channel(['key' => 'uu_dai', 'type' => 'webhook', 'value' => '', 'active' => true]);
+check(!hithean_offers_lark_settings()['enabled'], 'Kênh ưu đãi trống webhook → không dùng nhóm kho');
+$GLOBALS['shared_hook'] = 'https://open.larksuite.com/open-apis/bot/v2/hook/uudai';
+child_theme_lark_save_channel(['key' => 'uu_dai', 'value' => $GLOBALS['shared_hook']]);
+check(hithean_offers_lark_settings()['enabled'], 'Kênh ưu đãi có webhook riêng → bật');
 update_option(HITHEAN_OFFERS_SNAPSHOT, ['items' => $old_items, 'updated_at' => 2]);
 check(!wp_next_scheduled('hithean_offers_lark_flush'), 'Snapshot đổi mà items giữ nguyên → không hẹn');
 
@@ -93,8 +98,8 @@ unset($GLOBALS['events']['hithean_offers_lark_flush']);
 $GLOBALS['lark_fail'] = 'Lark từ chối tin nhắn (mã 19021)';
 hithean_offers_lark_flush();
 $st = get_option('hithean_offers_lark_state');
-check(count($GLOBALS['posts_sent']) === 1 && $st['attempts'] === 1 && isset($st['programs'][12]) && wp_next_scheduled('hithean_offers_lark_flush'), 'Lỗi gửi → giữ mốc + hẹn thử lại');
-check($GLOBALS['posts_sent'][0]['url'] === $GLOBALS['shared_hook'], 'Webhook trống → dùng webhook nhóm xuất kho');
+check(count($GLOBALS['posts_sent']) === 1 && $st['attempts'] === 1 && isset($st['programs'][12]) && str_contains($st['error'], '19021') && wp_next_scheduled('hithean_offers_lark_flush'), 'Lỗi gửi → giữ mốc + hẹn thử lại');
+check($GLOBALS['posts_sent'][0]['url'] === $GLOBALS['shared_hook'], 'Gửi vào webhook nhóm ưu đãi, không phải nhóm kho');
 $GLOBALS['lark_fail'] = '';
 hithean_offers_lark_flush();
 $st = get_option('hithean_offers_lark_state');
@@ -102,9 +107,6 @@ check(count($GLOBALS['posts_sent']) === 2 && $st['attempts'] === 0 && !isset($st
 hithean_offers_lark_flush();
 check(count($GLOBALS['posts_sent']) === 2, 'Không đổi thêm → không gửi trùng');
 
-// Webhook riêng ưu tiên hơn webhook chung.
-$GLOBALS['options']['hithean_offers_lark_settings']['webhook_url'] = 'https://open.larksuite.com/open-apis/bot/v2/hook/own';
-check(hithean_offers_lark_webhook() === 'https://open.larksuite.com/open-apis/bot/v2/hook/own', 'Webhook riêng của ưu đãi được ưu tiên');
 check(hithean_offers_lark_test() === '' && str_contains(text_of(end($GLOBALS['posts_sent'])['body']), 'Tin gửi thử'), 'Gửi thử');
 
 echo "PASS: $count assertions\n";

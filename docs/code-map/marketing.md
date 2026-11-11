@@ -4,7 +4,7 @@
 
 > Marketing: popup, thanh menu đáy + "Ưu đãi của tôi", vòng quay may mắn, CRO landing agent (chạy theo lịch).
 
-6 file · ~1.600 dòng · 106 hàm (20% có docblock)
+6 file · ~1.600 dòng · 105 hàm (20% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -53,7 +53,6 @@ Hithean CRO Landing Agent.
 | `hithean_cro_defaults()` | — |
 | `hithean_cro_settings()` | — |
 | `hithean_cro_paths()` | — |
-| `hithean_cro_lark_webhook(string $url)` | — |
 | `hithean_cro_install()` | — |
 | `hithean_cro_next_monday_nine()` | — |
 | `hithean_cro_schedule()` | — |

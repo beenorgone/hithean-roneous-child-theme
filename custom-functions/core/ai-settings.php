@@ -273,7 +273,6 @@ function theme_erp_settings_render_page(): void
     $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'ai';
     $page_url   = admin_url('options-general.php?page=theme-erp-settings');
     $saved      = false;
-    $lark_error = '';
 
     if (
         $_SERVER['REQUEST_METHOD'] === 'POST' &&
@@ -285,22 +284,6 @@ function theme_erp_settings_render_page(): void
                 'hithean_export_upload_checklist',
                 sanitize_textarea_field(wp_unslash($_POST['hithean_export_upload_checklist'] ?? ''))
             );
-            $lark_webhook_raw = trim((string) wp_unslash($_POST['hithean_export_lark_webhook'] ?? ''));
-            $lark_webhook = function_exists('hithean_export_lark_sanitize_webhook')
-                ? hithean_export_lark_sanitize_webhook($lark_webhook_raw) : '';
-            if (($lark_webhook_raw !== '' || !empty($_POST['hithean_export_lark_enabled'])) && $lark_webhook === '') {
-                $lark_error = 'Webhook Lark không hợp lệ. Nhập URL đầy đủ dạng https://open.larksuite.com/open-apis/bot/v2/hook/<token>. Cấu hình Lark cũ được giữ nguyên.';
-            } else {
-                update_option('hithean_export_lark_settings', [
-                    'enabled'     => !empty($_POST['hithean_export_lark_enabled']) ? '1' : '0',
-                    'only_alerts' => !empty($_POST['hithean_export_lark_only_alerts']) ? '1' : '0',
-                    'webhook_url' => $lark_webhook,
-                'stop_reminder_user_ids' => array_values(array_intersect(
-                    array_map('absint', (array) ($_POST['hithean_export_lark_stop_users'] ?? [])),
-                    array_map(static fn($user) => (int) $user->ID, get_users(['capability' => 'manage_woocommerce', 'fields' => ['ID']]))
-                )),
-                ], false);
-            }
             $saved = true;
         }
 
@@ -336,10 +319,11 @@ function theme_erp_settings_render_page(): void
         'nut-ecom'     => 'Nút Shopee/TikTok',
         'luot-ban'     => 'Lượt bán',
         'woocommerce'  => 'WooCommerce',
+        'lark'         => 'Lark',
         'company-info' => 'Thông tin doanh nghiệp',
     ];
     $tab_groups = [
-        'system' => ['label' => 'AI & hệ thống', 'tabs' => ['ai', 'woocommerce', 'company-info']],
+        'system' => ['label' => 'AI & hệ thống', 'tabs' => ['ai', 'lark', 'woocommerce', 'company-info']],
         'sales' => ['label' => 'Bán hàng', 'tabs' => ['nut-ecom', 'luot-ban']],
         'orders' => ['label' => 'Đơn hàng', 'tabs' => ['xu-ly-don']],
     ];
@@ -358,10 +342,7 @@ function theme_erp_settings_render_page(): void
     <div class="wrap">
         <h1>Cài đặt ERP</h1>
         <?php if ($saved): ?>
-            <div class="notice notice-success is-dismissible"><p><?php echo $lark_error !== '' ? 'Đã lưu các cài đặt khác; cấu hình Lark chưa được lưu.' : '✅ Đã lưu cài đặt.'; ?></p></div>
-        <?php endif; ?>
-        <?php if ($lark_error !== ''): ?>
-            <div class="notice notice-error"><p><?php echo esc_html($lark_error); ?></p></div>
+            <div class="notice notice-success is-dismissible"><p>✅ Đã lưu cài đặt.</p></div>
         <?php endif; ?>
         <nav class="nav-tab-wrapper" style="margin-bottom:20px;">
             <?php foreach ($tab_groups as $group_slug => $group): ?>
@@ -430,7 +411,6 @@ function theme_erp_settings_render_page(): void
 
         <?php if ($active_tab === 'xu-ly-don'): ?>
             <?php if (function_exists('thean_order_ops_settings_section')) thean_order_ops_settings_section(); // order-ops-step.php: đơn nội bộ + quyền đổi trạng thái ?>
-            <?php $lark_settings = function_exists('hithean_export_lark_settings') ? hithean_export_lark_settings() : ['enabled' => '0', 'only_alerts' => '0', 'webhook_url' => '']; ?>
             <form method="post">
                 <?php wp_nonce_field('theme_erp_settings_save_xu-ly-don'); ?>
                 <table class="form-table" role="presentation">
@@ -457,23 +437,7 @@ function theme_erp_settings_render_page(): void
                     </tr>
                     <tr>
                         <th scope="row">Thông báo nhóm Lark</th>
-                        <td>
-                            <label><input type="checkbox" name="hithean_export_lark_enabled" value="1" <?php checked(!empty($lark_settings['enabled'])); ?>> Bật thông báo Lark: AI không khớp báo ngay; xác nhận xuất kho gom lô 30 phút</label>
-                            <p><label><input type="checkbox" name="hithean_export_lark_only_alerts" value="1" <?php checked(!empty($lark_settings['only_alerts'])); ?>> Chỉ gửi cảnh báo khi AI không đạt</label></p>
-                            <p><input type="url" class="large-text" style="max-width:600px" name="hithean_export_lark_webhook" value="<?php echo esc_attr((string) $lark_settings['webhook_url']); ?>" placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/..."></p>
-                            <?php $lark_stop_users = array_map('absint', (array) ($lark_settings['stop_reminder_user_ids'] ?? [])); ?>
-                            <fieldset><legend><strong>User được dừng nhắc Lark</strong></legend>
-                                <?php foreach (get_users(['capability' => 'manage_woocommerce', 'orderby' => 'display_name', 'order' => 'ASC']) as $lark_user): ?>
-                                    <label style="display:block;margin:5px 0"><input type="checkbox" name="hithean_export_lark_stop_users[]" value="<?php echo (int) $lark_user->ID; ?>" <?php checked(in_array((int) $lark_user->ID, $lark_stop_users, true)); ?>> <?php echo esc_html($lark_user->display_name . ' (' . $lark_user->user_login . ')'); ?></label>
-                                <?php endforeach; ?>
-                                <p class="description">Chỉ các user được chọn mới kết thúc nhắc tự động khi xác nhận đã xử lý. User khác có thể ghi nhận việc xử lý nhưng nhắc vẫn tiếp tục.</p>
-                            </fieldset>
-                            <p class="description">AI không khớp: báo ngay kèm nhận định, người xử lý, link đơn và ảnh; tự động nhắc mỗi 30 phút cho đến khi ảnh hiện tại được AI xác nhận khớp. Nút “Xác nhận đã xử lý” mở trang xác nhận có đăng nhập; không thay cho xác nhận xuất kho và không dừng nhắc khi chưa có ảnh khớp. Xác nhận xuất kho gom lô 30 phút từ lần đầu, không kéo dài hạn. “Chỉ gửi cảnh báo” lọc đơn AI đạt khỏi tin tổng hợp. Cần WP-Cron hoạt động. Ảnh dùng link mở trực tiếp; nhúng ảnh cần API ứng dụng Lark. Bot có từ khóa phải chấp nhận “Xuất kho” / “AI”; chưa hỗ trợ ký bằng secret.</p>
-                            <?php $lark_delivery = get_option('hithean_export_lark_last_delivery', []); ?>
-                            <?php if (is_array($lark_delivery) && !empty($lark_delivery['state'])): ?>
-                                <p role="status"><strong>Lần gửi gần nhất:</strong> <?php echo esc_html(($lark_delivery['state'] === 'sent' ? 'Lark đã nhận' : 'Gửi lỗi') . ' — ' . ($lark_delivery['updated_at'] ?? '')); ?><?php if (!empty($lark_delivery['error'])): ?><br><?php echo esc_html($lark_delivery['error']); ?><?php endif; ?></p>
-                            <?php endif; ?>
-                        </td>
+                        <td><a href="<?php echo esc_url($page_url . '&tab=lark'); ?>">Cài đặt ERP → Lark</a> — webhook, bật/tắt và tùy chọn của mọi kênh (xuất kho, ưu đãi, CRO…).</td>
                     </tr>
                 </table>
                 <?php submit_button('Lưu cài đặt'); ?>
@@ -564,6 +528,10 @@ function theme_erp_settings_render_page(): void
         <?php if ($active_tab === 'luot-ban'): ?>
             <?php hithean_sc_require_admin(); ?>
             <?php hithean_sc_render_settings_tab(); ?>
+        <?php endif; ?>
+
+        <?php if ($active_tab === 'lark' && function_exists('child_theme_lark_settings_tab')): ?>
+            <?php child_theme_lark_settings_tab($page_url . '&tab=lark'); // core/lark.php: kênh Lark của mọi tính năng ?>
         <?php endif; ?>
 
         <?php if ($active_tab === 'woocommerce'): ?>

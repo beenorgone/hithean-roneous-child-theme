@@ -3,63 +3,65 @@ defined('ABSPATH') || exit;
 require_once __DIR__ . '/warehouse-export-lark-content.php';
 require_once __DIR__ . '/warehouse-export-lark-follow-up.php';
 
+child_theme_lark_register_channel('kho', [
+    'label' => 'Xuất kho', 'default_active' => false,
+    'description' => 'AI ảnh xuất kho không khớp (báo ngay + nhắc 30 phút), tổng hợp xác nhận xuất kho',
+]);
+
+/**
+ * Cài đặt Lark của xuất kho. Webhook + bật/tắt nằm ở kênh "kho" (core/lark.php, Cài đặt ERP → Lark);
+ * option hithean_export_lark_settings chỉ còn only_alerts + stop_reminder_user_ids.
+ */
 function hithean_export_lark_settings(): array
 {
     $saved = get_option('hithean_export_lark_settings', []);
-    return wp_parse_args(is_array($saved) ? $saved : [], ['enabled' => '0', 'only_alerts' => '0', 'webhook_url' => '']);
+    $settings = wp_parse_args(is_array($saved) ? $saved : [], ['only_alerts' => '0', 'stop_reminder_user_ids' => []]);
+    // enabled = kênh "kho" đang bật VÀ có webhook hợp lệ.
+    $settings['enabled'] = child_theme_lark_ready('kho') ? '1' : '0';
+    return $settings;
 }
 
+/** Tên cũ — kiểm webhook ở core/lark.php. */
 function hithean_export_lark_sanitize_webhook($value): string
 {
-    $url = esc_url_raw(trim((string) $value));
-    $parts = wp_parse_url($url);
-    $host = strtolower((string) ($parts['host'] ?? ''));
-    return ($parts['scheme'] ?? '') === 'https'
-        && preg_match('/(^|\.)(larksuite\.com|larkoffice\.com|feishu\.cn)$/', $host)
-        && empty($parts['user']) && empty($parts['pass'])
-        && (!isset($parts['port']) || (int) $parts['port'] === 443)
-        && preg_match('~^/open-apis/bot/v2/hook/[a-zA-Z0-9_-]+$~', $parts['path'] ?? '')
-        && empty($parts['query']) && empty($parts['fragment']) ? $url : '';
+    return child_theme_lark_sanitize_webhook($value);
 }
 
-/** Lark may return HTTP 200 with a nonzero application error code. */
 function hithean_export_lark_response_error($response): string
 {
-    if (is_wp_error($response)) {
-        // Transport errors can contain the secret webhook URL. Never persist it.
-        return 'Không kết nối được Lark; kiểm tra mạng máy chủ và thử lại.';
-    }
-    $http = (int) wp_remote_retrieve_response_code($response);
-    if ($http < 200 || $http >= 300) return 'Webhook HTTP ' . $http;
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-    if (!is_array($body) || (!isset($body['code']) && !isset($body['StatusCode']))) {
-        return 'Lark trả phản hồi không hợp lệ.';
-    }
-    foreach (['code', 'StatusCode'] as $key) {
-        if (isset($body[$key]) && (!is_numeric($body[$key]) || (float) $body[$key] !== 0.0)) {
-            $code = is_numeric($body[$key]) ? (int) $body[$key] : 'invalid';
-            return 'Lark từ chối tin nhắn (mã ' . $code . '); kiểm tra webhook, từ khóa, chữ ký và IP được phép của bot.';
-        }
-    }
-    return '';
+    return child_theme_lark_response_error($response);
 }
 
 function hithean_export_lark_send($message): string
 {
-    $settings = hithean_export_lark_settings();
-    $url = hithean_export_lark_sanitize_webhook($settings['webhook_url']);
-    if (empty($settings['enabled']) || $url === '') return 'Lark chưa bật hoặc webhook không hợp lệ.';
-    $payload = is_array($message) ? $message : ['msg_type' => 'text', 'content' => ['text' => $message]];
-    $body = wp_json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if (!is_string($body) || strlen($body) > 19000) return 'Nội dung Lark vượt giới hạn hoặc không hợp lệ.';
-    $error = hithean_export_lark_response_error(wp_remote_post($url, [
-        'timeout' => 8, 'redirection' => 0,
-        'headers' => ['Content-Type' => 'application/json; charset=utf-8'],
-        'body' => $body,
-    ]));
+    $payload = is_array($message) ? $message : ['msg_type' => 'text', 'content' => ['text' => (string) $message]];
+    $error = child_theme_lark_send('kho', $payload);
     update_option('hithean_export_lark_last_delivery', ['state' => $error === '' ? 'sent' : 'failed', 'error' => $error, 'updated_at' => current_time('mysql')], false);
     return $error;
 }
+
+/** Ô riêng của xuất kho trong tab Cài đặt ERP → Lark. */
+add_action('child_theme_lark_settings_fields', static function (): void {
+    $settings = hithean_export_lark_settings();
+    $stop = array_map('absint', (array) ($settings['stop_reminder_user_ids'] ?? []));
+    echo '<h3>Xuất kho</h3><p><label><input type="checkbox" name="hithean_export_lark_only_alerts" value="1" ' . checked(!empty($settings['only_alerts']), true, false) . '> Chỉ gửi cảnh báo khi AI không đạt (bỏ đơn AI đạt khỏi tin tổng hợp)</label></p>';
+    echo '<fieldset><legend><strong>User được dừng nhắc Lark</strong></legend>';
+    foreach (get_users(['capability' => 'manage_woocommerce', 'orderby' => 'display_name', 'order' => 'ASC']) as $user) {
+        echo '<label style="display:block;margin:5px 0"><input type="checkbox" name="hithean_export_lark_stop_users[]" value="' . (int) $user->ID . '" ' . checked(in_array((int) $user->ID, $stop, true), true, false) . '> ' . esc_html($user->display_name . ' (' . $user->user_login . ')') . '</label>';
+    }
+    echo '<p class="description">AI không khớp: báo ngay kèm nhận định, người xử lý, link đơn và ảnh; nhắc mỗi 30 phút tới khi ảnh hiện tại được AI xác nhận khớp. Chỉ user được chọn mới kết thúc nhắc khi xác nhận đã xử lý. Xác nhận xuất kho gom lô 30 phút. Cần WP-Cron. Bot có từ khóa phải chấp nhận “Xuất kho” / “AI”.</p></fieldset>';
+});
+add_action('child_theme_lark_settings_save', static function (array $posted): void {
+    $saved = get_option('hithean_export_lark_settings', []);
+    $saved = is_array($saved) ? $saved : [];
+    $saved['only_alerts'] = !empty($posted['hithean_export_lark_only_alerts']) ? '1' : '0';
+    $saved['stop_reminder_user_ids'] = array_values(array_intersect(
+        array_map('absint', (array) ($posted['hithean_export_lark_stop_users'] ?? [])),
+        array_map(static fn($user) => (int) $user->ID, get_users(['capability' => 'manage_woocommerce', 'fields' => ['ID']]))
+    ));
+    unset($saved['enabled'], $saved['webhook_url']); // đã chuyển sang kênh "kho"
+    update_option('hithean_export_lark_settings', $saved, false);
+});
 
 /** Short option locks serialize enrollment and prevent overlapping send workers. */
 function hithean_export_lark_lock(string $key): bool
@@ -88,7 +90,7 @@ function hithean_export_lark_alert_hash(int $order_id, array $review): string
 function hithean_export_lark_queue_alert(int $order_id, array $review): void
 {
     $settings = hithean_export_lark_settings();
-    if (($review['overall'] ?? '') !== 'review' || empty($settings['enabled']) || hithean_export_lark_sanitize_webhook($settings['webhook_url']) === '') return;
+    if (($review['overall'] ?? '') !== 'review' || empty($settings['enabled'])) return;
     hithean_export_lark_schedule_reminder($order_id);
     $hash = hithean_export_lark_alert_hash($order_id, $review);
     if (get_post_meta($order_id, 'warehouse_export_lark_alert_hash', true) === $hash) return;
@@ -134,7 +136,7 @@ function hithean_export_lark_queue_notification(int $order_id, int $attempt = 0)
 {
     $settings = hithean_export_lark_settings();
     if (!$order_id || get_post_meta($order_id, 'warehouse_export_lark_notified_at', true)
-        || empty($settings['enabled']) || hithean_export_lark_sanitize_webhook($settings['webhook_url']) === '') return;
+        || empty($settings['enabled'])) return;
     $lock = 'hithean_lark_batch_queue_lock';
     if (!hithean_export_lark_lock($lock)) {
         if ($attempt < 12) wp_schedule_single_event(time() + 10, 'hithean_export_lark_notify_async', [$order_id, $attempt + 1]);

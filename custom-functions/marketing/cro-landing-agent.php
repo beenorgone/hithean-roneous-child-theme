@@ -45,17 +45,7 @@ function hithean_cro_paths(): array {
     }
     return array_values(array_unique($out));
 }
-function hithean_cro_lark_webhook(string $url): string {
-    $url = esc_url_raw($url);
-    if ($url === '') { return ''; }
-    $parts = wp_parse_url($url);
-    $host = strtolower((string) ($parts['host'] ?? ''));
-    $scheme = strtolower((string) ($parts['scheme'] ?? ''));
-    // Incoming bots are hosted by Lark/Feishu. Restricting this prevents an
-    // administrator form from becoming an internal-network request primitive.
-    if ($scheme !== 'https' || !preg_match('/(^|\\.)(larksuite\\.com|larkoffice\\.com|feishu\\.cn)$/', $host)) { return ''; }
-    return $url;
-}
+child_theme_lark_register_channel('cro', ['label' => 'CRO landing', 'description' => 'Báo cáo CRO landing hằng tuần (GA4 + đơn hàng)']);
 
 function hithean_cro_install(): void {
     if (get_option('hithean_cro_db_version') === HITHEAN_CRO_DB_VERSION) { return; }
@@ -330,13 +320,13 @@ add_action(HITHEAN_CRO_CRON_HOOK, static function (): void { hithean_cro_run(fal
 
 function hithean_cro_send_lark(int $report_id): bool {
     global $wpdb; $reports = hithean_cro_reports_table(); $report = $wpdb->get_row($wpdb->prepare("SELECT * FROM $reports WHERE id=%d", $report_id), ARRAY_A); if (!$report) { return false; }
-    $url = hithean_cro_lark_webhook((string) hithean_cro_settings()['lark_webhook']); if ($url === '') { return false; }
+    if (!child_theme_lark_ready('cro')) { return false; }
     $insights = json_decode((string) $report['insights_json'], true) ?: [];
     $lines = []; foreach (array_slice($insights, 0, 3) as $item) { $lines[] = '• ' . $item['path'] . ': ' . $item['title']; }
     $link = admin_url('admin.php?page=hithean-cro-landing&report=' . $report_id);
     $text = "Báo cáo CRO landing " . $report['period_start'] . ' → ' . $report['period_end'] . "\n" . ($lines ? implode("\n", $lines) : 'Chưa có landing đạt ngưỡng dữ liệu để ưu tiên.') . "\nXem dashboard: " . $link;
-    $response = wp_remote_post($url, ['timeout'=>15, 'headers'=>['Content-Type'=>'application/json'], 'body'=>wp_json_encode(['msg_type'=>'text','content'=>['text'=>$text]])]);
-    if (is_wp_error($response) || (int) wp_remote_retrieve_response_code($response) >= 300) { $error = is_wp_error($response) ? $response->get_error_message() : 'Webhook HTTP ' . wp_remote_retrieve_response_code($response); $wpdb->update($reports, ['lark_status'=>'failed','lark_error'=>sanitize_text_field($error)], ['id'=>$report_id], ['%s','%s'], ['%d']); return false; }
+    $error = child_theme_lark_text('cro', $text);
+    if ($error !== '') { $wpdb->update($reports, ['lark_status'=>'failed','lark_error'=>sanitize_text_field($error)], ['id'=>$report_id], ['%s','%s'], ['%d']); return false; }
     $wpdb->update($reports, ['lark_status'=>'sent','lark_error'=>null], ['id'=>$report_id], ['%s','%s'], ['%d']); return true;
 }
 
@@ -355,7 +345,7 @@ add_action('admin_enqueue_scripts', 'hithean_cro_admin_assets');
 function hithean_cro_admin_post(): void {
     if (!hithean_cro_can_manage()) { wp_die('Bạn không có quyền.'); } check_admin_referer('hithean_cro_action');
     $action = sanitize_key((string) ($_POST['cro_action'] ?? ''));
-    if ($action === 'save_settings') { $old = hithean_cro_settings(); $old['property_id'] = sanitize_text_field((string) ($_POST['property_id'] ?? '')); $old['lark_webhook'] = hithean_cro_lark_webhook((string) ($_POST['lark_webhook'] ?? '')); $old['landing_paths'] = sanitize_textarea_field((string) ($_POST['landing_paths'] ?? '')); $old['ai_enabled'] = !empty($_POST['ai_enabled']) ? '1' : '0'; $old['ai_provider'] = in_array(sanitize_key((string) ($_POST['ai_provider'] ?? 'auto')), ['auto','claude','gemini','gemini_billing','openai','qwen'], true) ? sanitize_key((string) $_POST['ai_provider']) : 'auto'; $old['ai_model'] = sanitize_text_field((string) ($_POST['ai_model'] ?? '')); update_option(HITHEAN_CRO_OPTION, $old, false); $notice = 'saved'; }
+    if ($action === 'save_settings') { $old = hithean_cro_settings(); $old['property_id'] = sanitize_text_field((string) ($_POST['property_id'] ?? '')); $old['landing_paths'] = sanitize_textarea_field((string) ($_POST['landing_paths'] ?? '')); $old['ai_enabled'] = !empty($_POST['ai_enabled']) ? '1' : '0'; $old['ai_provider'] = in_array(sanitize_key((string) ($_POST['ai_provider'] ?? 'auto')), ['auto','claude','gemini','gemini_billing','openai','qwen'], true) ? sanitize_key((string) $_POST['ai_provider']) : 'auto'; $old['ai_model'] = sanitize_text_field((string) ($_POST['ai_model'] ?? '')); update_option(HITHEAN_CRO_OPTION, $old, false); $notice = 'saved'; }
     elseif ($action === 'run') { $result = hithean_cro_run(true); $notice = is_wp_error($result) ? 'error:' . rawurlencode($result->get_error_message()) : 'ran'; }
     elseif ($action === 'lark_test') { $notice = hithean_cro_send_lark((int) ($_POST['report_id'] ?? 0)) ? 'lark_sent' : 'error:' . rawurlencode('Không gửi được Lark; kiểm tra webhook hoặc báo cáo.'); }
     elseif ($action === 'move_card') { global $wpdb; $status = sanitize_key((string) ($_POST['board_status'] ?? '')); $valid = ['new','reviewing','approved','doing','deployed','measured']; if (in_array($status, $valid, true)) { $wpdb->update(hithean_cro_cards_table(), ['board_status'=>$status,'updated_at'=>current_time('mysql',true)], ['id'=>(int) ($_POST['card_id'] ?? 0)], ['%s','%s'], ['%d']); } $notice = 'moved'; }
@@ -377,7 +367,7 @@ function hithean_cro_render_admin(): void {
 function hithean_cro_form_open(string $action): void { echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="hithean_cro_action"><input type="hidden" name="cro_action" value="' . esc_attr($action) . '">'; wp_nonce_field('hithean_cro_action'); }
 function hithean_cro_render_settings(array $s): void {
     echo '<div class="hcro-settings"><h2>Cấu hình nguồn dữ liệu</h2><p class="description">Service account không lưu trong WordPress. Khai báo <code>HITHEAN_CRO_GA4_SERVICE_ACCOUNT_JSON</code> trong wp-config/environment, là JSON hoặc đường dẫn file JSON chỉ web user đọc được.</p>'; hithean_cro_form_open('save_settings');
-    echo '<table class="form-table"><tr><th>GA4 Property ID</th><td><input class="regular-text" name="property_id" value="' . esc_attr($s['property_id']) . '" required></td></tr><tr><th>Lark group webhook</th><td><input class="large-text" type="url" name="lark_webhook" value="' . esc_attr($s['lark_webhook']) . '"></td></tr><tr><th>Landing URL / slug</th><td><textarea name="landing_paths">' . esc_textarea($s['landing_paths']) . '</textarea><p class="description">Mỗi dòng một path hoặc URL. Chỉ các landing này được truy vấn và hiển thị.</p></td></tr><tr><th>AI enrichment</th><td><label><input type="checkbox" name="ai_enabled" value="1" ' . checked($s['ai_enabled'], '1', false) . '> Viết lại giả thuyết thử nghiệm từ số liệu aggregate; không gửi PII.</label><p><select name="ai_provider">'; foreach (['auto'=>'Tự động','claude'=>'Claude','gemini'=>'Gemini','gemini_billing'=>'Gemini billing','openai'=>'OpenAI','qwen'=>'Qwen'] as $k=>$v) { echo '<option value="' . esc_attr($k) . '" ' . selected($s['ai_provider'],$k,false) . '>' . esc_html($v) . '</option>'; } echo '</select> <input class="regular-text" name="ai_model" placeholder="Model override (tuỳ chọn)" value="' . esc_attr($s['ai_model']) . '"></p></td></tr></table><p class="submit"><button class="button button-primary">Lưu cấu hình</button></p></form></div>';
+    echo '<table class="form-table"><tr><th>GA4 Property ID</th><td><input class="regular-text" name="property_id" value="' . esc_attr($s['property_id']) . '" required></td></tr><tr><th>Nhóm Lark</th><td>' . (child_theme_lark_ready('cro') ? '✅ Kênh "CRO landing" đang bật' : '⚠️ Kênh "CRO landing" chưa bật') . ' — <a href="' . esc_url(admin_url('options-general.php?page=theme-erp-settings&tab=lark')) . '">Cài đặt ERP → Lark</a></td></tr><tr><th>Landing URL / slug</th><td><textarea name="landing_paths">' . esc_textarea($s['landing_paths']) . '</textarea><p class="description">Mỗi dòng một path hoặc URL. Chỉ các landing này được truy vấn và hiển thị.</p></td></tr><tr><th>AI enrichment</th><td><label><input type="checkbox" name="ai_enabled" value="1" ' . checked($s['ai_enabled'], '1', false) . '> Viết lại giả thuyết thử nghiệm từ số liệu aggregate; không gửi PII.</label><p><select name="ai_provider">'; foreach (['auto'=>'Tự động','claude'=>'Claude','gemini'=>'Gemini','gemini_billing'=>'Gemini billing','openai'=>'OpenAI','qwen'=>'Qwen'] as $k=>$v) { echo '<option value="' . esc_attr($k) . '" ' . selected($s['ai_provider'],$k,false) . '>' . esc_html($v) . '</option>'; } echo '</select> <input class="regular-text" name="ai_model" placeholder="Model override (tuỳ chọn)" value="' . esc_attr($s['ai_model']) . '"></p></td></tr></table><p class="submit"><button class="button button-primary">Lưu cấu hình</button></p></form></div>';
 }
 function hithean_cro_render_overview(?array $report): void {
     hithean_cro_form_open('run'); echo '<p><button class="button button-primary">Chạy lại tuần hoàn chỉnh gần nhất</button> <span class="description">Cron tự chạy Thứ Hai 09:00; chỉ dùng nút này sau khi kiểm tra cấu hình.</span></p></form>';

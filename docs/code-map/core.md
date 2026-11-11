@@ -4,7 +4,7 @@
 
 > Hạ tầng theme: module loader (what-loads-when), nạp theo màn admin, template router, enqueue, guard upload/file/CSP, AI settings/providers, địa chỉ VN, thông tin công ty, admin chrome.
 
-19 file · ~4.200 dòng · 117 hàm (34% có docblock)
+20 file · ~4.400 dòng · 137 hàm (39% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -20,6 +20,9 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 | Hook | File |
 |---|---|
+| `child_theme_lark_channel_enabled` | lark.php |
+| `child_theme_lark_settings_fields` | lark.php |
+| `child_theme_lark_settings_save` | lark.php |
 | `hithean_enqueue_swiper_slider` | swiper-slider.php |
 | `hithean_sfm_enabled` | module-loader.php |
 | `hithean_social_display_page_slugs` | module-loader.php |
@@ -168,6 +171,33 @@ Browser-local navigation toggle for standard WordPress backend screens.
 | `hithean_language_switcher_is_english()` | Nút "Eng" / "Vi" toàn site, dịch bằng Google Website Translator (client-side). Xem plans/multi-language-google-translate-switch.md cho quyết định kiến trúc và giới hạn đã biết (… |
 | `hithean_language_switcher_enqueue()` | — |
 | `hithean_language_switcher_markup(string $extra_class = '')` | Toggle 2 nhánh "VI \| EN", khớp kiểu segmented control của theme (xem css/language-switcher.css). Dùng chung cho cả bản render trong nav (desktop) và bản fixed cho mobile — xem 2… |
+
+### `core/lark.php`
+
+Lark — kết nối dùng chung cho mọi thông báo của site (GIỐNG HỆT hithean ↔ theanmarket, sửa thì chép sang cả 2).
+
+| Hàm | Mô tả |
+|---|---|
+| `child_theme_lark_register_channel(string $key, array $def)` | Khai kênh (gọi khi nạp file tính năng). $def: label, description, fallback (key kênh dự phòng), default_active. |
+| `child_theme_lark_channel_defs()` | — |
+| `child_theme_lark_settings()` | — |
+| `child_theme_lark_channel_config(string $key)` | Cấu hình lưu của 1 kênh (chưa xét dự phòng). |
+| `child_theme_lark_save_channel(array $channel)` | Ghi cấu hình 1 kênh, giữ nguyên các khóa khác của erp_lark_settings (app_id, event_map… của bộ ERP). |
+| `child_theme_lark_sanitize_webhook($value)` | Webhook bot hợp lệ hoặc ''. |
+| `child_theme_lark_sanitize_chat_id($value)` | chat_id Lark App (oc_…) hợp lệ hoặc ''. |
+| `child_theme_lark_app_available()` | App API có mặt (bộ Lark ERP — phương án C). |
+| `child_theme_lark_target(string $key)` | Đích gửi thật của kênh: ['type' => webhook\|chat_id, 'value' => …, 'via' => key kênh cung cấp đích] hoặc error. Kênh tắt → không gửi; bật mà để trống đích → dùng đích của kênh dự… |
+| `child_theme_lark_label(string $key)` | — |
+| `child_theme_lark_ready(string $key)` | Kênh bật và có đích hợp lệ. |
+| `child_theme_lark_response_error($response)` | Phản hồi Lark → '' (thành công) hoặc lỗi không chứa URL webhook. |
+| `child_theme_lark_send(string $key, array $payload)` | Gửi 1 tin (payload đúng dạng webhook Lark: msg_type + content \| card) vào kênh. '' = Lark đã nhận, ngược lại là lỗi. |
+| `child_theme_lark_text(string $key, string $text)` | — |
+| `child_theme_lark_build_card(array $data)` | Thẻ Lark từ dữ liệu cùng dạng erp_lark_notify() của bộ ERP: title, body (Lark markdown), status info\|success\|warning\|danger\|neutral, url, actions [[label, url, type]], fields [[… |
+| `child_theme_lark_notify(string $key, array $data)` | — |
+| `child_theme_lark_log(string $key, string $error, string $type, string $via)` | Nhật ký gửi: lần gần nhất mỗi kênh + 30 lượt gần nhất. Không lưu URL / nội dung tin. |
+| `child_theme_lark_last(string $key)` | — |
+| `child_theme_lark_migrate()` | Chuyển webhook riêng của từng tính năng (trước khi có kênh) sang kênh, 1 lần. Không đè kênh đã có. kho ← *_export_lark_settings (enabled + webhook_url); shopee_ai ← spx_ai_alert… |
+| `child_theme_lark_settings_tab(string $page_url)` | Tab Cài đặt ERP → Lark: kênh của mọi tính năng + ô riêng của tính năng (hook) + gửi thử + nhật ký. |
 
 ### `core/module-loader.php`
 

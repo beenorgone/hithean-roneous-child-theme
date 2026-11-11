@@ -105,10 +105,27 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   (mọi đường đổi snapshot: duyệt / loại / ghim, quét tuần, mốc hết hạn, khôi phục snapshot) → cron `hithean_offers_lark_flush` sau 5 phút,
   so tóm tắt theo chương trình (`hithean_offers_lark_programs()` / `_diff()` / `_message()` — hàm thuần) với mốc đã báo (option
   `hithean_offers_lark_state`) → 1 tin "post": mới / thay đổi (nội dung, thời gian, SP thêm-bỏ) / ngừng (hết hạn, gỡ). Lần bật đầu chỉ ghi mốc;
-  lỗi gửi giữ mốc, thử lại ≤3 lần. Cấu hình ở Ưu đãi sản phẩm → Cấu hình & xuất bản (option `hithean_offers_lark_settings`; webhook trống =
-  webhook nhóm "Thông báo xuất kho"), có nút gửi thử. Test: `php tests/offers-lark-notify.php`.
+  lỗi gửi giữ mốc, thử lại ≤3 lần. Gửi qua kênh Lark **`uu_dai` — nhóm riêng**, không dùng nhóm kho (Cài đặt ERP → Lark; cùng tab có
+  @Tất cả = option `hithean_offers_lark_settings.mention_all` + gửi thử danh sách). Test: `php tests/offers-lark-notify.php`.
 - /uu-dai/: vừa vào hỏi nhanh (dialog `data-ho-ask`) xem theo sản phẩm hay chương trình; bỏ qua khi URL có `?xem=san-pham|chuong-trinh`
   hoặc đã chọn trong phiên (sessionStorage `ho-mode`).
+
+## Lark (`core/lark.php` — GIỐNG HỆT hithean ↔ theanmarket, sửa thì chép sang cả 2 site, kèm `tests/lark-core.php`)
+
+Mọi thông báo Lark đi qua **kênh đặt tên**: tính năng khai `child_theme_lark_register_channel('kho', [label, description, fallback])`
+rồi gửi `child_theme_lark_send($key, $payload)` / `_text()` / `_notify()` (thẻ cùng dạng `erp_lark_notify()` của ivar: title, body, status, url,
+actions, fields) — **không tự giữ webhook, không tự `wp_remote_post` sang Lark**. Kênh hiện có: `kho` (xuất kho — `warehouse-export-lark.php`), `uu_dai` (ưu đãi /uu-dai/, nhóm riêng), `cro` (báo cáo CRO landing).
+
+- Cấu hình ở option `erp_lark_settings['channels']` = [{key, label, type webhook|chat_id, value, active}] — **cùng định dạng bộ Lark ERP
+  của ivarvietnam** (`erp/integrations/lark/`): chép bộ đó sang (nâng cấp lên Lark App) là đọc được ngay; kênh `chat_id` tự gửi qua
+  `erp_lark_api_post()` khi bộ đó có mặt.
+- Kiểm webhook chặt (`child_theme_lark_sanitize_webhook()`), không theo redirect, HTTP 200 kèm mã lỗi Lark = lỗi, nhật ký
+  `child_theme_lark_log` không chứa URL. Kênh có `fallback` để trống webhook thì dùng webhook kênh dự phòng.
+- Cài đặt: **Cài đặt ERP → tab Lark** (`child_theme_lark_settings_tab()`): bật / webhook / gửi thử / lần gửi gần nhất từng kênh; ô riêng của
+  tính năng qua hook `child_theme_lark_settings_fields` + `child_theme_lark_settings_save`; bật kênh → `child_theme_lark_channel_enabled`.
+- Webhook riêng cũ của từng tính năng tự chuyển sang kênh 1 lần (`child_theme_lark_migrate()`, cờ `child_theme_lark_migrated`).
+- Nạp đầu `$general_includes` (trước mọi file khai kênh). Test file nạp `core/lark.php` trước file tính năng.
+
 
 ## Khóa đơn cũ (`woocommerce/orders/order-age-lock.php`, dùng chung theanmarket)
 
@@ -211,7 +228,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 ## Test
 
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
-- `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`, `offers-lark-notify.php`,
+- `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`, `offers-lark-notify.php`, `lark-core.php`, `warehouse-export-lark.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
 - `my-offers.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
 - Popup thao tác nhanh (order-quick-modals.php): `node tests/order-quick-modals-ui.cjs` (cần jsdom + php).

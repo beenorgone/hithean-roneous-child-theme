@@ -7,8 +7,8 @@
  * Gom 5 phút (HITHEAN_OFFERS_LARK_DELAY): mọi thay đổi trong khoảng đó thành 1 tin, so với "mốc đã báo"
  * (option hithean_offers_lark_state) chứ không so từng lần publish → duyệt 5 thẻ liên tiếp = 1 tin.
  * Lần đầu bật chỉ ghi mốc, không gửi cả danh sách. Gửi lỗi giữ mốc cũ, thử lại tối đa 3 lần.
- * Cấu hình: Ưu đãi sản phẩm → Cấu hình & xuất bản → "Thông báo Lark" (option hithean_offers_lark_settings;
- * webhook trống = dùng webhook nhóm "Thông báo xuất kho").
+ * Gửi qua kênh Lark "uu_dai" (core/lark.php) — NHÓM RIÊNG, không dùng nhóm kho. Bật/tắt + webhook: Cài đặt ERP → Lark;
+ * cùng tab có "Nhắc @Tất cả" (option hithean_offers_lark_settings.mention_all) + "Gửi thử danh sách ưu đãi".
  */
 defined('ABSPATH') || exit;
 
@@ -16,21 +16,16 @@ const HITHEAN_OFFERS_LARK_DELAY = 5 * 60;
 const HITHEAN_OFFERS_LARK_RETRIES = 3;
 const HITHEAN_OFFERS_LARK_MAX_LINES = 15; // dòng / nhóm, giữ tin dưới giới hạn ~20KB của Lark
 
+child_theme_lark_register_channel('uu_dai', [
+    'label' => 'Ưu đãi (nhân sự)',
+    'description' => 'Trang /uu-dai/ đổi chương trình: mới / sửa nội dung, thời gian, sản phẩm / hết hạn, gỡ — nhóm riêng',
+]);
+
+/** enabled = kênh "uu_dai" bật + có webhook; mention_all lưu ở option riêng của ưu đãi. */
 function hithean_offers_lark_settings(): array {
     $saved = get_option('hithean_offers_lark_settings', []);
-    return array_merge(['enabled' => false, 'webhook_url' => '', 'mention_all' => false], is_array($saved) ? $saved : []);
-}
-
-/** Webhook dùng thật: riêng của ưu đãi, trống thì webhook nhóm xuất kho. '' = chưa có webhook hợp lệ. */
-function hithean_offers_lark_webhook(): string {
-    return hithean_offers_lark_webhook_for((string) hithean_offers_lark_settings()['webhook_url']);
-}
-function hithean_offers_lark_webhook_for(string $own): string {
-    if (!function_exists('hithean_export_lark_sanitize_webhook')) { return ''; }
-    $own = hithean_export_lark_sanitize_webhook($own);
-    if ($own !== '') { return $own; }
-    $shared = function_exists('hithean_export_lark_settings') ? hithean_export_lark_settings() : [];
-    return hithean_export_lark_sanitize_webhook((string) ($shared['webhook_url'] ?? ''));
+    $saved = is_array($saved) ? $saved : [];
+    return ['enabled' => child_theme_lark_ready('uu_dai'), 'mention_all' => !empty($saved['mention_all'])];
 }
 
 /**
@@ -175,15 +170,9 @@ function hithean_offers_lark_context(array $programs, bool $test = false): array
         'mention_all' => !empty($settings['mention_all']), 'test' => $test];
 }
 
-/** POST tin lên webhook. '' = thành công, ngược lại là lỗi (không chứa URL webhook). */
+/** Gửi qua kênh "uu_dai". '' = thành công. */
 function hithean_offers_lark_post(array $message): string {
-    $url = hithean_offers_lark_webhook();
-    if ($url === '') { return 'Chưa có webhook Lark hợp lệ (riêng cho ưu đãi hoặc của nhóm xuất kho).'; }
-    $body = wp_json_encode($message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if (!is_string($body) || strlen($body) > 19000) { return 'Nội dung Lark vượt giới hạn hoặc không hợp lệ.'; }
-    $response = wp_remote_post($url, ['timeout' => 8, 'redirection' => 0, 'headers' => ['Content-Type' => 'application/json; charset=utf-8'], 'body' => $body]);
-    return function_exists('hithean_export_lark_response_error') ? hithean_export_lark_response_error($response)
-        : (is_wp_error($response) ? 'Không kết nối được Lark.' : '');
+    return child_theme_lark_send('uu_dai', $message);
 }
 
 /** Snapshot vừa đổi → hẹn gửi sau HITHEAN_OFFERS_LARK_DELAY (gom các thay đổi liền nhau). */
@@ -234,7 +223,7 @@ function hithean_offers_lark_test(): string {
     return hithean_offers_lark_post(hithean_offers_lark_message($diff, hithean_offers_lark_context($current, true)));
 }
 
-/** Bật lần đầu (hoặc đổi webhook): ghi mốc = snapshot hiện tại để tin đầu chỉ chứa thay đổi về sau. */
+/** Bật kênh từ tắt: ghi mốc = snapshot hiện tại để tin đầu chỉ chứa thay đổi về sau. */
 function hithean_offers_lark_reset_baseline(): void {
     update_option('hithean_offers_lark_state', ['programs' => hithean_offers_lark_current(), 'at' => time(), 'attempts' => 0, 'error' => ''], false);
 }
@@ -245,3 +234,21 @@ add_action('update_option_' . HITHEAN_OFFERS_SNAPSHOT, static function ($old, $n
     if ($items($old) !== $items($new)) { hithean_offers_lark_schedule(); }
 }, 10, 2);
 add_action('hithean_offers_lark_flush', 'hithean_offers_lark_flush');
+// Vừa bật kênh ở Cài đặt ERP → Lark: lấy danh sách hiện tại làm mốc, tin đầu tiên chỉ báo thay đổi từ giờ.
+add_action('child_theme_lark_channel_enabled', static function (string $key): void {
+    if ($key === 'uu_dai') { hithean_offers_lark_reset_baseline(); }
+});
+add_action('child_theme_lark_settings_fields', static function (): void {
+    $lark = hithean_offers_lark_settings(); $state = (array) get_option('hithean_offers_lark_state', []);
+    echo '<h3>Ưu đãi</h3><p><label><input type="checkbox" name="hithean_offers_lark_mention_all" value="1" ' . checked($lark['mention_all'], true, false) . '> Tin ưu đãi nhắc @Tất cả</label></p>'
+        . '<p><button class="button" name="hithean_offers_lark_test" value="1">Gửi thử danh sách ưu đãi đang hiện</button></p>';
+    if (!empty($state['sent_at'])) { echo '<p class="description">Tin ưu đãi gần nhất: ' . esc_html(wp_date('d/m/Y H:i', (int) $state['sent_at'])) . '</p>'; }
+    if (!empty($state['error'])) { echo '<p class="description" style="color:#b32d2e">Lỗi lúc ' . esc_html(wp_date('d/m/Y H:i', (int) ($state['failed_at'] ?? 0))) . ': ' . esc_html($state['error']) . '</p>'; }
+});
+add_action('child_theme_lark_settings_save', static function (array $posted): void {
+    update_option('hithean_offers_lark_settings', ['mention_all' => !empty($posted['hithean_offers_lark_mention_all'])], false);
+    if (!empty($posted['hithean_offers_lark_test'])) {
+        $error = hithean_offers_lark_test();
+        echo '<div class="notice notice-' . ($error === '' ? 'success' : 'error') . '"><p>' . esc_html($error === '' ? 'Đã gửi thử danh sách ưu đãi vào nhóm Lark.' : 'Gửi thử ưu đãi: ' . $error) . '</p></div>';
+    }
+});

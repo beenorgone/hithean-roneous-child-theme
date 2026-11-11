@@ -51,6 +51,7 @@ class WC_Order {
     public function add_order_note($text) { $GLOBALS['notes'][] = $text; }
 }
 function wc_get_order($id) { return $id > 0 ? new WC_Order($id) : false; }
+require_once dirname(__DIR__) . '/custom-functions/core/lark.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/warehouse-export-workflow.php';
 
 $checks = 0;
@@ -274,7 +275,7 @@ check(wp_next_scheduled('hithean_export_lark_remind_async', [1, 1]) !== false, '
 run_hook('hithean_export_lark_remind_async', 1, 1);
 run_hook('hithean_export_lark_remind_async', 1, 2);
 check(count($GLOBALS['requests']) === 3 && wp_next_scheduled('hithean_export_lark_remind_async', [1, 0]) >= time() + 1799, 'reminder retries stop at two then resume the 30 minute cadence');
-$GLOBALS['options']['hithean_export_lark_settings']['enabled'] = '0';
+child_theme_lark_save_channel(['key' => 'kho', 'active' => false]); // tắt kênh "kho" ở Cài đặt ERP → Lark
 run_hook('hithean_export_lark_remind_async', 1, 0);
 check(count($GLOBALS['requests']) === 3 && !$GLOBALS['events'], 'master toggle stops reminders');
 

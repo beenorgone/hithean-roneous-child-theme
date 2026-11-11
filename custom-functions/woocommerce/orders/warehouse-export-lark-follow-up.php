@@ -45,7 +45,7 @@ add_action('hithean_export_lark_remind_async', function ($order_id, $attempt = 0
         return;
     }
     $settings = hithean_export_lark_settings();
-    if (empty($settings['enabled']) || hithean_export_lark_sanitize_webhook($settings['webhook_url']) === '') {
+    if (empty($settings['enabled'])) {
         hithean_export_lark_stop_reminders($order_id, 'disabled');
         return;
     }

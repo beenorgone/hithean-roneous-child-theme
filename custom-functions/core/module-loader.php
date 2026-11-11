@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) exit;
 // 1) General includes — nạp mọi request
 // =====================================================================
 $general_includes = [
+    'custom-functions/core/lark.php', // kênh Lark dùng chung (giống hệt theanmarket) — trước mọi tính năng khai kênh
     'custom-functions/core/admin-chrome/admin-chrome.php', // compact backend navigation toggle; no frontend assets
     'custom-functions/core/backend-optimize.php',
     'custom-functions/core/functional.php',

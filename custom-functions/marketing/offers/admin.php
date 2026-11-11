@@ -44,17 +44,6 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             update_option('hithean_offers_settings', $next, false);
             hithean_offers_sync_schedule();
             if ($old['preview'] !== $next['preview'] || $old['banner_layout'] !== $next['banner_layout']) { hithean_offers_purge(); }
-        } elseif ($action === 'lark') {
-            $raw = trim((string) wp_unslash($_POST['lark_webhook'] ?? ''));
-            $webhook = $raw === '' ? '' : hithean_export_lark_sanitize_webhook($raw);
-            if ($raw !== '' && $webhook === '') { throw new RuntimeException('Webhook Lark không hợp lệ. Nhập dạng https://open.larksuite.com/open-apis/bot/v2/hook/<token>.'); }
-            $old = hithean_offers_lark_settings();
-            $next = ['enabled' => !empty($_POST['lark_enabled']), 'webhook_url' => $webhook, 'mention_all' => !empty($_POST['lark_mention_all'])];
-            if ($next['enabled'] && hithean_offers_lark_webhook_for($webhook) === '') { throw new RuntimeException('Cần nhập webhook Lark (hoặc cấu hình webhook nhóm xuất kho ở Cài đặt ERP) trước khi bật.'); }
-            update_option('hithean_offers_lark_settings', $next, false);
-            // Vừa bật: lấy danh sách hiện tại làm mốc, tin đầu tiên chỉ báo thay đổi từ giờ.
-            if ($next['enabled'] && !$old['enabled']) { hithean_offers_lark_reset_baseline(); }
-            $notice = $next['enabled'] ? 'Đã bật thông báo Lark khi trang ưu đãi đổi chương trình.' : 'Đã tắt thông báo Lark.';
         } elseif ($action === 'lark_test') {
             $error = hithean_offers_lark_test();
             if ($error !== '') { throw new RuntimeException('Gửi thử thất bại: ' . $error); }
@@ -140,12 +129,8 @@ function hithean_offers_admin(): void {
     if ($page) { echo '<p><a class="button" href="' . esc_url(get_edit_post_link($page->ID)) . '">Kiểm tra / sửa trang Ưu đãi</a> <a class="button" href="' . esc_url(get_permalink($page->ID)) . '">Xem trang</a></p>'; }
     else { hithean_offers_form_start('page'); echo '<button class="button">Tạo trang nháp /uu-dai/</button></form>'; }
     $lark = hithean_offers_lark_settings(); $lark_state = (array) get_option('hithean_offers_lark_state', []);
-    echo '<h3>Thông báo Lark cho nhân sự</h3>';
-    hithean_offers_form_start('lark');
-    echo '<p><label><input type="checkbox" name="lark_enabled" ' . checked($lark['enabled'], true, false) . '> Tự gửi tin vào nhóm Lark khi trang /uu-dai/ đổi chương trình (mới / sửa nội dung, thời gian, sản phẩm / hết hạn, gỡ) — gom thay đổi trong 5 phút thành 1 tin</label></p>'
-        . '<p><label><input type="checkbox" name="lark_mention_all" ' . checked($lark['mention_all'], true, false) . '> Nhắc @Tất cả</label></p>'
-        . '<p><input type="url" class="large-text" style="max-width:600px" name="lark_webhook" value="' . esc_attr($lark['webhook_url']) . '" placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/... (trống = dùng webhook nhóm xuất kho)"></p>'
-        . '<p><button class="button">Lưu thông báo Lark</button></p></form>';
+    echo '<h3>Thông báo Lark cho nhân sự</h3><p>' . ($lark['enabled'] ? '✅ Kênh "Ưu đãi" đang bật — tin vào nhóm Lark riêng của ưu đãi.' : '⚠️ Kênh "Ưu đãi" chưa bật.')
+        . ' Webhook, bật/tắt, @Tất cả: <a href="' . esc_url(admin_url('options-general.php?page=theme-erp-settings&tab=lark')) . '">Cài đặt ERP → Lark</a>.</p>';
     hithean_offers_form_start('lark_test'); echo '<p><button class="button">Gửi thử vào nhóm Lark</button></p></form>';
     if (!empty($lark_state['sent_at'])) { echo '<p class="ho-muted">Tin gần nhất: ' . esc_html(wp_date('d/m/Y H:i', (int) $lark_state['sent_at'])) . '</p>'; }
     if (!empty($lark_state['error'])) { echo '<p class="ho-error">Lark lỗi lúc ' . esc_html(wp_date('d/m/Y H:i', (int) ($lark_state['failed_at'] ?? 0))) . ': ' . esc_html($lark_state['error']) . '</p>'; }

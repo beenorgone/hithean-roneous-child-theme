@@ -1,7 +1,7 @@
 ---
 audience: dev
 owner: người phụ trách kỹ thuật theme
-reviewed: 2026-11-09
+reviewed: 2026-11-11
 applies_to: [custom-functions/bootstrap.php, functions.php, custom-functions/core/module-loader.php, custom-functions/core/admin.php, custom-functions/core/template-router.php]
 ---
 
@@ -77,7 +77,7 @@ Viết tay, máy kiểm (`docs-sync --check`): mọi `paths` / `tpc_loader_path_
 | `(file gốc)` | 2 | ~700 |
 | `admin/` | 4 | ~800 |
 | `auth/` | 4 | ~500 |
-| `core/` | 19 | ~4.200 |
+| `core/` | 20 | ~4.400 |
 | `integrations/` | 3 | 90 |
 | `marketing/` | 18 | ~5.300 |
 | `shortcodes/` | 22 | ~15.000 |
@@ -100,6 +100,7 @@ Viết tay, máy kiểm (`docs-sync --check`): mọi `paths` / `tpc_loader_path_
 |---|---|
 | Hook chạy toàn site, nhẹ | file riêng + `$general_includes` (module-loader). Không truy vấn nặng / gọi ngoài ở thân file |
 | Trang / công cụ / shortcode riêng | mục mới trong `tpc_loader_modules()` (`paths`, `condition`, `shortcodes`, `ajax_actions`) |
+| Gửi thông báo Lark (nhóm chat) | Khai kênh `child_theme_lark_register_channel()` + gửi `child_theme_lark_send()` ở `core/lark.php` (giống hệt 2 site); cài đặt ở Cài đặt ERP → Lark |
 | Màn wp-admin cụ thể | `load_custom_admin_files()` (core/admin.php) theo screen |
 | Landing tĩnh | `pages/{slug}/{slug}.html` + page dùng `template-landing-page.php`; module riêng → `anc_landing` / `paths` |
 | Port từ theanmarket | đọc bảng "Khác biệt với theanmarket" trong CLAUDE.md (meta `order_*`, hàm `hithean_*`) |
