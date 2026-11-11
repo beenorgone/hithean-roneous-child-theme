@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-33 file · ~10.200 dòng · 382 hàm (60% có docblock)
+33 file · ~10.200 dòng · 384 hàm (60% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -296,6 +296,7 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_order_portal_render_create_tab()` | — |
 | `thean_order_portal_sepay_enabled()` | Tab 🏦 Sepay: chỉ ở /quan-ly-don, cần plugin eim (widget hub) + quyền xác nhận thanh toán. |
 | `thean_order_portal_render_sepay_tab()` | Hàng đợi Sepay của hub (widget eim, tab sepay_all = đủ mọi giao dịch, không lọc theo site). URL iframe mang token dùng 1 lần nên không in sẵn: order-workspace-tabs.js gọi AJAX c… |
+| `thean_order_portal_render_returns_panel()` | Board tab Hoàn hàng → khung [order_return_management] (iframe công cụ ?thean_order_tool=returns) ngay dưới danh sách đơn hoàn. JS chuyển khung xuống sau #thean-ous-board, hiện k… |
 | `thean_order_portal_board_initial()` | Trang đầu board in sẵn vào trang (bỏ 1 lượt admin-ajax). Tab = ?thean_board, không có thì tab đã xem lần trước (cookie thean_ous_tab do JS ghi cùng localStorage). Mở thẳng tab T… |
 
 ### `woocommerce/orders/order-product-tools.php`
@@ -305,6 +306,7 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_order_product_tools()` | Fixed registry: request values never become shortcode names or include paths. |
 | `thean_order_export_tools()` | Export lists come first; uploads are a separate, final step. |
 | `thean_order_export_has_shopee()` | Module Xuất kho Shopee có ở site này không (theanmarket có, hithean không). Có → khu Xuất kho thêm bộ chọn loại đơn Website / Shopee, truyền vào iframe bằng ?thean_export_kind=a… |
+| `thean_order_return_tools()` | Board hoàn hàng (shortcode ở shipping/) — /quan-ly-don nhúng dưới tab Hoàn hàng của board. |
 | `thean_order_workspace_tools()` | — |
 | `thean_order_product_tool_url(string $tool)` | — |
 | `thean_order_product_tool_response()` | Isolated document keeps the existing shortcodes' CSS, IDs and inline JS out of the order board. |

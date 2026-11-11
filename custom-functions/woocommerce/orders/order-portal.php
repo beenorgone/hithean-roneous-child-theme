@@ -52,6 +52,62 @@ function thean_order_portal_render_sepay_tab(): void
     <?php
 }
 
+/**
+ * Board tab Hoàn hàng → khung [order_return_management] (iframe công cụ ?thean_order_tool=returns) ngay dưới danh sách
+ * đơn hoàn. JS chuyển khung xuống sau #thean-ous-board, hiện khi board đang mở tab 'return' ở khu Đơn hàng; iframe
+ * chỉ tải lần đầu hiện. Không sửa order-universal-search.js (dùng chung hithean): theo dõi tab đang active bằng
+ * MutationObserver.
+ */
+function thean_order_portal_render_returns_panel(): void
+{
+    if (!current_user_can('manage_woocommerce') || !function_exists('thean_order_product_tool_url')) return;
+    $url = thean_order_product_tool_url('returns');
+    if ($url === '') return;
+    ?>
+    <section class="thean-ous-products" id="thean-ous-returns-panel" aria-label="Quản lý hoàn hàng" hidden>
+        <div class="thean-ous-board__head">
+            <h2 class="thean-ous-modal__title">↩️ Quản lý hoàn hàng</h2>
+            <button type="button" class="thean-ous__more-btn" data-returns-reload>↻ Tải lại</button>
+            <a class="thean-ous__more-btn" href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener">Mở tab mới</a>
+        </div>
+        <iframe title="Quản lý hoàn hàng" data-src="<?php echo esc_url($url); ?>" referrerpolicy="same-origin" allow="clipboard-write"></iframe>
+    </section>
+    <script>
+    (function () {
+        var panel = document.getElementById('thean-ous-returns-panel'), board = document.getElementById('thean-ous-board');
+        if (!panel || !board) return;
+        board.after(panel);
+        var frame = panel.querySelector('iframe');
+        function sync() {
+            var tab = board.querySelector('.thean-ous-tab.is-active');
+            var on = !board.hidden && !document.body.classList.contains('thean-tools-workspace')
+                && !!tab && tab.dataset.theanOusTab === 'return';
+            if (panel.hidden === !on) return;
+            panel.hidden = !on;
+            if (on && !frame.getAttribute('src')) frame.src = frame.dataset.src;
+        }
+        new MutationObserver(sync).observe(board, { attributes: true, attributeFilter: ['hidden', 'class'], subtree: true, childList: true });
+        document.addEventListener('thean:workspace-changed', sync);
+        panel.querySelector('[data-returns-reload]').addEventListener('click', function () { frame.src = frame.dataset.src; });
+        // Xử lý hoàn trong khung → board đơn đọc lại (đơn rời / vào tab Hoàn hàng).
+        frame.addEventListener('load', function () {
+            try {
+                var w = frame.contentWindow;
+                if (w.jQuery) w.jQuery(w.document).ajaxSuccess(function (e, xhr, opt) {
+                    var data = opt && opt.data, act = data instanceof w.FormData ? String(data.get('action') || '') : String(data || '');
+                    if (/(^|action=)(process_return_order|attach_return_order|upload_return_images|update_return_code)\b/.test(act)) {
+                        var r = board.querySelector('[data-thean-ous-board-refresh]');
+                        if (r) setTimeout(function () { r.click(); }, 300);
+                    }
+                });
+            } catch (e) {}
+        });
+        sync();
+    })();
+    </script>
+    <?php
+}
+
 add_action('template_redirect', function (): void {
     if (!thean_order_portal_is_route()) return;
     if (!defined('DONOTCACHEPAGE')) define('DONOTCACHEPAGE', true);
@@ -97,6 +153,7 @@ add_action('template_redirect', function (): void {
     <body class="thean-order-portal<?php echo function_exists('thean_spx_embed_enabled') && thean_spx_embed_enabled() ? ' thean-spx-has-foot' : ''; // Shopee toast clears the footer menu ?>"><main class="wrap" id="thean-order-portal">
         <h1 class="screen-reader-text">Quản lý đơn hàng</h1><div class="wp-header-end"></div>
         <?php thean_ous_render_ui(); ?>
+        <?php thean_order_portal_render_returns_panel(); ?>
         <?php if (function_exists('thean_spx_embed_render')) thean_spx_embed_render(); ?>
     </main>
     <?php

@@ -250,3 +250,9 @@ Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 iframe widget hub mở bằng tab `sepay_all` = Hàng đợi Sepay hiện đủ mọi giao dịch, không lọc theo site (cần eim ≥ 0.16.96 ở hub). URL mang token
 dùng 1 lần → `order-workspace-tabs.js` gọi AJAX `child_theme_hub_sepay_url` (payment-hub-link.php) lúc mở tab / "↻ Tải lại"; widget báo
 `eim:payment-confirmed` → quay lại tab Đơn hàng thì board tự làm mới.
+
+## Board tab Hoàn hàng ở `/quan-ly-don`
+
+Khung `[order_return_management]` (shortcodes/shortcode-order-return-manager.php) ngay dưới danh sách đơn hoàn:
+`thean_order_portal_render_returns_panel()` (order-portal.php, giống hệt bản theanmarket), iframe công cụ `?thean_order_tool=returns`
+(`thean_order_return_tools()` ở order-product-tools.php); chỉ `manage_woocommerce`, iframe tải lần đầu mở tab; xử lý hoàn trong khung → board tự Làm mới.

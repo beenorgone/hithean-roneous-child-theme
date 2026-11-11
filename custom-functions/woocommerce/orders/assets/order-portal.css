@@ -86,3 +86,7 @@ body.thean-order-portal{margin:0;background:#f3f6fa;color:#1e293b;font:14px/1.5 
 .thean-order-portal #thean-ous-sepay-panel h2{font-size:18px;margin:0}
 .thean-order-portal #thean-ous-sepay-panel iframe{display:block;width:100%;height:calc(100dvh - 190px);min-height:480px;margin-top:8px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}
 @media(max-width:782px){.thean-order-portal #thean-ous-sepay-panel{padding:8px}.thean-order-portal #thean-ous-sepay-panel iframe{height:calc(100dvh - 200px)}}
+/* Tab Hoàn hàng của board: khung [order_return_management] ngay dưới danh sách đơn hoàn */
+.thean-order-portal #thean-ous-returns-panel{margin-top:12px}
+.thean-order-portal #thean-ous-returns-panel iframe{display:block;width:100%;height:calc(100dvh - 120px);min-height:560px;margin-top:8px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}
+.thean-order-portal #thean-ous-returns-panel[hidden]{display:none!important}

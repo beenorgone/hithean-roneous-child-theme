@@ -30,9 +30,17 @@ function thean_order_export_has_shopee(): bool
     return is_file(dirname(__DIR__) . '/shipping/shopee-export/shopee-export.php');
 }
 
+/** Board hoàn hàng (shortcode ở shipping/) — /quan-ly-don nhúng dưới tab Hoàn hàng của board. */
+function thean_order_return_tools(): array
+{
+    return [
+        'returns' => ['label' => 'Quản lý hoàn hàng', 'shortcode' => 'order_return_management', 'file' => 'shortcode-order-return-manager.php'],
+    ];
+}
+
 function thean_order_workspace_tools(): array
 {
-    return array_merge(thean_order_product_tools(), thean_order_export_tools());
+    return array_merge(thean_order_product_tools(), thean_order_export_tools(), thean_order_return_tools());
 }
 
 function thean_order_product_tool_url(string $tool): string
@@ -52,14 +60,16 @@ function thean_order_product_tool_response(): void
     $key = is_string($raw) ? sanitize_key(wp_unslash($raw)) : '';
     $tool = thean_order_workspace_tools()[$key] ?? null;
     $is_export = isset(thean_order_export_tools()[$key]);
+    $is_return = isset(thean_order_return_tools()[$key]);
     if (!$tool) wp_die('Công cụ không hợp lệ.', '', ['response' => 400]);
+    if ($is_return && !current_user_can('manage_woocommerce')) wp_die('Không có quyền quản lý hoàn hàng.', '', ['response' => 403]);
     if ($is_export && (!current_user_can('manage_woocommerce') || ($key === 'export_upload' && !current_user_can('upload_files')))) {
         wp_die('Không có quyền sử dụng công cụ xuất kho.', '', ['response' => 403]);
     }
     if (!shortcode_exists($tool['shortcode'])) {
         $base = dirname(__DIR__, 2);
         // Theanmarket: woocommerce/products; Hithean: shortcodes.
-        foreach ([$base . ($is_export ? '/woocommerce/shipping/' : '/woocommerce/products/'), $base . '/shortcodes/'] as $dir) {
+        foreach ([$base . ($is_export || $is_return ? '/woocommerce/shipping/' : '/woocommerce/products/'), $base . '/shortcodes/'] as $dir) {
             if (is_file($dir . $tool['file'])) {
                 require_once $dir . $tool['file'];
                 break;
@@ -67,7 +77,7 @@ function thean_order_product_tool_response(): void
         }
     }
     if (!shortcode_exists($tool['shortcode'])) wp_die('Công cụ chưa sẵn sàng.', '', ['response' => 503]);
-    if ($is_export) {
+    if ($is_export || $is_return) {
         $spx = dirname(__DIR__, 2) . '/woocommerce/shipping/shopee-export/shopee-export.php';
         if (!function_exists('thean_spx_render_embed') && is_file($spx)) require_once $spx; // same dependency as the existing Theanmarket export tools page
     }
