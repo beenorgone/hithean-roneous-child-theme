@@ -113,7 +113,7 @@ body.hithean-product-purchase .product-single .summary .product-trust-ctas__embe
 body.hithean-product-purchase .product-single .summary .product-trust-ctas__embed .ivar-qc-widget-host,
 body.hithean-product-purchase .product-single .summary .product-trust-ctas__embed .ivar-legal-host { display: block !important; width: 100% !important; height: 100% !important; --hithean-proof-fill: 100%; }
 body.hithean-product-purchase .product-single .summary .product-trust-ctas .product-nutrition-label { grid-column: 1 / -1; }
-body.hithean-product-purchase .product-single .summary .hithean-purchase-contact-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 10px; margin: 0 0 10px; }
+body.hithean-product-purchase .product-single .summary .hithean-purchase-contact-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 10px; margin: 14px 0 10px; }
 body.hithean-product-purchase .product-single .summary .hithean-purchase-contact-actions > * { display: flex; align-items: center; justify-content: center; width: 100% !important; min-width: 0; min-height: 44px; margin: 0 !important; box-sizing: border-box; }
 body.hithean-product-purchase .product-single .summary .hithean-purchase-contact-actions .product-nutrition-label__trigger { width: 100% !important; max-width: 100%; }
 body.hithean-product-purchase .product-single .summary > .b-single-product-ctas[hidden] { display: none !important; }
