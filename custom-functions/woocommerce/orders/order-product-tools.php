@@ -82,6 +82,10 @@ function thean_order_product_tool_response(): void
         if (!function_exists('thean_spx_render_embed') && is_file($spx)) require_once $spx; // same dependency as the existing Theanmarket export tools page
     }
     wp_enqueue_script('jquery');
+    // Font giống /quan-ly-don (Be Vietnam + Oswald) — đúng URL storefront nên dùng lại cache trình duyệt.
+    foreach (['theanmarket_enqueue_brand_fonts', 'hithean_enqueue_consolidated_fonts'] as $font_fn) {
+        if (function_exists($font_fn)) { $font_fn(); break; }
+    }
     if ($key === 'info') {
         if (function_exists('en_product_info_search_scripts')) en_product_info_search_scripts();
         elseif (function_exists('pis_register_scripts')) pis_register_scripts();
@@ -103,7 +107,8 @@ function thean_order_product_tool_response(): void
         <style>
             :root { --default-color-green:#0047ba; }
             * { box-sizing:border-box; }
-            body { margin:0; padding:16px; background:#fff; color:#1e293b; font:14px/1.6 system-ui,sans-serif; }
+            body { margin:0; padding:16px; background:#fff; color:#1e293b; font:14px/1.6 "Be Vietnam",system-ui,-apple-system,sans-serif; }
+            :where(h1,h2,h3,h4) { font-family:"Oswald","Be Vietnam",sans-serif; font-weight:500; letter-spacing:.01em; }
             button,input,select,textarea { font:inherit; }
             button { cursor:pointer; }
             a { color:#0047ba; }

@@ -8,6 +8,7 @@
     var create = document.getElementById('thean-ous-create-panel');
     var exports = document.getElementById('thean-ous-exports-panel');
     var sepay = document.getElementById('thean-ous-sepay-panel');
+    var shopee = document.getElementById('thean-spx-embed'); // theanmarket: khối Xuất kho Shopee (admin-embed.php) = khu riêng
     var foot = document.getElementById('thean-workspace-foot');
     if (!bar || !board || !orders || !products || !foot) return;
     bar.parentNode.insertBefore(orders, bar.nextSibling);
@@ -16,19 +17,22 @@
     if (exports) products.parentNode.insertBefore(exports, products.nextSibling);
     if (create) products.parentNode.insertBefore(create, products);
     if (sepay) (exports || products).parentNode.insertBefore(sepay, (exports || products).nextSibling);
+    if (shopee) orders.parentNode.insertBefore(shopee, orders.nextSibling);
     foot.hidden = false;
     var current = 'orders', sepayDirty = false;
     var tools = {
         create: { panel: create, key: 'create', param: 'thean_create_tool' },
         products: { panel: products, key: 'info', param: 'thean_product_tool' },
         exports: { panel: exports, key: 'export_review', param: 'thean_export_tool' },
-        sepay: { panel: sepay, key: 'queue', param: 'thean_sepay_tool' }
+        sepay: { panel: sepay, key: 'queue', param: 'thean_sepay_tool' },
+        shopee: { panel: shopee, plain: true } // không có iframe công cụ: chỉ ẩn / hiện khối
     };
     function updateUrl() {
         var url = new URL(location.href);
         if (current === 'orders') url.searchParams.delete('thean_workspace');
         else url.searchParams.set('thean_workspace', current);
         Object.keys(tools).forEach(function (key) {
+            if (!tools[key].param) return;
             if (key === current) url.searchParams.set(tools[key].param, tools[key].key);
             else url.searchParams.delete(tools[key].param);
         });
@@ -110,7 +114,7 @@
         });
         var suggest = document.getElementById('thean-ous-suggest');
         if (suggest && key !== 'orders') suggest.hidden = true;
-        if (key !== 'orders') selectTool(tools[key].key, key);
+        if (key !== 'orders' && !tools[key].plain) selectTool(tools[key].key, key);
         else updateUrl();
         if (key === 'orders' && sepayDirty) { // vừa xác nhận thanh toán ở tab Sepay → board đọc lại
             sepayDirty = false;
@@ -218,7 +222,7 @@
     window.TheanOrderWorkspace = { show: show, product: function (key) { selectTool(key, 'products'); }, exports: function (key) { selectTool(key, 'exports'); } };
     var url = new URL(location.href);
     Object.keys(tools).forEach(function (workspace) {
-        var config = tools[workspace], initial = url.searchParams.get(config.param);
+        var config = tools[workspace], initial = config.param ? url.searchParams.get(config.param) : null;
         if (config.panel && Array.from(config.panel.querySelectorAll('[data-product-tool]')).some(function (button) { return button.dataset.productTool === initial; })) config.key = initial;
     });
     var initialWorkspace = url.searchParams.get('thean_workspace');
