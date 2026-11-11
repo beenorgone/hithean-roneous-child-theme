@@ -90,7 +90,7 @@ function hithean_offers_wdr_text(array $raw): array {
         foreach ($bulk['ranges'] ?? [] as $range) {
             $from = (int) ($range['from'] ?? 0); $to = (int) ($range['to'] ?? 0); $value = (float) ($range['value'] ?? 0);
             if ($from < 1 || $value <= 0 || !in_array($range['type'] ?? '', ['percentage', 'flat', 'fixed_price'], true)) { continue; }
-            $quantity = $to === $from ? (string) $from : ($to ? "$from–$to" : 'từ ' . $from);
+            $quantity = $to === $from ? (string) $from : ($to ? "{$from}–{$to}" : 'từ ' . $from);
             $benefit = $range['type'] === 'percentage' ? 'giảm ' . $value . '%' : ($range['type'] === 'fixed_price' ? 'giá ' : 'giảm ') . hithean_offers_money($value) . '/sản phẩm';
             $parts[] = 'Mua ' . $quantity . ' sản phẩm: ' . $benefit;
         }
