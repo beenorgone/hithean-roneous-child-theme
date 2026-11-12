@@ -927,15 +927,16 @@
     }
 
     // ---------- order search / copy ----------
-    var orderTimer;
+    var orderTimer, orderSeq = 0;
     function onOrderSearch() {
         clearTimeout(orderTimer);
         var term = $('#oc-order-search').value.trim();
         var box = $('#oc-order-results');
+        var seq = ++orderSeq;
         if (term.length < 2) { box.hidden = true; return; }
         orderTimer = setTimeout(function () {
             post('order_creator_search_orders', { term: term }).then(function (res) {
-                if (!res.success) { return; }
+                if (seq !== orderSeq || !res.success) { return; } // bỏ kết quả của lượt gõ cũ
                 renderOrderResults(res.data.orders || []);
             });
         }, 300);

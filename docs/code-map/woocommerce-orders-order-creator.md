@@ -4,7 +4,7 @@
 
 > Trang Tạo đơn hộ khách /tao-don/.
 
-2 file · ~4.400 dòng · 97 hàm (57% có docblock)
+2 file · ~4.500 dòng · 98 hàm (57% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -133,6 +133,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `order_creator_format_customer(WP_User $user)` | — |
 | `order_creator_normalize_order_search_term(string $term)` | — |
 | `order_creator_add_order_search_candidate(array &$orders, string $term)` | — |
+| `order_creator_search_order_ids(string $term, int $limit = 20)` | ID đơn khớp từ khóa (tên, SĐT, email, địa chỉ, SP…), mới nhất trước. wc_order_search() chạy cả HPOS lẫn posts; wc_get_orders() KHÔNG có tham số 'search' (bị bỏ qua → trả đơn mới… |
 | `order_creator_ai_config()` | Cấu hình AI riêng cho feature bóc tách khách hàng. Mặc định lấy từ trang Settings → Cài đặt ERP (mục AI); override qua wp-config.php: define('ORDER_CREATOR_AI_PROVIDER', 'claude… |
 | `order_creator_ai_convert_flag()` | Checkbox "Chuyển địa chỉ cũ sang 2026" (mặc định bật). |
 | `order_creator_ai_uploaded_images(string $field, int $max)` | Ảnh upload cho AI: nhận cả field đơn (`image`) lẫn mảng (`images[]`). |

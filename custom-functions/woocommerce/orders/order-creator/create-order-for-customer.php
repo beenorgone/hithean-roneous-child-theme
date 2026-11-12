@@ -2280,6 +2280,40 @@ function order_creator_add_order_search_candidate(array &$orders, string $term):
     return true;
 }
 
+/**
+ * ID đơn khớp từ khóa (tên, SĐT, email, địa chỉ, SP…), mới nhất trước.
+ * wc_order_search() chạy cả HPOS lẫn posts; wc_get_orders() KHÔNG có tham số 'search' (bị bỏ qua → trả đơn mới nhất).
+ * SĐT thử thêm dạng 0xxx ↔ 84xxx và chỉ còn chữ số.
+ */
+function order_creator_search_order_ids(string $term, int $limit = 20): array
+{
+    if ($term === '' || !function_exists('wc_order_search')) {
+        return [];
+    }
+    $variants = [$term];
+    $digits   = preg_replace('/\D+/', '', $term) ?? '';
+    if (strlen($digits) >= 8 && preg_match('/^[\d\s.+\-()]+$/', $term)) {
+        $variants[] = $digits;
+        if (strpos($digits, '84') === 0) {
+            $variants[] = '0' . substr($digits, 2);
+        } elseif ($digits[0] === '0') {
+            $variants[] = '84' . substr($digits, 1);
+        }
+    }
+    $ids = [];
+    foreach (array_unique($variants) as $variant) {
+        foreach ((array) wc_order_search($variant) as $id) {
+            $id = (int) $id;
+            if ($id > 0) {
+                $ids[$id] = true;
+            }
+        }
+    }
+    $ids = array_keys($ids);
+    rsort($ids, SORT_NUMERIC);
+    return array_slice($ids, 0, $limit);
+}
+
 add_action('wp_ajax_order_creator_search_orders', function () {
     order_creator_verify_ajax();
 
@@ -2289,23 +2323,36 @@ add_action('wp_ajax_order_creator_search_orders', function () {
     }
 
     $orders = [];
-    $normalized_term = order_creator_normalize_order_search_term($term);
-    if ($normalized_term !== '') {
-        $found_by_id = order_creator_add_order_search_candidate($orders, $normalized_term);
-        if (!$found_by_id && ctype_digit($normalized_term) && strlen($normalized_term) > 2) {
-            order_creator_add_order_search_candidate($orders, substr($normalized_term, 0, -2));
+    if (preg_match('#^/(\d{1,2})$#', $term, $m)) {
+        // "/10", "/20"… = N đơn mới nhất (tối đa 50).
+        $recent = wc_get_orders([
+            'type'    => 'shop_order',
+            'limit'   => max(1, min(50, (int) $m[1])),
+            'orderby' => 'date',
+            'order'   => 'DESC',
+        ]);
+        foreach ($recent as $order) {
+            if ($order instanceof WC_Order) {
+                $orders[$order->get_id()] = $order;
+            }
         }
-    }
+    } else {
+        $normalized_term = order_creator_normalize_order_search_term($term);
+        if ($normalized_term !== '') {
+            $found_by_id = order_creator_add_order_search_candidate($orders, $normalized_term);
+            if (!$found_by_id && ctype_digit($normalized_term) && strlen($normalized_term) > 2) {
+                order_creator_add_order_search_candidate($orders, substr($normalized_term, 0, -2));
+            }
+        }
 
-    $matches = wc_get_orders([
-        'limit'   => 20,
-        'orderby' => 'date',
-        'order'   => 'DESC',
-        'search'  => '*' . ($normalized_term !== '' ? $normalized_term : $term) . '*',
-    ]);
-    foreach ($matches as $order) {
-        if ($order instanceof WC_Order) {
-            $orders[$order->get_id()] = $order;
+        foreach (order_creator_search_order_ids($normalized_term !== '' ? $normalized_term : $term) as $id) {
+            if (isset($orders[$id])) {
+                continue;
+            }
+            $order = wc_get_order($id);
+            if ($order instanceof WC_Order) { // bỏ phiếu hoàn tiền
+                $orders[$id] = $order;
+            }
         }
     }
 
@@ -3692,7 +3739,7 @@ function order_creator_render_page(): void
         </div>
         <?php endif; ?>
         <div class="oc-order-search" id="oc-section-orders">
-            <input type="text" id="oc-order-search" placeholder="🔍 Tìm đơn để sửa / copy: mã đơn, tên, SĐT, email..." aria-label="Tìm đơn">
+            <input type="text" id="oc-order-search" placeholder="🔍 Tìm đơn để sửa / copy: mã đơn, tên, SĐT, email… · /10 /20 = đơn gần nhất" aria-label="Tìm đơn">
             <div class="oc-search-results" id="oc-order-results" hidden></div>
         </div>
     </div>
