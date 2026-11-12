@@ -175,7 +175,7 @@ Xử lý đơn → "Khóa đơn cũ" (option `thean_order_age_lock_relax`). Boar
   Ẩn với **mọi user**, kể cả khi URL có `?s=`, lọc khách / tháng hay kết quả thao tác hàng loạt — chỉ hiện khi có `?thean_wc_list=1`.
   Board "Tải đơn cần xử lý" tự tải khi mở trang (`boardAutoload` trong `thean_ous_ui_config()`), trừ lúc đang mở bảng Woo.
   **Thứ tự vận hành board**: `thean_ops_step_flow()` (order-ops-step.php) — 'main' đánh số 1→6 + mũi tên, 'side' = ngoại lệ
-  (Thiếu CT XK / Hoàn / Đặt trước) sau vạch tách; cùng nguồn cho select mobile + sơ đồ bấm được ở 📖 Quy trình. Thêm tab → thêm vào đây.
+  (Sự cố / Thiếu CT XK / Hoàn / Đặt trước / Đơn nội bộ) sau vạch tách; cùng nguồn cho select mobile + sơ đồ bấm được ở 📖 Quy trình. Thêm tab → thêm vào đây.
   **Link thẳng tới tab**: `?thean_board=<tab>` (key của `thean_ops_step_tabs()`: confirm, payment, picking, export, delivery,
   shipping, cod, proof, return, preorder) luôn mở board ở tab đó; URL trên thanh địa chỉ đi theo tab đang xem (`history.replaceState`),
   nút "🔗 Link tab" sao chép link. PHP: `thean_ops_board_url($tab)` (order-ops-step.php, nạp mọi request).
@@ -203,11 +203,11 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
   nạp mọi request): tính bằng `thean_ow_flow()` (order-workspace.php — cùng logic bảng điều phối) khi đơn được lưu / meta liên quan
   bị ghi thẳng (`*_post_meta` lẫn `*_order_meta` — `save_meta_data()` trên HPOS chỉ phát hook sau; luồng cũ ghi `update_post_meta`
   → `thean_ops_order_cache_bust()` bỏ đơn khỏi OrderCache (Redis) để lần đọc sau kéo post meta sang HPOS — sync on read).
-  Meta lưu **bước thật** cả với đơn nội bộ / đơn cũ (`thean_ops_step_compute($order, false)`); board lọc 2 loại đó bằng SQL theo cài đặt hiện tại.
+  Meta lưu **bước thật** cả với đơn nội bộ / đơn cũ (`thean_ops_step_compute($order, false)`); board lọc đơn cũ + tách đơn nội bộ sang tab "Đơn nội bộ" bằng SQL theo cài đặt hiện tại.
   Tab "Thiếu chứng từ XK" lọc thêm ngày tạo ≤ `THEAN_OPS_PROOF_DAYS` bằng SQL (`thean_ous_proof_since_sql()`); cron 10 phút quét 50 đơn mở, và 10 đơn đang hiện trên board luôn được tính lại (tự sửa). Board chỉ đếm (GROUP BY)
   + phân trang SQL. Mở board / Làm mới / sau thao tác: tải sẵn 5 đơn đầu của **mọi tab** trong 1 request (`all=1`, `THEAN_OUS_BOARD_FIRST`); tab đang xem tự tải thêm cho đủ 20
   (`THEAN_OUS_BOARD_MORE`) → đổi tab
-  lấy từ bộ nhớ đệm (1 phút, `BOARD_TTL`); lượt tự sửa làm đơn đổi tab thì server lấy lại danh sách trong cùng request, không gọi server; "Xem thêm" trong tab tải tiếp 20 đơn theo `offset` / `limit`. Loại khỏi luồng: Hủy / Thất bại / Hoàn tiền / Hoàn thành / Chưa ghi nhận / Đã ghi nhận
+  lấy từ bộ nhớ đệm (1 phút, `BOARD_TTL`); lượt tự sửa làm đơn đổi tab thì server lấy lại danh sách trong cùng request, không gọi server; "Xem thêm" trong tab tải tiếp 20 đơn theo `offset` / `limit`. Đơn nội bộ → tab ngoại lệ riêng (không loại). Loại khỏi luồng: Hủy / Thất bại / Hoàn tiền / Hoàn thành / Chưa ghi nhận / Đã ghi nhận
   (`thean_ops_excluded_statuses()`), đơn gộp Shopee, **đơn nội bộ** (cờ `_eim_internal`; lọc theo domain email ở Cài đặt ERP → Xử lý đơn → "Đơn nội bộ"
   **bật mặc định** — tắt bằng ô tích = option `thean_internal_domains_off` = '1', `thean_internal_domains_enabled()`; khớp **đúng** domain:
   khai `thean.com` thì `a@hn.thean.com` vẫn vào board, muốn loại subdomain phải khai riêng; danh sách domain ở
@@ -253,6 +253,8 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 
 ## Sự cố giao hàng & mẫu ghi chú
 
+- **Luồng ngoại lệ Đơn nội bộ** (tab `internal` của board, nhóm 'side' — order-ops-step.php / order-universal-search.php, GIỐNG HỆT hithean ↔ theanmarket): đơn nội bộ (cờ `_eim_internal` / domain email nội bộ ở Cài đặt ERP → Xử lý đơn) KHÔNG còn bị loại khỏi board mà chỉ hiện ở tab "Đơn nội bộ" (mọi bước, nút thao tác theo bước thật, gợi ý "🏢 Nội bộ · …"); tab luồng khách loại chúng bằng `thean_ops_internal_sql($t)` trong `thean_ous_board_tab_sql()`, tab nội bộ chọn bằng `thean_ops_internal_sql($t, false)`. `thean_ops_step_compute()` trả thêm `internal`; đơn gộp Shopee vẫn ngoài board.
+- **Trang Tạo đơn — danh tính đơn** (`order_creator_guard_operator_identity()` + filter `woocommerce_checkout_customer_id` ở create-order-for-customer.php, cả 2 site): khách vãng lai không mạo danh nên `create_order()` từng gán đơn cho nhân viên đang thao tác → lần sửa sau điền email nhân viên vào đơn. Nay ép customer_id = khách đích (`order_creator_state()['customer_id']`), email người mua trùng email nhân viên (khi đơn không phải của chính nhân viên đó) → thay bằng email khách / để trống + ghi chú đơn.
 - **Sự cố giao hàng + mẫu ghi chú** (`woocommerce/orders/order-flow-notes.php`, nạp từ order-ops-step.php — GIỐNG HỆT hithean ↔ theanmarket): đơn bước Chờ giao VC / Đang giao gắn cờ `_thean_delivery_issue` (nút ⚠️ Báo sự cố, BẮT BUỘC ghi chú) → bước/tab `issue` "Sự cố giao hàng" (nhóm ngoại lệ); ✅ Xử lý xong sự cố gỡ cờ, tự gỡ khi đơn Đã giao / Hoàn thành / Hủy / Thất bại / Hoàn tiền. Popup thao tác (`assets/order-flow-popup.js`) hiện chip mẫu ghi chú theo kind từ option `thean_flow_note_templates` (Cài đặt ERP → Xử lý đơn → "Mẫu ghi chú thao tác", 1 mẫu/dòng). Nút 📝 Ghi chú (nội bộ / gửi khách) ở mọi dòng đơn ô tìm / board / `/quan-ly-don` → task `add_note`; sự cố → task `delivery_issue` (AJAX thean_order_workspace). Test: `php tests/order-flow-notes.php`.
 
 ## Test

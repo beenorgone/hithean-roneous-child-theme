@@ -40,7 +40,7 @@ if (!defined('ORDER_CREATOR_CAP')) {
 
 function &order_creator_state(): array
 {
-    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'manual_shipping' => false, 'shipping_cost' => null, 'source_prices' => [], 'coupon_results' => [], 'editing_order_coupons' => [], 'editing_order_customer_id' => 0, 'operator_id' => 0];
+    static $state = ['active' => false, 'fees' => [], 'is_admin' => false, 'manual_shipping' => false, 'shipping_cost' => null, 'source_prices' => [], 'coupon_results' => [], 'editing_order_coupons' => [], 'editing_order_customer_id' => 0, 'operator_id' => 0, 'customer_id' => 0];
     return $state;
 }
 
@@ -396,6 +396,7 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
 
     $state['active']   = true;
     $state['operator_id'] = $orig_user; // nhân viên thao tác (ghi chú đơn dùng tên này, không phải tên khách)
+    $state['customer_id'] = $user_id;   // khách đích (0 = vãng lai) — order_creator_guard_operator_identity()
     $state['is_admin'] = current_user_can('manage_options'); // operator hiện tại (trước khi mạo danh)
 
     try {
@@ -419,6 +420,7 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
         $state['editing_order_coupons'] = [];
         $state['editing_order_customer_id'] = 0;
         $state['operator_id'] = 0;
+        $state['customer_id'] = 0;
 
         WC()->cart->empty_cart(false);
         if (WC()->session) {
@@ -941,6 +943,54 @@ function order_creator_should_suppress_email(array $payload): bool
     return (bool) $payload['suppress_email'];
 }
 
+/**
+ * Khách vãng lai: không mạo danh (current user vẫn là nhân viên) nên WC_Checkout::create_order() gán đơn cho
+ * get_current_user_id() = NHÂN VIÊN. Lần sửa sau, form nạp "khách" = nhân viên → email nhân viên bị điền vào đơn.
+ * Ép đúng khách đích trong lúc trang Tạo đơn chạy.
+ */
+add_filter('woocommerce_checkout_customer_id', function ($id) {
+    $state = order_creator_state();
+    return !empty($state['active']) ? (int) $state['customer_id'] : $id;
+}, PHP_INT_MAX);
+
+/**
+ * Chốt danh tính đơn: customer_id = khách đích; email billing trùng email nhân viên thao tác (khi đơn không phải của
+ * chính nhân viên đó) → thay bằng email khách (hồ sơ) hoặc để trống, kèm ghi chú đơn.
+ */
+function order_creator_guard_operator_identity(WC_Order $order): void
+{
+    $state       = order_creator_state();
+    $customer_id = (int) ($state['customer_id'] ?? 0);
+    $operator_id = (int) ($state['operator_id'] ?? 0);
+    if (empty($state['active'])) {
+        return;
+    }
+    if ((int) $order->get_customer_id() !== $customer_id) {
+        $order->set_customer_id($customer_id);
+    }
+    $operator = $operator_id > 0 && $operator_id !== $customer_id ? get_userdata($operator_id) : null;
+    if (!$operator) {
+        return;
+    }
+    $staff = array_filter(array_map(static fn($e) => strtolower(trim((string) $e)), [$operator->user_email, get_user_meta($operator_id, 'billing_email', true)]));
+    $email = strtolower(trim($order->get_billing_email()));
+    if ($email === '' || !in_array($email, $staff, true)) {
+        return;
+    }
+    $replace = '';
+    if ($customer_id > 0 && ($customer = get_userdata($customer_id))) {
+        foreach ([get_user_meta($customer_id, 'billing_email', true), $customer->user_email] as $candidate) {
+            $candidate = sanitize_email((string) $candidate);
+            if ($candidate !== '' && !in_array(strtolower($candidate), $staff, true)) {
+                $replace = $candidate;
+                break;
+            }
+        }
+    }
+    $order->set_billing_email($replace);
+    $order->add_order_note(sprintf('Trang Tạo đơn: bỏ email nhân viên thao tác (%s) khỏi email người mua%s.', $email, $replace !== '' ? ' → dùng email khách ' . $replace : ''), false);
+}
+
 /** Gán địa chỉ billing/shipping lên đơn từ payload. */
 function order_creator_apply_addresses(WC_Order $order, array $payload): void
 {
@@ -1265,6 +1315,7 @@ function order_creator_update_order(int $order_id, array $payload): WC_Order
 
     $order->set_customer_id(absint($payload['customer_id'] ?? 0));
     order_creator_apply_addresses($order, $payload);
+    order_creator_guard_operator_identity($order);
 
     $payment_method = wc_clean($payload['payment_method'] ?? '');
     if ($payment_method !== '') {
@@ -1341,6 +1392,7 @@ function order_creator_build_order(array $payload): WC_Order
         $order->set_payment_method_title($gateways[$data['payment_method']]->get_title());
     }
 
+    order_creator_guard_operator_identity($order); // khách vãng lai không bị gán cho nhân viên / email nhân viên
     order_creator_apply_custom_shipping_title($order, $payload);
     order_creator_apply_status_and_notes($order, $payload, $is_draft, 'Đơn được tạo');
     order_creator_save_customer_addresses($payload);

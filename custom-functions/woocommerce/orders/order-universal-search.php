@@ -1014,6 +1014,9 @@ function thean_ous_step_badge(WC_Order $order, array $flow): string
     $off    = false;
     if ($step !== '') {
         $label = $tabs[$step] ?? $step;
+        if (!empty($flow['internal'])) {
+            $label = '🏢 ' . ($tabs['internal'] ?? 'Đơn nội bộ') . ' · ' . $label;
+        }
         if (!empty($flow['proof']) && $step !== 'proof') {
             $label .= ' + ' . ($tabs['proof'] ?? 'Thiếu / chưa xác nhận ảnh xuất kho');
         }
@@ -1023,7 +1026,8 @@ function thean_ous_step_badge(WC_Order $order, array $flow): string
         if ((string) $order->get_meta('_spx_date') !== '') {
             $label = 'Đơn gộp Shopee — ngoài board';
         } elseif (function_exists('thean_order_is_internal') && thean_order_is_internal($order)) {
-            $label = 'Đơn nội bộ — ngoài board';
+            $label = 'Đơn nội bộ — không cần xử lý';
+            $off   = false;
         } elseif (function_exists('thean_ops_age_cutoff_ts') && (!$created || $created->getTimestamp() < thean_ops_age_cutoff_ts())) {
             $label = 'Đơn cũ (trước mốc khóa) — ngoài board';
         } elseif (function_exists('thean_ops_excluded_statuses') && in_array($order->get_status(), thean_ops_excluded_statuses(), true)) {
@@ -1269,12 +1273,15 @@ function thean_ous_preview_html(WC_Order $order): string
     return $html;
 }
 
-/** FROM … WHERE board: đơn có bước (≠ none) thuộc luồng vận hành; đơn đóng chỉ còn tab Hoàn hàng; bỏ đơn gộp Shopee + đơn nội bộ. */
+/**
+ * FROM … WHERE board: đơn có bước (≠ none) thuộc luồng vận hành; đơn đóng chỉ còn tab Hoàn hàng; bỏ đơn gộp Shopee.
+ * Đơn nội bộ CÓ trong phạm vi này — tách / chọn ở thean_ous_board_tab_sql (tab Đơn nội bộ).
+ */
 function thean_ous_board_sql(string $range = 'auto'): string
 {
     $t = thean_ops_step_tables();
     $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_excluded_statuses())) . "'";
-    // Điều kiện cuối: đơn nội bộ (domain email / _eim_internal — đổi cài đặt có hiệu lực ngay), mốc khóa đơn cũ và khoảng ngày tạo đang chọn.
+    // Điều kiện cuối: mốc khóa đơn cũ và khoảng ngày tạo đang chọn.
     return "FROM {$t['orders']} o
             JOIN {$t['meta']} s ON s.{$t['fk']} = o.{$t['id']} AND s.meta_key = '" . THEAN_OPS_STEP_META . "' AND s.meta_value <> 'none'
             WHERE o.{$t['type']} = 'shop_order'
@@ -1282,7 +1289,6 @@ function thean_ous_board_sql(string $range = 'auto'): string
               AND (o.{$t['status']} NOT IN ({$excluded}) OR s.meta_value IN ('return', 'proof'))
               AND (s.meta_value <> 'proof' OR " . thean_ous_proof_since_sql($t) . ")
               AND NOT EXISTS (SELECT 1 FROM {$t['meta']} x WHERE x.{$t['fk']} = o.{$t['id']} AND x.meta_key = '_spx_date' AND x.meta_value <> '')
-              AND " . thean_ops_internal_sql($t) . "
               AND " . thean_ops_age_sql($t) . "
               AND " . thean_ous_range_sql($range, 'o', 's.meta_value');
 }
@@ -1294,17 +1300,21 @@ function thean_ous_board_sql(string $range = 'auto'): string
 function thean_ous_board_tab_sql(string $tab, string $range = 'auto'): string
 {
     global $wpdb;
+    $t = thean_ops_step_tables();
+    if ($tab === 'internal') {
+        return thean_ops_internal_sql($t, false); // luồng ngoại lệ: đơn nội bộ ở mọi bước
+    }
+    $not_internal = ' AND ' . thean_ops_internal_sql($t);
     if ($tab === 'proof') {
-        $t = thean_ops_step_tables();
         return "EXISTS (SELECT 1 FROM {$t['meta']} pf WHERE pf.{$t['fk']} = o.{$t['id']} AND pf.meta_key = '" . THEAN_OPS_PROOF_META . "' AND pf.meta_value = '1')"
             . ' AND ' . thean_ous_proof_since_sql($t)
-            . ' AND ' . thean_ous_range_sql($range === 'auto' ? '30' : $range);
+            . ' AND ' . thean_ous_range_sql($range === 'auto' ? '30' : $range) . $not_internal;
     }
     $groups = thean_ops_step_groups(thean_ops_step_tab($tab));
     if ($groups) {
-        return 's.meta_value IN (' . implode(',', array_map(static fn($step) => $wpdb->prepare('%s', $step), array_keys($groups))) . ')';
+        return 's.meta_value IN (' . implode(',', array_map(static fn($step) => $wpdb->prepare('%s', $step), array_keys($groups))) . ')' . $not_internal;
     }
-    return $wpdb->prepare('s.meta_value = %s', $tab);
+    return $wpdb->prepare('s.meta_value = %s', $tab) . $not_internal;
 }
 
 /**
@@ -1319,6 +1329,9 @@ function thean_ous_proof_since_sql(array $t): string
 /** Đơn (kết quả thean_ops_step_compute) có thuộc tab không — cùng quy tắc thean_ous_board_tab_sql. */
 function thean_ous_board_in_tab(array $res, string $tab): bool
 {
+    if (!empty($res['internal']) || $tab === 'internal') {
+        return $tab === 'internal' && !empty($res['internal']) && (string) ($res['step'] ?? '') !== '';
+    }
     return $tab === 'proof' ? !empty($res['proof']) : thean_ops_step_tab((string) ($res['step'] ?? '')) === thean_ops_step_tab($tab);
 }
 
@@ -1327,7 +1340,8 @@ function thean_ous_board_in_tab(array $res, string $tab): bool
  */
 function thean_ous_board_cache_key(string $part, string $range = 'auto'): string
 {
-    $scope = preg_replace("/(:[0-9]{2})'/", ":00'", thean_ous_board_sql($range));
+    // Gồm điều kiện đơn nội bộ: đổi domain ở Cài đặt ERP → đổi phạm vi cache.
+    $scope = preg_replace("/(:[0-9]{2})'/", ":00'", thean_ous_board_sql($range) . thean_ops_internal_sql(thean_ops_step_tables()));
     return 'thean_ous_board_' . md5(wp_json_encode([
         $part, thean_ous_range($range), $scope, THEAN_OPS_STEP_VERSION, thean_ous_orders_version(),
         get_option('thean_ops_board_revision', '0'),
@@ -1355,7 +1369,8 @@ function thean_ous_board_stats(string $range = 'auto'): array
     if (is_array($cached)) {
         return $cached;
     }
-    $rows   = $wpdb->get_results('SELECT s.meta_value AS tab, COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') AS n ' . thean_ous_board_sql($range) . ' GROUP BY s.meta_value', ARRAY_A);
+    $t      = thean_ops_step_tables();
+    $rows   = $wpdb->get_results('SELECT s.meta_value AS tab, COUNT(DISTINCT o.' . $t['id'] . ') AS n ' . thean_ous_board_sql($range) . ' AND ' . thean_ops_internal_sql($t) . ' GROUP BY s.meta_value', ARRAY_A);
     $counts = array_fill_keys(array_keys(thean_ops_step_tabs()), 0);
     $steps = [];
     foreach ((array) $rows as $row) {
@@ -1366,7 +1381,10 @@ function thean_ous_board_stats(string $range = 'auto'): array
         }
     }
     if (isset($counts['proof'])) {
-        $counts['proof'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('proof', $range));
+        $counts['proof'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . $t['id'] . ') ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('proof', $range));
+    }
+    if (isset($counts['internal'])) {
+        $counts['internal'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . $t['id'] . ') ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('internal', $range));
     }
     $stats = ['counts' => $counts, 'steps' => $steps];
     set_transient($key, $stats, THEAN_OUS_BOARD_CACHE_TTL);
@@ -1557,13 +1575,17 @@ function thean_ous_board_memberships(array $ids, string $range): array
     }
     $t = thean_ops_step_tables();
     $rows = $wpdb->get_results("SELECT DISTINCT o.{$t['id']} AS order_id, s.meta_value AS step, ("
-        . thean_ous_board_tab_sql('proof', $range) . ') AS proof ' . thean_ous_board_sql($range)
+        . thean_ous_board_tab_sql('proof', $range) . ') AS proof, (' . thean_ous_board_tab_sql('internal', $range) . ') AS internal ' . thean_ous_board_sql($range)
         . " AND o.{$t['id']} IN (" . implode(',', $ids) . ')', ARRAY_A);
     $out = array_fill_keys($ids, []);
     $labels = thean_ops_step_tabs();
     foreach ((array) $rows as $row) {
         $id = (int) $row['order_id'];
         if (!isset($out[$id])) {
+            continue;
+        }
+        if (!empty($row['internal'])) {
+            $out[$id][] = 'internal'; // đơn nội bộ chỉ thuộc tab Đơn nội bộ
             continue;
         }
         $tab = thean_ops_step_tab($row['step']);

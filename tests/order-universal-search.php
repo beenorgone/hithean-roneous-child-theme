@@ -112,7 +112,7 @@ class FakeWpdb
     }
     public function get_results($sql, $format) {
         $this->queries[] = $sql;
-        return strpos($sql, ' AS proof ') !== false ? $this->board_memberships : $this->board_counts;
+        return strpos($sql, ' AS proof') !== false ? $this->board_memberships : $this->board_counts;
     }
     public function get_var($sql) {
         $this->queries[] = $sql;
@@ -261,7 +261,13 @@ check(thean_ops_step_from_flow(['next_goto' => 'preorder', 'preorder_confirm' =>
 // Tab "Thiếu chứng từ XK" theo cờ (đơn đang giao thiếu chứng từ ở cả tab Đang giao lẫn Thiếu chứng từ XK).
 check(thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'shipping') && thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'proof'), 'shipping + missing proof → both tabs');
 check(!thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'picking') && !thean_ous_board_in_tab(['step' => 'shipping', 'proof' => false], 'proof'), 'not in picking; no proof flag → not in proof tab');
-check(strpos(thean_ous_board_tab_sql('proof'), "meta_key = '_thean_ops_proof' AND pf.meta_value = '1'") !== false && thean_ous_board_tab_sql('shipping') === "s.meta_value = 'shipping'", 'tab SQL: proof by flag, others by step');
+check(strpos(thean_ous_board_tab_sql('proof'), "meta_key = '_thean_ops_proof' AND pf.meta_value = '1'") !== false && strpos(thean_ous_board_tab_sql('shipping'), "s.meta_value = 'shipping' AND NOT (EXISTS") === 0, 'tab SQL: proof by flag, others by step (minus internal)');
+// Luồng ngoại lệ Đơn nội bộ: đơn nội bộ chỉ ở tab internal (mọi bước), không lẫn vào tab luồng khách.
+check(thean_ous_board_in_tab(['step' => 'picking', 'internal' => true], 'internal') && !thean_ous_board_in_tab(['step' => 'picking', 'internal' => true], 'picking')
+    && !thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true, 'internal' => true], 'proof'), 'internal order → only internal tab');
+check(!thean_ous_board_in_tab(['step' => '', 'internal' => true], 'internal') && !thean_ous_board_in_tab(['step' => 'picking'], 'internal'), 'internal tab: needs a step + internal flag');
+check(strpos(thean_ous_board_tab_sql('internal'), "(EXISTS (SELECT 1") === 0 && strpos(thean_ous_board_tab_sql('proof'), ' AND NOT (EXISTS') !== false
+    && in_array('internal', thean_ops_step_flow()['side'], true), 'internal tab SQL selects, other tabs exclude; side lane');
 check(thean_ous_ship_code_short('S12734516.BO.SGP120-V44.1363613511') === '1363613511' && thean_ous_ship_code_short('S12734516.MB10-12-L17.1615456041') === '1615456041', 'GHTK code → last segment');
 check(thean_ous_ship_code_short('ahamove 26OU3IQB') === 'ahamove 26OU3IQB' && thean_ous_ship_code_short('') === '', 'non-GHTK code unchanged');
 // HPOS: khôi phục chứng từ xuất kho bị Meta Box xóa (order-legacy-meta-sync.php).
@@ -281,7 +287,7 @@ check(thean_ops_shipping_statuses() === ['shipping', 'local-shipping', 'partial-
 check(preg_match("/pf\.meta_value = '1'\) AND o\.(date_created_gmt|post_date_gmt) >= '\d{4}-/", thean_ous_board_tab_sql('proof'))
     && strpos(thean_ous_board_sql(), "s.meta_value <> 'proof' OR o.") !== false, 'proof tab: only orders within THEAN_OPS_PROOF_DAYS (stale flags not counted)');
 check(isset(thean_ops_step_tabs()['proof']) && thean_ops_proof_statuses() === ['delivered', 'partial-shipped', 'completed'], 'tab Thiếu chứng từ XK');
-check(array_key_last(thean_ops_step_tabs()) === 'preorder' && thean_ops_step_tabs()['confirm'] === 'Chờ khách xác nhận / thanh toán', 'tabs: Đặt trước + Xác nhận khách');
+check(array_key_last(thean_ops_step_tabs()) === 'internal' && isset(thean_ops_step_tabs()['preorder']) && thean_ops_step_tabs()['confirm'] === 'Chờ khách xác nhận / thanh toán', 'tabs: Đặt trước + Xác nhận khách');
 check(thean_ops_step_from_flow(['next_goto' => 'payment'], 'da-ghi-nhan') === '', 'Đã ghi nhận not in ops flow');
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
@@ -304,13 +310,13 @@ check(!thean_email_is_internal('khach@an.com', ['thean.com']) && !thean_email_is
 $GLOBALS['__options']['thean_internal_email_domains'] = 'thean.com';
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
-    $q = thean_ous_board_sql();
-    check(strpos($q, "'_eim_internal'") !== false && strpos($q, "LIKE '%@thean.com'") !== false && strpos($q, "LIKE '%.thean.com'") === false
-        && strpos($q, $hpos ? 'COALESCE(o.billing_email' : "meta_key = '_billing_email'") !== false, 'board skips internal orders ' . ($hpos ? 'HPOS' : 'legacy'));
+    $q = thean_ous_board_tab_sql('picking');
+    check(strpos(thean_ous_board_sql(), "'_eim_internal'") === false && strpos($q, "'_eim_internal'") !== false && strpos($q, "LIKE '%@thean.com'") !== false && strpos($q, "LIKE '%.thean.com'") === false
+        && strpos($q, $hpos ? 'COALESCE(o.billing_email' : "meta_key = '_billing_email'") !== false, 'customer tabs skip internal orders ' . ($hpos ? 'HPOS' : 'legacy'));
 }
 $GLOBALS['__options']['thean_internal_domains_off'] = '1';
-check(thean_internal_email_domains() === [] && strpos(thean_ous_board_sql(), 'LIKE') === false && strpos(thean_ous_board_sql(), "'_eim_internal'") !== false,
-    'internal domains switched off: no domain filter, _eim_internal flag still excluded');
+check(thean_internal_email_domains() === [] && strpos(thean_ous_board_tab_sql('picking'), 'LIKE') === false && strpos(thean_ous_board_tab_sql('picking'), "'_eim_internal'") !== false,
+    'internal domains switched off: no domain filter, _eim_internal flag still routed to internal tab');
 unset($GLOBALS['__options']['thean_internal_domains_off']);
 unset($GLOBALS['__options']['thean_internal_email_domains']);
 
@@ -330,7 +336,7 @@ $order = new WC_Order();
 $order->created = new DateTimeImmutable();
 check(!thean_ops_step_excluded($order), 'recent customer order eligible for board');
 $order->meta['_eim_internal'] = '1';
-check(thean_ops_step_excluded($order) && !thean_ops_step_excluded($order, false), 'internal gating preserved when reusing stored flow');
+check(!thean_ops_step_excluded($order) && !thean_ops_step_excluded($order, false), 'internal order stays in flow (exception tab Đơn nội bộ)');
 $order->meta = []; $order->created = new DateTimeImmutable('-400 days');
 check(thean_ops_step_excluded($order) && !thean_ops_step_excluded($order, false), 'old-order gating preserved when reusing stored flow');
 $order->meta['_spx_date'] = '2026-01-01';
@@ -346,7 +352,7 @@ foreach ([true, false] as $hpos) {
     $counts = thean_ous_board_counts();
     check($counts['picking'] === 25 && $counts['proof'] === 3, 'counts + proof count cached');
     thean_ous_board_counts();
-    check(count($wpdb->queries) === 2, 'second count request skips SQL');
+    check(count($wpdb->queries) === 3, 'second count request skips SQL (steps + proof + internal)');
     $key = thean_ous_board_cache_key('counts');
     check($GLOBALS['__ttls'][$key] === 10, 'counts expire after 10 seconds');
     $wpdb->board_ids = [901, 900];
@@ -366,7 +372,7 @@ foreach ([true, false] as $hpos) {
     $wpdb->queries = [];
     thean_ous_board_counts(); thean_ous_board_counts();
     thean_ous_board_page_ids('picking', 0, 10); thean_ous_board_page_ids('picking', 0, 10);
-    check(count($wpdb->queries) === 3, 'empty counts and IDs cached');
+    check(count($wpdb->queries) === 4, 'empty counts and IDs cached');
     $key = thean_ous_board_cache_key('counts');
     $GLOBALS['__options']['thean_internal_email_domains'] = 'private.example';
     check(thean_ous_board_cache_key('counts') !== $key, 'domain settings change cache scope');
@@ -412,11 +418,11 @@ foreach ([true, false] as $hpos) {
         check($r->success && $r->data['tab'] === 'picking' && $r->data['panes'] === null && $r->data['rows'] === '', 'active-tab response without all-tab panes');
     }
     $sql = implode("\n", $wpdb->queries);
-    check(count($wpdb->queries) === 3 && strpos($sql, 'LIMIT 10 OFFSET 0') !== false && strpos($sql, "s.meta_value = 'picking'") !== false && strpos($sql, 'a.meta_value') === false, 'only counts and active-page SQL; no foreground backfill');
+    check(count($wpdb->queries) === 4 && strpos($sql, 'LIMIT 10 OFFSET 0') !== false && strpos($sql, "s.meta_value = 'picking'") !== false && strpos($sql, 'a.meta_value') === false, 'only counts and active-page SQL; no foreground backfill');
     $_POST['refresh'] = 1;
     $wpdb->queries = [];
     try { thean_ous_ajax_board(); } catch (JsonResponse $r) {}
-    check(count($wpdb->queries) === 3, 'explicit refresh bypasses server counts and IDs cache');
+    check(count($wpdb->queries) === 4, 'explicit refresh bypasses server counts and IDs cache');
     unset($_POST['refresh']);
     $wpdb->queries = []; $GLOBALS['__caps'] = [];
     try { thean_ous_ajax_board(); } catch (JsonResponse $r) { check(!$r->success, 'unauthorized board rejected'); }
@@ -455,7 +461,7 @@ foreach ([true, false] as $hpos) {
     check(thean_ous_board_cache_key('counts', '30') !== thean_ous_board_cache_key('counts', '90'), 'board range scopes counts cache');
     thean_ops_board_invalidate(); $wpdb->queries = [];
     thean_ous_board_counts('7'); thean_ous_board_counts('90');
-    check(count($wpdb->queries) === 4, 'counts for different ranges do not collide');
+    check(count($wpdb->queries) === 6, 'counts for different ranges do not collide');
     $wpdb->queries = [];
     thean_ous_board_page_ids('return', 0, 10, '7');
     thean_ous_board_page_ids('return', 0, 10, 'all');
@@ -516,8 +522,8 @@ check(thean_ous_board_in_tab(['step' => 'cod_fast'], 'cod') && thean_ous_board_i
 check(thean_ops_step_from_flow(['next_goto' => 'payment', 'is_cod' => true, 'is_fast' => true]) === 'cod_fast', 'fast COD has distinct stored step');
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
-    check(thean_ous_board_tab_sql('confirm') === "s.meta_value IN ('confirm','payment')", 'merged customer tab SQL');
-    check(thean_ous_board_tab_sql('cod') === "s.meta_value IN ('cod_fast','cod')", 'COD subgroup SQL');
+    check(strpos(thean_ous_board_tab_sql('confirm'), "s.meta_value IN ('confirm','payment') AND NOT (") === 0, 'merged customer tab SQL');
+    check(strpos(thean_ous_board_tab_sql('cod'), "s.meta_value IN ('cod_fast','cod') AND NOT (") === 0, 'COD subgroup SQL');
     thean_ops_board_invalidate();
     $wpdb->board_counts = [['tab' => 'confirm', 'n' => 2], ['tab' => 'payment', 'n' => 3], ['tab' => 'cod_fast', 'n' => 4], ['tab' => 'cod', 'n' => 5]];
     $wpdb->queries = [];
@@ -528,7 +534,7 @@ foreach ([true, false] as $hpos) {
     $flat = array_merge($flow['main'], $flow['side']);
     check(count($flat) === count(array_unique($flat)) && !array_diff(array_keys(thean_ops_step_tabs()), $flat) && !array_diff($flat, array_keys(thean_ops_step_tabs())), 'flow covers every board tab exactly once');
     check(array_column(thean_ous_board_tabs('30'), 'key') === $flat && $tabs['confirm']['lane'] === 'main' && $tabs['confirm']['no'] === 1 && $tabs['cod']['no'] === 6 && $tabs['proof']['lane'] === 'side', 'board tabs ordered + numbered by operating flow');
-    check($tabs['confirm']['groups'][1]['count'] === 3 && $tabs['cod']['groups'][0]['count'] === 4 && count($wpdb->queries) === 2, 'group counts reuse same aggregate queries');
+    check($tabs['confirm']['groups'][1]['count'] === 3 && $tabs['cod']['groups'][0]['count'] === 4 && count($wpdb->queries) === 3, 'group counts reuse same aggregate queries');
     $wpdb->board_memberships = [['order_id' => 910, 'step' => 'payment', 'proof' => 0], ['order_id' => 911, 'step' => 'cod_fast', 'proof' => 1]];
     check(thean_ous_board_memberships([910,911], '30') === [910 => ['confirm'], 911 => ['cod','proof']], 'row patches map raw steps to canonical tabs with proof overlap');
     $wpdb->board_counts = []; $wpdb->board_memberships = [];

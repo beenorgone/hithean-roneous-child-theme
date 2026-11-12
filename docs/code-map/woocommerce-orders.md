@@ -279,15 +279,15 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_parse_email_domains(string $raw)` | Tách danh sách domain (phẩy / chấm phẩy / khoảng trắng / xuống dòng). Hàm thuần. |
 | `thean_email_is_internal(string $email, ?array $domains = null)` | Email thuộc domain nội bộ? Khớp ĐÚNG domain sau "@": khai "thean.com" thì a@thean.com là nội bộ, còn a@hn.thean.com (subdomain) vẫn là đơn thường — muốn loại subdomain thì khai… |
 | `thean_order_is_internal(WC_Order $order)` | Đơn nội bộ: cờ `_eim_internal` hoặc email người mua thuộc domain nội bộ. |
-| `thean_ops_internal_sql(array $t)` | Điều kiện SQL loại đơn nội bộ (alias đơn = o). |
+| `thean_ops_internal_sql(array $t, bool $exclude = true)` | Điều kiện SQL loại đơn nội bộ (alias đơn = o); $exclude = false → điều kiện CHỌN đơn nội bộ (tab Đơn nội bộ). |
 | `thean_can_skip_export_proof()` | Chỉ admin (manage_options) được bỏ qua lỗi thiếu chứng từ xuất kho. |
 | `thean_can_change_any_status()` | Được đổi trạng thái tùy ý (từng đơn + hàng loạt) ở ô tìm đơn / board: người được chỉ định ở Cài đặt ERP → Xử lý đơn (option `thean_status_change_users`, ID user). Danh sách trốn… |
 | `thean_ops_proof_statuses()` | Trạng thái đã giao / xong — thiếu chứng từ xuất kho thì chỉ ở tab "Thiếu / chưa xác nhận ảnh xuất kho". |
 | `thean_ops_shipping_statuses()` | Trạng thái đang giao — thiếu chứng từ thì ở cả tab "Đang giao" (theo dõi) lẫn "Thiếu / chưa xác nhận ảnh xuất kho", không về "Lấy hàng". |
 | `thean_ops_missing_proof(WC_Order $order)` | Chứng từ xuất kho còn thiếu của đơn đang giao / đã giao / xong (rỗng = đủ, hoặc đã đánh dấu bỏ qua, hoặc đơn ngoài diện xét). |
 | `thean_ops_step_from_flow(array $flow, string $status = '')` | Bước tiếp theo (thean_ow_flow) → tab board; '' = không cần xử lý. Hàm thuần. |
-| `thean_ops_step_excluded(WC_Order $order, bool $gated = true)` | Kiểm tra phạm vi riêng để tái dùng flow đã tính mà vẫn giữ bộ lọc hiển thị. |
-| `thean_ops_step_compute(WC_Order $order, bool $gated = true)` | Tính bước + gợi ý cho 1 đơn (không ghi). ['step' => tab\|'', 'hint' => string, 'proof' => thiếu chứng từ XK?]. $gated = true (hiển thị ở ô tìm): đơn cũ (trước mốc khóa) / đơn nội… |
+| `thean_ops_step_excluded(WC_Order $order, bool $gated = true)` | Kiểm tra phạm vi riêng để tái dùng flow đã tính mà vẫn giữ bộ lọc hiển thị. Đơn nội bộ KHÔNG bị loại — đi luồng ngoại lệ "Đơn nội bộ" (cờ 'internal' của thean_ops_step_compute). |
+| `thean_ops_step_compute(WC_Order $order, bool $gated = true)` | Tính bước + gợi ý cho 1 đơn (không ghi). ['step' => tab\|'', 'hint' => string, 'proof' => thiếu chứng từ XK?, 'internal' => đơn nội bộ? (board xếp vào tab Đơn nội bộ thay cho tab… |
 | `thean_ops_step_sync(WC_Order $order)` | Tính và lưu bước của đơn. Trả kết quả thean_ops_step_compute(). |
 | `thean_ops_step_sync_ids(array $ids, ?array &$loaded_orders = null)` | Tính + lưu bước cho nhiều đơn, đọc gộp 1 lần wc_get_orders. Trả [id => kết quả]. |
 | `thean_ops_board_invalidate()` | Token riêng cho cache ID/số đếm board; không cache HTML hoặc quyền thao tác. |
@@ -435,7 +435,7 @@ Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn
 | `thean_ous_export_images(WC_Order $order)` | URL ảnh xuất kho của đơn (meta warehouse_export_images, mỗi dòng 1 URL). Đọc meta đơn (HPOS) trước, trống thì đọc postmeta — đơn cũ / luồng ghi thẳng update_post_meta chưa sync… |
 | `thean_ous_render_preview(WC_Order $order)` | — |
 | `thean_ous_preview_html(WC_Order $order)` | HTML xem nhanh, cache trong object cache (Redis) THEAN_OUS_PREVIEW_TTL giây. Khóa gồm thời điểm sửa đơn + version cache orders (đổi khi lưu đơn) + quyền / thiết bị (nút thao tác… |
-| `thean_ous_board_sql(string $range = 'auto')` | FROM … WHERE board: đơn có bước (≠ none) thuộc luồng vận hành; đơn đóng chỉ còn tab Hoàn hàng; bỏ đơn gộp Shopee + đơn nội bộ. |
+| `thean_ous_board_sql(string $range = 'auto')` | FROM … WHERE board: đơn có bước (≠ none) thuộc luồng vận hành; đơn đóng chỉ còn tab Hoàn hàng; bỏ đơn gộp Shopee. Đơn nội bộ CÓ trong phạm vi này — tách / chọn ở thean_ous_board… |
 | `thean_ous_board_tab_sql(string $tab, string $range = 'auto')` | Điều kiện SQL chọn đơn của 1 tab: tab "Thiếu / chưa xác nhận ảnh xuất kho" theo cờ THEAN_OPS_PROOF_META (gồm cả đơn đang giao — bước chính vẫn là Đang giao), các tab khác theo b… |
 | `thean_ous_proof_since_sql(array $t)` | Tab "Thiếu / chưa xác nhận ảnh xuất kho" chỉ xét đơn tạo trong THEAN_OPS_PROOF_DAYS ngày (thean_ops_missing_proof). Cờ lưu sẵn không tự hết hạn khi đơn quá 60 ngày → lọc thẳng b… |
 | `thean_ous_board_in_tab(array $res, string $tab)` | Đơn (kết quả thean_ops_step_compute) có thuộc tab không — cùng quy tắc thean_ous_board_tab_sql. |

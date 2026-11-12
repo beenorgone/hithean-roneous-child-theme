@@ -24,8 +24,9 @@ require_once __DIR__ . '/order-flow-notes.php'; // mẫu ghi chú thao tác + s�
  * 3. Cron 10 phút quét 50 đơn mở (ưu tiên đơn chưa từng tính) — bắt các thay đổi không qua hook
  *    (VD save_meta_data trên HPOS).
  *
- * Đơn nội bộ (email thuộc domain nội bộ ở Cài đặt ERP → Xử lý đơn, hoặc cờ `_eim_internal`) không thuộc luồng:
- * bước = 'none' và board lọc thẳng bằng SQL (đổi danh sách domain có hiệu lực ngay, không cần tính lại).
+ * Đơn nội bộ (email thuộc domain nội bộ ở Cài đặt ERP → Xử lý đơn, hoặc cờ `_eim_internal`) = luồng ngoại lệ "Đơn nội bộ":
+ * meta vẫn lưu bước thật, board tách bằng SQL (thean_ops_internal_sql) — đơn nội bộ CHỈ hiện ở tab `internal` (mọi bước),
+ * không lẫn vào tab luồng khách. Đổi danh sách domain có hiệu lực ngay, không cần tính lại.
  *
  * File nạp mọi request (đơn tạo ở checkout cũng cần tính). Dùng chung theanmarket + hithean.
  */
@@ -61,6 +62,7 @@ function thean_ops_step_tabs(): array
         'proof'    => 'Thiếu / chưa xác nhận ảnh xuất kho', // chỉ đơn đã giao đi; có thể chồng lên bước chính
         'return'   => 'Hoàn hàng',
         'preorder' => 'Đặt trước',      // trạng thái pre-order, chờ đến hẹn
+        'internal' => 'Đơn nội bộ',     // đơn nội bộ (cờ _eim_internal / domain email nội bộ) còn bước cần làm — tách khỏi luồng khách
     ];
 }
 
@@ -75,7 +77,7 @@ function thean_ops_step_flow(): array
 {
     return [
         'main' => ['confirm', 'picking', 'export', 'delivery', 'shipping', 'cod'],
-        'side' => ['issue', 'proof', 'return', 'preorder'],
+        'side' => ['issue', 'proof', 'return', 'preorder', 'internal'],
     ];
 }
 
@@ -195,11 +197,11 @@ function thean_order_is_internal(WC_Order $order): bool
     return (string) $order->get_meta('_eim_internal') === '1' || thean_email_is_internal($order->get_billing_email());
 }
 
-/** Điều kiện SQL loại đơn nội bộ (alias đơn = o). */
-function thean_ops_internal_sql(array $t): string
+/** Điều kiện SQL loại đơn nội bộ (alias đơn = o); $exclude = false → điều kiện CHỌN đơn nội bộ (tab Đơn nội bộ). */
+function thean_ops_internal_sql(array $t, bool $exclude = true): string
 {
     global $wpdb;
-    $parts = ["NOT EXISTS (SELECT 1 FROM {$t['meta']} i WHERE i.{$t['fk']} = o.{$t['id']} AND i.meta_key = '_eim_internal' AND i.meta_value = '1')"];
+    $parts = ["EXISTS (SELECT 1 FROM {$t['meta']} i WHERE i.{$t['fk']} = o.{$t['id']} AND i.meta_key = '_eim_internal' AND i.meta_value = '1')"];
     $likes = [];
     foreach (thean_internal_email_domains() as $domain) {
         $likes[] = $wpdb->prepare('%s', '%@' . $wpdb->esc_like($domain)); // đúng domain, không gồm subdomain
@@ -207,10 +209,11 @@ function thean_ops_internal_sql(array $t): string
     if ($likes) {
         $match = static fn(string $col) => '(' . implode(' OR ', array_map(static fn($l) => "{$col} LIKE {$l}", $likes)) . ')';
         $parts[] = $t['email_col'] !== ''
-            ? 'NOT ' . $match("COALESCE(o.{$t['email_col']}, '')")
-            : "NOT EXISTS (SELECT 1 FROM {$t['meta']} e WHERE e.{$t['fk']} = o.{$t['id']} AND e.meta_key = '_billing_email' AND " . $match('e.meta_value') . ')';
+            ? $match("COALESCE(o.{$t['email_col']}, '')")
+            : "EXISTS (SELECT 1 FROM {$t['meta']} e WHERE e.{$t['fk']} = o.{$t['id']} AND e.meta_key = '_billing_email' AND " . $match('e.meta_value') . ')';
     }
-    return implode(' AND ', $parts);
+    $any = '(' . implode(' OR ', $parts) . ')';
+    return $exclude ? 'NOT ' . $any : $any;
 }
 
 /** Chỉ admin (manage_options) được bỏ qua lỗi thiếu chứng từ xuất kho. */
@@ -306,26 +309,29 @@ function thean_ops_step_from_flow(array $flow, string $status = ''): string
     return array_key_exists($next, thean_ops_step_labels()) ? $next : '';
 }
 
-/** Kiểm tra phạm vi riêng để tái dùng flow đã tính mà vẫn giữ bộ lọc hiển thị. */
+/**
+ * Kiểm tra phạm vi riêng để tái dùng flow đã tính mà vẫn giữ bộ lọc hiển thị. Đơn nội bộ KHÔNG bị loại — đi luồng
+ * ngoại lệ "Đơn nội bộ" (cờ 'internal' của thean_ops_step_compute).
+ */
 function thean_ops_step_excluded(WC_Order $order, bool $gated = true): bool
 {
     $created = $order->get_date_created();
     return ($gated && (!$created || $created->getTimestamp() < thean_ops_age_cutoff_ts()))
         || $order->get_type() !== 'shop_order'
-        || (string) $order->get_meta('_spx_date') !== ''
-        || ($gated && thean_order_is_internal($order));
+        || (string) $order->get_meta('_spx_date') !== '';
 }
 
 /**
- * Tính bước + gợi ý cho 1 đơn (không ghi). ['step' => tab|'', 'hint' => string, 'proof' => thiếu chứng từ XK?].
- * $gated = true (hiển thị ở ô tìm): đơn cũ (trước mốc khóa) / đơn nội bộ → không có bước.
+ * Tính bước + gợi ý cho 1 đơn (không ghi). ['step' => tab|'', 'hint' => string, 'proof' => thiếu chứng từ XK?,
+ * 'internal' => đơn nội bộ? (board xếp vào tab Đơn nội bộ thay cho tab của bước)].
+ * $gated = true (hiển thị ở ô tìm): đơn cũ (trước mốc khóa) → không có bước.
  * $gated = false (lưu meta): vẫn tính bước thật — board đã loại 2 loại này bằng SQL theo cài đặt HIỆN TẠI, nên đổi
  * domain nội bộ / ngày mốc khóa đơn cũ có hiệu lực ngay cả 2 chiều (trước đây đơn bị lưu 'none' và kẹt lại).
  */
 function thean_ops_step_compute(WC_Order $order, bool $gated = true): array
 {
     if (thean_ops_step_excluded($order, $gated)) {
-        return ['step' => '', 'hint' => '', 'proof' => false];
+        return ['step' => '', 'hint' => '', 'proof' => false, 'internal' => false];
     }
     if (!function_exists('thean_ow_flow')) {
         require_once __DIR__ . '/order-workspace.php';
@@ -354,7 +360,11 @@ function thean_ops_step_compute(WC_Order $order, bool $gated = true): array
     if ($missing) {
         $hint = ($hint !== '' ? $hint . ' · ' : '') . wc_get_order_status_name($order->get_status()) . ' nhưng thiếu ' . implode(' + ', $missing);
     }
-    return ['step' => $step, 'hint' => $hint, 'proof' => (bool) $missing];
+    $internal = thean_order_is_internal($order);
+    if ($internal && $step !== '') {
+        $hint = '🏢 Nội bộ · ' . ($hint !== '' ? $hint : (thean_ops_step_labels()[$step] ?? $step));
+    }
+    return ['step' => $step, 'hint' => $hint, 'proof' => (bool) $missing, 'internal' => $internal];
 }
 
 /** Tính và lưu bước của đơn. Trả kết quả thean_ops_step_compute(). */
@@ -744,18 +754,18 @@ function thean_internal_domains_settings_section(): void
             <th scope="row">Lọc theo domain</th>
             <td>
                 <label><input type="checkbox" name="thean_internal_domains_enabled" value="1" <?php checked(thean_internal_domains_enabled()); ?>>
-                    Bật — loại đơn có email thuộc các domain dưới khỏi board</label>
-                <p class="description">Đang <strong><?php echo thean_internal_domains_enabled() ? 'BẬT' : 'TẮT'; ?></strong>. Khi tắt, đơn có email nội bộ vẫn vào board như đơn thường;
-                    đơn có cờ <code>_eim_internal</code> (đơn gộp Shopee, đơn liên site…) vẫn luôn bị loại. Đổi có hiệu lực ngay.</p>
+                    Bật — đơn có email thuộc các domain dưới đi tab ngoại lệ "Đơn nội bộ"</label>
+                <p class="description">Đang <strong><?php echo thean_internal_domains_enabled() ? 'BẬT' : 'TẮT'; ?></strong>. Khi tắt, đơn có email nội bộ vào board như đơn thường;
+                    đơn có cờ <code>_eim_internal</code> (đơn liên site…) vẫn luôn vào tab Đơn nội bộ (đơn gộp Shopee luôn ngoài board). Đổi có hiệu lực ngay.</p>
             </td>
         </tr><tr>
             <th scope="row"><label for="thean-internal-domains">Domain email nội bộ</label></th>
             <td>
                 <input type="text" class="large-text" style="max-width:600px" id="thean-internal-domains" name="thean_internal_email_domains" value="<?php echo esc_attr($value); ?>" placeholder="vd: theanmarket.com, ivarvietnam.com">
                 <p class="description">Đơn có email người mua thuộc <strong>đúng</strong> các domain này, hoặc có cờ <code>_eim_internal</code>, được coi là đơn nội bộ và
-                    <strong>không vào luồng vận hành</strong> (board "Tải đơn cần xử lý"). Ô tìm đơn vẫn tìm được. Cách nhau bằng dấu phẩy.<br>
-                    Subdomain <strong>không</strong> tự tính: khai <code>thean.com</code> thì <code>a@thean.com</code> bị loại nhưng <code>a@hn.thean.com</code> vẫn vào board;
-                    muốn loại cả subdomain thì khai thêm <code>hn.thean.com</code>.</p>
+                    <strong>tách khỏi luồng khách</strong>: board "Tải đơn cần xử lý" chỉ hiện chúng ở tab ngoại lệ <strong>Đơn nội bộ</strong> (mọi bước). Ô tìm đơn vẫn tìm được. Cách nhau bằng dấu phẩy.<br>
+                    Subdomain <strong>không</strong> tự tính: khai <code>thean.com</code> thì <code>a@thean.com</code> là nội bộ nhưng <code>a@hn.thean.com</code> vẫn là đơn khách;
+                    muốn tính cả subdomain thì khai thêm <code>hn.thean.com</code>.</p>
                 <?php if ($value === '' && $eim) : ?>
                     <p class="description">Đang để trống → dùng danh sách của plugin hóa đơn (eim): <code><?php echo esc_html(implode(', ', $eim)); ?></code>.</p>
                 <?php endif; ?>

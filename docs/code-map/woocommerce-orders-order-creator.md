@@ -4,7 +4,7 @@
 
 > Trang Tạo đơn hộ khách /tao-don/.
 
-2 file · ~4.300 dòng · 91 hàm (55% có docblock)
+2 file · ~4.300 dòng · 92 hàm (55% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -47,7 +47,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`admin_init` · `show_admin_bar` · `template_redirect` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_validation` · `woocommerce_applied_coupon` · `woocommerce_before_calculate_totals` · `woocommerce_cart_calculate_fees` · `woocommerce_coupon_get_usage_count` · `woocommerce_coupon_validate_user_usage_limit` · `woocommerce_email_additional_content_customer_invoice` · `woocommerce_email_before_order_table` ×2 · `woocommerce_get_order_item_totals` · `woocommerce_is_purchasable` · `woocommerce_package_rates` · `woocommerce_product_get_price` · `woocommerce_product_has_enough_stock` · `woocommerce_product_is_in_stock` · `⟨"woocommerce_email_enabled_{$id}"⟩` · `⟨$order_creator_catalog_hook⟩`
+`admin_init` · `show_admin_bar` · `template_redirect` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_validation` · `woocommerce_applied_coupon` · `woocommerce_before_calculate_totals` · `woocommerce_cart_calculate_fees` · `woocommerce_checkout_customer_id` · `woocommerce_coupon_get_usage_count` · `woocommerce_coupon_validate_user_usage_limit` · `woocommerce_email_additional_content_customer_invoice` · `woocommerce_email_before_order_table` ×2 · `woocommerce_get_order_item_totals` · `woocommerce_is_purchasable` · `woocommerce_package_rates` · `woocommerce_product_get_price` · `woocommerce_product_has_enough_stock` · `woocommerce_product_is_in_stock` · `⟨"woocommerce_email_enabled_{$id}"⟩` · `⟨$order_creator_catalog_hook⟩`
 
 ## File
 
@@ -88,6 +88,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `order_creator_disable_emails()` | Tắt toàn bộ email giao dịch WooCommerce cho request hiện tại. |
 | `order_creator_draft_status()` | Status cho đơn nháp: ưu tiên 'checkout-draft' của WC, fallback 'pending'. |
 | `order_creator_should_suppress_email(array $payload)` | Email mặc định TẮT khi tạo/sửa đơn; chỉ gửi khi suppress_email === false. |
+| `order_creator_guard_operator_identity(WC_Order $order)` | Chốt danh tính đơn: customer_id = khách đích; email billing trùng email nhân viên thao tác (khi đơn không phải của chính nhân viên đó) → thay bằng email khách (hồ sơ) hoặc để tr… |
 | `order_creator_apply_addresses(WC_Order $order, array $payload)` | Gán địa chỉ billing/shipping lên đơn từ payload. |
 | `order_creator_save_customer_addresses(array $payload)` | Đồng bộ duy nhất thông tin billing/shipping chuẩn khi nhân viên chủ động chọn lưu. |
 | `order_creator_custom_shipping_title(array $payload)` | Đồng bộ line item / fee / shipping / coupon từ giỏ đã tính sang đơn có sẵn. Dùng cho luồng CHỈNH SỬA (xoá item cũ, dựng lại từ giỏ). |

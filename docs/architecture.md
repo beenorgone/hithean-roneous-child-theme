@@ -1,7 +1,7 @@
 ---
 audience: dev
 owner: người phụ trách kỹ thuật theme
-reviewed: 2026-11-11
+reviewed: 2026-11-12
 applies_to: [custom-functions/bootstrap.php, functions.php, custom-functions/core/module-loader.php, custom-functions/core/admin.php, custom-functions/core/template-router.php]
 ---
 
