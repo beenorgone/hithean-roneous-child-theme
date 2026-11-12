@@ -232,7 +232,6 @@
         input.setSelectionRange(before.length, before.length);
         input.focus();
         updateSuggest();
-        if (it.run) schedule(0);
     }
     function updateSuggest() {
         var before = input.value.slice(0, input.selectionStart);
@@ -282,12 +281,7 @@
     function currentQuery() {
         return (input.value.trim() + ' ' + statusTokens()).trim();
     }
-    function schedule(delay) {
-        clearTimeout(timer);
-        var q = currentQuery();
-        if (!ready(q) || Date.now() < blockedUntil) return;
-        timer = setTimeout(function () { search(q, 1); }, delay);
-    }
+    // Không tìm tức thì khi gõ / chọn gợi ý / đổi bộ lọc — chỉ tìm khi Enter hoặc bấm "Tìm" (submit của thanh tìm).
     function shell(modal) {
         var wrap = document.createElement('div');
         var statusOpts = (cfg.statuses || []).map(function (st) { return '<option value="' + st.slug + '">' + st.name.replace(/</g, '&lt;') + '</option>'; }).join('');
@@ -934,7 +928,7 @@
         state.page = 0;
         search(q, 1);
     });
-    input.addEventListener('input', function () { updateSuggest(); schedule(800); });
+    input.addEventListener('input', updateSuggest);
     input.addEventListener('click', updateSuggest);
     input.addEventListener('focus', function () {
         updateSuggest();
@@ -1070,9 +1064,8 @@
             clearTimeout(timer);
             var q = currentQuery();
             if (q === state.q && state.page && !results.hidden) return;
-            if (!q) { state.q = ''; state.page = 0; setOpen(results, false); return; }
-            state.page = 0;
-            schedule(500);
+            if (!q) { state.q = ''; state.page = 0; setOpen(results, false); }
+            // Còn điều kiện lọc → chờ Enter / bấm "Tìm".
         }
         btn.addEventListener('click', function () { open(panel.hidden); });
         document.addEventListener('click', function (e) { if (!panel.hidden && !stf.contains(e.target)) open(false); });
