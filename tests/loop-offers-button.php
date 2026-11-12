@@ -35,7 +35,7 @@ ok(hithean_loop_offers_device_class('a', 'c', 'b') === null, 'Vị trí không �
 ok(hithean_loop_offers_device_class('b', 'b', 'b') === '', 'Cùng vị trí → 1 nút cho mọi thiết bị');
 ok(hithean_loop_offers_enabled() === true, 'Snapshot công khai → hiện nút');
 
-ok(hithean_loop_offers_labels(0) === ['Xem ưu đãi', 'Xem ưu đãi của cửa hàng', 'Xem ưu đãi của cửa hàng'], 'SP chưa có ưu đãi riêng vẫn có nhãn');
+ok(hithean_loop_offers_labels(0) === ['Xem ưu đãi', 'Xem ưu đãi của cửa hàng', 'Xem chương trình của cửa hàng'], 'SP chưa có ưu đãi riêng vẫn có nhãn');
 ok(hithean_loop_offers_labels(3, "  Mua 2\n giảm 5% ")[0] === '3 ưu đãi' && hithean_loop_offers_labels(3, "  Mua 2\n giảm 5% ")[2] === 'Mua 2 giảm 5%', 'Nhãn đếm + tóm tắt gọn 1 dòng');
 
 $base = ['product_name' => 'ANC Cacao', 'image' => '', 'end' => 0, 'verified_at' => time(), 'source_config' => []];
@@ -54,9 +54,9 @@ ok(strpos($a, '<span class="hlo-anchor"><span class="hlo hlo--a" role="button" t
 $c = hithean_loop_offers_button_html(7, 'c');
 ok(strpos($c, '<span class="hlo hlo--c" role="button"') === 0 && strpos($c, '<button') === false, 'c: span (nằm trong link SP), không phải button');
 $b = hithean_loop_offers_button_html(7, 'b');
-ok(strpos($b, '<button type="button" class="hlo hlo--b"') === 0 && strpos($b, 'Miễn phí vận chuyển') !== false && strpos($b, '<span class="hlo__count">3</span>') !== false, 'b: button, tóm tắt thẻ đầu (vận chuyển xếp trước giá) + số đếm');
+ok(strpos($b, '<button type="button" class="hlo hlo--b"') === 0 && strpos($b, '<span class="hlo__label">Ưu đãi</span><span class="hlo__text">Miễn phí vận chuyển') !== false && strpos($b, '<span class="hlo__count">3</span>') !== false, 'b: button, tóm tắt thẻ đầu (vận chuyển xếp trước giá) + số đếm');
 $none = hithean_loop_offers_button_html(8, 'b');
-ok(strpos($none, 'data-hlo="8"') !== false && strpos($none, 'Xem ưu đãi của cửa hàng') !== false && strpos($none, 'hlo__count') === false, 'SP chưa có ưu đãi riêng vẫn có nút, không số đếm');
+ok(strpos($none, 'data-hlo="8"') !== false && strpos($none, '<span class="hlo__label">Ưu đãi</span>') !== false && strpos($none, 'Xem chương trình của cửa hàng') !== false && strpos($none, 'hlo__count') === false, 'SP chưa có ưu đãi riêng vẫn có nút, không số đếm');
 ok(strpos(hithean_loop_offers_button_html(8, 'c'), 'Xem ưu đãi') !== false, 'c: SP chưa có ưu đãi riêng');
 ok(strpos(hithean_loop_offers_button_html(1, 'a', 'hlo-m'), '<span class="hlo-anchor hlo-m"><span class="hlo hlo--a" role') === 0, 'a: lớp thiết bị nằm ở neo');
 ok(strpos(hithean_loop_offers_button_html(1, 'b', 'hlo-m'), 'class="hlo hlo--b hlo-m"') !== false && strpos(hithean_loop_offers_button_html(1, 'c', 'hlo-d'), 'class="hlo hlo--c hlo-d"') !== false, 'b / c: lớp thiết bị trên nút');

@@ -50,9 +50,9 @@ function hithean_loop_offers_rows(int $product_id): array {
 
 /** Nhãn nút theo số ưu đãi riêng của sản phẩm (hàm thuần): [label, aria, summary]. */
 function hithean_loop_offers_labels(int $count, string $first_title = ''): array {
-    if ($count < 1) { return ['Xem ưu đãi', 'Xem ưu đãi của cửa hàng', 'Xem ưu đãi của cửa hàng']; }
+    if ($count < 1) { return ['Xem ưu đãi', 'Xem ưu đãi của cửa hàng', 'Xem chương trình của cửa hàng']; }
     $first_title = trim(preg_replace('/\s+/u', ' ', $first_title));
-    return [$count . ' ưu đãi', 'Xem ' . $count . ' ưu đãi đang áp dụng', $first_title !== '' ? $first_title : 'Ưu đãi đang áp dụng'];
+    return [$count . ' ưu đãi', 'Xem ' . $count . ' ưu đãi đang áp dụng', $first_title !== '' ? $first_title : 'Đang áp dụng'];
 }
 
 /** HTML nút của 1 sản phẩm theo vị trí. a / c nằm TRONG link sản phẩm nên dùng span role=button, b là button thật. */
@@ -64,7 +64,7 @@ function hithean_loop_offers_button_html(int $product_id, string $position, stri
     $attrs = ' data-hlo="' . $product_id . '" aria-haspopup="dialog" aria-label="' . esc_attr($aria) . '"';
     $star = '<span class="hlo__star" aria-hidden="true">✳</span>';
     if ($position === 'b') {
-        return '<button type="button" class="hlo hlo--b' . $device . '"' . $attrs . '>' . $star . '<span class="hlo__text"><strong>Ưu đãi:</strong> ' . esc_html($summary) . '</span>'
+        return '<button type="button" class="hlo hlo--b' . $device . '"' . $attrs . '>' . $star . '<span class="hlo__label">Ưu đãi</span><span class="hlo__text">' . esc_html($summary) . '</span>'
             . ($count > 1 ? '<span class="hlo__count">' . $count . '</span>' : '') . '<span class="hlo__more" aria-hidden="true">›</span></button>';
     }
     $chip = '<span class="hlo hlo--' . $position . ($position === 'a' ? '' : $device) . '" role="button" tabindex="0"' . $attrs . '>' . $star . esc_html($label) . ($position === 'c' ? '<span class="hlo__more" aria-hidden="true"> ›</span>' : '') . '</span>';

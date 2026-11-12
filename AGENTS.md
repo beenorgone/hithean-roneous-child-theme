@@ -109,6 +109,12 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   thì in cả hai nút, CSS ẩn theo bề rộng `.hlo-d` / `.hlo-m` vì trang cache). Bấm → popup `.hithean-offers-dialog`, AJAX `hithean_loop_offers` (khai ở module `site_footer_menu` để có
   `hithean_sfm_featured_cards()`): ưu đãi của SP từ snapshot, SP chưa có ưu đãi riêng → ưu đãi tiêu biểu. Chỉ hiện khi snapshot công khai
   (`hithean_loop_offers_enabled()`); khi hiện thì khung vàng `product-addon-promo` không in nữa. Test: `php tests/loop-offers-button.php`.
+  Dải b: chữ "Ưu đãi" là `.hlo__label` riêng, không co / không cắt — chỉ phần nội dung `.hlo__text` bị cắt "…".
+- **Giá ưu đãi trên thẻ SP ở danh sách** (`products/product-list-page.php` → `hithean_loop_rule_price_html()`, filter `woocommerce_get_price_html` @9999,
+  chỉ trong lúc in giá của thẻ — cờ `$GLOBALS['hithean_loop_price_scope']` bật / tắt quanh `woocommerce_after_shop_loop_item_title`): SP thuộc rule
+  Discount Rules giảm **ngay từ 1 sản phẩm** hiện giá gốc gạch + giá ưu đãi như Sale thông thường (SP biến thể: khoảng giá). Giá do plugin tính
+  (cùng đường trang chi tiết: `hithean_product_purchase_rule_price()` — nạp lazy product-purchase.php); rule theo giỏ hàng / quà tặng / BOGO giữ nguyên
+  giá. Không đổi nhãn Sale, không đổi `is_on_sale()`. Test: `php tests/loop-rule-price.php`.
 - **Thông báo Lark khi /uu-dai/ đổi chương trình** (`marketing/offers/lark-notify.php`): nghe `update_option_hithean_offers_snapshot`
   (mọi đường đổi snapshot: duyệt / loại / ghim, quét tuần, mốc hết hạn, khôi phục snapshot) → cron `hithean_offers_lark_flush` sau 5 phút,
   so tóm tắt theo chương trình (`hithean_offers_lark_programs()` / `_diff()` / `_message()` — hàm thuần) với mốc đã báo (option
@@ -243,7 +249,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`, `offers-lark-notify.php`, `lark-core.php`, `warehouse-export-lark.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
-- `my-offers.php`, `loop-offers-button.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
+- `my-offers.php`, `loop-offers-button.php`, `loop-rule-price.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
 - Popup thao tác nhanh (order-quick-modals.php): `node tests/order-quick-modals-ui.cjs` (cần jsdom + php).
 - `create-order-ai-address.php` (quy đổi địa chỉ AI tạo đơn); UI popup "Chỉnh đơn" chế độ AI: `node tests/create-order-ai-ui.cjs` (cần jsdom).
 
