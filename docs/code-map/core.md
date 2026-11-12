@@ -4,7 +4,7 @@
 
 > Hạ tầng theme: module loader (what-loads-when), nạp theo màn admin, template router, enqueue, guard upload/file/CSP, AI settings/providers, địa chỉ VN, thông tin công ty, admin chrome.
 
-20 file · ~4.500 dòng · 141 hàm (38% có docblock)
+20 file · ~4.500 dòng · 142 hàm (38% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -41,7 +41,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`_wp_post_revision_fields` · `admin_enqueue_scripts` ×2 · `admin_init` ×5 · `admin_menu` · `admin_notices` · `after_setup_theme` ×2 · `after_switch_theme` · `edit_user_profile_update` · `get_user_option_admin_color` · `hithean_top_bar_after` · `init` ×7 · `nocache_headers` · `personal_options_update` · `postmeta_form_keys` · `register_post_type_args` · `save_post` · `send_headers` · `template_include` · `template_redirect` · `user_register` · `woocommerce_email` · `woocommerce_email_order_details` · `wp` ×2 · `wp_enqueue_scripts` ×4 · `wp_footer` · `wp_handle_upload_prefilter` · `wp_login` · `wp_restore_post_revision` · `wp_save_post_revision_check_for_changes` · `⟨'_wp_post_revision_field_' . $field⟩` · `⟨'_wp_post_revision_field_' . $key⟩`
+`_wp_post_revision_fields` · `admin_enqueue_scripts` ×2 · `admin_init` ×5 · `admin_menu` · `admin_notices` · `after_setup_theme` ×2 · `after_switch_theme` · `edit_user_profile_update` · `get_user_option_admin_color` · `hithean_top_bar_after` · `init` ×7 · `nocache_headers` · `personal_options_update` · `postmeta_form_keys` · `register_post_type_args` · `save_post` · `send_headers` · `template_include` · `template_redirect` · `user_register` · `woocommerce_email` · `woocommerce_email_order_details` · `woocommerce_email_styles` · `wp` ×2 · `wp_enqueue_scripts` ×4 · `wp_footer` · `wp_handle_upload_prefilter` · `wp_login` · `wp_restore_post_revision` · `wp_save_post_revision_check_for_changes` · `⟨'_wp_post_revision_field_' . $field⟩` · `⟨'_wp_post_revision_field_' . $key⟩`
 
 ## File
 
@@ -147,6 +147,7 @@ Browser-local navigation toggle for standard WordPress backend screens.
 |---|---|
 | `hroneous_force_email_order_details_template($emails)` | Force WooCommerce invoice/order-details emails to use child-theme override. This avoids fallback to plugin/default template when other hooks interfere. |
 | `hroneous_render_custom_email_order_details($order, $sent_to_admin, $plain_text, $email)` | — |
+| `hroneous_email_mobile_styles($css)` | Bố cục email giao dịch trên điện thoại (mọi email WooCommerce). Media query không bị inline nên được giữ trong <style> ở <head>; dùng !important để đè style inline của Woo. Khôn… |
 
 ### `core/enqueue.php`
 

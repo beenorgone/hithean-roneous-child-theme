@@ -20,8 +20,17 @@ do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain
     #template_container,
     #template_header_image,
     #template_footer {
-        zoom: 1.5;
         line-height: 150%;
+    }
+
+    /* Phóng to chỉ trên màn rộng — trên điện thoại zoom làm chữ khổng lồ, vỡ cột (bố cục mobile ở email-overrides.php). */
+    @media screen and (min-width: 700px) {
+
+        #template_container,
+        #template_header_image,
+        #template_footer {
+            zoom: 1.5;
+        }
     }
 
     #header_wrapper {
@@ -96,7 +105,7 @@ do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain
     <table class="td hr-email-order-table" cellspacing="0" cellpadding="6" style="width: 100%; table-layout: fixed; font-family: 'Helvetica Neue', Helvetica, Roboto, Arial, sans-serif;" border="1">
         <colgroup>
             <col style="width: 46%;">
-            <col style="width: 14%;">
+            <col class="hr-col-regular" style="width: 14%;">
             <col style="width: 16%;">
             <col style="width: 8%;">
             <col style="width: 16%;">
@@ -104,7 +113,7 @@ do_action('woocommerce_email_before_order_table', $order, $sent_to_admin, $plain
         <thead>
             <tr>
                 <th class="td" scope="col" style="width: 46%; text-align:<?php echo esc_attr($text_align); ?>;"><?php esc_html_e('Product', 'woocommerce'); ?></th>
-                <th class="td" scope="col" style="width: 14%; text-align:<?php echo esc_attr($price_align); ?>;"><?php esc_html_e('Giá gốc', 'woocommerce'); ?></th>
+                <th class="td hr-col-regular" scope="col" style="width: 14%; text-align:<?php echo esc_attr($price_align); ?>;"><?php esc_html_e('Giá gốc', 'woocommerce'); ?></th>
                 <th class="td" scope="col" style="width: 16%; text-align:<?php echo esc_attr($price_align); ?>;"><?php esc_html_e('Giá áp dụng', 'woocommerce'); ?></th>
                 <th class="td" scope="col" style="width: 8%; text-align:center;"><?php esc_html_e('SL', 'woocommerce'); ?></th>
                 <th class="td" scope="col" style="width: 16%; text-align:<?php echo esc_attr($price_align); ?>;"><?php esc_html_e('Thành Tiền', 'woocommerce'); ?></th>

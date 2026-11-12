@@ -72,7 +72,7 @@ foreach ($items as $item_id => $item) :
 
             ?>
         </td>
-        <td class="td" style="font-size: 0.9em; text-align:<?php echo esc_attr($price_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif; white-space: nowrap;">
+        <td class="td hr-col-regular" style="font-size: 0.9em; text-align:<?php echo esc_attr($price_align); ?>; vertical-align:middle; font-family: 'Be Vietnam', Roboto, Arial, sans-serif; white-space: nowrap;">
             <?php
             $regular_price = is_object($product) ? $product->get_regular_price() : '';
             echo $regular_price === ''
