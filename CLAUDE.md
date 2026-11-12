@@ -101,6 +101,11 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   `hithean_offer_card_html()` ở `offers/offer-card.php`): popup "Ưu đãi đang áp dụng" trang SP (product-purchase.js), /uu-dai/ chế độ
   "Theo sản phẩm" (`hithean_offer_cards_from_rows()` — chip / ảnh / bậc giá / thứ tự khớp popup) và panel "Ưu đãi của tôi". Sửa kiểu thẻ ở 1 chỗ. Màu theo loại: lớp `.is-tone-{addon|tiers|shipping|discount|wheel|coupon|other}` (PHP: `tone` → `group` → `kind`; JS trang SP: `card.tone || card.kind`).
   Link `…/san-pham/x/#uu-dai` mở sẵn popup ưu đãi ở trang SP.
+- **Nút ưu đãi trên thẻ SP ở danh sách** (`marketing/offers/loop-button.php` + `marketing/assets/loop-offers.{css,js}`, nạp mọi request): mỗi SP 1 nút
+  `[data-hlo]`, vị trí chọn ở Ưu đãi sản phẩm → Cấu hình & xuất bản (`hithean_offers_settings()['loop_button']`: a = nhãn góc ảnh, b = dải dưới giá,
+  **c = nhãn cạnh giá — mặc định**). Bấm → popup `.hithean-offers-dialog`, AJAX `hithean_loop_offers` (khai ở module `site_footer_menu` để có
+  `hithean_sfm_featured_cards()`): ưu đãi của SP từ snapshot, SP chưa có ưu đãi riêng → ưu đãi tiêu biểu. Chỉ hiện khi snapshot công khai
+  (`hithean_loop_offers_enabled()`); khi hiện thì khung vàng `product-addon-promo` không in nữa. Test: `php tests/loop-offers-button.php`.
 - **Thông báo Lark khi /uu-dai/ đổi chương trình** (`marketing/offers/lark-notify.php`): nghe `update_option_hithean_offers_snapshot`
   (mọi đường đổi snapshot: duyệt / loại / ghim, quét tuần, mốc hết hạn, khôi phục snapshot) → cron `hithean_offers_lark_flush` sau 5 phút,
   so tóm tắt theo chương trình (`hithean_offers_lark_programs()` / `_diff()` / `_message()` — hàm thuần) với mốc đã báo (option
@@ -235,7 +240,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`, `offers-lark-notify.php`, `lark-core.php`, `warehouse-export-lark.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
-- `my-offers.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
+- `my-offers.php`, `loop-offers-button.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
 - Popup thao tác nhanh (order-quick-modals.php): `node tests/order-quick-modals-ui.cjs` (cần jsdom + php).
 - `create-order-ai-address.php` (quy đổi địa chỉ AI tạo đơn); UI popup "Chỉnh đơn" chế độ AI: `node tests/create-order-ai-ui.cjs` (cần jsdom).
 

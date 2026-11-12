@@ -216,6 +216,11 @@ if (!function_exists('hithean_display_loop_addon_promo')) {
             return;
         }
 
+        // Đã có nút ưu đãi trên thẻ (marketing/offers/loop-button.php) → không in thêm khung này.
+        if (function_exists('hithean_loop_offers_enabled') && hithean_loop_offers_enabled()) {
+            return;
+        }
+
         $lines = hithean_get_loop_addon_promo_lines($product->get_id());
         if (empty($lines)) {
             return;

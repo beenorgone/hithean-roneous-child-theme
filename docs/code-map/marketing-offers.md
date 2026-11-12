@@ -4,7 +4,7 @@
 
 > Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền.
 
-9 file · ~1.700 dòng · 81 hàm (42% có docblock)
+10 file · ~1.900 dòng · 88 hàm (47% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -12,7 +12,9 @@
 
 | Loại | Tên | File |
 |---|---|---|
+| AJAX | `hithean_loop_offers` | loop-button.php |
 | AJAX | `hithean_offers_status` | admin.php |
+| AJAX công khai | `hithean_loop_offers` | loop-button.php |
 | admin-post | `hithean_offers_action` | admin.php |
 | cron | `hithean_offers_boundary` | store.php |
 | cron | `hithean_offers_lark_flush` | lark-notify.php |
@@ -28,7 +30,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`add_option_hithean_offers_snapshot` · `admin_enqueue_scripts` · `admin_menu` · `child_theme_lark_channel_enabled` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `hithean_offers_lark_flush` · `template_redirect` · `update_option_hithean_offers_snapshot`
+`add_option_hithean_offers_snapshot` · `admin_enqueue_scripts` · `admin_menu` · `child_theme_lark_channel_enabled` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `hithean_offers_lark_flush` · `template_redirect` · `update_option_hithean_offers_snapshot` · `woocommerce_after_shop_loop_item` · `woocommerce_after_shop_loop_item_title` · `woocommerce_before_shop_loop_item_title`
 
 ## File
 
@@ -77,6 +79,20 @@ Thông báo nhóm Lark khi trang /uu-dai/ đổi chương trình ưu đãi.
 | `hithean_offers_lark_flush()` | So snapshot hiện tại với mốc đã báo, gửi 1 tin nếu khác. Thành công → dời mốc. |
 | `hithean_offers_lark_test()` | Nút "Gửi thử": gửi danh sách đang áp dụng như "chương trình mới", không đổi mốc. |
 | `hithean_offers_lark_reset_baseline()` | Bật kênh từ tắt: ghi mốc = snapshot hiện tại để tin đầu chỉ chứa thay đổi về sau. |
+
+### `marketing/offers/loop-button.php`
+
+Nút "Ưu đãi đang áp dụng" trên thẻ sản phẩm ở danh sách (product loop) — bản gọn của nút trang chi tiết. MỖI sản phẩm 1 nút; bấm mở popup .hithean-offers-dialog, nội dung tải AJ…
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_loop_offers_position()` | Vị trí nút đã chọn: a \| b \| c (mặc định c). |
+| `hithean_loop_offers_enabled()` | Nút chỉ hiện khi khách xem được snapshot ưu đãi (cùng điều kiện trang /uu-dai/). |
+| `hithean_loop_offers_rows(int $product_id)` | Dòng snapshot đang hiệu lực của 1 sản phẩm (cùng cách gom của /uu-dai/ chế độ "Theo sản phẩm"); chỉ đọc snapshot 1 lần / request. |
+| `hithean_loop_offers_labels(int $count, string $first_title = '')` | Nhãn nút theo số ưu đãi riêng của sản phẩm (hàm thuần): [label, aria, summary]. |
+| `hithean_loop_offers_button_html(int $product_id, string $position)` | HTML nút của 1 sản phẩm theo vị trí. a / c nằm TRONG link sản phẩm nên dùng span role=button, b là button thật. |
+| `hithean_loop_offers_render(string $position)` | In nút ở hook của vị trí đang chọn; lần đầu in CSS (nhỏ, tránh nháy) + xếp JS / CSS thẻ ưu đãi cho footer. |
+| `hithean_loop_offers_ajax()` | AJAX: nội dung popup của 1 sản phẩm. Chỉ đọc, không nonce (trang danh sách cache). SP chưa có ưu đãi riêng → "Ưu đãi tiêu biểu" của cửa hàng (hithean_sfm_featured_cards — action… |
 
 ### `marketing/offers/offer-card.php`
 

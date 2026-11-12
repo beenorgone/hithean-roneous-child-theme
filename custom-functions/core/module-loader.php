@@ -472,7 +472,8 @@ function tpc_loader_modules()
             'id' => 'site_footer_menu',
             'file' => 'custom-functions/marketing/site-footer-menu.php',
             'condition' => 'tpc_cond_site_footer_menu',
-            'ajax_actions' => ['hithean_my_offers_load', 'hithean_my_offers_lookup', 'hithean_my_offers_forget', 'hithean_my_offers_send', 'hithean_my_offers_apply', 'hithean_sfm_featured'],
+            'ajax_actions' => ['hithean_my_offers_load', 'hithean_my_offers_lookup', 'hithean_my_offers_forget', 'hithean_my_offers_send', 'hithean_my_offers_apply', 'hithean_sfm_featured',
+                'hithean_loop_offers'], // popup nút ưu đãi ở danh sách SP (offers/loop-button.php) dùng hithean_sfm_featured_cards()
         ],
         [
             'id' => 'checkout_page',
