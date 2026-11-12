@@ -899,6 +899,10 @@ function thean_ous_next_actions(WC_Order $order, string $step, bool $proof = fal
         $labels = function_exists('thean_ops_step_labels') ? thean_ops_step_labels() : [];
         $buttons[] = thean_ous_button('view', 'Mở bước ' . ($labels[$step] ?? $step) . ' ↗', $order->get_edit_order_url() . '#step-' . $tab, '', true, '➡');
     }
+    if (function_exists('thean_not_internal_button') && thean_order_is_internal($order)) {
+        // Luồng ngoại lệ Đơn nội bộ: đơn nhận nhầm là nội bộ → popup bỏ email nội bộ / gắn tài khoản khách (order-internal-flow.php).
+        $buttons[] = thean_not_internal_button($order);
+    }
     return '<div class="thean-ous-acts__g">' . implode('', $buttons) . '</div>';
 }
 

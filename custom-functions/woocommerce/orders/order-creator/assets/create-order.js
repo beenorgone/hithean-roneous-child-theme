@@ -412,7 +412,7 @@
             return;
         }
         state.items.forEach(function (it, idx) {
-            var line = snapshot ? (snapshot.lines || []).find(function (l) { return l.product_id === it.product_id && l.variation_id === (it.variation_id || 0); }) : null;
+            var line = snapshot ? (snapshot.lines || []).find(function (l) { return !l.auto_gift && l.product_id === it.product_id && l.variation_id === (it.variation_id || 0); }) : null;
             var unitPrice = line && line.unit_price != null ? line.unit_price : it.unit_price;
             var tr = document.createElement('tr');
             tr.innerHTML =
@@ -423,6 +423,15 @@
                 '<td class="oc-col-num"><input type="number" class="oc-mini" data-f="qty" data-i="' + idx + '" min="1" value="' + it.qty + '"></td>' +
                 '<td class="oc-col-num">' + (line ? money(line.line_total) : '—') + '</td>' +
                 '<td><button type="button" class="oc-x" data-rm="' + idx + '">&times;</button></td>';
+            body.appendChild(tr);
+        });
+        // Quà Woo Discount Rules tự thêm theo giỏ: chỉ hiện, không sửa / không gửi lên (rule tự tính lại mỗi lần).
+        ((snapshot && snapshot.lines) || []).filter(function (l) { return l.auto_gift; }).forEach(function (l) {
+            var tr = document.createElement('tr');
+            tr.className = 'oc-gift-row';
+            tr.innerHTML = '<td>🎁 ' + l.name + ' <small style="color:#64748b">(quà tự động — Discount Rules)</small></td>'
+                + '<td class="oc-col-num">' + money(l.unit_price) + '</td><td></td><td></td>'
+                + '<td class="oc-col-num">' + l.qty + '</td><td class="oc-col-num">' + money(l.line_total) + '</td><td></td>';
             body.appendChild(tr);
         });
     }

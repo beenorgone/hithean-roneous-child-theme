@@ -591,8 +591,8 @@ function order_creator_populate_cart(array $payload): void
         $product_id   = absint($item['product_id'] ?? 0);
         $variation_id = absint($item['variation_id'] ?? 0);
         $qty          = max(1, (float) ($item['qty'] ?? 1));
-        if ($product_id <= 0) {
-            continue;
+        if ($product_id <= 0 || !empty($item['auto_gift'])) {
+            continue; // quà WDR không bao giờ là hàng nạp vào giỏ (chặn rule chạy chồng)
         }
 
         $price_product = $variation_id > 0 ? wc_get_product($variation_id) : wc_get_product($product_id);
@@ -842,6 +842,53 @@ function order_creator_coupon_detail(string $code): ?array
 }
 
 /** Đọc giỏ đã tính → mảng cho UI (preview, không lưu). */
+/**
+ * Dòng quà Woo Discount Rules tự thêm (BOGO mua X tặng X / tặng Y): cart item mang khóa `wdr_free_product`… Quà do rule
+ * quyết định theo giỏ — KHÔNG phải hàng nhân viên chọn. Hàm thuần trên mảng khóa => giá trị.
+ */
+function order_creator_is_wdr_gift_data(array $data): bool
+{
+    foreach ($data as $key => $value) {
+        $key = strtolower((string) $key);
+        if ($key === '_oc_auto_gift' && (string) (is_scalar($value) ? $value : '') === '1') {
+            return true;
+        }
+        if (strpos($key, 'wdr') !== false && strpos($key, 'free') !== false && !empty($value)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Dòng đơn là quà WDR tự thêm? Cờ `_oc_auto_gift` (Trang Tạo đơn ghi khi lưu) / khóa meta WDR có "free"; dòng 0đ có meta WDR
+ * cũng tính (đơn cũ). Dòng 0đ không có meta WDR = quà nhân viên tự thêm → giữ.
+ */
+function order_creator_order_item_is_wdr_gift(WC_Order_Item $item): bool
+{
+    $meta = [];
+    foreach ($item->get_meta_data() as $m) {
+        $meta[(string) $m->key] = $m->value;
+    }
+    if (order_creator_is_wdr_gift_data($meta)) {
+        return true;
+    }
+    $zero = is_callable([$item, 'get_subtotal']) && (float) $item->get_subtotal() == 0.0 && (float) $item->get_total() == 0.0;
+    if ($zero) {
+        foreach (array_keys($meta) as $key) {
+            if (stripos($key, 'wdr') !== false) return true;
+        }
+    }
+    return false;
+}
+
+// Đánh dấu dòng quà WDR khi Trang Tạo đơn lưu đơn (create_order / sync khi sửa) → lần nạp lại bỏ qua chắc chắn.
+add_action('woocommerce_checkout_create_order_line_item', function ($item, $cart_item_key, $values) {
+    if (!empty(order_creator_state()['active']) && is_array($values) && order_creator_is_wdr_gift_data($values)) {
+        $item->update_meta_data('_oc_auto_gift', '1');
+    }
+}, 20, 3);
+
 function order_creator_snapshot_cart(): array
 {
     $cart  = WC()->cart;
@@ -857,6 +904,7 @@ function order_creator_snapshot_cart(): array
             'unit_price'    => $product ? (float) wc_get_price_to_display($product, ['price' => $product->get_price()]) : 0,
             'line_subtotal' => (float) $item['line_subtotal'],
             'line_total'    => (float) $item['line_total'],
+            'auto_gift'     => order_creator_is_wdr_gift_data($item), // quà WDR: UI chỉ hiện, không đưa vào items gửi lên
         ];
     }
 
@@ -3068,7 +3116,14 @@ add_action('wp_ajax_order_creator_load_order', function () {
     }
 
     $items = [];
+    $gifts = [];
     foreach ($order->get_items() as $item) {
+        // Nạp lại đơn = dựng lại giỏ khách đã chọn: quà WDR tự thêm KHÔNG đưa vào giỏ (rule tự thêm lại khi tính) — nếu đưa vào,
+        // quà thành hàng mua → rule tặng thêm lần nữa, mỗi lần lưu lại nhân lên.
+        if (order_creator_order_item_is_wdr_gift($item)) {
+            $gifts[] = $item->get_name() . ' × ' . (float) $item->get_quantity();
+            continue;
+        }
         $items[] = [
             'product_id'    => (int) $item->get_product_id(),
             'variation_id'  => (int) $item->get_variation_id(),
@@ -3118,6 +3173,7 @@ add_action('wp_ajax_order_creator_load_order', function () {
         'customer'        => $customer,
         'customer_id'     => (int) $order->get_customer_id(),
         'items'           => $items,
+        'auto_gifts'      => $gifts, // quà WDR đã bỏ khỏi giỏ khi nạp (UI báo)
         'coupons'         => array_values($order->get_coupon_codes()),
         'fees'            => $fees,
         'shipping_method' => $shipping_method,

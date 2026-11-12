@@ -137,6 +137,8 @@ $GLOBALS['wpdb'] = new FakeWpdb();
 
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-legacy-meta-sync.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-ops-step.php';
+if (!function_exists('wp_parse_url')) { function wp_parse_url($u, $c = -1) { return parse_url($u, $c); } }
+if (!function_exists('home_url')) { function home_url($p = '') { return 'https://www.example.test' . $p; } }
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-universal-search.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-vat-request.php';
 
@@ -261,12 +263,13 @@ check(thean_ops_step_from_flow(['next_goto' => 'preorder', 'preorder_confirm' =>
 // Tab "Thiếu chứng từ XK" theo cờ (đơn đang giao thiếu chứng từ ở cả tab Đang giao lẫn Thiếu chứng từ XK).
 check(thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'shipping') && thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'proof'), 'shipping + missing proof → both tabs');
 check(!thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true], 'picking') && !thean_ous_board_in_tab(['step' => 'shipping', 'proof' => false], 'proof'), 'not in picking; no proof flag → not in proof tab');
-check(strpos(thean_ous_board_tab_sql('proof'), "meta_key = '_thean_ops_proof' AND pf.meta_value = '1'") !== false && strpos(thean_ous_board_tab_sql('shipping'), "s.meta_value = 'shipping' AND NOT (EXISTS") === 0, 'tab SQL: proof by flag, others by step (minus internal)');
+check(strpos(thean_ous_board_tab_sql('proof'), "meta_key = '_thean_ops_proof' AND pf.meta_value = '1'") !== false && strpos(thean_ous_board_tab_sql('shipping'), "s.meta_value = 'shipping' AND NOT ((EXISTS") === 0, 'tab SQL: proof by flag, others by step (minus internal)');
 // Luồng ngoại lệ Đơn nội bộ: đơn nội bộ chỉ ở tab internal (mọi bước), không lẫn vào tab luồng khách.
 check(thean_ous_board_in_tab(['step' => 'picking', 'internal' => true], 'internal') && !thean_ous_board_in_tab(['step' => 'picking', 'internal' => true], 'picking')
     && !thean_ous_board_in_tab(['step' => 'shipping', 'proof' => true, 'internal' => true], 'proof'), 'internal order → only internal tab');
 check(!thean_ous_board_in_tab(['step' => '', 'internal' => true], 'internal') && !thean_ous_board_in_tab(['step' => 'picking'], 'internal'), 'internal tab: needs a step + internal flag');
-check(strpos(thean_ous_board_tab_sql('internal'), "(EXISTS (SELECT 1") === 0 && strpos(thean_ous_board_tab_sql('proof'), ' AND NOT (EXISTS') !== false
+check(strpos(thean_ous_board_tab_sql('internal'), "((EXISTS (SELECT 1") === 0 && strpos(thean_ous_board_tab_sql('proof'), ' AND NOT ((EXISTS') !== false
+    && strpos(thean_ous_board_tab_sql('internal'), "meta_key = '_thean_not_internal'") !== false
     && in_array('internal', thean_ops_step_flow()['side'], true), 'internal tab SQL selects, other tabs exclude; side lane');
 check(thean_ous_ship_code_short('S12734516.BO.SGP120-V44.1363613511') === '1363613511' && thean_ous_ship_code_short('S12734516.MB10-12-L17.1615456041') === '1615456041', 'GHTK code → last segment');
 check(thean_ous_ship_code_short('ahamove 26OU3IQB') === 'ahamove 26OU3IQB' && thean_ous_ship_code_short('') === '', 'non-GHTK code unchanged');
@@ -337,6 +340,13 @@ $order->created = new DateTimeImmutable();
 check(!thean_ops_step_excluded($order), 'recent customer order eligible for board');
 $order->meta['_eim_internal'] = '1';
 check(!thean_ops_step_excluded($order) && !thean_ops_step_excluded($order, false), 'internal order stays in flow (exception tab Đơn nội bộ)');
+check(thean_order_is_internal($order), 'flagged order is internal');
+$order->meta['_thean_not_internal'] = '1';
+check(!thean_order_is_internal($order), '"Không phải nội bộ" override wins over _eim_internal');
+unset($order->meta['_thean_not_internal']);
+check(thean_phone_variants('0912 345 678') === ['0912345678', '84912345678', '+84912345678'] && thean_phone_variants('+84912345678') === thean_phone_variants('0912345678')
+    && thean_phone_variants('12') === [], 'phone variants 0 / 84 / +84');
+check(preg_match('/^84912345678@sms\.[a-z0-9.-]+$/', thean_customer_sms_email('0912345678')) === 1 && thean_customer_sms_email('abc') === '', 'sms email from phone');
 $order->meta = []; $order->created = new DateTimeImmutable('-400 days');
 check(thean_ops_step_excluded($order) && !thean_ops_step_excluded($order, false), 'old-order gating preserved when reusing stored flow');
 $order->meta['_spx_date'] = '2026-01-01';
@@ -522,8 +532,8 @@ check(thean_ous_board_in_tab(['step' => 'cod_fast'], 'cod') && thean_ous_board_i
 check(thean_ops_step_from_flow(['next_goto' => 'payment', 'is_cod' => true, 'is_fast' => true]) === 'cod_fast', 'fast COD has distinct stored step');
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
-    check(strpos(thean_ous_board_tab_sql('confirm'), "s.meta_value IN ('confirm','payment') AND NOT (") === 0, 'merged customer tab SQL');
-    check(strpos(thean_ous_board_tab_sql('cod'), "s.meta_value IN ('cod_fast','cod') AND NOT (") === 0, 'COD subgroup SQL');
+    check(strpos(thean_ous_board_tab_sql('confirm'), "s.meta_value IN ('confirm','payment') AND NOT ((") === 0, 'merged customer tab SQL');
+    check(strpos(thean_ous_board_tab_sql('cod'), "s.meta_value IN ('cod_fast','cod') AND NOT ((") === 0, 'COD subgroup SQL');
     thean_ops_board_invalidate();
     $wpdb->board_counts = [['tab' => 'confirm', 'n' => 2], ['tab' => 'payment', 'n' => 3], ['tab' => 'cod_fast', 'n' => 4], ['tab' => 'cod', 'n' => 5]];
     $wpdb->queries = [];

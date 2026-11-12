@@ -4,7 +4,7 @@
 
 > Trang Tạo đơn hộ khách /tao-don/.
 
-2 file · ~4.300 dòng · 92 hàm (55% có docblock)
+2 file · ~4.400 dòng · 94 hàm (55% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -47,7 +47,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`admin_init` · `show_admin_bar` · `template_redirect` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_validation` · `woocommerce_applied_coupon` · `woocommerce_before_calculate_totals` · `woocommerce_cart_calculate_fees` · `woocommerce_checkout_customer_id` · `woocommerce_coupon_get_usage_count` · `woocommerce_coupon_validate_user_usage_limit` · `woocommerce_email_additional_content_customer_invoice` · `woocommerce_email_before_order_table` ×2 · `woocommerce_get_order_item_totals` · `woocommerce_is_purchasable` · `woocommerce_package_rates` · `woocommerce_product_get_price` · `woocommerce_product_has_enough_stock` · `woocommerce_product_is_in_stock` · `⟨"woocommerce_email_enabled_{$id}"⟩` · `⟨$order_creator_catalog_hook⟩`
+`admin_init` · `show_admin_bar` · `template_redirect` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_validation` · `woocommerce_applied_coupon` · `woocommerce_before_calculate_totals` · `woocommerce_cart_calculate_fees` · `woocommerce_checkout_create_order_line_item` · `woocommerce_checkout_customer_id` · `woocommerce_coupon_get_usage_count` · `woocommerce_coupon_validate_user_usage_limit` · `woocommerce_email_additional_content_customer_invoice` · `woocommerce_email_before_order_table` ×2 · `woocommerce_get_order_item_totals` · `woocommerce_is_purchasable` · `woocommerce_package_rates` · `woocommerce_product_get_price` · `woocommerce_product_has_enough_stock` · `woocommerce_product_is_in_stock` · `⟨"woocommerce_email_enabled_{$id}"⟩` · `⟨$order_creator_catalog_hook⟩`
 
 ## File
 
@@ -84,7 +84,9 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `order_creator_verify_coupon_results()` | Đối chiếu kết quả áp mã với giỏ SAU KHI tính tổng xong. |
 | `order_creator_assert_coupons_applied()` | Tạo / cập nhật đơn: chặn khi có mã đã chọn mà không áp được (tránh đơn thiếu khoản giảm). |
 | `order_creator_coupon_detail(string $code)` | Thông tin tóm tắt 1 mã ưu đãi để hiển thị popup "Xem chi tiết". Trả về null khi mã không tồn tại trong hệ thống. |
-| `order_creator_snapshot_cart()` | Đọc giỏ đã tính → mảng cho UI (preview, không lưu). |
+| `order_creator_is_wdr_gift_data(array $data)` | Dòng quà Woo Discount Rules tự thêm (BOGO mua X tặng X / tặng Y): cart item mang khóa `wdr_free_product`… Quà do rule quyết định theo giỏ — KHÔNG phải hàng nhân viên chọn. Hàm t… |
+| `order_creator_order_item_is_wdr_gift(WC_Order_Item $item)` | Dòng đơn là quà WDR tự thêm? Cờ `_oc_auto_gift` (Trang Tạo đơn ghi khi lưu) / khóa meta WDR có "free"; dòng 0đ có meta WDR cũng tính (đơn cũ). Dòng 0đ không có meta WDR = quà nh… |
+| `order_creator_snapshot_cart()` | — |
 | `order_creator_disable_emails()` | Tắt toàn bộ email giao dịch WooCommerce cho request hiện tại. |
 | `order_creator_draft_status()` | Status cho đơn nháp: ưu tiên 'checkout-draft' của WC, fallback 'pending'. |
 | `order_creator_should_suppress_email(array $payload)` | Email mặc định TẮT khi tạo/sửa đơn; chỉ gửi khi suppress_email === false. |

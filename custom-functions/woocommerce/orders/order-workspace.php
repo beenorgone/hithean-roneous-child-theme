@@ -1634,6 +1634,21 @@ function thean_ow_ajax(): void
             $ok ? wp_send_json_success(['message' => $message]) : wp_send_json_error(['message' => $message]);
             break;
 
+        case 'not_internal_preview':
+            // Luồng Đơn nội bộ → popup "Không phải nội bộ" (order-internal-flow.php).
+            wp_send_json_success(thean_not_internal_preview($order));
+            break;
+
+        case 'not_internal':
+            [$ok, $message] = thean_not_internal_apply($order, [
+                'remove_email' => !empty($_POST['remove_email']),
+                'new_email'    => sanitize_email(wp_unslash($_POST['new_email'] ?? '')),
+                'customer'     => !empty($_POST['customer']),
+                'note'         => sanitize_textarea_field(wp_unslash($_POST['note'] ?? '')),
+            ]);
+            $ok ? wp_send_json_success(['message' => $message]) : wp_send_json_error(['message' => $message]);
+            break;
+
         case 'add_note':
             [$ok, $message] = thean_order_add_flow_note($order, sanitize_textarea_field(wp_unslash($_POST['note'] ?? '')), sanitize_key($_POST['note_type'] ?? 'private'));
             $ok ? wp_send_json_success(['message' => $message]) : wp_send_json_error(['message' => $message]);

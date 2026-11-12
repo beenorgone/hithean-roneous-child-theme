@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-34 file · ~10.600 dòng · 400 hàm (61% có docblock)
+35 file · ~10.900 dòng · 410 hàm (62% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -58,7 +58,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`acp/column/value` · `acp/storage_model/meta` · `add_meta_boxes` · `added_post_meta` · `admin_body_class` ×2 · `admin_enqueue_scripts` ×3 · `admin_footer` ×9 · `admin_head` ×2 · `admin_init` ×2 · `admin_menu` · `admin_notices` · `admin_print_footer_scripts` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `cron_schedules` · `current_screen` · `deleted_post_meta` ×2 · `disable_months_dropdown` · `edit_form_top` · `get_post_metadata` · `hithean_export_ai_check_async` · `hithean_export_ai_check_completed` · `hithean_export_lark_alert_async` · `hithean_export_lark_batch_async` · `hithean_export_lark_notify_async` · `hithean_export_lark_remind_async` · `hithean_warehouse_export_confirmed` · `init` ×3 · `manage_posts_extra_tablenav` · `order_edit_form_top` · `post_class` · `posts_pre_query` · `redirect_post_location` · `request` · `rwmb_field_meta` · `rwmb_meta_boxes` · `rwmb_warehouse_export_images_value` · `save_post_shop_order` · `shutdown` ×3 · `template_redirect` ×2 · `thean_ops_step_backfill` · `thean_ops_step_sweep` · `theme_ai_feature_registry` · `updated_post_meta` · `wc_order_statuses` · `woocommerce_admin_order_actions` ×4 · `woocommerce_admin_order_actions_end` · `woocommerce_admin_order_actions_start` · `woocommerce_after_order_object_save` · `woocommerce_before_order_itemmeta` · `woocommerce_before_order_object_save` · `woocommerce_hpos_pre_query` · `woocommerce_order_list_table_extra_tablenav` · `woocommerce_order_list_table_prepare_items_query_args` · `woocommerce_order_number` · `woocommerce_order_status_changed` ×2 · `woocommerce_order_status_failed` · `woocommerce_order_status_on-hold` · `woocommerce_order_status_packaging` · `woocommerce_order_status_processing` · `woocommerce_order_status_received-payment` · `woocommerce_order_status_shipping` · `woocommerce_order_statuses_that_restore_stock` · `woocommerce_process_shop_order_meta` · `woocommerce_thankyou` · `woocommerce_update_order` · `wp_footer` ×2 · `⟨$thean_hpc_hook⟩` · `⟨$thean_lms_hook⟩` · `⟨$thean_ops_hook⟩` ×2
+`acp/column/value` · `acp/storage_model/meta` · `add_meta_boxes` · `added_post_meta` · `admin_body_class` ×2 · `admin_enqueue_scripts` ×3 · `admin_footer` ×9 · `admin_head` ×2 · `admin_init` ×2 · `admin_menu` · `admin_notices` · `admin_print_footer_scripts` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `cron_schedules` · `current_screen` · `deleted_post_meta` ×2 · `disable_months_dropdown` · `edit_form_top` · `eim_is_internal_order` · `get_post_metadata` · `hithean_export_ai_check_async` · `hithean_export_ai_check_completed` · `hithean_export_lark_alert_async` · `hithean_export_lark_batch_async` · `hithean_export_lark_notify_async` · `hithean_export_lark_remind_async` · `hithean_warehouse_export_confirmed` · `init` ×3 · `manage_posts_extra_tablenav` · `order_edit_form_top` · `post_class` · `posts_pre_query` · `redirect_post_location` · `request` · `rwmb_field_meta` · `rwmb_meta_boxes` · `rwmb_warehouse_export_images_value` · `save_post_shop_order` · `shutdown` ×3 · `template_redirect` ×2 · `thean_ops_step_backfill` · `thean_ops_step_sweep` · `theme_ai_feature_registry` · `updated_post_meta` · `wc_order_statuses` · `woocommerce_admin_order_actions` ×4 · `woocommerce_admin_order_actions_end` · `woocommerce_admin_order_actions_start` · `woocommerce_after_order_object_save` · `woocommerce_before_order_itemmeta` · `woocommerce_before_order_object_save` · `woocommerce_hpos_pre_query` · `woocommerce_order_list_table_extra_tablenav` · `woocommerce_order_list_table_prepare_items_query_args` · `woocommerce_order_number` · `woocommerce_order_status_changed` ×2 · `woocommerce_order_status_failed` · `woocommerce_order_status_on-hold` · `woocommerce_order_status_packaging` · `woocommerce_order_status_processing` · `woocommerce_order_status_received-payment` · `woocommerce_order_status_shipping` · `woocommerce_order_statuses_that_restore_stock` · `woocommerce_process_shop_order_meta` · `woocommerce_thankyou` · `woocommerce_update_order` · `wp_footer` ×2 · `⟨$thean_hpc_hook⟩` · `⟨$thean_lms_hook⟩` · `⟨$thean_ops_hook⟩` ×2
 
 ## File
 
@@ -189,6 +189,21 @@ HPOS: helper + đọc meta đơn từ HPOS. Dùng chung theanmarket + hithean (f
 | `thean_hpos_order_metabox_keys()` | ID các ô Meta Box gắn lên đơn. Meta Box lưu bằng update_post_meta → chỉ vào posts; hook dưới chép sang HPOS bằng hàm của order-legacy-meta-sync.php. Thiếu bước này: filter đọc t… |
 | `thean_hpos_mirror_metabox_meta(int $post_id, string $key)` | Ghi post meta một ô Meta Box của đơn → chép nguyên tập giá trị sang HPOS. |
 
+### `woocommerce/orders/order-internal-flow.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `thean_order_not_internal_override(WC_Order $order)` | Đơn đã được xác nhận "Không phải nội bộ"? |
+| `thean_phone_variants(string $phone)` | Các cách viết SĐT để so meta billing_phone: 0xxx, 84xxx, +84xxx. Hàm thuần; [] khi không phải SĐT VN hợp lệ. |
+| `thean_customer_sms_email(string $phone)` | Email tự sinh cho khách không có email: 84<SĐT>@sms.<domain site>. '' khi SĐT không hợp lệ. |
+| `thean_customer_user_eligible(WP_User $user)` | Tài khoản đem gắn cho đơn khách được không: không phải nhân viên, email không thuộc domain nội bộ. |
+| `thean_order_find_customer(WC_Order $order)` | Tìm tài khoản khách khớp đơn: ['user' => WP_User, 'by' => phone\|email] \| null. |
+| `thean_order_real_billing_email(WC_Order $order)` | Email thật (không nội bộ) đang ở billing, '' nếu không có. |
+| `thean_not_internal_preview(WC_Order $order)` | Tình trạng đơn cho popup. |
+| `thean_order_create_customer(WC_Order $order)` | Tạo tài khoản khách theo thông tin đặt / giao của đơn. WP_User \| WP_Error. |
+| `thean_not_internal_apply(WC_Order $order, array $opts)` | Áp "Không phải nội bộ". $opts: remove_email (bool), new_email (string), customer (bool), note (string). Trả [ok, message]. |
+| `thean_not_internal_button(WC_Order $order)` | Nút "🙅 Không phải nội bộ" (popup kind notinternal). |
+
 ### `woocommerce/orders/order-legacy-meta-sync.php`
 
 HPOS: giữ meta do code cũ ghi thẳng post meta (update_post_meta) khớp với bảng meta HPOS. Dùng chung theanmarket + hithean (file giống hệt nhau).
@@ -278,7 +293,7 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_internal_domains_enabled()` | Lọc đơn nội bộ theo domain email đang bật? Mặc định BẬT. Option `thean_internal_domains_off` = '1' để tắt (key cũ `thean_internal_domains_enabled` — mặc định tắt — bỏ từ 31/10/2… |
 | `thean_parse_email_domains(string $raw)` | Tách danh sách domain (phẩy / chấm phẩy / khoảng trắng / xuống dòng). Hàm thuần. |
 | `thean_email_is_internal(string $email, ?array $domains = null)` | Email thuộc domain nội bộ? Khớp ĐÚNG domain sau "@": khai "thean.com" thì a@thean.com là nội bộ, còn a@hn.thean.com (subdomain) vẫn là đơn thường — muốn loại subdomain thì khai… |
-| `thean_order_is_internal(WC_Order $order)` | Đơn nội bộ: cờ `_eim_internal` hoặc email người mua thuộc domain nội bộ. |
+| `thean_order_is_internal(WC_Order $order)` | Đơn nội bộ: cờ `_eim_internal` hoặc email người mua thuộc domain nội bộ — trừ đơn đã xác nhận "Không phải nội bộ". |
 | `thean_ops_internal_sql(array $t, bool $exclude = true)` | Điều kiện SQL loại đơn nội bộ (alias đơn = o); $exclude = false → điều kiện CHỌN đơn nội bộ (tab Đơn nội bộ). |
 | `thean_can_skip_export_proof()` | Chỉ admin (manage_options) được bỏ qua lỗi thiếu chứng từ xuất kho. |
 | `thean_can_change_any_status()` | Được đổi trạng thái tùy ý (từng đơn + hàng loạt) ở ô tìm đơn / board: người được chỉ định ở Cài đặt ERP → Xử lý đơn (option `thean_status_change_users`, ID user). Danh sách trốn… |

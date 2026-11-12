@@ -9,6 +9,8 @@
  *   `[data-thean-preorder-confirm]` → task preorder_confirm, result confirmed | waiting.
  * - Sự cố giao hàng: `[data-thean-flow="issue"]` (bắt buộc ghi chú) / `"issue_resolve"` → task delivery_issue (order-flow-notes.php).
  * - Tạo ghi chú đơn: `[data-thean-flow="note"]` (chọn Nội bộ / Gửi khách) → task add_note.
+ * - Không phải nội bộ (tab Đơn nội bộ): `[data-thean-flow="notinternal"]` → đọc tình trạng (task not_internal_preview) rồi
+ *   chọn kịch bản: bỏ email nội bộ khỏi billing / tạo-gắn tài khoản khách → task not_internal (order-internal-flow.php).
  * - Mẫu ghi chú gợi ý: cfg.templates[kind] (Cài đặt ERP → Xử lý đơn → Mẫu ghi chú thao tác) — chip bấm để chèn vào ô ghi chú.
  *   spec.key = kind lấy mẫu (KINDS tự có; popup tùy biến truyền spec.key hoặc spec.templates).
  * Xong: phát sự kiện `thean:order-updated` (board tự làm mới); trang sửa đơn (cfg.reload) thì tải lại.
@@ -54,6 +56,11 @@
             + '#thean-flow-modal .tp-tpl{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}'
             + '#thean-flow-modal .tp-tpl button{padding:4px 10px;border:1px solid #b9cdf0;border-radius:999px;background:#f5f8ff;color:#0047ba;font:inherit;font-size:12px;cursor:pointer;text-align:left}'
             + '#thean-flow-modal .tp-tpl button:hover{background:#e8f0ff}'
+            + '#thean-flow-modal .tp-opt{display:flex;gap:8px;align-items:flex-start;margin:0 0 10px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc}'
+            + '#thean-flow-modal .tp-opt input[type=checkbox]{margin-top:2px}'
+            + '#thean-flow-modal .tp-opt small{display:block;margin-top:3px;color:#475569}'
+            + '#thean-flow-modal .tp-opt input[type=email]{box-sizing:border-box;width:100%;margin-top:6px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px}'
+            + '#thean-flow-modal .tp-opt.is-off{opacity:.6}'
             + '#thean-flow-modal .tp-notice{min-height:18px;margin-top:10px;color:#b42318;font-weight:600}';
         document.head.appendChild(style);
 
@@ -175,7 +182,64 @@
         note.focus();
     }
 
+    function post(fields) {
+        var fd = new FormData();
+        fd.append('action', 'thean_order_workspace');
+        fd.append('nonce', cfg.nonce);
+        Object.keys(fields).forEach(function (k) { fd.append(k, fields[k]); });
+        return fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res || !res.success) throw new Error((res && res.data && res.data.message) || 'Không lưu được.');
+                return res.data || {};
+            });
+    }
+
+    /** Kịch bản "Không phải nội bộ": tick chọn từng việc, server làm theo thứ tự email → tài khoản → gỡ cờ. */
+    function openNotInternal(trigger) {
+        var info = fromTrigger(trigger);
+        if (!info.orderId) return;
+        render({
+            title: '🙅 Không phải đơn nội bộ — đơn #' + info.orderId,
+            help: 'Đơn sẽ rời tab "Đơn nội bộ" và đi luồng khách như đơn thường (gỡ cờ nội bộ, eim xuất VAT bình thường). Chọn việc cần làm:',
+            placeholder: 'Ghi chú (không bắt buộc): VD khách mua hộ qua nhân viên…',
+            required: false, templates: [],
+            buttons: [['apply', 'Chuyển sang đơn khách', 'primary']]
+        }, { kind: 'notinternal', trigger: trigger, orderId: info.orderId, onSubmit: function (note) {
+            var box = form.querySelector('.tp-ni');
+            if (!box || !box.getAttribute('data-ready')) return Promise.reject(new Error('Đang tải thông tin đơn…'));
+            var rm = form.elements.ni_email && form.elements.ni_email.checked;
+            var cu = form.elements.ni_customer && form.elements.ni_customer.checked;
+            return post({ task: 'not_internal', order_id: info.orderId, remove_email: rm ? 1 : '', customer: cu ? 1 : '',
+                new_email: rm && form.elements.ni_new_email ? form.elements.ni_new_email.value.trim() : '', note: note })
+                .then(function (data) { setTimeout(function () { done({ kind: 'notinternal', trigger: trigger, orderId: info.orderId }, data.message); }, 0); });
+        } });
+        var box = el('div', 'tp-ni', 'Đang đọc thông tin đơn…');
+        form.insertBefore(box, form.elements.note);
+        post({ task: 'not_internal_preview', order_id: info.orderId }).then(function (d) {
+            box.replaceChildren();
+            var email = el('label', 'tp-opt' + (d.email_internal ? '' : ' is-off'));
+            var cb1 = el('input'); cb1.type = 'checkbox'; cb1.name = 'ni_email'; cb1.checked = !!d.email_internal;
+            var t1 = el('span', '', '✉️ Bỏ email nội bộ khỏi email billing');
+            t1.appendChild(el('small', '', d.email_internal ? 'Email hiện tại: ' + d.email + ' (domain nội bộ). Để trống ô dưới = lấy email tài khoản khách (nếu là email thật) hoặc để trống.'
+                : 'Email hiện tại ' + (d.email || '(trống)') + ' không thuộc domain nội bộ — chỉ đổi khi nhập email mới.'));
+            var ne = el('input'); ne.type = 'email'; ne.name = 'ni_new_email'; ne.placeholder = 'Email thật của khách (không bắt buộc)';
+            t1.appendChild(ne);
+            email.append(cb1, t1);
+            var cust = el('label', 'tp-opt' + (d.customer.mode === 'none' ? ' is-off' : ''));
+            var cb2 = el('input'); cb2.type = 'checkbox'; cb2.name = 'ni_customer'; cb2.checked = d.customer.mode === 'attach' || d.customer.mode === 'create';
+            cb2.disabled = d.customer.mode === 'none' || d.customer.mode === 'keep';
+            var t2 = el('span', '', '👤 Tạo / gắn tài khoản khách theo thông tin đặt / giao');
+            t2.appendChild(el('small', '', (d.name || d.phone ? (d.name + (d.phone ? ' · ' + d.phone : '')) + ' — ' : '') + d.customer.text));
+            cust.append(cb2, t2);
+            box.append(email, cust);
+            if (d.flag) box.appendChild(el('p', '', '🏷️ Đơn đang có cờ _eim_internal — sẽ gỡ.'));
+            box.setAttribute('data-ready', '1');
+        }).catch(function (err) { box.textContent = err.message || 'Không đọc được thông tin đơn.'; });
+    }
+
     function open(kind, trigger) {
+        if (kind === 'notinternal') { openNotInternal(trigger); return; }
         var info = fromTrigger(trigger);
         var spec = KINDS[kind];
         if (!info.orderId || !spec) return;
@@ -257,7 +321,7 @@
             return;
         }
         t.classList.add('is-thean-complete');
-        t.setAttribute('data-thean-complete-label', { preorder: 'Đã đặt trước', hold: 'Đã tạm giữ', cancel: 'Đã hủy', resume: 'Đã tiếp tục', skipproof: 'Đã bỏ qua', issue: 'Đã báo sự cố', issue_resolve: 'Đã xử lý sự cố' }[job.kind] || 'Đã ghi nhận');
+        t.setAttribute('data-thean-complete-label', { preorder: 'Đã đặt trước', hold: 'Đã tạm giữ', cancel: 'Đã hủy', resume: 'Đã tiếp tục', skipproof: 'Đã bỏ qua', issue: 'Đã báo sự cố', issue_resolve: 'Đã xử lý sự cố', notinternal: 'Đã chuyển đơn khách' }[job.kind] || 'Đã ghi nhận');
         t.removeAttribute('href');
         toast(message || 'Đã lưu.');
         document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderId: job.orderId, kind: job.kind } }));

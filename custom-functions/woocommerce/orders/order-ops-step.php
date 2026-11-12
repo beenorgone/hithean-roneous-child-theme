@@ -2,6 +2,7 @@
 if (!defined('ABSPATH')) exit;
 require_once __DIR__ . '/order-export-review.php';
 require_once __DIR__ . '/order-flow-notes.php'; // mẫu ghi chú thao tác + sự cố giao hàng + tạo ghi chú đơn
+require_once __DIR__ . '/order-internal-flow.php'; // luồng Đơn nội bộ: nút "Không phải nội bộ" + cờ override
 
 /**
  * Bước vận hành của đơn, lưu sẵn thành meta để board "Cần xử lý" (order-universal-search.php) chỉ cần
@@ -191,9 +192,12 @@ function thean_email_is_internal(string $email, ?array $domains = null): bool
     return in_array(substr($email, $at + 1), $domains ?? thean_internal_email_domains(), true);
 }
 
-/** Đơn nội bộ: cờ `_eim_internal` hoặc email người mua thuộc domain nội bộ. */
+/** Đơn nội bộ: cờ `_eim_internal` hoặc email người mua thuộc domain nội bộ — trừ đơn đã xác nhận "Không phải nội bộ". */
 function thean_order_is_internal(WC_Order $order): bool
 {
+    if (function_exists('thean_order_not_internal_override') && thean_order_not_internal_override($order)) {
+        return false;
+    }
     return (string) $order->get_meta('_eim_internal') === '1' || thean_email_is_internal($order->get_billing_email());
 }
 
@@ -212,7 +216,8 @@ function thean_ops_internal_sql(array $t, bool $exclude = true): string
             ? $match("COALESCE(o.{$t['email_col']}, '')")
             : "EXISTS (SELECT 1 FROM {$t['meta']} e WHERE e.{$t['fk']} = o.{$t['id']} AND e.meta_key = '_billing_email' AND " . $match('e.meta_value') . ')';
     }
-    $any = '(' . implode(' OR ', $parts) . ')';
+    // Đơn đã xác nhận "Không phải nội bộ" (order-internal-flow.php) luôn là đơn khách.
+    $any = '((' . implode(' OR ', $parts) . ") AND NOT EXISTS (SELECT 1 FROM {$t['meta']} ni WHERE ni.{$t['fk']} = o.{$t['id']} AND ni.meta_key = '_thean_not_internal' AND ni.meta_value = '1'))";
     return $exclude ? 'NOT ' . $any : $any;
 }
 
@@ -547,7 +552,7 @@ function thean_ops_step_watched_meta(): array
     return [
         '_order_payment_confirmation_audit', 'paid_date', 'order_paid_date', 'bank_account_received', 'order_bank_account_received',
         'handling_status', 'order_handling_status', 'shipper', 'order_shipper', 'warehouse_export_images', 'export_confirmed_by', 'return_status',
-        '_payment_method', '_spx_date', '_eim_internal', '_billing_email', '_thean_preorder_confirm', '_thean_export_proof_skip',
+        '_payment_method', '_spx_date', '_eim_internal', '_thean_not_internal', '_billing_email', '_thean_preorder_confirm', '_thean_export_proof_skip',
     ];
 }
 
