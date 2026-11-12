@@ -1138,6 +1138,12 @@ function thean_ow_box_export(WC_Order $order, array $images, int $confirmed_by, 
         </div>
         <?php
     }
+    // Đơn đã giao đi mà thiếu ảnh / xác nhận xuất kho (tab "Thiếu chứng từ XK"): chỉ admin bỏ qua — như /quan-ly-don.
+    if (function_exists('thean_ops_missing_proof') && function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof()
+        && ($missing = thean_ops_missing_proof($order))) {
+        echo '<p class="tow-hint">⚠️ Đơn đã giao đi nhưng thiếu ' . esc_html(implode(' + ', $missing)) . '.</p>';
+        echo '<div class="tow-btns"><button type="button" class="button" data-thean-flow="skipproof" data-order-id="' . esc_attr($order->get_id()) . '">⏭️ Bỏ qua thiếu chứng từ</button></div>';
+    }
     thean_ow_box_close();
 }
 
@@ -1344,7 +1350,14 @@ function thean_ow_box_customer(WC_Order $order): void
     $phone       = $order->get_billing_phone();
     $email       = $order->get_billing_email();
     $name        = trim($order->get_formatted_billing_full_name());
-    thean_ow_box_open('customer', '👤 Khách hàng', $customer_id ? thean_ow_badge('ID ' . $customer_id, 'neutral') : thean_ow_badge('Khách vãng lai', 'neutral'), false);
+    $internal    = function_exists('thean_order_is_internal') && thean_order_is_internal($order);
+    thean_ow_box_open('customer', '👤 Khách hàng', ($internal ? thean_ow_badge('🏢 Đơn nội bộ', 'warning') . ' ' : '')
+        . ($customer_id ? thean_ow_badge('ID ' . $customer_id, 'neutral') : thean_ow_badge('Khách vãng lai', 'neutral')), $internal);
+    if ($internal && current_user_can('manage_woocommerce')) {
+        // Luồng ngoại lệ Đơn nội bộ (order-internal-flow.php): bỏ email nội bộ / tạo-gắn tài khoản khách — như /quan-ly-don.
+        echo '<p class="tow-hint">🏢 Đơn đang được coi là <strong>nội bộ</strong> (cờ _eim_internal / email domain nội bộ) — chỉ hiện ở tab "Đơn nội bộ" của board.</p>';
+        echo '<div class="tow-btns"><button type="button" class="button" data-thean-flow="notinternal" data-order-id="' . esc_attr($order->get_id()) . '">🙅 Không phải nội bộ</button></div>';
+    }
 
     echo thean_ow_row('Tên', esc_html($name));
     if ($phone) {
@@ -1444,6 +1457,11 @@ function thean_ow_box_hold_cancel(WC_Order $order, bool $locked): void
 
 function thean_ow_box_tools(WC_Order $order, $order_no): void
 {
+    // Nút dùng chung với /quan-ly-don (xem hóa đơn, thao tác danh sách đơn): trang sửa đơn legacy (post.php) và lượt AJAX
+    // render lại bảng không nạp ô tìm đơn → nạp lười để nút không mất sau khi bảng làm mới.
+    if (!function_exists('thean_ous_order_actions') && is_file(__DIR__ . '/order-universal-search.php')) {
+        require_once __DIR__ . '/order-universal-search.php';
+    }
     thean_ow_box_open('tools', '🖨️ Chứng từ & tiện ích');
 
     // Phiếu GHTK / Nhanh, PXK IVAR nằm ở bước Lấy hàng (thean_ow_box_picking).
@@ -1454,10 +1472,59 @@ function thean_ow_box_tools(WC_Order $order, $order_no): void
     }
     echo '<div class="tow-chips">';
     foreach ($links as $label => $url) echo '<a class="tow-chip tow-chip--solid" href="' . esc_url($url) . '" target="_blank" rel="noopener">' . esc_html($label) . '</a>';
+    // Xem hóa đơn = bản xem trước hóa đơn của trang Tạo đơn (như nút 🧾 ở /quan-ly-don), mở tab mới để In.
+    if (function_exists('thean_ous_invoice_url') && ($invoice = thean_ous_invoice_url($order)) !== '') {
+        echo '<a class="tow-chip" href="' . esc_url($invoice) . '" target="_blank" rel="noopener">🧾 Xem hóa đơn</a>';
+    }
     echo '<button type="button" class="tow-chip" data-copy="' . esc_attr((string) $order_no) . '">📋 Mã đơn</button>';
     echo '<button type="button" class="tow-chip" data-goto="picking">🖨️ In phiếu GHTK/Nhanh → Soạn hàng, đóng gói</button>';
+    // 📝 Ghi chú nội bộ / gửi khách có mẫu gợi ý (popup order-flow-popup.js → task add_note).
+    echo '<button type="button" class="tow-chip" data-thean-flow="note" data-order-id="' . esc_attr($order->get_id()) . '">📝 Ghi chú đơn</button>';
+    foreach (thean_ow_extra_actions($order) as $action) {
+        echo '<a class="tow-chip" href="' . esc_url($action['url']) . '"' . ($action['blank'] ? ' target="_blank" rel="noopener"' : '') . '>' . esc_html($action['label']) . '</a>';
+    }
     echo '</div>';
+    if (function_exists('thean_can_change_any_status') && thean_can_change_any_status()
+        && !(function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order))) {
+        // 🔁 Đổi trạng thái tùy ý — chỉ người chỉ định ở Cài đặt ERP → Xử lý đơn (như /quan-ly-don).
+        $statuses = wc_get_order_statuses();
+        unset($statuses['wc-' . $order->get_status()], $statuses['wc-checkout-draft']);
+        echo '<div class="tow-form" data-task="any_status" style="margin-top:10px">';
+        echo '<label class="tow-f"><span>🔁 Đổi trạng thái tùy ý</span><select class="tow-input" data-p="any_status"><option value="">— Chọn trạng thái —</option>';
+        foreach ($statuses as $key => $label) echo '<option value="' . esc_attr(substr($key, 3)) . '">' . esc_html($label) . '</option>';
+        echo '</select></label>';
+        echo '<label class="tow-f"><span>Ghi chú</span><input type="text" class="tow-input" data-p="reason" placeholder="Không bắt buộc"></label>';
+        echo '<div class="tow-btns"><button type="button" class="button tow-act" data-action="any_status">🔁 Đổi trạng thái</button></div>';
+        echo '</div>';
+    }
     thean_ow_box_close();
+}
+
+/**
+ * Thao tác ở cột Thao tác / xem nhanh của danh sách đơn (woocommerce_admin_order_actions) mà bảng điều phối chưa có
+ * (VD YC hoàn tiền form Lark, tra vận đơn…). Bỏ các action đã có bước / box riêng (so theo đuôi slug: thean-* lẫn hithean-*).
+ *
+ * @return array<int, array{label: string, url: string, blank: bool}>
+ */
+function thean_ow_extra_actions(WC_Order $order): array
+{
+    if (!function_exists('thean_ous_order_actions')) return [];
+    $covered = ['chinh-don-tao-don', 'order-payment', 'order-customer-confirmed', 'order-preorder', 'order-preorder-confirm', 'qr-code',
+        'order-export-images', 'order-export-confirm', 'in-van-don-ghtk', 'print_pxk', 'order-return-record', 'order-return-images',
+        'anxu-card', 'goi-sdt-dat-hang', 'goi-sdt-nhan-hang']; // Anxu / gọi SĐT: đã có ở box Khách hàng
+    $out = [];
+    foreach (thean_ous_order_actions($order) as $key => $action) {
+        $url = (string) ($action['url'] ?? '');
+        if ($url === '') continue;
+        $slug = sanitize_html_class($action['action'] ?? $key);
+        foreach ($covered as $suffix) {
+            if ($slug === $suffix || substr($slug, -strlen('-' . $suffix)) === '-' . $suffix) continue 2;
+        }
+        $meta  = function_exists('thean_order_action_meta') ? thean_order_action_meta($slug) : ['icon' => '', 'short' => ''];
+        $label = (string) ($meta['short'] ?? '') !== '' ? (string) $meta['short'] : wp_strip_all_tags((string) ($action['name'] ?? $key));
+        $out[] = ['label' => trim(($meta['icon'] ?? '') . ' ' . $label), 'url' => $url, 'blank' => !empty($action['target']) || preg_match('#^https?://#', $url) === 1];
+    }
+    return $out;
 }
 
 // ================= AJAX: sửa nhanh field / trạng thái / render lại bảng =================
@@ -1647,6 +1714,22 @@ function thean_ow_ajax(): void
                 'note'         => sanitize_textarea_field(wp_unslash($_POST['note'] ?? '')),
             ]);
             $ok ? wp_send_json_success(['message' => $message]) : wp_send_json_error(['message' => $message]);
+            break;
+
+        case 'any_status':
+            // 🔁 Đổi trạng thái tùy ý (box Chứng từ & tiện ích) — chỉ người chỉ định, như /quan-ly-don.
+            if (!function_exists('thean_can_change_any_status') || !thean_can_change_any_status()) {
+                wp_send_json_error(['message' => 'Chỉ người được chỉ định (Cài đặt ERP → Xử lý đơn) mới đổi trạng thái tùy ý.'], 403);
+            }
+            $target = sanitize_key($_POST['status'] ?? '');
+            if ($target === '' || !wc_is_order_status('wc-' . $target)) wp_send_json_error(['message' => 'Trạng thái không hợp lệ.']);
+            if (function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order)) {
+                wp_send_json_error(['message' => 'Đơn đã bị khóa đổi trạng thái (chỉ admin).']);
+            }
+            if ($order->get_status() === $target) wp_send_json_error(['message' => 'Đơn đã ở trạng thái ' . wc_get_order_status_name($target) . '.']);
+            $reason = sanitize_text_field(wp_unslash($_POST['reason'] ?? ''));
+            $order->update_status($target, '🔁 Đổi trạng thái tùy ý (bảng điều phối)' . ($reason !== '' ? ': ' . $reason : '') . '.', true);
+            wp_send_json_success(['message' => 'Đã chuyển sang: ' . wc_get_order_status_name($target)]);
             break;
 
         case 'add_note':

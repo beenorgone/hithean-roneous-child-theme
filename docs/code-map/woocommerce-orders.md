@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-35 file · ~10.900 dòng · 410 hàm (62% có docblock)
+35 file · ~11.000 dòng · 411 hàm (62% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -564,6 +564,7 @@ Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn
 | `thean_ow_box_preorder(WC_Order $order, string $note, string $confirm, bool $locked)` | Đơn đặt trước: đang chờ đến hẹn (tiếp tục / sửa ghi chú) hoặc cần nhắn/gọi khách xác nhận giao. |
 | `thean_ow_box_hold_cancel(WC_Order $order, bool $locked)` | — |
 | `thean_ow_box_tools(WC_Order $order, $order_no)` | — |
+| `thean_ow_extra_actions(WC_Order $order)` | Thao tác ở cột Thao tác / xem nhanh của danh sách đơn (woocommerce_admin_order_actions) mà bảng điều phối chưa có (VD YC hoàn tiền form Lark, tra vận đơn…). Bỏ các action đã có… |
 | `thean_ow_skip_export_proof(WC_Order $order, string $reason)` | Đánh dấu bỏ qua "thiếu chứng từ xuất kho" (đơn đã giao / xong mà thiếu ảnh / xác nhận xuất kho — tab "Thiếu chứng từ XK" của board, order-ops-step.php). Trả [thành công?, thông… |
 | `thean_ow_apply_flow(WC_Order $order, string $flow, string $reason)` | Tạm giữ / Tiếp tục / Hủy / Đặt trước 1 đơn (task order_flow). Trả [thành công?, thông báo]. Dùng chung cho AJAX bảng điều phối và thao tác hàng loạt của ô tìm đơn / board (order… |
 | `thean_ow_ajax()` | — |

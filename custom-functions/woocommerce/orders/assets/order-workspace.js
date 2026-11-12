@@ -319,6 +319,16 @@
                 then: close ? { action: 'thean_order_workspace', nonce: cfg.nonces.workspace, order_id: cfg.orderId, task: 'return_close' } : null
             };
         },
+        any_status: function (form) {
+            var sel = form.querySelector('[data-p="any_status"]');
+            var status = sel ? sel.value : '';
+            if (!status) throw new Error('Chọn trạng thái mới trước.');
+            return {
+                confirm: 'Đổi trạng thái đơn sang "' + sel.options[sel.selectedIndex].text + '"?',
+                data: { action: 'thean_order_workspace', nonce: cfg.nonces.workspace, order_id: cfg.orderId, task: 'any_status', status: status, reason: val(form, 'reason') },
+                reload: true // trạng thái đổi quyền sửa form đơn + hộp trạng thái của WC
+            };
+        },
         order_flow: function (form, btn) {
             var flow = btn.getAttribute('data-flow');
             var reason = val(form, 'reason');
