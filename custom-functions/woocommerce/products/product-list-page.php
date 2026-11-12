@@ -423,7 +423,7 @@ if (!function_exists('hithean_product_taxonomy_inline_styles')) {
             .hithean-product-grid .product .woocommerce-LoopProduct-link img{width:100%;aspect-ratio:1/1;object-fit:cover}
             .hithean-product-grid .product .woocommerce-loop-product__title{min-height:2.6em;margin-top:14px}
             .hithean-product-grid .product .price{display:block;margin:8px 0 14px}
-            .product-info-subheading{min-height:2.4em;margin-bottom:16px}
+            .product-info-subheading{min-height:2.4em;margin-bottom:20px}
         </style>
         <?php
     }

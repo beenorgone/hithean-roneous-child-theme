@@ -981,6 +981,40 @@ input[type="submit"],
     }
 }
 
+@media screen and (max-width: 767px) {
+    .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
+    .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
+    .woocommerce .product .image-box span.onsale {
+        min-width: calc(64px * 2 / 3);
+        height: calc(34px * 2 / 3);
+        min-height: calc(34px * 2 / 3);
+        padding: 0 calc(14px * 2 / 3);
+        font-size: calc(16px * 2 / 3);
+    }
+
+    .woocommerce .product_tag-new.sale > a.woocommerce-LoopProduct-link::before,
+    .woocommerce-page .product_tag-new.sale .image-box > a.woocommerce-LoopProduct-link::before {
+        top: 43px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
+    .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
+    .woocommerce .product .image-box span.onsale {
+        min-width: 36px;
+        height: 20px;
+        min-height: 20px;
+        padding: 0 calc(10px * 2 / 3);
+        font-size: calc(14px * 2 / 3);
+    }
+
+    .woocommerce .product_tag-new.sale > a.woocommerce-LoopProduct-link::before,
+    .woocommerce-page .product_tag-new.sale .image-box > a.woocommerce-LoopProduct-link::before {
+        top: 36px;
+    }
+}
+
 /* Messages */
 .woocommerce .woocommerce-message,
 .woocommerce .woocommerce-thankyou-order-received,
@@ -1809,8 +1843,31 @@ div.summary.entry-summary > div.b-greenspark-revenue-percentage-widget > div {
 .product-info-subheading {
     font-size: 12px;
     color: #3b2222;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
     text-align: left;
+}
+
+@media (max-width: 767px) {
+    .product-info-subheading {
+        box-sizing: border-box;
+        padding-inline: 12px;
+    }
+}
+
+/* Dải ưu đãi trong thẻ: theo chiều rộng nút, kể cả lưới hai cột. */
+body button.hlo--b {
+    container: hithean-loop-offer / inline-size;
+    flex-basis: calc(100% - 24px);
+    width: calc(100% - 24px);
+    max-width: min(400px, calc(100% - 24px));
+    padding-block: 10px !important;
+}
+
+@container hithean-loop-offer (min-width: 260px) {
+    button.hlo--b .hlo__more::before {
+        content: "Xem thêm ";
+        white-space: nowrap;
+    }
 }
 
 /*----------------------*\
