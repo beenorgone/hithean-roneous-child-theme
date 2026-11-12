@@ -882,6 +882,65 @@ function order_creator_order_item_is_wdr_gift(WC_Order_Item $item): bool
     return false;
 }
 
+/**
+ * Nhãn ưu đãi của Woo Discount Rules (tiêu đề rule + nhãn giảm giỏ `cart_adjustments.label`), chữ thường — để nhận ra phí âm /
+ * coupon ảo WDR tạo trên đơn CŨ (chưa có cờ `_oc_auto_fee`). Đọc cả rule đã tắt (đơn cũ có thể dùng rule nay đã tắt).
+ */
+function order_creator_wdr_labels(): array
+{
+    static $labels = null;
+    if ($labels !== null) {
+        return $labels;
+    }
+    global $wpdb;
+    $labels = [];
+    $table = $wpdb->prefix . 'wdr_rules';
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+        return $labels;
+    }
+    foreach ((array) $wpdb->get_results("SELECT title, cart_adjustments FROM `$table` WHERE deleted = 0", ARRAY_A) as $row) {
+        $adj = json_decode((string) ($row['cart_adjustments'] ?? ''), true);
+        foreach ([(string) ($row['title'] ?? ''), is_array($adj) ? (string) ($adj['label'] ?? '') : ''] as $label) {
+            $label = strtolower(trim($label));
+            if ($label !== '') {
+                $labels[$label] = true;
+                $labels[wc_format_coupon_code($label)] = true;
+            }
+        }
+    }
+    return $labels;
+}
+
+/** Phí của giỏ có phải phí nhân viên nhập (state fees) không — còn lại do plugin (WDR giảm giỏ dạng phí âm…) tự thêm. */
+function order_creator_cart_fee_is_manual($fee): bool
+{
+    $name = is_object($fee) ? (string) ($fee->name ?? '') : '';
+    $amount = is_object($fee) ? (float) ($fee->amount ?? 0) : 0.0;
+    foreach (order_creator_state()['fees'] as $own) {
+        $own_name = $own['name'] !== '' ? $own['name'] : 'Điều chỉnh';
+        if ($own_name === $name && abs((float) $own['amount'] - $amount) < 0.01) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Dòng phí trên đơn do plugin giảm giá tự thêm (không nạp lại khi sửa đơn). */
+function order_creator_order_fee_is_auto(WC_Order_Item_Fee $item): bool
+{
+    if ((string) $item->get_meta('_oc_auto_fee') === '1') {
+        return true;
+    }
+    return (float) $item->get_total() < 0 && isset(order_creator_wdr_labels()[strtolower(trim($item->get_name()))]);
+}
+
+// Đánh dấu phí do plugin tự thêm khi Trang Tạo đơn tạo đơn (create_order) — bản sửa đơn đánh dấu ở order_creator_sync_order_from_cart.
+add_action('woocommerce_checkout_create_order_fee_item', function ($item, $fee_key, $fee) {
+    if (!empty(order_creator_state()['active']) && $item instanceof WC_Order_Item_Fee && !order_creator_cart_fee_is_manual($fee)) {
+        $item->update_meta_data('_oc_auto_fee', '1');
+    }
+}, 20, 3);
+
 // Đánh dấu dòng quà WDR khi Trang Tạo đơn lưu đơn (create_order / sync khi sửa) → lần nạp lại bỏ qua chắc chắn.
 add_action('woocommerce_checkout_create_order_line_item', function ($item, $cart_item_key, $values) {
     if (!empty(order_creator_state()['active']) && is_array($values) && order_creator_is_wdr_gift_data($values)) {
@@ -1196,6 +1255,9 @@ function order_creator_sync_order_from_cart(WC_Order $order, array $payload): vo
             'total_tax' => $fee->tax,
             'taxes'     => ['total' => $fee->tax_data],
         ]);
+        if (!order_creator_cart_fee_is_manual($fee)) {
+            $item->add_meta_data('_oc_auto_fee', '1', true); // WDR giảm giỏ dạng phí: nạp lại đơn không đưa vào phí tay
+        }
         $order->add_item($item);
     }
 
@@ -3134,9 +3196,25 @@ add_action('wp_ajax_order_creator_load_order', function () {
         ];
     }
 
+    // Giảm giá do Discount Rules tự tính (phí âm / coupon ảo) KHÔNG nạp lại làm phí tay / mã nhân viên: rule tự tính lại
+    // theo giỏ — nạp vào là giảm chồng (mỗi lần lưu giảm thêm 1 lần).
     $fees = [];
+    $auto_discounts = [];
     foreach ($order->get_items('fee') as $fee) {
+        if (order_creator_order_fee_is_auto($fee)) {
+            $auto_discounts[] = $fee->get_name() . ' ' . wc_format_decimal($fee->get_total(), 0);
+            continue;
+        }
         $fees[] = ['name' => $fee->get_name(), 'amount' => (float) $fee->get_total()];
+    }
+    $coupons = [];
+    foreach (array_values($order->get_coupon_codes()) as $code) {
+        // Coupon ảo WDR ("giảm giỏ dạng coupon"): không có bài coupon thật + trùng nhãn rule. Mã thật đã xóa (Anxu / vòng quay…) vẫn giữ.
+        if (function_exists('wc_get_coupon_id_by_code') && !wc_get_coupon_id_by_code($code) && isset(order_creator_wdr_labels()[wc_format_coupon_code($code)])) {
+            $auto_discounts[] = 'mã ' . $code;
+            continue;
+        }
+        $coupons[] = $code;
     }
 
     $shipping_method = '';
@@ -3174,7 +3252,8 @@ add_action('wp_ajax_order_creator_load_order', function () {
         'customer_id'     => (int) $order->get_customer_id(),
         'items'           => $items,
         'auto_gifts'      => $gifts, // quà WDR đã bỏ khỏi giỏ khi nạp (UI báo)
-        'coupons'         => array_values($order->get_coupon_codes()),
+        'coupons'         => $coupons,
+        'auto_discounts'  => $auto_discounts, // giảm giá WDR đã bỏ khi nạp (rule tự áp lại)
         'fees'            => $fees,
         'shipping_method' => $shipping_method,
         'shipping_title'  => $shipping_title,
