@@ -114,7 +114,9 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   chỉ trong lúc in giá của thẻ — cờ `$GLOBALS['hithean_loop_price_scope']` bật / tắt quanh `woocommerce_after_shop_loop_item_title`): SP thuộc rule
   Discount Rules giảm **ngay từ 1 sản phẩm** hiện giá gốc gạch + giá ưu đãi như Sale thông thường (SP biến thể: khoảng giá). Giá do plugin tính
   (cùng đường trang chi tiết: `hithean_product_purchase_rule_price()` — nạp lazy product-purchase.php); rule theo giỏ hàng / quà tặng / BOGO giữ nguyên
-  giá. Không đổi nhãn Sale, không đổi `is_on_sale()`. Test: `php tests/loop-rule-price.php`.
+  giá. Cùng dữ liệu (`hithean_loop_rule_price_data()`): in nhãn Sale `span.onsale` trên ảnh (`hithean_loop_rule_sale_flash()` — cùng kiểu nhãn NEW, SP đang
+  Sale thông thường thì WooCommerce tự in) + thêm lớp `sale` cho thẻ (`woocommerce_post_class`, để nhãn NEW xếp dưới nhãn Sale; không áp cho SP chính của
+  trang chi tiết). Không đổi `is_on_sale()`. Test: `php tests/loop-rule-price.php`.
 - **Thông báo Lark khi /uu-dai/ đổi chương trình** (`marketing/offers/lark-notify.php`): nghe `update_option_hithean_offers_snapshot`
   (mọi đường đổi snapshot: duyệt / loại / ghim, quét tuần, mốc hết hạn, khôi phục snapshot) → cron `hithean_offers_lark_flush` sau 5 phút,
   so tóm tắt theo chương trình (`hithean_offers_lark_programs()` / `_diff()` / `_message()` — hàm thuần) với mốc đã báo (option

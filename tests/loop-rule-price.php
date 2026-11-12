@@ -8,6 +8,7 @@ function add_action(...$args) {}
 function add_filter(...$args) {}
 function has_filter($tag) { return $GLOBALS['plugin']; }
 function apply_filters($tag, $value, ...$args) {
+    if ($tag === 'woocommerce_sale_flash') { return $value; }
     if ($tag !== 'advanced_woo_discount_rules_get_product_discount_price_from_custom_price') { return $value; }
     ok($args[1] === 1, 'Hỏi plugin đúng số lượng 1');
     return $GLOBALS['rules'][$args[0]->get_id()] ?? false;
@@ -18,6 +19,9 @@ function wc_format_sale_price($regular, $sale) { return '<del>' . (is_numeric($r
 function wc_get_price_to_display($product, $args = []) { return (float) $args['price']; }
 function wc_get_product($id) { return $GLOBALS['products'][$id] ?? null; }
 function is_admin() { return false; }
+function esc_html__($text, $domain = '') { return $text; }
+function is_product() { return $GLOBALS['single'] ?? false; }
+function get_queried_object_id() { return $GLOBALS['single'] ?? 0; }
 class WC_Product {
     public $id; public $price; public $regular; public $children = [];
     public function __construct($id, $price, $regular = null, $children = []) { $this->id = $id; $this->price = $price; $this->regular = $regular ?? $price; $this->children = $children; $GLOBALS['products'][$id] = $this; }
@@ -27,6 +31,7 @@ class WC_Product {
     public function is_type($type) { return $type === 'variable' ? (bool) $this->children : false; }
     public function get_visible_children() { return $this->children; }
     public function get_price_suffix() { return ''; }
+    public function is_on_sale() { return $this->regular > $this->price; }
 }
 $count = 0;
 function ok($condition, $message) { global $count; $count++; if (!$condition) { fwrite(STDERR, "FAIL: $message\n"); exit(1); } }
@@ -61,10 +66,22 @@ $GLOBALS['rules'][11] = rule(300000, 270000); $GLOBALS['rules'][12] = rule(50000
 ok(hithean_loop_rule_price_html('X', $GLOBALS['products'][10]) === '<del>300.000đ–500.000đ</del><ins>270.000đ–450.000đ</ins>', 'SP biến thể: khoảng giá gốc gạch + khoảng giá ưu đãi');
 new WC_Product(21, 300000, 350000); new WC_Product(20, 300000, 350000, [21]);
 ok(hithean_loop_rule_price_html('VSALE', $GLOBALS['products'][20]) === 'VSALE', 'SP biến thể chỉ Sale thông thường → giữ nguyên');
+function flash(int $id): string { $GLOBALS['product'] = $GLOBALS['products'][$id]; ob_start(); hithean_loop_rule_sale_flash(); return (string) ob_get_clean(); }
+ok(flash(1) === '<span class="onsale">Sale!</span>', 'Rule giảm từ 1 SP → có nhãn Sale trên ảnh');
+ok(flash(2) === '' && flash(5) === '' && flash(6) === '', 'Không rule / rule giỏ hàng / quà tặng → không nhãn');
+ok(flash(4) === '' && flash(3) === '', 'SP đang Sale thông thường → WooCommerce tự in nhãn, không in trùng');
+ok(flash(10) === '<span class="onsale">Sale!</span>', 'SP biến thể có rule → có nhãn');
+ok(hithean_loop_rule_sale_class(['product', 'product_tag-new'], $GLOBALS['products'][1]) === ['product', 'product_tag-new', 'sale'], 'Thêm lớp sale để nhãn NEW xếp dưới nhãn Sale');
+ok(hithean_loop_rule_sale_class(['product'], $GLOBALS['products'][2]) === ['product'], 'Không rule → không thêm lớp');
+ok(hithean_loop_rule_sale_class(['product', 'sale'], $GLOBALS['products'][4]) === ['product', 'sale'], 'Đã có lớp sale → không thêm trùng');
+$GLOBALS['single'] = 1;
+ok(hithean_loop_rule_sale_class(['product'], $GLOBALS['products'][1]) === ['product'], 'Sản phẩm chính của trang chi tiết → không đổi lớp');
+$GLOBALS['single'] = 0;
 $GLOBALS['hithean_loop_price_scope'] = false;
 new WC_Product(7, 500000); $GLOBALS['rules'][7] = rule(500000, 450000);
 ok(hithean_loop_rule_price_html('X', $GLOBALS['products'][7]) === 'X', 'Ngoài thẻ sản phẩm (trang chi tiết, giỏ…) → không can thiệp');
 $GLOBALS['hithean_loop_price_scope'] = true; $GLOBALS['plugin'] = false;
-ok(hithean_loop_rule_price_html('X', $GLOBALS['products'][7]) === 'X', 'Không có Discount Rules → không can thiệp');
+new WC_Product(8, 500000); $GLOBALS['rules'][8] = rule(500000, 450000);
+ok(hithean_loop_rule_price_html('X', $GLOBALS['products'][8]) === 'X', 'Không có Discount Rules → không can thiệp');
 
 echo "PASS: $count loop-rule-price assertions\n";

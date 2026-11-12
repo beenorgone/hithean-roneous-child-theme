@@ -4,7 +4,7 @@
 
 > Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR.
 
-17 file · ~7.800 dòng · 194 hàm (30% có docblock)
+17 file · ~7.900 dòng · 197 hàm (31% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -53,11 +53,12 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_sc_ai_config` | sales-count-admin.php |
 | `woocommerce_add_to_cart_fragments` | add-to-cart-popup.php |
 | `woocommerce_cart_item_name` | add-to-cart-popup.php |
+| `woocommerce_sale_flash` | product-list-page.php |
 | `woocommerce_update_cart_validation` | add-to-cart-popup.php |
 
 ## Hook khu này lắng nghe
 
-`admin_enqueue_scripts` ×2 · `admin_footer` · `admin_head` · `admin_init` ×2 · `admin_menu` ×2 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×2 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `theme_ai_feature_registry` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_product_tabs` ×3 · `woocommerce_single_product_summary` ×2 · `wp_enqueue_scripts` ×7 · `wp_footer` ×6 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
+`admin_enqueue_scripts` ×2 · `admin_footer` · `admin_head` · `admin_init` ×2 · `admin_menu` ×2 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×2 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `theme_ai_feature_registry` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_before_shop_loop_item_title` · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_post_class` · `woocommerce_product_tabs` ×3 · `woocommerce_single_product_summary` ×2 · `wp_enqueue_scripts` ×7 · `wp_footer` ×6 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
 
 ## File
 
@@ -133,7 +134,10 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `display_loop_product_subheading()` | Show product subheading under product title on shop/archive loop cards. |
 | `hithean_loop_rule_price_ranges(array $pairs)` | Gộp [giá gốc, giá cuối] của từng lựa chọn mua (SP đơn: 1 cặp; SP biến thể: mỗi biến thể 1 cặp) thành [gốc thấp nhất, gốc cao nhất, cuối thấp nhất, cuối cao nhất]; null khi không… |
 | `hithean_loop_rule_price_pair(WC_Product $product)` | [giá gốc, giá khi mua 1, có rule không] của một sản phẩm / biến thể; giá cuối = giá rule nếu rule áp dụng từ 1 sản phẩm, không thì giá đang bán. |
+| `hithean_loop_rule_price_data(WC_Product $product)` | Khoảng giá [gốc thấp, gốc cao, ưu đãi thấp, ưu đãi cao] khi sản phẩm có rule giảm ngay từ 1 sản phẩm; null khi không có (nhớ theo request). |
 | `hithean_loop_rule_price_html($html, $product)` | Thay HTML giá trên thẻ sản phẩm ở danh sách khi rule giảm giá áp dụng ngay từ 1 sản phẩm. |
+| `hithean_loop_rule_sale_flash()` | Nhãn Sale trên ảnh cho sản phẩm có rule giảm từ 1 sản phẩm — cùng span.onsale (kiểu nhãn NEW, css/custom.css) và cùng chữ với nhãn Sale thông thường. SP đang Sale thông thường đ… |
+| `hithean_loop_rule_sale_class($classes, $product)` | Thẻ sản phẩm đó nhận lớp "sale" như Sale thông thường (nhãn NEW tự xuống dưới nhãn Sale). Không áp cho sản phẩm chính của trang chi tiết. |
 | `hithean_hide_loop_add_to_cart_when_out_of_stock($html, $product)` | Out-of-stock loop cards: no add-to-cart / "Read more" button — only "Xem chi tiết" remains. |
 | `hithean_get_loop_addon_promo_lines(int $product_id)` | Active promo lines of a product from the product-addon plugin (sale message or ON discount/coupon/product rules). |
 | `hithean_display_loop_addon_promo()` | Show active product-addon program under price, above loop action buttons. |

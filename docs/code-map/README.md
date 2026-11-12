@@ -20,4 +20,4 @@ Cột *docblock* thấp = khu khó đọc với người mới và với AI: vi�
 | [`woocommerce/checkout`](woocommerce-checkout.md) | 5 | ~2.600 | 59 | 17% | Checkout: TK nhận tiền (BACS + eim), trang thanh toán, trang cảm ơn, xác nhận chuyển khoản / chờ thanh toán. |
 | [`woocommerce/orders`](woocommerce-orders.md) | 33 | ~10.300 | 387 | 61% | Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HP… |
 | [`woocommerce/orders/order-creator`](woocommerce-orders-order-creator.md) | 2 | ~4.300 | 91 | 55% | Trang Tạo đơn hộ khách /tao-don/. |
-| [`woocommerce/products`](woocommerce-products.md) | 17 | ~7.800 | 194 | 30% | Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR. |
+| [`woocommerce/products`](woocommerce-products.md) | 17 | ~7.900 | 197 | 31% | Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR. |

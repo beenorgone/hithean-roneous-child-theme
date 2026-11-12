@@ -217,22 +217,21 @@ if (!function_exists('hithean_loop_rule_price_pair')) {
     }
 }
 
-if (!function_exists('hithean_loop_rule_price_html')) {
+if (!function_exists('hithean_loop_rule_price_data')) {
     /**
-     * Thay HTML giá trên thẻ sản phẩm ở danh sách khi rule giảm giá áp dụng ngay từ 1 sản phẩm.
+     * Khoảng giá [gốc thấp, gốc cao, ưu đãi thấp, ưu đãi cao] khi sản phẩm có rule giảm ngay từ 1 sản phẩm; null khi không có (nhớ theo request).
      */
-    function hithean_loop_rule_price_html($html, $product)
+    function hithean_loop_rule_price_data(WC_Product $product): ?array
     {
         static $cache = [];
-        if (empty($GLOBALS['hithean_loop_price_scope']) || !$product instanceof WC_Product
-            || has_filter('advanced_woo_discount_rules_get_product_discount_price_from_custom_price') === false) {
-            return $html;
-        }
         $id = $product->get_id();
         if (array_key_exists($id, $cache)) {
-            return $cache[$id] ?? $html;
+            return $cache[$id];
         }
         $cache[$id] = null;
+        if (has_filter('advanced_woo_discount_rules_get_product_discount_price_from_custom_price') === false) {
+            return null;
+        }
 
         try {
             $pairs = [];
@@ -243,28 +242,77 @@ if (!function_exists('hithean_loop_rule_price_html')) {
             foreach ($units as $unit) {
                 $pairs[] = hithean_loop_rule_price_pair($unit);
             }
-            $ranges = hithean_loop_rule_price_ranges($pairs);
             // Không rule nào giảm từ 1 sản phẩm (kể cả SP đang Sale thông thường): WooCommerce đã tự hiện đúng.
-            if ($ranges === null || !array_filter($pairs, static fn($pair) => !empty($pair[2]))) {
-                return $html;
+            if (array_filter($pairs, static fn($pair) => !empty($pair[2]))) {
+                $cache[$id] = hithean_loop_rule_price_ranges($pairs);
             }
-            $show = static function (float $low, float $high) use ($product) {
-                $low = wc_get_price_to_display($product, ['price' => $low]);
-                $high = wc_get_price_to_display($product, ['price' => $high]);
-
-                return abs($high - $low) < 0.0001 ? $low : wc_format_price_range($low, $high);
-            };
-            $cache[$id] = wc_format_sale_price($show($ranges[0], $ranges[1]), $show($ranges[2], $ranges[3])) . $product->get_price_suffix();
         } catch (Throwable $error) {
-            return $html;
+            $cache[$id] = null;
         }
 
         return $cache[$id];
+    }
+}
+
+if (!function_exists('hithean_loop_rule_price_html')) {
+    /**
+     * Thay HTML giá trên thẻ sản phẩm ở danh sách khi rule giảm giá áp dụng ngay từ 1 sản phẩm.
+     */
+    function hithean_loop_rule_price_html($html, $product)
+    {
+        if (empty($GLOBALS['hithean_loop_price_scope']) || !$product instanceof WC_Product) {
+            return $html;
+        }
+        $ranges = hithean_loop_rule_price_data($product);
+        if ($ranges === null) {
+            return $html;
+        }
+        $show = static function (float $low, float $high) use ($product) {
+            $low = wc_get_price_to_display($product, ['price' => $low]);
+            $high = wc_get_price_to_display($product, ['price' => $high]);
+
+            return abs($high - $low) < 0.0001 ? $low : wc_format_price_range($low, $high);
+        };
+
+        return wc_format_sale_price($show($ranges[0], $ranges[1]), $show($ranges[2], $ranges[3])) . $product->get_price_suffix();
     }
     add_filter('woocommerce_get_price_html', 'hithean_loop_rule_price_html', 9999, 2);
     // Chỉ trong lúc in giá của thẻ sản phẩm (giá = woocommerce_after_shop_loop_item_title @10): không đụng trang chi tiết, giỏ, email.
     add_action('woocommerce_after_shop_loop_item_title', static function (): void { $GLOBALS['hithean_loop_price_scope'] = true; }, -9999);
     add_action('woocommerce_after_shop_loop_item_title', static function (): void { $GLOBALS['hithean_loop_price_scope'] = false; }, 9999);
+}
+
+if (!function_exists('hithean_loop_rule_sale_flash')) {
+    /**
+     * Nhãn Sale trên ảnh cho sản phẩm có rule giảm từ 1 sản phẩm — cùng span.onsale (kiểu nhãn NEW, css/custom.css) và cùng chữ
+     * với nhãn Sale thông thường. SP đang Sale thông thường đã có nhãn của WooCommerce nên bỏ qua.
+     */
+    function hithean_loop_rule_sale_flash(): void
+    {
+        global $post, $product;
+        if (!$product instanceof WC_Product || $product->is_on_sale() || hithean_loop_rule_price_data($product) === null) {
+            return;
+        }
+        echo apply_filters('woocommerce_sale_flash', '<span class="onsale">' . esc_html__('Sale!', 'woocommerce') . '</span>', $post, $product); // phpcs:ignore WordPress.Security.EscapeOutput
+    }
+    add_action('woocommerce_before_shop_loop_item_title', 'hithean_loop_rule_sale_flash', 10);
+
+    /**
+     * Thẻ sản phẩm đó nhận lớp "sale" như Sale thông thường (nhãn NEW tự xuống dưới nhãn Sale). Không áp cho sản phẩm chính của trang chi tiết.
+     */
+    function hithean_loop_rule_sale_class($classes, $product)
+    {
+        if (is_admin() || !$product instanceof WC_Product || in_array('sale', (array) $classes, true)
+            || (function_exists('is_product') && is_product() && get_queried_object_id() === $product->get_id())) {
+            return $classes;
+        }
+        if (hithean_loop_rule_price_data($product) !== null) {
+            $classes[] = 'sale';
+        }
+
+        return $classes;
+    }
+    add_filter('woocommerce_post_class', 'hithean_loop_rule_sale_class', 20, 2);
 }
 
 if (!function_exists('hithean_hide_loop_add_to_cart_when_out_of_stock')) {
