@@ -70,8 +70,8 @@ function hithean_sfm_icon(string $key): string {
 }
 
 /**
- * "Ưu đãi tiêu biểu" (popup nút "Nhận ưu đãi"): 1 thẻ / chương trình từ snapshot /uu-dai/ — ưu tiên chương trình áp dụng
- * nhiều sản phẩm, rồi quà tặng → mua nhiều → giá ưu đãi → vận chuyển. Vòng quay không lấy từ đây (thẻ tĩnh in ở footer
+ * "Ưu đãi tiêu biểu" (popup nút "Nhận ưu đãi"): 1 thẻ / chương trình từ snapshot /uu-dai/ — xếp theo nhóm ưu đãi
+ * (hithean_offers_order(), mặc định giảm giá → quà tặng → vận chuyển), cùng nhóm thì chương trình nhiều sản phẩm trước. Vòng quay không lấy từ đây (thẻ tĩnh in ở footer
  * khi trang có vòng quay). Thẻ dựng bằng hithean_offer_cards_from_rows() → nhãn / ảnh / bậc giá khớp popup trang SP.
  */
 function hithean_sfm_featured_cards(int $limit = 6): array {
@@ -82,9 +82,9 @@ function hithean_sfm_featured_cards(int $limit = 6): array {
         $key = (string) ($row['source_id'] ?? '');
         $programs[$key !== '' ? $key : $row['product_id'] . ':' . md5((string) ($row['title'] ?? ''))][(int) $row['product_id']] = $row;
     }
-    $rank = ['gift' => 0, 'quantity' => 1, 'discount' => 2, 'shipping' => 3, 'other' => 4];
-    uasort($programs, static function (array $a, array $b) use ($rank): int {
-        return [count($b), $rank[reset($a)['kind'] ?? 'other'] ?? 9] <=> [count($a), $rank[reset($b)['kind'] ?? 'other'] ?? 9];
+    // Nhóm ưu đãi theo thứ tự cài đặt (offers/order.php — mặc định giảm giá → quà tặng → vận chuyển), cùng nhóm thì chương trình nhiều SP trước.
+    uasort($programs, static function (array $a, array $b): int {
+        return [hithean_offers_rows_rank([reset($a)]), count($b)] <=> [hithean_offers_rows_rank([reset($b)]), count($a)];
     });
     $offers_url = hithean_sfm_offers_url();
     $cards = [];

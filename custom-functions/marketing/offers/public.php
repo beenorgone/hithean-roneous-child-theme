@@ -187,9 +187,13 @@ function hithean_offers_shortcode(): string {
         // Card gộp nhiều ưu đãi: lấy banner đầu tiên được đặt.
         if (empty($grouped[$id]['banner']) && !empty($row['banner'])) { foreach (['banner', 'banner_w', 'banner_h'] as $key) { $grouped[$id][$key] = $row[$key] ?? 0; } }
     }
-    // An approved wheel program leads the grid; other cards keep their snapshot order.
-    if (isset($grouped['wheel:program'])) { $grouped = ['wheel:program' => $grouped['wheel:program']] + $grouped; }
+    // Thứ tự thẻ (offers/order.php): còn hàng → ghim nổi bật → nhóm ưu đãi (mặc định giảm giá → quà tặng → vận chuyển); cùng nhóm giữ thứ tự snapshot.
+    foreach ($grouped as &$card) { $card['offers'] = hithean_offers_sort_rows($card['offers']); }
+    unset($card);
     $products = array_values($grouped);
+    $card_key = static fn(array $card): array => [!empty($card['in_stock']) ? 0 : 1, array_filter(array_column($card['offers'], 'pinned')) ? 0 : 1, hithean_offers_rows_rank($card['offers'])];
+    usort($products, static fn($a, $b) => $card_key($a) <=> $card_key($b));
+    uasort($catalog, static fn($a, $b) => $card_key(['in_stock' => $a[0]['in_stock'] ?? false, 'offers' => $a]) <=> $card_key(['in_stock' => $b[0]['in_stock'] ?? false, 'offers' => $b]));
     $images = [];
     foreach ($products as $row) { if (!empty($row['image']) && !isset($images[$row['product_id']])) { $images[$row['product_id']] = $row; } if (count($images) === 3) { break; } }
     $count = count($products);

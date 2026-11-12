@@ -4,7 +4,7 @@
 
 > Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền.
 
-10 file · ~1.900 dòng · 89 hàm (47% có docblock)
+11 file · ~2.000 dòng · 97 hàm (52% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -41,6 +41,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_offers_form_start(string $action, array $hidden = [])` | — |
 | `hithean_offers_admin_title(array $row, $product)` | Human-readable labels also cover existing addon records without re-syncing sources. |
 | `hithean_offers_admin()` | — |
+| `hithean_offers_order_fieldset($saved)` | Ô sắp thứ tự nhóm ưu đãi (↑ ↓, nút "Về mặc định" — admin.js). Thứ tự gửi lên qua offer_order[]. |
 | `hithean_offers_progress(array $run)` | — |
 
 ### `marketing/offers/cli.php`
@@ -105,6 +106,20 @@ Thẻ ưu đãi dùng chung (.hithean-offer-card, CSS: marketing/assets/offer-ca
 | `hithean_offer_card_html(array $card)` | $card: badge, title, price_html?, media ['src'\|'icon'], tiers [[label, range, price_html]], extra (text), notes [string], until (timestamp hết hiệu lực — JS trang /uu-dai/ ẩn th… |
 | `hithean_offer_card_wdr_tiers(array $config)` | Bậc giá Discount Rules (bulk) → danh sách bậc như bảng của plugin trên trang sản phẩm. |
 | `hithean_offer_cards_from_rows(array $rows)` | Các ưu đãi (dòng snapshot) của MỘT sản phẩm → thẻ theo đúng kiểu popup trang sản phẩm. $rows: các dòng snapshot đã gộp theo sản phẩm (hithean_offers_shortcode → $catalog). |
+
+### `marketing/offers/order.php`
+
+Thứ tự hiển thị chương trình ưu đãi — MỘT nguồn cho: popup "Ưu đãi đang áp dụng" trang SP (product-purchase.js qua config.offerOrder), popup nút ưu đãi ở danh sách SP, /uu-dai/…
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_offers_order_groups()` | Nhóm theo thứ tự MẶC ĐỊNH => nhãn ở trang cài đặt. |
+| `hithean_offers_order_sanitize($order)` | Chuẩn hóa thứ tự đã lưu (hàm thuần): giữ nhóm hợp lệ theo thứ tự đã chọn, bỏ trùng, nhóm còn thiếu nối theo thứ tự mặc định. |
+| `hithean_offers_order()` | Thứ tự nhóm đang dùng. |
+| `hithean_offers_order_rank(string $group, ?array $order = null)` | Vị trí của 1 nhóm (nhỏ = lên trước). Nhận cả tên nhóm của thẻ (addon / quantity) — quy về nhóm sắp xếp. |
+| `hithean_offers_row_group(array $row)` | Nhóm sắp xếp của 1 dòng snapshot (hàm thuần) — cùng cách phân loại thẻ ở hithean_offer_cards_from_rows(). |
+| `hithean_offers_rows_rank(array $rows)` | Vị trí thấp nhất trong các dòng (thẻ gộp nhiều ưu đãi xếp theo ưu đãi đứng đầu của nó). |
+| `hithean_offers_sort_rows(array $rows)` | Sắp các dòng snapshot theo nhóm, giữ thứ tự cũ khi cùng nhóm (usort ổn định từ PHP 8). |
 
 ### `marketing/offers/public.php`
 

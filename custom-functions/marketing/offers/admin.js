@@ -77,4 +77,23 @@
         } catch (_) { /* Keep the existing status when offline. */ }
     }
     window.setInterval(poll, 10000);
+    // Thứ tự nhóm ưu đãi (Cấu hình & xuất bản): ↑ ↓ đổi chỗ, "Về thứ tự mặc định" xếp lại theo data-ho-order-default. Lưu cùng form cấu hình.
+    document.querySelectorAll('[data-ho-order]').forEach(function (list) {
+        const fieldset = list.closest('fieldset');
+        fieldset.addEventListener('click', function (event) {
+            const move = event.target.closest('[data-ho-order-move]');
+            if (move) {
+                const item = move.closest('li');
+                const sibling = Number(move.dataset.hoOrderMove) < 0 ? item.previousElementSibling : item.nextElementSibling;
+                if (sibling) { Number(move.dataset.hoOrderMove) < 0 ? list.insertBefore(item, sibling) : list.insertBefore(sibling, item); move.focus(); }
+                return;
+            }
+            if (event.target.closest('[data-ho-order-reset]')) {
+                list.dataset.hoOrderDefault.split(',').forEach(function (key) {
+                    const item = list.querySelector('li[data-key="' + key + '"]');
+                    if (item) { list.appendChild(item); }
+                });
+            }
+        });
+    });
 })();

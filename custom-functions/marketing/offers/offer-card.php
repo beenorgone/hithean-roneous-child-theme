@@ -4,7 +4,7 @@
  * Cùng cấu trúc với thẻ popup "Ưu đãi đang áp dụng" ở trang sản phẩm (product-purchase.js → renderDialog):
  *   head [main: top (chip + giá) + tiêu đề] [ảnh / icon] → bậc giá → extra → ghi chú → nút.
  * Trang /uu-dai/ (chế độ "Theo sản phẩm") dựng thẻ bằng hithean_offer_cards_from_rows() để nhãn chip,
- * ảnh, ghi chú, thứ tự thẻ (add-on → bậc giá → vận chuyển / giá → vòng quay) khớp popup trang sản phẩm.
+ * ảnh, ghi chú khớp popup trang sản phẩm; thứ tự thẻ theo hithean_offers_order() (offers/order.php — mặc định giảm giá → quà tặng → vận chuyển).
  */
 defined('ABSPATH') || exit;
 
@@ -79,14 +79,13 @@ function hithean_offer_card_wdr_tiers(array $config): array {
  */
 function hithean_offer_cards_from_rows(array $rows): array {
     $product_image = (string) ($rows[0]['image'] ?? '');
-    $order = ['addon' => 0, 'tiers' => 1, 'shipping' => 2, 'discount' => 3, 'other' => 4, 'wheel' => 5];
     $cards = [];
     foreach ($rows as $row) {
         $until = min(!empty($row['end']) ? (int) $row['end'] + 1 : PHP_INT_MAX, (int) ($row['verified_at'] ?? 0) + HITHEAN_OFFERS_FRESHNESS);
         $family = (string) ($row['family'] ?? '');
         $config = (array) ($row['source_config'] ?? []);
         $date = !empty($row['end']) ? '⏳ ' . hithean_offers_date_label($row) : '';
-        $card = ['kind' => (string) ($row['kind'] ?? 'other'), 'until' => $until, 'media' => $product_image ? ['src' => $product_image] : [], 'notes' => []];
+        $card = ['rank' => hithean_offers_order_rank(hithean_offers_row_group($row)), 'kind' => (string) ($row['kind'] ?? 'other'), 'until' => $until, 'media' => $product_image ? ['src' => $product_image] : [], 'notes' => []];
         if ($family === 'wheel') {
             $card += ['group' => 'wheel', 'badge' => 'Vòng quay may mắn', 'title' => 'Quay vòng quay may mắn — nhận mã giảm giá / quà tặng'];
             $card['media'] = ['icon' => 'wheel'];
@@ -118,6 +117,6 @@ function hithean_offer_cards_from_rows(array $rows): array {
         if ($date !== '') { $card['notes'][] = $date; }
         $cards[] = $card;
     }
-    usort($cards, static fn($a, $b) => ($order[$a['group']] ?? 9) <=> ($order[$b['group']] ?? 9));
+    usort($cards, static fn($a, $b) => $a['rank'] <=> $b['rank']);
     return $cards;
 }

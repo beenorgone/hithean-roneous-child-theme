@@ -175,7 +175,7 @@ Thanh menu dính đáy toàn site (trang chủ, /shop + các trang KHÔNG phải
 | `hithean_sfm_offers_url()` | — |
 | `hithean_sfm_items()` | — |
 | `hithean_sfm_icon(string $key)` | — |
-| `hithean_sfm_featured_cards(int $limit = 6)` | "Ưu đãi tiêu biểu" (popup nút "Nhận ưu đãi"): 1 thẻ / chương trình từ snapshot /uu-dai/ — ưu tiên chương trình áp dụng nhiều sản phẩm, rồi quà tặng → mua nhiều → giá ưu đãi → vậ… |
+| `hithean_sfm_featured_cards(int $limit = 6)` | "Ưu đãi tiêu biểu" (popup nút "Nhận ưu đãi"): 1 thẻ / chương trình từ snapshot /uu-dai/ — xếp theo nhóm ưu đãi (hithean_offers_order(), mặc định giảm giá → quà tặng → vận chuyển… |
 | `hithean_sfm_wheel_card()` | Thẻ vòng quay (in sẵn ở footer, chỉ trang có vòng quay) — cùng thẻ vòng quay của popup trang SP. |
 | `hithean_sfm_featured_ajax()` | AJAX: nội dung popup "Ưu đãi tiêu biểu" — tải khi mở (trang có thể cache, snapshot đổi theo lịch). Chỉ đọc, không nonce. |
 | `hithean_sfm_login_url()` | Trang đăng nhập (tài khoản) — quay lại đúng trang đang xem + mở panel sau khi đăng nhập. |

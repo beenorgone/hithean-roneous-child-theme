@@ -6,7 +6,8 @@
      * của plugin product-addon (chỉ khi mọi dòng là "tự động áp dụng") vào 1 nút → popup mỗi chương trình 1 thẻ,
      * cùng kiểu popup trang /uu-dai/. Nguồn gốc vẫn nằm trong DOM (ẩn bằng CSS) để plugin tiếp tục đồng bộ trạng
      * thái / input ẩn của form; popup đọc lại nguồn mỗi lần mở nên luôn khớp nội dung plugin đang hiển thị.
-     * Thứ tự thẻ: add-on → bậc giá (gộp 1 thẻ) → thanh ưu đãi.
+     * Thứ tự thẻ: theo nhóm config.offerOrder (marketing/offers/order.php — mặc định giảm giá → mua nhiều → quà tặng / add-on
+     * → vòng quay → khác → vận chuyển), cùng nhóm giữ thứ tự gom.
      * Bấm thẻ không đổi gì: thẻ add-on có nút "Mua theo ưu đãi này" đặt thẳng số lượng; thẻ bậc giá mở popup nhỏ
      * chọn số lượng (bậc nhanh + ô − N +, hiện bậc đang áp dụng) rồi mới đặt.
      * Đặt số lượng xong thì thêm vào giỏ luôn (popup giỏ hàng của add-to-cart-popup.js).
@@ -134,7 +135,17 @@
                     notes: state && !/^nhận ưu đãi$/i.test(state) ? [state] : ['Mỗi lượt quay có thể trúng mã giảm giá hoặc quà tặng'], active: false
                 });
             }
-            return cards;
+            return sortCards(cards);
+        }
+        // Nhóm của thẻ → vị trí trong config.offerOrder; sort ổn định nên cùng nhóm giữ thứ tự gom.
+        function sortCards(cards) {
+            var order = Array.isArray(config.offerOrder) ? config.offerOrder : [];
+            var alias = { addon: 'gift', tiers: 'tiers', discount: 'discount', shipping: 'shipping', wheel: 'wheel' };
+            var rank = function (card) {
+                var index = order.indexOf(alias[card.tone || card.kind] || 'other');
+                return index < 0 ? 99 : index;
+            };
+            return order.length ? cards.slice().sort(function (a, b) { return rank(a) - rank(b); }) : cards;
         }
 
         var initial = collect();

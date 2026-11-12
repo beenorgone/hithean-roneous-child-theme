@@ -48,6 +48,8 @@ function hithean_product_purchase_enqueue(): void
         'adding' => __('Đang thêm…', 'hithean.com'),
         'offersUrl' => hithean_product_purchase_offers_url(),
         'offerMedia' => hithean_product_purchase_offer_media((int) get_queried_object_id()),
+        // Thứ tự nhóm thẻ trong popup ưu đãi (marketing/offers/order.php — cùng thứ tự /uu-dai/).
+        'offerOrder' => function_exists('hithean_offers_order') ? hithean_offers_order() : [],
     ]);
 }
 

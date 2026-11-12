@@ -16,6 +16,7 @@ function current_user_can($cap) { return false; }
 function hithean_offers_settings(): array { return $GLOBALS['settings'] + ['preview' => true]; }
 function hithean_offers_visible_items(): array { return $GLOBALS['items']; }
 function hithean_offers_date_label(array $row): string { return ''; }
+require dirname(__DIR__) . '/custom-functions/marketing/offers/order.php';
 require dirname(__DIR__) . '/custom-functions/marketing/offers/offer-card.php';
 require dirname(__DIR__) . '/custom-functions/marketing/offers/loop-button.php';
 
@@ -54,7 +55,7 @@ ok(strpos($a, '<span class="hlo-anchor"><span class="hlo hlo--a" role="button" t
 $c = hithean_loop_offers_button_html(7, 'c');
 ok(strpos($c, '<span class="hlo hlo--c" role="button"') === 0 && strpos($c, '<button') === false, 'c: span (nằm trong link SP), không phải button');
 $b = hithean_loop_offers_button_html(7, 'b');
-ok(strpos($b, '<button type="button" class="hlo hlo--b"') === 0 && strpos($b, '<span class="hlo__label">Ưu đãi</span><span class="hlo__text">Miễn phí vận chuyển') !== false && strpos($b, '<span class="hlo__count">3</span>') !== false, 'b: button, tóm tắt thẻ đầu (vận chuyển xếp trước giá) + số đếm');
+ok(strpos($b, '<button type="button" class="hlo hlo--b"') === 0 && strpos($b, '<span class="hlo__label">Ưu đãi</span><span class="hlo__text">Giảm 10% &lt;b&gt;') !== false && strpos($b, '<span class="hlo__count">3</span>') !== false, 'b: button, tóm tắt thẻ đầu (giảm giá xếp trước vận chuyển) + số đếm');
 $none = hithean_loop_offers_button_html(8, 'b');
 ok(strpos($none, 'data-hlo="8"') !== false && strpos($none, '<span class="hlo__label">Ưu đãi</span>') !== false && strpos($none, 'Xem chương trình của cửa hàng') !== false && strpos($none, 'hlo__count') === false, 'SP chưa có ưu đãi riêng vẫn có nút, không số đếm');
 ok(strpos(hithean_loop_offers_button_html(8, 'c'), 'Xem ưu đãi') !== false, 'c: SP chưa có ưu đãi riêng');

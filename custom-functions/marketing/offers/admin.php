@@ -42,12 +42,14 @@ add_action('admin_post_hithean_offers_action', static function (): void {
                 'model' => sanitize_text_field(wp_unslash($_POST['model'] ?? '')), 'preview' => empty($_POST['public']),
                 'banner_layout' => ($_POST['banner_layout'] ?? '') === 'grid' ? 'grid' : 'full',
                 'loop_button' => in_array($_POST['loop_button'] ?? '', ['a', 'b', 'c'], true) ? (string) $_POST['loop_button'] : 'c',
-                'loop_button_mobile' => in_array($_POST['loop_button_mobile'] ?? '', ['a', 'b', 'c'], true) ? (string) $_POST['loop_button_mobile'] : 'b'];
+                'loop_button_mobile' => in_array($_POST['loop_button_mobile'] ?? '', ['a', 'b', 'c'], true) ? (string) $_POST['loop_button_mobile'] : 'b',
+                'order' => hithean_offers_order_sanitize(array_map('sanitize_key', (array) wp_unslash($_POST['offer_order'] ?? [])))];
             update_option('hithean_offers_settings', $next, false);
             hithean_offers_sync_schedule();
-            if ($old['preview'] !== $next['preview'] || $old['banner_layout'] !== $next['banner_layout']) { hithean_offers_purge(); }
+            $order_changed = hithean_offers_order_sanitize($old['order']) !== $next['order'];
+            if ($old['preview'] !== $next['preview'] || $old['banner_layout'] !== $next['banner_layout'] || $order_changed) { hithean_offers_purge(); }
             // Nút ưu đãi nằm trên mọi trang có danh sách sản phẩm → đổi vị trí / bật công khai thì xoá cache toàn site.
-            if (($old['preview'] !== $next['preview'] || $old['loop_button'] !== $next['loop_button'] || $old['loop_button_mobile'] !== $next['loop_button_mobile']) && function_exists('rocket_clean_domain')) { rocket_clean_domain(); }
+            if (($old['preview'] !== $next['preview'] || $old['loop_button'] !== $next['loop_button'] || $old['loop_button_mobile'] !== $next['loop_button_mobile'] || $order_changed) && function_exists('rocket_clean_domain')) { rocket_clean_domain(); }
         } elseif ($action === 'lark_test') {
             $error = hithean_offers_lark_test();
             if ($error !== '') { throw new RuntimeException('Gửi thử thất bại: ' . $error); }
@@ -137,7 +139,7 @@ function hithean_offers_admin(): void {
         . '<p><label><input type="radio" name="loop_button_mobile" value="b" ' . checked($s['loop_button_mobile'], 'b', false) . '> B — Dải một dòng dưới giá (mặc định)</label></p>'
         . '<p><label><input type="radio" name="loop_button_mobile" value="c" ' . checked($s['loop_button_mobile'], 'c', false) . '> C — Nhãn nhỏ cạnh giá</label></p>'
         . '<p class="description">Mỗi sản phẩm có một nút, bấm mở popup ưu đãi. Nút chỉ hiện với khách khi đã bật "Hiển thị snapshot trên trang công khai".</p>'
-        . '</fieldset><p>Dữ liệu cấu trúc được đọc trực tiếp từ cấu hình. Nội dung và điều kiện chưa rõ sẽ chờ duyệt.</p><p><button class="button button-primary">Lưu cấu hình</button></p></form>';
+        . '</fieldset>' . hithean_offers_order_fieldset($s['order']) . '<p>Dữ liệu cấu trúc được đọc trực tiếp từ cấu hình. Nội dung và điều kiện chưa rõ sẽ chờ duyệt.</p><p><button class="button button-primary">Lưu cấu hình</button></p></form>';
     $page = get_page_by_path('uu-dai');
     if ($page) { echo '<p><a class="button" href="' . esc_url(get_edit_post_link($page->ID)) . '">Kiểm tra / sửa trang Ưu đãi</a> <a class="button" href="' . esc_url(get_permalink($page->ID)) . '">Xem trang</a></p>'; }
     else { hithean_offers_form_start('page'); echo '<button class="button">Tạo trang nháp /uu-dai/</button></form>'; }
@@ -208,6 +210,20 @@ function hithean_offers_admin(): void {
     echo '</div><details class="ho-panel"><summary>Lịch sử quét (30 ngày)</summary>';
     foreach (array_reverse((array) get_option('hithean_offers_history', [])) as $entry) { echo '<p>' . esc_html(wp_date('d/m/Y H:i', $entry['started_at']) . ' · ' . $entry['status'] . ' · ' . $entry['ok'] . '/' . $entry['total'] . ' · ' . $entry['failed'] . ' lỗi') . '</p>'; }
     echo '</details></div>';
+}
+/** Ô sắp thứ tự nhóm ưu đãi (↑ ↓, nút "Về mặc định" — admin.js). Thứ tự gửi lên qua offer_order[]. */
+function hithean_offers_order_fieldset($saved): string {
+    $groups = hithean_offers_order_groups();
+    $html = '<fieldset class="ho-order"><legend>Thứ tự hiển thị chương trình ưu đãi</legend>'
+        . '<p class="description">Áp dụng cho popup ưu đãi ở trang sản phẩm, popup ở danh sách sản phẩm, "Ưu đãi tiêu biểu" và trang /uu-dai/. Chưa sắp xếp thì mặc định: giảm giá trước, quà tặng tiếp theo, vận chuyển cuối. Chương trình "Ghim nổi bật" vẫn đứng đầu trang /uu-dai/.</p>'
+        . '<ol class="ho-order__list" data-ho-order data-ho-order-default="' . esc_attr(implode(',', array_keys($groups))) . '">';
+    foreach (hithean_offers_order_sanitize($saved) as $key) {
+        $html .= '<li class="ho-order__item" data-key="' . esc_attr($key) . '"><input type="hidden" name="offer_order[]" value="' . esc_attr($key) . '">'
+            . '<span class="ho-order__name">' . esc_html($groups[$key]) . '</span>'
+            . '<button type="button" class="ho-order__move" data-ho-order-move="-1" aria-label="Đưa ' . esc_attr($groups[$key]) . ' lên">↑</button>'
+            . '<button type="button" class="ho-order__move" data-ho-order-move="1" aria-label="Đưa ' . esc_attr($groups[$key]) . ' xuống">↓</button></li>';
+    }
+    return $html . '</ol><p><button type="button" class="ho-order__reset" data-ho-order-reset>Về thứ tự mặc định</button></p></fieldset>';
 }
 function hithean_offers_progress(array $run): string {
     $labels = ['queued' => 'Chờ xử lý', 'running' => 'Đang quét', 'complete' => 'Hoàn tất', 'partial' => 'Hoàn tất một phần', 'stopped' => 'Đã dừng'];
