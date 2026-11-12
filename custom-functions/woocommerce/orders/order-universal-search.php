@@ -886,12 +886,16 @@ function thean_ous_next_actions(WC_Order $order, string $step, bool $proof = fal
     if (($step === 'proof' || $proof) && function_exists('thean_can_skip_export_proof') && thean_can_skip_export_proof()) {
         $buttons[] = '<button type="button" class="thean-ous-btn thean-ous-btn--flow" data-thean-flow="skipproof" data-order-id="' . esc_attr($order->get_id()) . '">⏭️ Bỏ qua</button>';
     }
+    if (function_exists('thean_delivery_issue_buttons')) {
+        // Chờ giao VC / Đang giao: ⚠️ Báo sự cố (bắt buộc ghi chú); tab Sự cố giao hàng: ✅ Xử lý xong / cập nhật (order-flow-notes.php).
+        $buttons = array_merge($buttons, thean_delivery_issue_buttons($order, $step));
+    }
     if ($step === 'delivery' && (string) $order->get_meta('_ghtk_ordercode') === '') {
         // Phương án A: mở trang sửa đơn, bảng điều phối mở + cuộn tới khung GHTK của plugin (#step-ghtk).
         $buttons[] = thean_ous_button('kho', '🚚 Đăng GHTK ↗', $order->get_edit_order_url() . '#step-ghtk', '', true);
     }
-    if (!$buttons || $step === 'delivery' || $step === 'shipping') {
-        $tab = ['cod' => 'payment', 'cod_fast' => 'payment', 'shipping' => 'delivery'][$step] ?? $step;
+    if (!$buttons || in_array($step, ['delivery', 'shipping', 'issue'], true)) {
+        $tab = ['cod' => 'payment', 'cod_fast' => 'payment', 'shipping' => 'delivery', 'issue' => 'delivery'][$step] ?? $step;
         $labels = function_exists('thean_ops_step_labels') ? thean_ops_step_labels() : [];
         $buttons[] = thean_ous_button('view', 'Mở bước ' . ($labels[$step] ?? $step) . ' ↗', $order->get_edit_order_url() . '#step-' . $tab, '', true, '➡');
     }
@@ -950,6 +954,9 @@ function thean_ous_render_actions(WC_Order $order, bool $compact): string
     }
 
     $buttons['flow'] = array_merge(thean_ous_flow_buttons($order), $buttons['flow']);
+    if (function_exists('thean_order_note_button') && ($note = thean_order_note_button($order)) !== '') {
+        $buttons['flow'][] = $note; // 📝 Ghi chú (nội bộ / gửi khách, có mẫu gợi ý) — order-flow-notes.php
+    }
 
     if (current_user_can('edit_shop_orders') || current_user_can('manage_woocommerce')) {
         array_splice($buttons['view'], $compact ? 1 : 0, 0, [thean_ous_button('edit', 'Chỉnh', thean_ous_creator_url($id), '', true, '✏')]);
@@ -1903,7 +1910,8 @@ function thean_ous_render_workflow_guide(): void
         'picking' => 'Soạn đúng sản phẩm và số lượng, in phiếu, chụp rồi tải ảnh xuất kho. Đơn giao nhanh chưa có ảnh và chưa bàn giao cũng ở đây. Tải ảnh xong chuyển sang bước kiểm tra ảnh.',
         'export' => 'Kiểm tra ảnh, mã đơn, sản phẩm và số lượng rồi xác nhận xuất kho. AI chỉ hỗ trợ đọc ảnh; AI báo khớp và việc tải ảnh không thay cho người xác nhận.',
         'delivery' => 'Đã có ảnh và xác nhận xuất kho: chọn đơn vị vận chuyển, nhập mã vận đơn và ghi nhận bàn giao. Khách tự lấy thì bàn giao khi khách đến.',
-        'shipping' => 'Theo dõi giao hàng; chỉ chuyển Đã giao khi có căn cứ khách đã nhận. Theo dõi đơn giao một phần và xử lý yêu cầu hoàn nếu có.',
+        'shipping' => 'Theo dõi giao hàng; chỉ chuyển Đã giao khi có căn cứ khách đã nhận. Theo dõi đơn giao một phần và xử lý yêu cầu hoàn nếu có. Giao không được (không liên lạc được khách, sai địa chỉ, khách từ chối…) → bấm ⚠️ Báo sự cố (bắt buộc ghi chú) để đơn sang tab Sự cố giao hàng.',
+        'issue' => 'Đơn chờ giao / đang giao bị gắn cờ sự cố (kèm ghi chú). Liên hệ khách / ĐVVC xử lý, cập nhật ghi chú khi có tiến triển; xong thì bấm ✅ Xử lý xong sự cố để đơn quay lại luồng giao hàng, hoặc tạo yêu cầu hoàn. Đơn chuyển Đã giao / Hoàn thành / Hủy thì cờ tự gỡ.',
         'cod' => 'Chờ thu COD giao nhanh: đơn giao nhanh đã xác nhận xuất kho nhưng chưa xác nhận thu tiền. Chờ đối soát đơn vị VC: đơn COD đã giao / giao một phần, chờ xác nhận khoản tiền bên vận chuyển chuyển về. Chỉ xác nhận khi thực nhận tiền; xuất kho không đồng nghĩa đã giao thành công hoặc đã thu COD.',
         'proof' => 'Danh sách ngoại lệ: đơn đã giao đi (đang giao, đã giao, giao một phần, hoàn thành…) còn thiếu ảnh hoặc thiếu người xác nhận xuất kho. Bổ sung ảnh / kiểm tra và xác nhận. Một đơn có thể đồng thời ở tab theo dõi giao, COD hoặc hoàn hàng. Đơn giao nhanh chỉ mang nhãn Giao nhanh chưa được coi là đã bàn giao.',
         'return' => 'Theo dõi yêu cầu hoàn, tiếp nhận hàng thực tế, kiểm tra ảnh và số lượng rồi ghi nhận kết quả theo quyền được cấp.',

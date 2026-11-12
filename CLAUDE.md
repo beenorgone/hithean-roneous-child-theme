@@ -249,6 +249,10 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 - Tải: 10 đơn/trang đọc gộp 1 lần `wc_get_orders(['post__in' => …])`; HTML xem nhanh cache Redis (`wp_cache`, nhóm
   `thean_ous`) 2 phút; mỗi user ≤4 lượt tìm thật (không trúng cache) / 30s, lượt thứ 5 khóa 2 phút (HTTP 429, `retry_after`).
 
+## Sự cố giao hàng & mẫu ghi chú
+
+- **Sự cố giao hàng + mẫu ghi chú** (`woocommerce/orders/order-flow-notes.php`, nạp từ order-ops-step.php — GIỐNG HỆT hithean ↔ theanmarket): đơn bước Chờ giao VC / Đang giao gắn cờ `_thean_delivery_issue` (nút ⚠️ Báo sự cố, BẮT BUỘC ghi chú) → bước/tab `issue` "Sự cố giao hàng" (nhóm ngoại lệ); ✅ Xử lý xong sự cố gỡ cờ, tự gỡ khi đơn Đã giao / Hoàn thành / Hủy / Thất bại / Hoàn tiền. Popup thao tác (`assets/order-flow-popup.js`) hiện chip mẫu ghi chú theo kind từ option `thean_flow_note_templates` (Cài đặt ERP → Xử lý đơn → "Mẫu ghi chú thao tác", 1 mẫu/dòng). Nút 📝 Ghi chú (nội bộ / gửi khách) ở mọi dòng đơn ô tìm / board / `/quan-ly-don` → task `add_note`; sự cố → task `delivery_issue` (AJAX thean_order_workspace). Test: `php tests/order-flow-notes.php`.
+
 ## Test
 
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`

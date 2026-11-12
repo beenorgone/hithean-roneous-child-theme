@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-33 file · ~10.300 dòng · 387 hàm (61% có docblock)
+34 file · ~10.600 dòng · 400 hàm (61% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -58,7 +58,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`acp/column/value` · `acp/storage_model/meta` · `add_meta_boxes` · `added_post_meta` · `admin_body_class` ×2 · `admin_enqueue_scripts` ×3 · `admin_footer` ×9 · `admin_head` ×2 · `admin_init` ×2 · `admin_menu` · `admin_notices` · `admin_print_footer_scripts` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `cron_schedules` · `current_screen` · `deleted_post_meta` ×2 · `disable_months_dropdown` · `edit_form_top` · `get_post_metadata` · `hithean_export_ai_check_async` · `hithean_export_ai_check_completed` · `hithean_export_lark_alert_async` · `hithean_export_lark_batch_async` · `hithean_export_lark_notify_async` · `hithean_export_lark_remind_async` · `hithean_warehouse_export_confirmed` · `init` ×3 · `manage_posts_extra_tablenav` · `order_edit_form_top` · `post_class` · `posts_pre_query` · `redirect_post_location` · `request` · `rwmb_field_meta` · `rwmb_meta_boxes` · `rwmb_warehouse_export_images_value` · `save_post_shop_order` · `shutdown` ×3 · `template_redirect` ×2 · `thean_ops_step_backfill` · `thean_ops_step_sweep` · `theme_ai_feature_registry` · `updated_post_meta` · `wc_order_statuses` · `woocommerce_admin_order_actions` ×4 · `woocommerce_admin_order_actions_end` · `woocommerce_admin_order_actions_start` · `woocommerce_after_order_object_save` · `woocommerce_before_order_itemmeta` · `woocommerce_before_order_object_save` · `woocommerce_hpos_pre_query` · `woocommerce_order_list_table_extra_tablenav` · `woocommerce_order_list_table_prepare_items_query_args` · `woocommerce_order_number` · `woocommerce_order_status_changed` · `woocommerce_order_status_failed` · `woocommerce_order_status_on-hold` · `woocommerce_order_status_packaging` · `woocommerce_order_status_processing` · `woocommerce_order_status_received-payment` · `woocommerce_order_status_shipping` · `woocommerce_order_statuses_that_restore_stock` · `woocommerce_process_shop_order_meta` · `woocommerce_thankyou` · `woocommerce_update_order` · `wp_footer` ×2 · `⟨$thean_hpc_hook⟩` · `⟨$thean_lms_hook⟩` · `⟨$thean_ops_hook⟩` ×2
+`acp/column/value` · `acp/storage_model/meta` · `add_meta_boxes` · `added_post_meta` · `admin_body_class` ×2 · `admin_enqueue_scripts` ×3 · `admin_footer` ×9 · `admin_head` ×2 · `admin_init` ×2 · `admin_menu` · `admin_notices` · `admin_print_footer_scripts` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `cron_schedules` · `current_screen` · `deleted_post_meta` ×2 · `disable_months_dropdown` · `edit_form_top` · `get_post_metadata` · `hithean_export_ai_check_async` · `hithean_export_ai_check_completed` · `hithean_export_lark_alert_async` · `hithean_export_lark_batch_async` · `hithean_export_lark_notify_async` · `hithean_export_lark_remind_async` · `hithean_warehouse_export_confirmed` · `init` ×3 · `manage_posts_extra_tablenav` · `order_edit_form_top` · `post_class` · `posts_pre_query` · `redirect_post_location` · `request` · `rwmb_field_meta` · `rwmb_meta_boxes` · `rwmb_warehouse_export_images_value` · `save_post_shop_order` · `shutdown` ×3 · `template_redirect` ×2 · `thean_ops_step_backfill` · `thean_ops_step_sweep` · `theme_ai_feature_registry` · `updated_post_meta` · `wc_order_statuses` · `woocommerce_admin_order_actions` ×4 · `woocommerce_admin_order_actions_end` · `woocommerce_admin_order_actions_start` · `woocommerce_after_order_object_save` · `woocommerce_before_order_itemmeta` · `woocommerce_before_order_object_save` · `woocommerce_hpos_pre_query` · `woocommerce_order_list_table_extra_tablenav` · `woocommerce_order_list_table_prepare_items_query_args` · `woocommerce_order_number` · `woocommerce_order_status_changed` ×2 · `woocommerce_order_status_failed` · `woocommerce_order_status_on-hold` · `woocommerce_order_status_packaging` · `woocommerce_order_status_processing` · `woocommerce_order_status_received-payment` · `woocommerce_order_status_shipping` · `woocommerce_order_statuses_that_restore_stock` · `woocommerce_process_shop_order_meta` · `woocommerce_thankyou` · `woocommerce_update_order` · `wp_footer` ×2 · `⟨$thean_hpc_hook⟩` · `⟨$thean_lms_hook⟩` · `⟨$thean_ops_hook⟩` ×2
 
 ## File
 
@@ -154,6 +154,24 @@ Cột "Thao tác" ở danh sách đơn admin: [nút bước tiếp theo] [✏ S�
 | `thean_export_review_is_list()` | — |
 | `thean_export_review_enqueue()` | — |
 | `thean_export_review_render()` | — |
+
+### `woocommerce/orders/order-flow-notes.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `thean_flow_note_kinds()` | Loại thao tác có ô ghi chú (khóa = kind của order-flow-popup.js) => nhãn ở trang cài đặt. |
+| `thean_flow_note_templates_defaults()` | — |
+| `thean_flow_note_parse_lines(string $raw)` | Tách mẫu: 1 mẫu / dòng, bỏ trùng + dòng trống, ≤ 20 mẫu, ≤ 200 ký tự. Hàm thuần. |
+| `thean_flow_note_templates()` | — |
+| `thean_flow_note_templates_settings_section()` | Mục "Mẫu ghi chú thao tác" ở Cài đặt ERP → Xử lý đơn (gọi từ thean_order_ops_settings_section). |
+| `thean_delivery_issue(WC_Order $order)` | ['on' => bool, 'note' => string, 'at' => int, 'by' => string] |
+| `thean_delivery_issue_steps()` | Bước board được tách sang "Sự cố giao hàng" khi có cờ (luồng giao hàng). |
+| `thean_delivery_issue_clear_statuses()` | Trạng thái tự gỡ cờ sự cố (giao xong / đóng đơn). |
+| `thean_delivery_issue_apply(WC_Order $order, string $op, string $note)` | Gắn / cập nhật (op flag) hoặc gỡ (op resolve) cờ sự cố. Gắn cờ bắt buộc ghi chú; chỉ đơn đang ở luồng giao hàng (Chờ giao VC / Đang giao / đã có sự cố). Trả [ok, message]. |
+| `thean_delivery_issue_clear(WC_Order $order)` | — |
+| `thean_order_add_flow_note(WC_Order $order, string $note, string $type)` | Thêm ghi chú đơn: $type private (nội bộ) \| customer (gửi email cho khách). Trả [ok, message]. |
+| `thean_order_note_button(WC_Order $order)` | Nút 📝 Ghi chú (popup kind note). |
+| `thean_delivery_issue_buttons(WC_Order $order, string $step)` | Nút Báo sự cố / Xử lý xong sự cố theo bước board. |
 
 ### `woocommerce/orders/order-hpos-compat.php`
 
@@ -285,7 +303,7 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_ops_step_open_sql(array $t)` | FROM … WHERE chung: đơn mở + đơn đóng còn hoàn hàng + đơn đã giao / xong trong THEAN_OPS_PROOF_DAYS ngày (soát chứng từ XK); bỏ đơn cũ (trước mốc khóa đơn cũ). |
 | `thean_ops_step_unsynced_ids(int $limit)` | Đơn mở chưa được tính bước theo logic hiện tại (THEAN_OPS_STEP_VERSION), mới nhất trước. @return int[] |
 | `thean_ops_step_sweep_ids(int $limit = THEAN_OPS_SWEEP)` | Đơn mở cần (tính lại) bước — cho cron. Đơn chưa tính trước, rồi xoay vòng theo con trỏ ID giảm dần. |
-| `thean_order_ops_settings_section()` | Các mục của luồng vận hành trong Cài đặt ERP → tab Xử lý đơn (gọi từ core/ai-settings.php của mỗi theme): "Đơn nội bộ" + "Quyền đổi trạng thái tùy ý" + "Khóa đơn cũ" (tạm nới). |
+| `thean_order_ops_settings_section()` | Các mục của luồng vận hành trong Cài đặt ERP → tab Xử lý đơn (gọi từ core/ai-settings.php của mỗi theme): "Đơn nội bộ" + "Quyền đổi trạng thái tùy ý" + "Mẫu ghi chú thao tác" +… |
 | `thean_status_change_settings_section()` | Mục "Quyền đổi trạng thái tùy ý": danh sách user (email / tên đăng nhập / ID) → option thean_status_change_users. |
 | `thean_internal_domains_settings_section()` | Mục "Đơn nội bộ" (domain email nội bộ). |
 

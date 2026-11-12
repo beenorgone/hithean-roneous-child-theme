@@ -1194,7 +1194,19 @@ function thean_ow_box_delivery(WC_Order $order, array $shippers, array $handling
     $names = array_map(function ($s) use ($shipper_labels) { return (string) ($shipper_labels[$s] ?? $s); }, $shippers);
     $badge = $is_pickup ? thean_ow_badge('Khách đến lấy', 'info') : ($names ? thean_ow_badge(implode(', ', $names), 'info') : thean_ow_badge('Chưa chọn ĐVVC', 'neutral'));
     thean_ow_box_open('shipping', $is_pickup ? '🏪 Vận chuyển / Khách lấy' : '🚚 Vận chuyển', $badge);
+    $issue = function_exists('thean_delivery_issue') ? thean_delivery_issue($order) : ['on' => false];
+    $issue_step = $issue['on'] ? 'issue' : (function_exists('thean_ops_step_compute') ? (string) thean_ops_step_compute($order, false)['step'] : '');
+    $issue_btns = function_exists('thean_delivery_issue_buttons') ? thean_delivery_issue_buttons($order, $issue_step) : [];
     ?>
+    <?php if ($issue['on']) : ?>
+        <div class="tow-alert" style="margin:0 0 10px;padding:10px 12px;border:1px solid #f5c2c0;border-radius:8px;background:#fff4f3;color:#8a1c13">
+            <strong>⚠️ Sự cố giao hàng:</strong> <?php echo esc_html($issue['note']); ?>
+            <?php if ($issue['at']) : ?><small style="color:#64748b"> — <?php echo esc_html(trim($issue['by'] . ' ' . wp_date('H:i d/m/Y', $issue['at']))); ?></small><?php endif; ?>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><?php echo implode('', $issue_btns); ?></div>
+        </div>
+    <?php elseif ($issue_btns) : ?>
+        <div style="margin:0 0 10px"><?php echo implode('', $issue_btns); ?></div>
+    <?php endif; ?>
     <div class="tow-form" data-task="shipping">
         <div class="tow-f">
             <span class="tow-label">Đơn vị giao</span>
@@ -1613,6 +1625,17 @@ function thean_ow_ajax(): void
 
         case 'order_flow':
             [$ok, $message] = thean_ow_apply_flow($order, sanitize_key($_POST['flow'] ?? ''), sanitize_text_field(wp_unslash($_POST['reason'] ?? '')));
+            $ok ? wp_send_json_success(['message' => $message]) : wp_send_json_error(['message' => $message]);
+            break;
+
+        case 'delivery_issue':
+            // Sự cố giao hàng (order-flow-notes.php): op flag (bắt buộc ghi chú) | resolve.
+            [$ok, $message] = thean_delivery_issue_apply($order, sanitize_key($_POST['op'] ?? ''), sanitize_textarea_field(wp_unslash($_POST['note'] ?? '')));
+            $ok ? wp_send_json_success(['message' => $message]) : wp_send_json_error(['message' => $message]);
+            break;
+
+        case 'add_note':
+            [$ok, $message] = thean_order_add_flow_note($order, sanitize_textarea_field(wp_unslash($_POST['note'] ?? '')), sanitize_key($_POST['note_type'] ?? 'private'));
             $ok ? wp_send_json_success(['message' => $message]) : wp_send_json_error(['message' => $message]);
             break;
 

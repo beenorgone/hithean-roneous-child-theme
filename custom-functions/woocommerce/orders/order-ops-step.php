@@ -1,6 +1,7 @@
 <?php
 if (!defined('ABSPATH')) exit;
 require_once __DIR__ . '/order-export-review.php';
+require_once __DIR__ . '/order-flow-notes.php'; // mẫu ghi chú thao tác + sự cố giao hàng + tạo ghi chú đơn
 
 /**
  * Bước vận hành của đơn, lưu sẵn thành meta để board "Cần xử lý" (order-universal-search.php) chỉ cần
@@ -38,7 +39,7 @@ add_action('template_redirect', function () {
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '8'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu / chưa xác nhận ảnh xuất kho; 4: cờ chứng từ cho đơn đang giao;
+const THEAN_OPS_STEP_VERSION = '9'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu / chưa xác nhận ảnh xuất kho; 4: cờ chứng từ cho đơn đang giao;
                                     // 5: bắt save_meta_data trên HPOS; 6: lưu bước thật cả đơn nội bộ / đơn cũ + đọc đơn bỏ qua cache;
                                     // 7: tính lại cả đơn đóng còn hoàn hàng; 8: nhóm khách/COD, giao nhanh chưa xuất không tính đã giao đi)
 const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu / chưa xác nhận ảnh xuất kho" (đơn đang giao: kèm tab Đang giao)
@@ -55,6 +56,7 @@ function thean_ops_step_tabs(): array
         'export'   => 'Chưa kiểm tra ảnh xuất kho',
         'delivery' => 'Đã đóng gói, chờ giao VC',
         'shipping' => 'Đang giao',
+        'issue'    => 'Sự cố giao hàng', // cờ _thean_delivery_issue trên đơn Chờ giao VC / Đang giao (order-flow-notes.php)
         'cod'      => 'Chờ thu COD',
         'proof'    => 'Thiếu / chưa xác nhận ảnh xuất kho', // chỉ đơn đã giao đi; có thể chồng lên bước chính
         'return'   => 'Hoàn hàng',
@@ -73,7 +75,7 @@ function thean_ops_step_flow(): array
 {
     return [
         'main' => ['confirm', 'picking', 'export', 'delivery', 'shipping', 'cod'],
-        'side' => ['proof', 'return', 'preorder'],
+        'side' => ['issue', 'proof', 'return', 'preorder'],
     ];
 }
 
@@ -344,6 +346,11 @@ function thean_ops_step_compute(WC_Order $order, bool $gated = true): array
         }
     }
     $hint = $step === '' ? '' : (string) ($flow['next_hint'] ?: ($step === 'return' ? 'Hoàn hàng: ' . $flow['return_status'] : ''));
+    // Luồng giao hàng tách 2: bình thường (Chờ giao VC / Đang giao) và Sự cố giao hàng (đơn gắn cờ, order-flow-notes.php).
+    if (in_array($step, thean_delivery_issue_steps(), true) && ($issue = thean_delivery_issue($order))['on']) {
+        $step = 'issue';
+        $hint = '⚠️ Sự cố: ' . $issue['note'];
+    }
     if ($missing) {
         $hint = ($hint !== '' ? $hint . ' · ' : '') . wc_get_order_status_name($order->get_status()) . ' nhưng thiếu ' . implode(' + ', $missing);
     }
@@ -520,6 +527,7 @@ function thean_flow_popup_enqueue(bool $reload): void
         'ajaxUrl' => admin_url('admin-ajax.php'),
         'nonce'   => wp_create_nonce('thean_order_workspace'), // THEAN_OW_NONCE
         'reload'  => $reload,
+        'templates' => thean_flow_note_templates(), // mẫu ghi chú gợi ý theo kind (Cài đặt ERP → Xử lý đơn)
     ]) . ';', 'before');
 }
 
@@ -650,12 +658,13 @@ add_action(THEAN_OPS_CRON, function () {
 
 /**
  * Các mục của luồng vận hành trong Cài đặt ERP → tab Xử lý đơn (gọi từ core/ai-settings.php của mỗi theme):
- * "Đơn nội bộ" + "Quyền đổi trạng thái tùy ý" + "Khóa đơn cũ" (tạm nới).
+ * "Đơn nội bộ" + "Quyền đổi trạng thái tùy ý" + "Mẫu ghi chú thao tác" + "Khóa đơn cũ" (tạm nới).
  */
 function thean_order_ops_settings_section(): void
 {
     thean_internal_domains_settings_section();
     thean_status_change_settings_section();
+    thean_flow_note_templates_settings_section(); // order-flow-notes.php
     if (function_exists('thean_order_age_lock_settings_section')) {
         thean_order_age_lock_settings_section(); // order-age-lock.php
     }

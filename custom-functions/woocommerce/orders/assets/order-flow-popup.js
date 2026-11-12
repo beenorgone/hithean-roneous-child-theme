@@ -7,6 +7,10 @@
  *   → AJAX thean_order_workspace, task order_flow, flow preorder (order-workspace.php).
  * - Xác nhận giao đơn đặt trước (sau khi tiếp tục): `.wc-action-button-thean-order-preorder-confirm` |
  *   `[data-thean-preorder-confirm]` → task preorder_confirm, result confirmed | waiting.
+ * - Sự cố giao hàng: `[data-thean-flow="issue"]` (bắt buộc ghi chú) / `"issue_resolve"` → task delivery_issue (order-flow-notes.php).
+ * - Tạo ghi chú đơn: `[data-thean-flow="note"]` (chọn Nội bộ / Gửi khách) → task add_note.
+ * - Mẫu ghi chú gợi ý: cfg.templates[kind] (Cài đặt ERP → Xử lý đơn → Mẫu ghi chú thao tác) — chip bấm để chèn vào ô ghi chú.
+ *   spec.key = kind lấy mẫu (KINDS tự có; popup tùy biến truyền spec.key hoặc spec.templates).
  * Xong: phát sự kiện `thean:order-updated` (board tự làm mới); trang sửa đơn (cfg.reload) thì tải lại.
  */
 (function () {
@@ -18,8 +22,12 @@
         cancel:   { title: '✖️ Hủy đơn', help: 'Hủy đơn sẽ trả hàng về tồn kho. Nhập lý do.', placeholder: 'VD: khách hủy, trùng đơn…', required: true, buttons: [['cancel', 'Hủy đơn và trả hàng về kho', 'danger']] },
         resume:   { title: '▶️ Tiếp tục xử lý', help: 'Đơn đặt trước: tiếp tục xong phải nhắn/gọi khách xác nhận giao. Đơn CK chưa thanh toán sẽ về Chờ thanh toán.', placeholder: 'Ghi chú (không bắt buộc)', required: false, buttons: [['resume', 'Tiếp tục', 'primary']] },
         skipproof: { title: '⏭️ Bỏ qua thiếu / chưa xác nhận ảnh xuất kho', help: 'Đơn đã giao đi mà thiếu ảnh hoặc xác nhận xuất kho. Đánh dấu bỏ qua để đơn rời tab "Thiếu / chưa xác nhận ảnh xuất kho".', placeholder: 'Lý do (không bắt buộc): VD đơn giao thẳng từ NCC, ảnh lưu nơi khác…', required: false, buttons: [['skipproof', 'Đánh dấu bỏ qua', 'primary']] },
+        issue:    { title: '⚠️ Báo sự cố giao hàng', help: 'Đơn chuyển sang tab "Sự cố giao hàng" tới khi xử lý xong. Ghi rõ sự cố (bắt buộc).', placeholder: 'VD: gọi 3 lần không nghe máy, ĐVVC báo sai địa chỉ…', required: true, buttons: [['flag', 'Báo sự cố', 'danger']] },
+        issue_resolve: { title: '✅ Xử lý xong sự cố giao hàng', help: 'Gỡ cờ sự cố — đơn quay lại luồng giao hàng (Chờ giao VC / Đang giao).', placeholder: 'Kết quả xử lý (không bắt buộc)', required: false, buttons: [['resolve', 'Xử lý xong', 'primary']] },
+        note:     { title: '📝 Thêm ghi chú đơn', help: 'Ghi chú nội bộ chỉ nhân viên thấy; "Gửi khách" sẽ email cho khách.', placeholder: 'Nội dung ghi chú', required: true, select: { label: 'Loại ghi chú', value: 'private', options: [['private', '🔒 Nội bộ'], ['customer', '✉️ Gửi khách (email)']] }, buttons: [['note', 'Lưu ghi chú', 'primary']] },
         confirm:  { title: '📞 Xác nhận giao đơn đặt trước', help: 'Nhắn / gọi khách xác nhận giao đơn, rồi ghi nhận kết quả.', placeholder: 'Ghi chú thêm (không bắt buộc)', required: false, buttons: [['waiting', 'Chờ khách phản hồi', ''], ['confirmed', '✅ Khách đã xác nhận giao', 'primary']] }
     };
+    Object.keys(KINDS).forEach(function (k) { KINDS[k].key = k; });
     var modal = null, form = null, current = null;
 
     function el(tag, cls, text) {
@@ -43,6 +51,9 @@
             + '#thean-flow-modal .tp-actions button{padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-weight:600;cursor:pointer}'
             + '#thean-flow-modal .tp-actions .is-primary{border-color:#003a99;background:#0047ba;color:#fff}'
             + '#thean-flow-modal .tp-actions .is-danger{border-color:#b42318;background:#d92d20;color:#fff}'
+            + '#thean-flow-modal .tp-tpl{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}'
+            + '#thean-flow-modal .tp-tpl button{padding:4px 10px;border:1px solid #b9cdf0;border-radius:999px;background:#f5f8ff;color:#0047ba;font:inherit;font-size:12px;cursor:pointer;text-align:left}'
+            + '#thean-flow-modal .tp-tpl button:hover{background:#e8f0ff}'
             + '#thean-flow-modal .tp-notice{min-height:18px;margin-top:10px;color:#b42318;font-weight:600}';
         document.head.appendChild(style);
 
@@ -60,6 +71,13 @@
         });
         form.addEventListener('submit', function (e) { e.preventDefault(); });
         form.addEventListener('click', function (e) {
+            var tpl = e.target.closest('[data-tp-tpl]');
+            if (tpl) {
+                var area = form.elements.note, text = tpl.getAttribute('data-tp-tpl'), cur = area.value.trim();
+                if (cur.indexOf(text) === -1) area.value = cur ? cur.replace(/[.\s]*$/, '') + '. ' + text : text;
+                area.focus();
+                return;
+            }
             var btn = e.target.closest('[data-tp-submit]');
             if (btn) submit(btn.getAttribute('data-tp-submit'), btn);
         });
@@ -114,16 +132,31 @@
             var sel = el('select');
             sel.name = 'select';
             sel.style.cssText = 'width:100%;margin:0 0 10px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px';
-            var first = el('option', '', spec.select.label || 'Chọn…');
-            first.value = '';
-            sel.appendChild(first);
+            if (!spec.select.value) {
+                var first = el('option', '', spec.select.label || 'Chọn…');
+                first.value = '';
+                sel.appendChild(first);
+            }
             spec.select.options.forEach(function (o) { var opt = el('option', '', o[1]); opt.value = o[0]; sel.appendChild(opt); });
+            if (spec.select.value) sel.value = spec.select.value;
             form.appendChild(sel);
         }
         var note = el('textarea');
         note.name = 'note';
         note.placeholder = spec.placeholder || '';
         form.appendChild(note);
+        var tpls = spec.templates || ((cfg.templates || {})[spec.key] || []);
+        if (tpls.length) {
+            var box = el('div', 'tp-tpl');
+            box.setAttribute('aria-label', 'Mẫu ghi chú gợi ý');
+            tpls.forEach(function (t) {
+                var b = el('button', '', t);
+                b.type = 'button';
+                b.setAttribute('data-tp-tpl', t);
+                box.appendChild(b);
+            });
+            form.appendChild(box);
+        }
         var actions = el('div', 'tp-actions');
         var cancel = el('button', '', 'Đóng');
         cancel.type = 'button';
@@ -173,7 +206,15 @@
         fd.append('action', 'thean_order_workspace');
         fd.append('nonce', cfg.nonce);
         fd.append('order_id', current.orderId);
-        if (current.kind === 'skipproof') {
+        if (current.kind === 'issue' || current.kind === 'issue_resolve') {
+            fd.append('task', 'delivery_issue');
+            fd.append('op', result);
+            fd.append('note', note);
+        } else if (current.kind === 'note') {
+            fd.append('task', 'add_note');
+            fd.append('note_type', picked || 'private');
+            fd.append('note', note);
+        } else if (current.kind === 'skipproof') {
             fd.append('task', 'export_proof_skip');
             fd.append('note', note);
         } else if (current.kind !== 'confirm') {
@@ -209,8 +250,14 @@
     function done(job, message) {
         if (cfg.reload) { location.reload(); return; }
         var t = job.trigger;
+        if (job.kind === 'note') {
+            // Ghi chú thêm được nhiều lần; trang sửa đơn (reload) đã tải lại ở trên.
+            toast(message || 'Đã lưu.');
+            document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderId: job.orderId, kind: job.kind } }));
+            return;
+        }
         t.classList.add('is-thean-complete');
-        t.setAttribute('data-thean-complete-label', { preorder: 'Đã đặt trước', hold: 'Đã tạm giữ', cancel: 'Đã hủy', resume: 'Đã tiếp tục', skipproof: 'Đã bỏ qua' }[job.kind] || 'Đã ghi nhận');
+        t.setAttribute('data-thean-complete-label', { preorder: 'Đã đặt trước', hold: 'Đã tạm giữ', cancel: 'Đã hủy', resume: 'Đã tiếp tục', skipproof: 'Đã bỏ qua', issue: 'Đã báo sự cố', issue_resolve: 'Đã xử lý sự cố' }[job.kind] || 'Đã ghi nhận');
         t.removeAttribute('href');
         toast(message || 'Đã lưu.');
         document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderId: job.orderId, kind: job.kind } }));
