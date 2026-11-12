@@ -54,13 +54,74 @@ if (!function_exists('hithean_prioritize_first_catalog_product_image')) {
     add_filter('wp_get_attachment_image_attributes', 'hithean_prioritize_first_catalog_product_image', 20, 3);
 }
 
+/*
+ * Sản phẩm hết hàng & không cho đặt trước (_stock_status = 'outofstock'; cho đặt trước là 'onbackorder' — không đụng)
+ * ở danh sách sản phẩm (shop, danh mục, tag, thuộc tính — main query của WooCommerce):
+ *   end    = đưa xuống cuối (mặc định), hide = ẩn hẳn, normal = để nguyên thứ tự.
+ * Chọn ở Cài đặt ERP → Bán hàng → "Danh sách sản phẩm" (option HITHEAN_LOOP_OUT_OF_STOCK_OPTION).
+ */
+const HITHEAN_LOOP_OUT_OF_STOCK_OPTION = 'hithean_loop_out_of_stock';
+
+if (!function_exists('hithean_loop_out_of_stock_modes')) {
+    /** Các chế độ xử lý SP hết hàng ở danh sách: mã => nhãn. */
+    function hithean_loop_out_of_stock_modes(): array
+    {
+        return [
+            'end'    => 'Đưa xuống cuối danh sách (mặc định)',
+            'hide'   => 'Tự động ẩn',
+            'normal' => 'Để bình thường (giữ thứ tự sắp xếp)',
+        ];
+    }
+}
+
+if (!function_exists('hithean_loop_out_of_stock_mode')) {
+    /** Chế độ đang dùng; giá trị lạ / chưa lưu → 'end'. */
+    function hithean_loop_out_of_stock_mode(): string
+    {
+        $mode = (string) get_option(HITHEAN_LOOP_OUT_OF_STOCK_OPTION, 'end');
+
+        return array_key_exists($mode, hithean_loop_out_of_stock_modes()) ? $mode : 'end';
+    }
+}
+
+if (!function_exists('hithean_loop_out_of_stock_apply_clauses')) {
+    /**
+     * Thêm JOIN _stock_status + ORDER BY (end) hoặc WHERE loại SP hết hàng (hide) vào clauses của WP_Query (hàm thuần).
+     */
+    function hithean_loop_out_of_stock_apply_clauses(array $clauses, string $mode, string $posts_table, string $postmeta_table): array
+    {
+        if ($mode !== 'end' && $mode !== 'hide') {
+            return $clauses;
+        }
+
+        $alias = 'product_stock_status_pm';
+        $join = (string) ($clauses['join'] ?? '');
+        if (false === strpos($join, " {$alias} ")) {
+            $join .= " LEFT JOIN {$postmeta_table} AS {$alias} ON ({$posts_table}.ID = {$alias}.post_id AND {$alias}.meta_key = '_stock_status')";
+        }
+        $clauses['join'] = $join;
+
+        if ($mode === 'hide') {
+            $clauses['where'] = (string) ($clauses['where'] ?? '') . " AND ({$alias}.meta_value IS NULL OR {$alias}.meta_value <> 'outofstock')";
+
+            return $clauses;
+        }
+
+        $orderby = (string) ($clauses['orderby'] ?? '');
+        $stock_order = "CASE WHEN {$alias}.meta_value = 'outofstock' THEN 1 ELSE 0 END ASC";
+        $clauses['orderby'] = '' !== $orderby ? $stock_order . ', ' . $orderby : $stock_order;
+
+        return $clauses;
+    }
+}
+
 if (!function_exists('product_list_move_out_of_stock_to_end')) {
     /**
-     * Move out-of-stock products to the end on WooCommerce catalog main query.
+     * Đưa xuống cuối / ẩn SP hết hàng ở main query danh mục WooCommerce theo cài đặt (hithean_loop_out_of_stock_mode()).
      */
     function product_list_move_out_of_stock_to_end($clauses, $query)
     {
-        if (!($query instanceof WP_Query) || is_admin() || !$query->is_main_query()) {
+        if (!($query instanceof WP_Query) || is_admin() || !$query->is_main_query() || !is_array($clauses)) {
             return $clauses;
         }
 
@@ -79,20 +140,7 @@ if (!function_exists('product_list_move_out_of_stock_to_end')) {
 
         global $wpdb;
 
-        $stock_alias = 'product_stock_status_pm';
-        $join = isset($clauses['join']) ? (string) $clauses['join'] : '';
-        $orderby = isset($clauses['orderby']) ? (string) $clauses['orderby'] : '';
-
-        if (false === strpos($join, " {$stock_alias} ")) {
-            $join .= " LEFT JOIN {$wpdb->postmeta} AS {$stock_alias} ON ({$wpdb->posts}.ID = {$stock_alias}.post_id AND {$stock_alias}.meta_key = '_stock_status')";
-        }
-
-        $stock_order = "CASE WHEN {$stock_alias}.meta_value = 'outofstock' THEN 1 ELSE 0 END ASC";
-
-        $clauses['join'] = $join;
-        $clauses['orderby'] = '' !== $orderby ? $stock_order . ', ' . $orderby : $stock_order;
-
-        return $clauses;
+        return hithean_loop_out_of_stock_apply_clauses($clauses, hithean_loop_out_of_stock_mode(), $wpdb->posts, $wpdb->postmeta);
     }
     add_filter('posts_clauses', 'product_list_move_out_of_stock_to_end', 20, 2);
 }

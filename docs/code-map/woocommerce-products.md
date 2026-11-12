@@ -4,7 +4,7 @@
 
 > Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR.
 
-17 file · ~7.900 dòng · 197 hàm (31% có docblock)
+17 file · ~7.900 dòng · 200 hàm (32% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -128,7 +128,10 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_is_product_listing_context()` | — |
 | `hithean_dequeue_cart_fragments_off_conversion_pages()` | — |
 | `hithean_prioritize_first_catalog_product_image(array $attr, WP_Post $attachment, $size)` | — |
-| `product_list_move_out_of_stock_to_end($clauses, $query)` | Move out-of-stock products to the end on WooCommerce catalog main query. |
+| `hithean_loop_out_of_stock_modes()` | Các chế độ xử lý SP hết hàng ở danh sách: mã => nhãn. |
+| `hithean_loop_out_of_stock_mode()` | Chế độ đang dùng; giá trị lạ / chưa lưu → 'end'. |
+| `hithean_loop_out_of_stock_apply_clauses(array $clauses, string $mode, string $posts_table, string $postmeta_table)` | Thêm JOIN _stock_status + ORDER BY (end) hoặc WHERE loại SP hết hàng (hide) vào clauses của WP_Query (hàm thuần). |
+| `product_list_move_out_of_stock_to_end($clauses, $query)` | Đưa xuống cuối / ẩn SP hết hàng ở main query danh mục WooCommerce theo cài đặt (hithean_loop_out_of_stock_mode()). |
 | `product_list_display_loop_coming_soon_text()` | Show a coming soon label below title when a product has no price. |
 | `product_list_display_loop_out_of_stock_text()` | Show out-of-stock text under price on shop/archive loop cards. |
 | `display_loop_product_subheading()` | Show product subheading under product title on shop/archive loop cards. |

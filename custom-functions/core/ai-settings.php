@@ -307,6 +307,12 @@ function theme_erp_settings_render_page(): void
             $saved = true;
         }
 
+        if ($active_tab === 'danh-sach-sp' && function_exists('hithean_loop_out_of_stock_modes')) {
+            $mode = sanitize_key(wp_unslash($_POST['hithean_loop_out_of_stock'] ?? ''));
+            update_option(HITHEAN_LOOP_OUT_OF_STOCK_OPTION, array_key_exists($mode, hithean_loop_out_of_stock_modes()) ? $mode : 'end');
+            $saved = true;
+        }
+
         if ($active_tab === 'luot-ban') {
             hithean_sc_require_admin();
             $saved = hithean_sc_save_from_post();
@@ -318,13 +324,14 @@ function theme_erp_settings_render_page(): void
         'xu-ly-don'    => 'Xử lý đơn',
         'nut-ecom'     => 'Nút Shopee/TikTok',
         'luot-ban'     => 'Lượt bán',
+        'danh-sach-sp' => 'Danh sách sản phẩm',
         'woocommerce'  => 'WooCommerce',
         'lark'         => 'Lark',
         'company-info' => 'Thông tin doanh nghiệp',
     ];
     $tab_groups = [
         'system' => ['label' => 'AI & hệ thống', 'tabs' => ['ai', 'lark', 'woocommerce', 'company-info']],
-        'sales' => ['label' => 'Bán hàng', 'tabs' => ['nut-ecom', 'luot-ban']],
+        'sales' => ['label' => 'Bán hàng', 'tabs' => ['nut-ecom', 'luot-ban', 'danh-sach-sp']],
         'orders' => ['label' => 'Đơn hàng', 'tabs' => ['xu-ly-don']],
     ];
     $active_group = 'system';
@@ -518,6 +525,32 @@ function theme_erp_settings_render_page(): void
                         <td>
                             <textarea id="ecom_product_ids" name="ecom_product_ids" rows="3" style="width:100%;max-width:500px;" placeholder="123, 456, 789"><?php echo esc_textarea(implode(', ', $rules['product_ids'])); ?></textarea>
                             <p class="description">Phân tách bằng dấu phẩy hoặc xuống dòng.</p>
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button('Lưu cài đặt'); ?>
+            </form>
+        <?php endif; ?>
+
+        <?php if ($active_tab === 'danh-sach-sp' && function_exists('hithean_loop_out_of_stock_modes')): ?>
+            <form method="post">
+                <?php wp_nonce_field('theme_erp_settings_save_danh-sach-sp'); ?>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row">Sản phẩm hết hàng<br><small style="font-weight:normal;">(không cho đặt trước)</small></th>
+                        <td>
+                            <fieldset>
+                                <?php foreach (hithean_loop_out_of_stock_modes() as $mode => $label): ?>
+                                    <label style="display:block;margin-bottom:6px;">
+                                        <input type="radio" name="hithean_loop_out_of_stock" value="<?php echo esc_attr($mode); ?>" <?php checked(hithean_loop_out_of_stock_mode(), $mode); ?>>
+                                        <?php echo esc_html($label); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </fieldset>
+                            <p class="description" style="max-width:700px;">
+                                Áp dụng cho danh sách sản phẩm (cửa hàng, danh mục, tag, thương hiệu). Sản phẩm cho phép đặt trước
+                                (trạng thái kho "Cho phép đặt hàng trước") vẫn hiện bình thường. Trang có cache (WP Rocket…) cần xóa cache để thấy ngay.
+                            </p>
                         </td>
                     </tr>
                 </table>

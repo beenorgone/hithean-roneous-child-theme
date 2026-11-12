@@ -122,6 +122,9 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   giá. Cùng dữ liệu (`hithean_loop_rule_price_data()`): in nhãn Sale `span.onsale` trên ảnh (`hithean_loop_rule_sale_flash()` — cùng kiểu nhãn NEW, SP đang
   Sale thông thường thì WooCommerce tự in) + thêm lớp `sale` cho thẻ (`woocommerce_post_class`, để nhãn NEW xếp dưới nhãn Sale; không áp cho SP chính của
   trang chi tiết). Không đổi `is_on_sale()`. Test: `php tests/loop-rule-price.php`.
+- **SP hết hàng ở danh sách** (`products/product-list-page.php` → `product_list_move_out_of_stock_to_end()`, `posts_clauses` main query `product_query`):
+  SP `_stock_status = outofstock` (hết hàng + không cho đặt trước; `onbackorder` không đụng) → đưa xuống cuối (**mặc định**) / ẩn / để bình thường,
+  chọn ở Cài đặt ERP → Bán hàng → "Danh sách sản phẩm" (option `hithean_loop_out_of_stock`, `hithean_loop_out_of_stock_mode()`). Test: `php tests/loop-out-of-stock.php`.
 - **Thông báo Lark khi /uu-dai/ đổi chương trình** (`marketing/offers/lark-notify.php`): nghe `update_option_hithean_offers_snapshot`
   (mọi đường đổi snapshot: duyệt / loại / ghim, quét tuần, mốc hết hạn, khôi phục snapshot) → cron `hithean_offers_lark_flush` sau 5 phút,
   so tóm tắt theo chương trình (`hithean_offers_lark_programs()` / `_diff()` / `_message()` — hàm thuần) với mốc đã báo (option
@@ -256,7 +259,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`, `offers-lark-notify.php`, `lark-core.php`, `warehouse-export-lark.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
-- `my-offers.php`, `loop-offers-button.php`, `loop-rule-price.php`, `offers-order.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
+- `my-offers.php`, `loop-offers-button.php`, `loop-rule-price.php`, `loop-out-of-stock.php`, `offers-order.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
 - Popup thao tác nhanh (order-quick-modals.php): `node tests/order-quick-modals-ui.cjs` (cần jsdom + php).
 - `create-order-ai-address.php` (quy đổi địa chỉ AI tạo đơn); UI popup "Chỉnh đơn" chế độ AI: `node tests/create-order-ai-ui.cjs` (cần jsdom).
 
