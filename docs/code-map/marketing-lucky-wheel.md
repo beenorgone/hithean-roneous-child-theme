@@ -4,7 +4,7 @@
 
 > Vòng quay may mắn: cài đặt, widget, dọn mã.
 
-3 file · ~1.900 dòng · 79 hàm (3% có docblock)
+3 file · ~2.000 dòng · 79 hàm (3% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 

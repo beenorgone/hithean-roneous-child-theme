@@ -155,10 +155,45 @@ function thean_lw_render_admin_page(): void
     }
 
     $settings = thean_lw_get_settings();
+    $tab = isset($_GET['tab']) && is_string($_GET['tab']) && wp_unslash($_GET['tab']) === 'coupons' ? 'coupons' : 'settings';
+    $page_url = admin_url('admin.php?page=thean-lucky-wheel');
     ?>
-    <div class="wrap">
+    <div class="wrap thean-lw-admin">
         <h1>Lucky Wheel</h1>
         <p>Cấu hình vòng quay ưu đãi cho website.</p>
+        <style>
+            .thean-lw-admin__tabs { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0; border-bottom:1px solid #dcdcde; }
+            .thean-lw-admin__tab { padding:12px 16px; border-bottom:3px solid transparent; color:#50575e; text-decoration:none; }
+            .thean-lw-admin__tab[aria-current="page"] { border-color:#0047ba; color:#0047ba; font-weight:600; }
+            .thean-lw-admin__tab:focus-visible, .thean-lw-admin__open:focus-visible { outline:2px solid #0047ba; outline-offset:3px; }
+            .thean-lw-admin__sheet { padding:16px; background:#fff; border:1px solid #dcdcde; border-radius:12px; }
+            .thean-lw-admin__sheet h2 { margin-top:0; }
+            .thean-lw-admin__open { display:inline-block; padding:10px 16px; border-radius:6px; background:#0047ba; color:#fff; text-decoration:none; }
+            .thean-lw-admin__open:hover, .thean-lw-admin__open:focus { background:#00378f; color:#fff; }
+            .thean-lw-admin__frame { display:block; width:100%; height:75vh; min-height:420px; border:1px solid #dcdcde; margin-top:16px; }
+            @media (max-width:782px) { .thean-lw-admin__sheet { padding:12px; } }
+        </style>
+        <nav class="thean-lw-admin__tabs" aria-label="Lucky Wheel">
+            <a class="thean-lw-admin__tab" href="<?php echo esc_url($page_url); ?>" <?php if ($tab === 'settings') : ?>aria-current="page"<?php endif; ?>>Cấu hình</a>
+            <a class="thean-lw-admin__tab" href="<?php echo esc_url(add_query_arg('tab', 'coupons', $page_url)); ?>" <?php if ($tab === 'coupons') : ?>aria-current="page"<?php endif; ?>>Danh sách coupon (Google Sheets)</a>
+        </nav>
+
+        <?php if ($tab === 'coupons') : ?>
+            <?php
+            // File leads chung Hithean / Theanmarket; giữ quyền truy cập do Google quản lý.
+            $sheet_url = 'https://docs.google.com/spreadsheets/d/1g101Z4Y2Hu6RofDYTFnT3sUi7OwaktAUO3VQIFM1E0U';
+            $sheet_gid = '735776067';
+            ?>
+            <section class="thean-lw-admin__sheet" aria-labelledby="thean-lw-coupons-title">
+                <h2 id="thean-lw-coupons-title">Danh sách coupon Lucky Wheel</h2>
+                <p>Tab Leads ghi nhận mã coupon và liên hệ nhận thưởng của Hithean / Theanmarket.</p>
+                <p class="description">Nếu bảng yêu cầu đăng nhập hoặc không hiển thị, hãy mở Google Sheets bằng tài khoản được cấp quyền.</p>
+                <p><a class="thean-lw-admin__open" href="<?php echo esc_url($sheet_url . '/edit#gid=' . $sheet_gid); ?>" target="_blank" rel="noopener noreferrer">Mở Google Sheets ↗</a></p>
+                <iframe class="thean-lw-admin__frame" src="<?php echo esc_url($sheet_url . '/preview?gid=' . $sheet_gid); ?>" title="Google Sheets — Danh sách coupon Lucky Wheel" loading="lazy" referrerpolicy="no-referrer"></iframe>
+            </section>
+        </div>
+            <?php return; ?>
+        <?php endif; ?>
 
         <?php if (isset($_GET['thean_lw_cleanup_result'])) : ?>
             <div class="notice notice-success is-dismissible">

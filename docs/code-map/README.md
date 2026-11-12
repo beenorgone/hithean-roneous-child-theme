@@ -14,7 +14,7 @@ Cột *docblock* thấp = khu khó đọc với người mới và với AI: vi�
 | [`core`](core.md) | 20 | ~4.500 | 141 | 38% | Hạ tầng theme: module loader (what-loads-when), nạp theo màn admin, template router, enqueue, guard upload/file/CSP, AI… |
 | [`integrations`](integrations.md) | 3 | 90 | 2 | 0% | Adapter ngoài theme: MCP liên site (mcp-site-link), hóa đơn eim (shipper / mã vận đơn / meta xuất kho), GHTK. |
 | [`marketing`](marketing.md) | 6 | ~1.600 | 105 | 20% | Marketing: popup, thanh menu đáy + "Ưu đãi của tôi", vòng quay may mắn, CRO landing agent (chạy theo lịch). |
-| [`marketing/lucky-wheel`](marketing-lucky-wheel.md) | 3 | ~1.900 | 79 | 3% | Vòng quay may mắn: cài đặt, widget, dọn mã. |
+| [`marketing/lucky-wheel`](marketing-lucky-wheel.md) | 3 | ~2.000 | 79 | 3% | Vòng quay may mắn: cài đặt, widget, dọn mã. |
 | [`marketing/offers`](marketing-offers.md) | 11 | ~2.000 | 97 | 52% | Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền. |
 | [`shortcodes`](shortcodes.md) | 22 | ~15.000 | 211 | 23% | Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nh… |
 | [`woocommerce/checkout`](woocommerce-checkout.md) | 5 | ~2.600 | 59 | 17% | Checkout: TK nhận tiền (BACS + eim), trang thanh toán, trang cảm ơn, xác nhận chuyển khoản / chờ thanh toán. |
