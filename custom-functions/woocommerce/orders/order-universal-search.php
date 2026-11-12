@@ -1022,6 +1022,7 @@ function thean_ous_step_badge(WC_Order $order, array $flow): string
             $label = '🏢 ' . ($tabs['internal'] ?? 'Đơn nội bộ') . ' · ' . $label;
         }
         if (!empty($flow['proof']) && $step !== 'proof') {
+            $class .= ' has-proof';
             $label .= ' + ' . ($tabs['proof'] ?? 'Thiếu / chưa xác nhận ảnh xuất kho');
         }
     } else {
@@ -1062,6 +1063,19 @@ function thean_ous_ship_code_short(string $code): string
     return preg_match('/^S\d+\..*\.(\d+)$/i', $code, $m) ? $m[1] : $code;
 }
 
+/**
+ * Dòng đơn cần chú ý (viền + chữ nổi bật): 'issue' = Sự cố giao hàng, 'proof' = thiếu / chưa xác nhận ảnh xuất kho
+ * (bước proof hoặc cờ proof đi kèm bước khác, vd Đang giao). Sự cố ưu tiên hơn.
+ */
+function thean_ous_row_alert(array $flow): string
+{
+    $step = (string) ($flow['step'] ?? '');
+    if ($step === 'issue') {
+        return 'issue';
+    }
+    return $step !== '' && ($step === 'proof' || !empty($flow['proof'])) ? 'proof' : '';
+}
+
 function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?array $orders = null, array $flows = []): string
 {
     ob_start();
@@ -1081,8 +1095,9 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?ar
         $ship      = thean_ous_ship_code_short($ship_full);
         $phone   = $order->get_billing_phone() ?: $order->get_shipping_phone();
         $address = thean_ous_address_line($order);
+        $alert   = thean_ous_row_alert($flow);
         ?>
-        <tr data-order-id="<?php echo esc_attr($id); ?>" data-ops-step="<?php echo esc_attr($flow['step']); ?>" tabindex="0">
+        <tr data-order-id="<?php echo esc_attr($id); ?>" data-ops-step="<?php echo esc_attr($flow['step']); ?>"<?php echo $alert !== '' ? ' class="thean-ous__row--alert is-alert-' . esc_attr($alert) . '"' : ''; ?> tabindex="0">
             <td class="thean-ous__c-check"><label><input type="checkbox" data-thean-ous-check value="<?php echo esc_attr($id); ?>" aria-label="Chọn đơn #<?php echo esc_attr($id); ?>"></label></td>
             <td class="thean-ous__c-order">
                 <div class="thean-ous__order-head">

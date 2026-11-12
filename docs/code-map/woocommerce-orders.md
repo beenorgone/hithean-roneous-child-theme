@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-35 file · ~11.000 dòng · 411 hàm (62% có docblock)
+35 file · ~11.000 dòng · 412 hàm (62% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -445,6 +445,7 @@ Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn
 | `thean_ous_load_orders(array $ids)` | Đọc gộp các đơn của 1 trang bằng 1 lần wc_get_orders (HPOS: read_multiple; legacy: WP_Query + prime cache post/meta/items). Giữ đúng thứ tự $ids; đơn nào không trả về thì wc_get… |
 | `thean_ous_step_badge(WC_Order $order, array $flow)` | Nhãn "📍 bước của flow" ở dòng kết quả: bước tính trực tiếp (cùng logic board), lý do khi đơn không vào board, và cảnh báo khi meta bước board đang lưu khác (dữ liệu cũ / cache)… |
 | `thean_ous_ship_code_short(string $code)` | Mã vận đơn GHTK dạng "S12734516.BO.SGP120-V44.1363613511" → chỉ lấy phần cuối "1363613511" (mã tra cứu ngắn). Mã khác định dạng giữ nguyên. |
+| `thean_ous_row_alert(array $flow)` | Dòng đơn cần chú ý (viền + chữ nổi bật): 'issue' = Sự cố giao hàng, 'proof' = thiếu / chưa xác nhận ảnh xuất kho (bước proof hoặc cờ proof đi kèm bước khác, vd Đang giao). Sự cố… |
 | `thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?array $orders = null, array $flows = [])` | — |
 | `thean_ous_render_address_block(WC_Order $order, string $type)` | — |
 | `thean_ous_export_images(WC_Order $order)` | URL ảnh xuất kho của đơn (meta warehouse_export_images, mỗi dòng 1 URL). Đọc meta đơn (HPOS) trước, trống thì đọc postmeta — đơn cũ / luồng ghi thẳng update_post_meta chưa sync… |
