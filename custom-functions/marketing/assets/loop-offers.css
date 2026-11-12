@@ -22,6 +22,12 @@ button.hlo--b:hover { border-color: #214f3c !important; }
 /* Máy tính / điện thoại chọn vị trí riêng: nút của thiết bị kia bị ẩn (trang cache nên in cả hai). */
 @media (max-width: 767px) { .hlo.hlo-d, .hlo-anchor.hlo-d { display: none !important; } .price:has(+ .hlo--c.hlo-d) { display: block !important; margin: 8px 0 14px !important; } }
 @media (min-width: 768px) { .hlo.hlo-m, .hlo-anchor.hlo-m { display: none !important; } .price:has(+ .hlo--c.hlo-m) { display: block !important; margin: 8px 0 14px !important; } }
+/* Máy tính: badge ở dòng riêng dưới giá, đủ lớn để đọc và bấm. */
+@media (min-width: 768px) {
+    .price:has(+ .hlo--c:not(.hlo-m)) { display: block !important; margin: 8px 0 8px !important; }
+    .hlo--c { display: flex; width: max-content; max-width: 100%; min-height: 34px; justify-content: center; gap: 5px; margin: 0 auto 12px; padding: 5px 12px; font-size: 14px; }
+    .price + .hlo--c { margin: 0 auto 12px; }
+}
 /* Thẻ 2 cột trên điện thoại: dải b sát mép hơn. Chữ "Ưu đãi" LUÔN hiện (không co, không cắt) — chỉ phần nội dung phía sau bị cắt "…". */
 @media (max-width: 767px) {
     button.hlo--b { gap: 5px; flex-basis: calc(100% - 10px); width: calc(100% - 10px); max-width: min(400px, calc(100% - 10px)); margin: 0 auto 10px !important; padding: 4px 7px !important; font-size: 11.5px !important; }
