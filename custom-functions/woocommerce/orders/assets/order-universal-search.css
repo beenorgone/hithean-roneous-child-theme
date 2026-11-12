@@ -265,11 +265,11 @@ body.thean-ous-open { overflow:hidden; }
     .thean-ous-bar kbd { display:none; }
     .thean-ous-bar__brand img { height:24px; max-width:96px; }
     .thean-ous-bar .dashicons-search { display:none; }
-    /* Mobile: 2 dòng — [logo][ô tìm][Tìm] / [📋 Tải đơn cần xử lý][ngày tạo][🧹][⋯]; mọi nút cao 38px. */
+    /* Mobile: 2 dòng — [ô tìm][Tìm] / [📋 Tải đơn cần xử lý][ngày tạo][🧹][⋯]; mọi nút cao 38px. */
     .thean-ous-bar__row { flex-wrap:wrap; gap:6px; padding:6px 8px; }
     .thean-ous-bar__brand { order:0; margin-right:0; }
-    /* basis lớn → nút "Tải đơn" không chen lên dòng 1 (ô tìm co về phần còn lại sau logo + Tìm). */
-    .thean-ous-bar__row input[type="search"] { order:1; flex:1 1 calc(100% - 200px); min-width:0; height:38px; padding:6px 10px; }
+    /* basis lớn → nút "Tải đơn" không chen lên dòng 1. */
+    .thean-ous-bar__row input[type="search"] { order:1; flex:1 1 calc(100% - 80px); min-width:0; height:38px; padding:6px 10px; }
     .thean-ous-bar__submit { order:2; height:38px; padding:0 14px; }
     .thean-ous-bar__board { order:3; flex:1 1 100px; min-width:0; justify-content:center; height:38px; padding:0 10px; font-size:13px; }
     .thean-ous-bar__board span { overflow:hidden; text-overflow:ellipsis; }
@@ -322,7 +322,7 @@ body.thean-ous-open { overflow:hidden; }
 
 /* Main workspaces and isolated lazy product tools. */
 #thean-ous-orders-panel[hidden], #thean-ous-products-panel[hidden], #thean-ous-exports-panel[hidden], [data-product-panel][hidden], [data-workflow-guide-scope][hidden], #thean-workspace-foot[hidden] { display:none !important; }
-.thean-workspace-tabs { display:flex; flex-wrap:wrap; gap:6px; padding:6px 0; }
+.thean-workspace-tabs { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:6px 0; }
 .thean-workspace-tabs button, .thean-workspace-foot button { min-height:40px; padding:8px 14px; border:1px solid #b9cdf0; border-radius:8px; background:#fff; color:#0047ba; font:inherit; font-weight:600; cursor:pointer; }
 .thean-workspace-tabs button[aria-selected="true"], .thean-workspace-foot button[aria-pressed="true"] { background:#0047ba; border-color:#0047ba; color:#fff; }
 .thean-workspace-tabs button:focus-visible, .thean-workspace-foot button:focus-visible { outline:2px solid #0047ba; outline-offset:2px; }

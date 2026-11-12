@@ -2041,7 +2041,7 @@ function thean_ous_enqueue_assets(): void
 }
 
 /**
- * Logo site ở đầu thanh tìm — như thanh ERP (/erp): logo theme → ảnh đầu email WooCommerce → biểu tượng site → tên site.
+ * Logo site ở đầu thanh tabs — như thanh ERP (/erp): logo theme → ảnh đầu email WooCommerce → biểu tượng site → tên site.
  * Theanmarket dùng luôn thean_erp_get_nav_logo_html() nếu module ERP đã nạp.
  */
 function thean_ous_logo_html(): string
@@ -2073,6 +2073,7 @@ function thean_ous_render_ui(): void
     ?>
     <form class="thean-ous-bar" id="thean-ous-bar" role="search" autocomplete="off" hidden>
         <div class="thean-workspace-tabs" role="tablist" aria-label="Khu làm việc">
+            <a class="thean-ous-bar__brand" href="<?php echo esc_url(function_exists('thean_erp_get_home_url') ? thean_erp_get_home_url() : home_url('/')); ?>" target="_blank" rel="noopener" title="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php echo thean_ous_logo_html(); ?></a>
             <button type="button" id="thean-workspace-orders" role="tab" aria-controls="thean-ous-orders-panel" aria-selected="true" tabindex="0" data-order-workspace="orders">📋 Đơn hàng</button>
             <?php if (function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()) : ?>
                 <button type="button" id="thean-workspace-create" role="tab" aria-controls="thean-ous-create-panel" aria-selected="false" tabindex="-1" data-order-workspace="create">＋ Tạo đơn</button>
@@ -2091,7 +2092,6 @@ function thean_ous_render_ui(): void
         <?php // Khối bọc hàng tìm + gợi ý: /quan-ly-don cho riêng khối này sticky (tab cuộn đi); ở admin là khối thường. ?>
         <div class="thean-ous-bar__sticky">
         <div class="thean-ous-bar__row">
-            <a class="thean-ous-bar__brand" href="<?php echo esc_url(function_exists('thean_erp_get_home_url') ? thean_erp_get_home_url() : home_url('/')); ?>" target="_blank" rel="noopener" title="<?php echo esc_attr(get_bloginfo('name')); ?>"><?php echo thean_ous_logo_html(); ?></a>
             <span class="dashicons dashicons-search" aria-hidden="true"></span>
             <input type="search" name="q" placeholder="Tìm đơn: ID, tên, SĐT, email, địa chỉ, SP, vận đơn… — gõ / để lọc (/tt, /sdt, /id, /sp)" aria-label="Tìm đơn hàng" aria-autocomplete="list" aria-controls="thean-ous-suggest">
             <label class="thean-ous-bar__range">Ngày tạo

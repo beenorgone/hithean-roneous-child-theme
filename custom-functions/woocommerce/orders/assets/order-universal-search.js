@@ -1187,6 +1187,7 @@
         if (close) setOpen(close.closest('.thean-ous-modal'), false);
     });
     document.addEventListener('keydown', function (e) {
+        if (e.target.closest('#thean-workspace-menu')) return; // Native dialog handles focus and Escape.
         if (guide && !guide.hidden) {
             if (e.key === 'Escape') {
                 e.preventDefault(); e.stopImmediatePropagation(); setOpen(guide, false);

@@ -478,7 +478,7 @@ Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn
 | `thean_ous_ui_config()` | Config cho assets/order-universal-search.js (window.theanOusCfg). |
 | `thean_ous_render_workflow_guide()` | Hướng dẫn tại chỗ, chỉ đọc; nhãn lấy cùng nguồn với các tab board. |
 | `thean_ous_enqueue_assets()` | — |
-| `thean_ous_logo_html()` | Logo site ở đầu thanh tìm — như thanh ERP (/erp): logo theme → ảnh đầu email WooCommerce → biểu tượng site → tên site. Theanmarket dùng luôn thean_erp_get_nav_logo_html() nếu mo… |
+| `thean_ous_logo_html()` | Logo site ở đầu thanh tabs — như thanh ERP (/erp): logo theme → ảnh đầu email WooCommerce → biểu tượng site → tên site. Theanmarket dùng luôn thean_erp_get_nav_logo_html() nếu m… |
 | `thean_ous_render_ui()` | — |
 
 ### `woocommerce/orders/order-vat-request.php`

@@ -229,49 +229,77 @@
     show(tools[initialWorkspace] && tools[initialWorkspace].panel ? initialWorkspace : 'orders');
 }());
 
-/* Mobile /quan-ly-don: header chỉ 4 tab, phần còn lại + "Phiên bản cũ" nằm trong popup nút "…" (bấm hộ nút gốc). */
+/* Mobile portal: one workspace menu, keeping the original tabs and panels mounted. */
 (function () {
     'use strict';
     var tabs = document.querySelector('.thean-order-portal #thean-ous-bar > .thean-workspace-tabs');
     if (!tabs || !window.matchMedia) return;
-    var MAX = 4, pop = null;
+    var pop = null;
     var more = document.createElement('button');
     more.type = 'button';
     more.className = 'thean-tabs-more';
-    more.textContent = '…';
-    more.title = 'Thêm';
     more.setAttribute('aria-haspopup', 'dialog');
+    more.setAttribute('aria-expanded', 'false');
+    more.setAttribute('aria-controls', 'thean-workspace-menu');
     var legacy = tabs.querySelector('.thean-workspace-legacy');
     tabs.insertBefore(more, legacy || null);
     var list = Array.prototype.slice.call(tabs.querySelectorAll('[role="tab"]'));
-    list.forEach(function (b, i) { if (i >= MAX) b.classList.add('thean-tab-over'); });
-    if (list.length > MAX || legacy) tabs.classList.add('has-more');
-    function close() { if (pop) pop.hidden = true; }
+    tabs.classList.add('has-menu');
+    function syncLabel() {
+        var selected = list.find(function (b) { return b.getAttribute('aria-selected') === 'true'; });
+        more.textContent = '☰ ' + (selected ? selected.textContent.trim() : 'Khu làm việc');
+        more.setAttribute('aria-label', 'Chuyển khu làm việc: ' + (selected ? selected.textContent.trim() : 'Menu'));
+    }
+    syncLabel();
+    document.addEventListener('thean:workspace-changed', syncLabel);
+    function closeMenu() {
+        if (pop && pop.open) pop.close();
+        more.setAttribute('aria-expanded', 'false');
+    }
     more.addEventListener('click', function () {
         if (!pop) {
-            pop = document.createElement('div');
+            pop = document.createElement('dialog');
+            pop.id = 'thean-workspace-menu';
             pop.className = 'thean-tabs-pop';
-            pop.innerHTML = '<div class="thean-tabs-pop__bg"></div><div class="thean-tabs-pop__box" role="dialog" aria-modal="true"></div>';
+            pop.setAttribute('aria-labelledby', 'thean-workspace-menu-title');
             document.body.appendChild(pop);
-            pop.querySelector('.thean-tabs-pop__bg').addEventListener('click', close);
+            pop.addEventListener('click', function (event) { if (event.target === pop) closeMenu(); });
+            pop.addEventListener('close', function () { more.setAttribute('aria-expanded', 'false'); });
+            pop.addEventListener('cancel', function () { more.setAttribute('aria-expanded', 'false'); });
         }
-        var box = pop.querySelector('.thean-tabs-pop__box');
-        box.innerHTML = '';
+        pop.replaceChildren();
+        var box = document.createElement('div');
+        box.className = 'thean-tabs-pop__box';
+        var title = document.createElement('h2');
+        title.id = 'thean-workspace-menu-title';
+        title.textContent = 'Khu làm việc';
+        box.appendChild(title);
         list.forEach(function (orig) {
-            if (!orig.classList.contains('thean-tab-over')) return;
             var b = document.createElement('button');
             b.type = 'button';
             b.textContent = orig.textContent;
-            b.addEventListener('click', function () { close(); orig.click(); });
+            if (orig.getAttribute('aria-selected') === 'true') b.setAttribute('aria-current', 'page');
+            b.addEventListener('click', function () { closeMenu(); orig.click(); });
             box.appendChild(b);
         });
         if (legacy) {
             var a = document.createElement('a');
             a.href = legacy.href;
             a.textContent = legacy.textContent;
-            a.addEventListener('click', close);
+            a.addEventListener('click', closeMenu);
             box.appendChild(a);
         }
-        pop.hidden = false;
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.textContent = 'Đóng ×';
+        close.addEventListener('click', closeMenu);
+        box.appendChild(close);
+        pop.appendChild(box);
+        pop.showModal();
+        more.setAttribute('aria-expanded', 'true');
+        (box.querySelector('[aria-current]') || box.querySelector('button')).focus();
+    });
+    window.matchMedia('(max-width:782px)').addEventListener('change', function (event) {
+        if (!event.matches) closeMenu();
     });
 }());
