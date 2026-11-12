@@ -4,7 +4,7 @@
 
 > Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền.
 
-10 file · ~1.900 dòng · 88 hàm (47% có docblock)
+10 file · ~1.900 dòng · 89 hàm (47% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -86,11 +86,12 @@ Nút "Ưu đãi đang áp dụng" trên thẻ sản phẩm ở danh sách (produ
 
 | Hàm | Mô tả |
 |---|---|
-| `hithean_loop_offers_position()` | Vị trí nút đã chọn: a \| b \| c (mặc định c). |
+| `hithean_loop_offers_position(bool $mobile = false)` | Vị trí nút đã chọn: a \| b \| c — máy tính mặc định c, điện thoại ($mobile) mặc định b. |
+| `hithean_loop_offers_device_class(string $position, string $desktop, string $mobile)` | Lớp ẩn / hiện theo thiết bị của nút ở vị trí $position: null = không in ở vị trí này, '' = in cho mọi thiết bị (hàm thuần). |
 | `hithean_loop_offers_enabled()` | Nút chỉ hiện khi khách xem được snapshot ưu đãi (cùng điều kiện trang /uu-dai/). |
 | `hithean_loop_offers_rows(int $product_id)` | Dòng snapshot đang hiệu lực của 1 sản phẩm (cùng cách gom của /uu-dai/ chế độ "Theo sản phẩm"); chỉ đọc snapshot 1 lần / request. |
 | `hithean_loop_offers_labels(int $count, string $first_title = '')` | Nhãn nút theo số ưu đãi riêng của sản phẩm (hàm thuần): [label, aria, summary]. |
-| `hithean_loop_offers_button_html(int $product_id, string $position)` | HTML nút của 1 sản phẩm theo vị trí. a / c nằm TRONG link sản phẩm nên dùng span role=button, b là button thật. |
+| `hithean_loop_offers_button_html(int $product_id, string $position, string $device = '')` | HTML nút của 1 sản phẩm theo vị trí. a / c nằm TRONG link sản phẩm nên dùng span role=button, b là button thật. |
 | `hithean_loop_offers_render(string $position)` | In nút ở hook của vị trí đang chọn; lần đầu in CSS (nhỏ, tránh nháy) + xếp JS / CSS thẻ ưu đãi cho footer. |
 | `hithean_loop_offers_ajax()` | AJAX: nội dung popup của 1 sản phẩm. Chỉ đọc, không nonce (trang danh sách cache). SP chưa có ưu đãi riêng → "Ưu đãi tiêu biểu" của cửa hàng (hithean_sfm_featured_cards — action… |
 

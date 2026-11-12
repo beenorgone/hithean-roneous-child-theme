@@ -27,6 +27,12 @@ $GLOBALS['settings']['loop_button'] = 'x';
 ok(hithean_loop_offers_position() === 'c', 'Giá trị lạ quay về c');
 $GLOBALS['settings']['loop_button'] = 'b';
 ok(hithean_loop_offers_position() === 'b', 'Đọc vị trí đã lưu');
+ok(hithean_loop_offers_position(true) === 'b', 'Điện thoại mặc định b');
+$GLOBALS['settings']['loop_button_mobile'] = 'a';
+ok(hithean_loop_offers_position(true) === 'a' && hithean_loop_offers_position() === 'b', 'Điện thoại đọc cài đặt riêng');
+ok(hithean_loop_offers_device_class('c', 'c', 'b') === 'hlo-d' && hithean_loop_offers_device_class('b', 'c', 'b') === 'hlo-m', 'Khác vị trí → mỗi nút 1 lớp thiết bị');
+ok(hithean_loop_offers_device_class('a', 'c', 'b') === null, 'Vị trí không được chọn → không in');
+ok(hithean_loop_offers_device_class('b', 'b', 'b') === '', 'Cùng vị trí → 1 nút cho mọi thiết bị');
 ok(hithean_loop_offers_enabled() === true, 'Snapshot công khai → hiện nút');
 
 ok(hithean_loop_offers_labels(0) === ['Xem ưu đãi', 'Xem ưu đãi của cửa hàng', 'Xem ưu đãi của cửa hàng'], 'SP chưa có ưu đãi riêng vẫn có nhãn');
@@ -52,5 +58,7 @@ ok(strpos($b, '<button type="button" class="hlo hlo--b"') === 0 && strpos($b, 'M
 $none = hithean_loop_offers_button_html(8, 'b');
 ok(strpos($none, 'data-hlo="8"') !== false && strpos($none, 'Xem ưu đãi của cửa hàng') !== false && strpos($none, 'hlo__count') === false, 'SP chưa có ưu đãi riêng vẫn có nút, không số đếm');
 ok(strpos(hithean_loop_offers_button_html(8, 'c'), 'Xem ưu đãi') !== false, 'c: SP chưa có ưu đãi riêng');
+ok(strpos(hithean_loop_offers_button_html(1, 'a', 'hlo-m'), '<span class="hlo-anchor hlo-m"><span class="hlo hlo--a" role') === 0, 'a: lớp thiết bị nằm ở neo');
+ok(strpos(hithean_loop_offers_button_html(1, 'b', 'hlo-m'), 'class="hlo hlo--b hlo-m"') !== false && strpos(hithean_loop_offers_button_html(1, 'c', 'hlo-d'), 'class="hlo hlo--c hlo-d"') !== false, 'b / c: lớp thiết bị trên nút');
 
 echo "PASS: $count loop-offers-button assertions\n";

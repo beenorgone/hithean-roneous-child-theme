@@ -41,12 +41,13 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             $next = ['enabled' => !empty($_POST['enabled']), 'ai_enabled' => !empty($_POST['ai_enabled']), 'provider' => $provider,
                 'model' => sanitize_text_field(wp_unslash($_POST['model'] ?? '')), 'preview' => empty($_POST['public']),
                 'banner_layout' => ($_POST['banner_layout'] ?? '') === 'grid' ? 'grid' : 'full',
-                'loop_button' => in_array($_POST['loop_button'] ?? '', ['a', 'b', 'c'], true) ? (string) $_POST['loop_button'] : 'c'];
+                'loop_button' => in_array($_POST['loop_button'] ?? '', ['a', 'b', 'c'], true) ? (string) $_POST['loop_button'] : 'c',
+                'loop_button_mobile' => in_array($_POST['loop_button_mobile'] ?? '', ['a', 'b', 'c'], true) ? (string) $_POST['loop_button_mobile'] : 'b'];
             update_option('hithean_offers_settings', $next, false);
             hithean_offers_sync_schedule();
             if ($old['preview'] !== $next['preview'] || $old['banner_layout'] !== $next['banner_layout']) { hithean_offers_purge(); }
             // Nút ưu đãi nằm trên mọi trang có danh sách sản phẩm → đổi vị trí / bật công khai thì xoá cache toàn site.
-            if (($old['preview'] !== $next['preview'] || $old['loop_button'] !== $next['loop_button']) && function_exists('rocket_clean_domain')) { rocket_clean_domain(); }
+            if (($old['preview'] !== $next['preview'] || $old['loop_button'] !== $next['loop_button'] || $old['loop_button_mobile'] !== $next['loop_button_mobile']) && function_exists('rocket_clean_domain')) { rocket_clean_domain(); }
         } elseif ($action === 'lark_test') {
             $error = hithean_offers_lark_test();
             if ($error !== '') { throw new RuntimeException('Gửi thử thất bại: ' . $error); }
@@ -127,10 +128,14 @@ function hithean_offers_admin(): void {
     foreach ($run['errors'] ?? [] as $error) { echo '<p class="ho-error">SP #' . absint($error['product_id']) . ': ' . esc_html($error['message']) . '</p>'; }
     echo '</section><details class="ho-panel"><summary>Cấu hình & xuất bản</summary>';
     hithean_offers_form_start('settings');
-    echo '<p><label><input type="checkbox" name="enabled" ' . checked($s['enabled'], true, false) . '> Tự đồng bộ mỗi tuần một lần</label></p><p><label><input type="checkbox" name="public" ' . checked(!$s['preview'], true, false) . '> Hiển thị snapshot trên trang công khai</label></p><fieldset><legend>Hiển thị banner chương trình</legend>' . '<p><label><input type="radio" name="banner_layout" value="grid" ' . checked($s['banner_layout'], 'grid', false) . '> Lưới đều nhau — card cùng chiều cao, banner phủ kín khung (cắt bớt mép nếu khác tỉ lệ 6:5)</label></p>' . '<p><label><input type="radio" name="banner_layout" value="full" ' . checked($s['banner_layout'], 'full', false) . '> Hiện nguyên banner — không cắt, khung card cao theo tỉ lệ từng ảnh</label></p>' . '</fieldset><fieldset><legend>Nút ưu đãi trên thẻ sản phẩm ở danh sách</legend>'
+    echo '<p><label><input type="checkbox" name="enabled" ' . checked($s['enabled'], true, false) . '> Tự đồng bộ mỗi tuần một lần</label></p><p><label><input type="checkbox" name="public" ' . checked(!$s['preview'], true, false) . '> Hiển thị snapshot trên trang công khai</label></p><fieldset><legend>Hiển thị banner chương trình</legend>' . '<p><label><input type="radio" name="banner_layout" value="grid" ' . checked($s['banner_layout'], 'grid', false) . '> Lưới đều nhau — card cùng chiều cao, banner phủ kín khung (cắt bớt mép nếu khác tỉ lệ 6:5)</label></p>' . '<p><label><input type="radio" name="banner_layout" value="full" ' . checked($s['banner_layout'], 'full', false) . '> Hiện nguyên banner — không cắt, khung card cao theo tỉ lệ từng ảnh</label></p>' . '</fieldset><fieldset><legend>Nút ưu đãi trên thẻ sản phẩm ở danh sách — máy tính</legend>'
         . '<p><label><input type="radio" name="loop_button" value="a" ' . checked($s['loop_button'], 'a', false) . '> A — Nhãn nổi ở góc dưới ảnh sản phẩm</label></p>'
         . '<p><label><input type="radio" name="loop_button" value="b" ' . checked($s['loop_button'], 'b', false) . '> B — Dải một dòng dưới giá (hiện nội dung ưu đãi đầu tiên)</label></p>'
         . '<p><label><input type="radio" name="loop_button" value="c" ' . checked($s['loop_button'], 'c', false) . '> C — Nhãn nhỏ cạnh giá (mặc định)</label></p>'
+        . '</fieldset><fieldset><legend>Nút ưu đãi trên thẻ sản phẩm ở danh sách — điện thoại (màn hình ≤ 767px)</legend>'
+        . '<p><label><input type="radio" name="loop_button_mobile" value="a" ' . checked($s['loop_button_mobile'], 'a', false) . '> A — Nhãn nổi ở góc dưới ảnh sản phẩm</label></p>'
+        . '<p><label><input type="radio" name="loop_button_mobile" value="b" ' . checked($s['loop_button_mobile'], 'b', false) . '> B — Dải một dòng dưới giá (mặc định)</label></p>'
+        . '<p><label><input type="radio" name="loop_button_mobile" value="c" ' . checked($s['loop_button_mobile'], 'c', false) . '> C — Nhãn nhỏ cạnh giá</label></p>'
         . '<p class="description">Mỗi sản phẩm có một nút, bấm mở popup ưu đãi. Nút chỉ hiện với khách khi đã bật "Hiển thị snapshot trên trang công khai".</p>'
         . '</fieldset><p>Dữ liệu cấu trúc được đọc trực tiếp từ cấu hình. Nội dung và điều kiện chưa rõ sẽ chờ duyệt.</p><p><button class="button button-primary">Lưu cấu hình</button></p></form>';
     $page = get_page_by_path('uu-dai');

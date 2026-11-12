@@ -104,8 +104,9 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   "Theo sản phẩm" (`hithean_offer_cards_from_rows()` — chip / ảnh / bậc giá / thứ tự khớp popup) và panel "Ưu đãi của tôi". Sửa kiểu thẻ ở 1 chỗ. Màu theo loại: lớp `.is-tone-{addon|tiers|shipping|discount|wheel|coupon|other}` (PHP: `tone` → `group` → `kind`; JS trang SP: `card.tone || card.kind`).
   Link `…/san-pham/x/#uu-dai` mở sẵn popup ưu đãi ở trang SP.
 - **Nút ưu đãi trên thẻ SP ở danh sách** (`marketing/offers/loop-button.php` + `marketing/assets/loop-offers.{css,js}`, nạp mọi request): mỗi SP 1 nút
-  `[data-hlo]`, vị trí chọn ở Ưu đãi sản phẩm → Cấu hình & xuất bản (`hithean_offers_settings()['loop_button']`: a = nhãn góc ảnh, b = dải dưới giá,
-  **c = nhãn cạnh giá — mặc định**). Bấm → popup `.hithean-offers-dialog`, AJAX `hithean_loop_offers` (khai ở module `site_footer_menu` để có
+  `[data-hlo]`, vị trí chọn ở Ưu đãi sản phẩm → Cấu hình & xuất bản (a = nhãn góc ảnh, b = dải dưới giá, c = nhãn cạnh giá;
+  `hithean_offers_settings()['loop_button']` máy tính — **mặc định c**, `['loop_button_mobile']` điện thoại ≤767px — **mặc định b**; 2 vị trí khác nhau
+  thì in cả hai nút, CSS ẩn theo bề rộng `.hlo-d` / `.hlo-m` vì trang cache). Bấm → popup `.hithean-offers-dialog`, AJAX `hithean_loop_offers` (khai ở module `site_footer_menu` để có
   `hithean_sfm_featured_cards()`): ưu đãi của SP từ snapshot, SP chưa có ưu đãi riêng → ưu đãi tiêu biểu. Chỉ hiện khi snapshot công khai
   (`hithean_loop_offers_enabled()`); khi hiện thì khung vàng `product-addon-promo` không in nữa. Test: `php tests/loop-offers-button.php`.
 - **Thông báo Lark khi /uu-dai/ đổi chương trình** (`marketing/offers/lark-notify.php`): nghe `update_option_hithean_offers_snapshot`
