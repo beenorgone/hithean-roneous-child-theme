@@ -202,14 +202,15 @@ body.thean-ous-open .thean-ous-bar { z-index:99200; } /* thanh tìm nổi trên 
 .thean-ous-tabs__sep::after { content:""; flex:1; border-top:1px dashed var(--ous-border); }
 .thean-ous-tab--side { border-style:dashed; }
 .thean-ous-tab--side.is-active { border-style:solid; }
-/* Tab cần chú ý: Sự cố giao hàng (đỏ) + Thiếu chứng từ XK (cam) — viền màu đậm + chữ màu, có đơn thì nền nhạt. */
+/* Tab cần chú ý: Sự cố giao hàng (đỏ), Thiếu chứng từ XK (cam), Chờ thu COD (vàng đậm). */
 .thean-ous-tab[data-thean-ous-tab="issue"] { --ous-tab-alert:#dc2626; --ous-tab-alert-bg:#fef2f2; }
 .thean-ous-tab[data-thean-ous-tab="proof"] { --ous-tab-alert:#ea580c; --ous-tab-alert-bg:#fff7ed; }
-.thean-ous-tab[data-thean-ous-tab="issue"], .thean-ous-tab[data-thean-ous-tab="proof"] { border:2px solid var(--ous-tab-alert); color:var(--ous-tab-alert); font-weight:700; }
-.thean-ous-tab[data-thean-ous-tab="issue"]:not(.is-empty), .thean-ous-tab[data-thean-ous-tab="proof"]:not(.is-empty) { background:var(--ous-tab-alert-bg); }
-.thean-ous-tab[data-thean-ous-tab="issue"] b, .thean-ous-tab[data-thean-ous-tab="proof"] b { background:var(--ous-tab-alert); color:#fff; }
-.thean-ous-tab[data-thean-ous-tab="issue"].is-active, .thean-ous-tab[data-thean-ous-tab="proof"].is-active { background:var(--ous-tab-alert); color:#fff; }
-.thean-ous-tab[data-thean-ous-tab="issue"].is-active b, .thean-ous-tab[data-thean-ous-tab="proof"].is-active b { background:#fff; color:var(--ous-tab-alert); }
+.thean-ous-tab[data-thean-ous-tab="cod"] { --ous-tab-alert:#a16207; --ous-tab-alert-bg:#fefce8; }
+.thean-ous-tab[data-thean-ous-tab="issue"], .thean-ous-tab[data-thean-ous-tab="proof"], .thean-ous-tab[data-thean-ous-tab="cod"] { border:2px solid var(--ous-tab-alert); color:var(--ous-tab-alert); font-weight:700; }
+.thean-ous-tab[data-thean-ous-tab="issue"]:not(.is-empty), .thean-ous-tab[data-thean-ous-tab="proof"]:not(.is-empty), .thean-ous-tab[data-thean-ous-tab="cod"]:not(.is-empty) { background:var(--ous-tab-alert-bg); }
+.thean-ous-tab[data-thean-ous-tab="issue"] b, .thean-ous-tab[data-thean-ous-tab="proof"] b, .thean-ous-tab[data-thean-ous-tab="cod"] b { background:var(--ous-tab-alert); color:#fff; }
+.thean-ous-tab[data-thean-ous-tab="issue"].is-active, .thean-ous-tab[data-thean-ous-tab="proof"].is-active, .thean-ous-tab[data-thean-ous-tab="cod"].is-active { background:var(--ous-tab-alert); color:#fff; }
+.thean-ous-tab[data-thean-ous-tab="issue"].is-active b, .thean-ous-tab[data-thean-ous-tab="proof"].is-active b, .thean-ous-tab[data-thean-ous-tab="cod"].is-active b { background:#fff; color:var(--ous-tab-alert); }
 /* Sơ đồ luồng ở 📖 Quy trình */
 .thean-ous-flowmap { margin:12px 0 18px; padding:12px; border:1px solid var(--ous-border); border-radius:8px; background:#fff; }
 .thean-ous-flowmap__lane { margin:0 0 8px; color:#64748b; font-size:12px; font-weight:600; }
