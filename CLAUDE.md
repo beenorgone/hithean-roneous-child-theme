@@ -107,7 +107,7 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   thì in cả hai nút, CSS ẩn theo bề rộng `.hlo-d` / `.hlo-m` vì trang cache). Bấm → popup `.hithean-offers-dialog`, AJAX `hithean_loop_offers` (khai ở module `site_footer_menu` để có
   `hithean_sfm_featured_cards()`): ưu đãi của SP từ snapshot, SP chưa có ưu đãi riêng → ưu đãi tiêu biểu. Chỉ hiện khi snapshot công khai
   (`hithean_loop_offers_enabled()`); khi hiện thì khung vàng `product-addon-promo` không in nữa. Test: `php tests/loop-offers-button.php`.
-  Dải b: chữ "Ưu đãi" là `.hlo__label` riêng, không co / không cắt — chỉ phần nội dung `.hlo__text` bị cắt "…".
+  Dải b: lề 10px (điện thoại 5px), tối đa 400px, căn giữa; chữ "Ưu đãi" là `.hlo__label` riêng, không co / không cắt — chỉ phần nội dung `.hlo__text` bị cắt "…".
 - **Giá ưu đãi trên thẻ SP ở danh sách** (`products/product-list-page.php` → `hithean_loop_rule_price_html()`, filter `woocommerce_get_price_html` @9999,
   chỉ trong lúc in giá của thẻ — cờ `$GLOBALS['hithean_loop_price_scope']` bật / tắt quanh `woocommerce_after_shop_loop_item_title`): SP thuộc rule
   Discount Rules giảm **ngay từ 1 sản phẩm** hiện giá gốc gạch + giá ưu đãi như Sale thông thường (SP biến thể: khoảng giá). Giá do plugin tính

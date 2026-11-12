@@ -11,8 +11,8 @@
 .price:has(+ .hlo--c) { display: inline-block !important; margin: 8px 8px 12px 0 !important; vertical-align: middle; }
 .price + .hlo--c { margin: 8px 0 12px; }
 .hlo--a:hover, .hlo--c:hover { box-shadow: 0 3px 10px #214f3c33; }
-/* b — dải 1 dòng dưới giá, trên nút mua. Theme cha ép style button nên dùng !important. */
-button.hlo--b { display: flex !important; align-items: center; gap: 6px; flex: 0 0 calc(100% - 30px); width: calc(100% - 30px); max-width: calc(100% - 30px); height: auto !important; min-height: 0 !important; margin: 0 15px 10px !important; padding: 4px 9px !important; border: 1px solid #cfe0cd !important; border-radius: 6px !important; background: #edf5ec !important; color: #285239 !important; box-shadow: none !important; font-size: 12px !important; font-weight: 400 !important; line-height: 1.4 !important; text-align: left; }
+/* b — dải 1 dòng dưới giá, trên nút mua: gần kín bề ngang thẻ (lề 10px), tối đa 400px, căn giữa. Theme cha ép style button nên dùng !important. */
+button.hlo--b { display: flex !important; align-items: center; gap: 6px; flex: 0 0 calc(100% - 20px); width: calc(100% - 20px); max-width: min(400px, calc(100% - 20px)); height: auto !important; min-height: 0 !important; margin: 0 auto 10px !important; padding: 4px 9px !important; border: 1px solid #cfe0cd !important; border-radius: 6px !important; background: #edf5ec !important; color: #285239 !important; box-shadow: none !important; font-size: 12px !important; font-weight: 400 !important; line-height: 1.4 !important; text-align: left; }
 button.hlo--b:hover { border-color: #214f3c !important; }
 .hlo--b .hlo__star { flex: 0 0 auto; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: #214f3c; font-size: 10px; line-height: 1; }
 .hlo--b .hlo__label { flex: 0 0 auto; color: #214f3c; font-weight: 700; white-space: nowrap; }
@@ -24,6 +24,6 @@ button.hlo--b:hover { border-color: #214f3c !important; }
 @media (min-width: 768px) { .hlo.hlo-m, .hlo-anchor.hlo-m { display: none !important; } .price:has(+ .hlo--c.hlo-m) { display: block !important; margin: 8px 0 14px !important; } }
 /* Thẻ 2 cột trên điện thoại: dải b sát mép hơn. Chữ "Ưu đãi" LUÔN hiện (không co, không cắt) — chỉ phần nội dung phía sau bị cắt "…". */
 @media (max-width: 767px) {
-    button.hlo--b { gap: 5px; flex-basis: calc(100% - 16px); width: calc(100% - 16px); max-width: calc(100% - 16px); margin: 0 8px 10px !important; padding: 4px 7px !important; font-size: 11.5px !important; }
+    button.hlo--b { gap: 5px; flex-basis: calc(100% - 10px); width: calc(100% - 10px); max-width: min(400px, calc(100% - 10px)); margin: 0 auto 10px !important; padding: 4px 7px !important; font-size: 11.5px !important; }
 }
 .hlo-dialog__loading { padding: 18px; font-size: 13px; text-align: center; opacity: .75; }
