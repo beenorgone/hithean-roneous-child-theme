@@ -400,9 +400,9 @@ function order_creator_with_customer_context(int $user_id, callable $fn)
     $state['is_admin'] = current_user_can('manage_options'); // operator hiện tại (trước khi mạo danh)
 
     try {
-        if ($user_id > 0) {
-            wp_set_current_user($user_id);
-        }
+        // Khách vãng lai cũng phải rời danh tính nhân viên (user 0): nếu không, giá theo role / rule ưu đãi theo vai trò
+        // (Wholesale Suite, Woo Discount Rules…) đọc role của NHÂN VIÊN. Quyền thao tác đã snapshot ở $state phía trên.
+        wp_set_current_user($user_id > 0 ? $user_id : 0);
         if (WC()->session) {
             WC()->session->set('order_awaiting_payment', false); // tránh tái dùng đơn nháp của NV
         }
