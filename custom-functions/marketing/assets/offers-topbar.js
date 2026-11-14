@@ -6,6 +6,12 @@
     var cfg = window.hitheanTopbar || {};
     var root = document.documentElement;
 
+    /* Thanh cao theo nội dung → đo lại --hpt-h khi đổi cỡ màn hình / font tải xong (body + menu Roneous chừa đúng chỗ). */
+    function measure() { if (bar.isConnected) root.style.setProperty('--hpt-h', bar.offsetHeight + 'px'); }
+    if (typeof ResizeObserver === 'function') new ResizeObserver(measure).observe(bar);
+    else window.addEventListener('resize', measure);
+    measure();
+
     /* Xoay vòng thông điệp (≥2 dòng): 5 giây / dòng, dừng khi rê chuột / focus vào thanh hoặc tab ẩn. */
     var msgs = bar.querySelectorAll('[data-hpt-msg]');
     var index = 0, paused = false;
@@ -26,6 +32,7 @@
     bar.querySelector('[data-hpt-close]').addEventListener('click', function () {
         try { sessionStorage.setItem('hpt-off', bar.getAttribute('data-hpt-key') || '1'); } catch (e) { /* bỏ qua */ }
         root.classList.remove('hpt-on');
+        root.style.removeProperty('--hpt-h');
         bar.parentNode.removeChild(bar);
     });
 

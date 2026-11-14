@@ -9,7 +9,7 @@
  * In ở hook `hithean_site_topbar` (header.php, ngay sau <body>) → landing dùng template riêng (/uu-dai/, ANC, /tao-don) tự không có.
  * Ẩn ở trang thanh toán / cảm ơn. Chỉ hiện khi snapshot công khai (hoặc quản lý xem trước) — hithean_loop_offers_enabled().
  * Khách bấm × → ẩn trong phiên (sessionStorage `hpt-off` = khóa nội dung; đổi nội dung là hiện lại).
- * Thanh cao cố định (CSS --hpt-h) để không giật trang; menu Roneous dạng fixed được đẩy xuống dưới thanh.
+ * Chiều cao theo nội dung + padding (5px máy tính / 10px mobile); --hpt-h đo bằng JS ngay khi in thanh để body + menu Roneous dạng fixed chừa chỗ.
  */
 defined('ABSPATH') || exit;
 
@@ -107,7 +107,7 @@ function hithean_offers_topbar_render(): void {
         . '<button type="button" class="hpt__more" data-hpt-open aria-haspopup="dialog" aria-controls="hpt-dialog">' . esc_html($config['button']) . '<span aria-hidden="true"> ›</span></button>'
         . '<button type="button" class="hpt__close" data-hpt-close aria-label="Ẩn thanh ưu đãi">×</button></div></div>';
     // Chạy ngay (trước khi vẽ phần còn lại): khách đã đóng trong phiên → bỏ thanh; ngược lại bật chừa chỗ cho thanh.
-    echo '<script>(function(){var b=document.getElementById("hithean-topbar");try{if(sessionStorage.getItem("hpt-off")===b.getAttribute("data-hpt-key")){b.parentNode.removeChild(b);return;}}catch(e){}document.documentElement.classList.add("hpt-on");})();</script>';
+    echo '<script>(function(){var b=document.getElementById("hithean-topbar");try{if(sessionStorage.getItem("hpt-off")===b.getAttribute("data-hpt-key")){b.parentNode.removeChild(b);return;}}catch(e){}var r=document.documentElement;r.style.setProperty("--hpt-h",b.offsetHeight+"px");r.classList.add("hpt-on");})();</script>';
 }
 add_action('hithean_site_topbar', 'hithean_offers_topbar_render');
 

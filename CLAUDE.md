@@ -133,8 +133,8 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   `topbar_button`, `topbar_color` = blue (#0047ba) | red (hồng đỏ #e0245e) | custom + `topbar_bg` mã hex — chữ tự trắng / navy theo độ sáng nền,
   `hithean_offers_topbar_fg()`); đổi → `rocket_clean_domain()`. Nút "Xem chi tiết" mở popup `#hpt-dialog` (khung `.hithean-offers-dialog`, AJAX
   `hithean_offers_topbar`, chỉ đọc): 1 thẻ / chương trình + CTA "Xem sản phẩm" tới trang SP (nhiều SP → danh sách SP). `#uu-dai-chuong-trinh` mở sẵn popup.
-  Gom chương trình dùng chung với "Ưu đãi tiêu biểu": `hithean_offers_programs()` / `hithean_offers_program_scope()` (`offers/programs.php`). Cao cố định `--hpt-h`
-  (nội dung + 2 × `--hpt-pad` 10px — 56px máy tính / mobile), body chừa chỗ + `nav.fixed` của Roneous đẩy xuống khi `html.hpt-on`; khách bấm × → ẩn trong phiên (sessionStorage `hpt-off` = khóa nội dung).
+  Gom chương trình dùng chung với "Ưu đãi tiêu biểu": `hithean_offers_programs()` / `hithean_offers_program_scope()` (`offers/programs.php`). Chiều cao
+  — không đặt chiều cao, padding trên dưới `--hpt-pad` 5px máy tính / 10px mobile; `--hpt-h` do JS đo (inline ngay sau thanh + ResizeObserver) → body chừa chỗ + `nav.fixed` của Roneous đẩy xuống khi `html.hpt-on`; khách bấm × → ẩn trong phiên (sessionStorage `hpt-off` = khóa nội dung).
   Test: `php tests/offers-structured-test.php`, `node tests/offers-topbar-ui.cjs`.
 - /uu-dai/: vừa vào hỏi nhanh (dialog `data-ho-ask`) xem theo sản phẩm hay chương trình; bỏ qua khi URL có `?xem=san-pham|chuong-trinh`
   hoặc đã chọn trong phiên (sessionStorage `ho-mode`).
