@@ -2384,7 +2384,8 @@
     }
 
     // ---------- invoice modal ----------
-    // html2canvas (~200KB, CDN) chỉ cần khi xuất / copy ảnh hóa đơn → nạp khi mở popup hóa đơn, không chặn lúc tải trang.
+    // html2canvas (~200KB, đóng gói trong repo: assets/vendor/) chỉ cần khi xuất / copy ảnh hóa đơn → nạp khi mở popup
+    // hóa đơn, không chặn lúc tải trang. Ảnh QR đã được máy chủ nhúng data URI nên ảnh chụp giữ được QR.
     var html2canvasReady = null;
     function loadHtml2canvas() {
         if (typeof html2canvas !== 'undefined') { return Promise.resolve(); }
@@ -2418,7 +2419,8 @@
                 img.addEventListener('error', resolve, { once: true });
             });
         });
-        return Promise.all(ready.concat(loadHtml2canvas())).then(function () {
+        var fonts = doc.fonts && doc.fonts.ready ? doc.fonts.ready : Promise.resolve();
+        return Promise.all(ready.concat(fonts, loadHtml2canvas())).then(function () {
             return html2canvas(doc.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
         });
     }
@@ -2435,19 +2437,26 @@
             a.download = invoiceFileName();
             a.click();
             $('#oc-invoice-msg').textContent = '';
-        }).catch(function (e) { $('#oc-invoice-msg').textContent = 'Lỗi tạo ảnh: ' + e; });
+        }).catch(function (e) { $('#oc-invoice-msg').textContent = 'Lỗi tạo ảnh: ' + errText(e); });
     }
+
+    function errText(e) { return e && e.message ? e.message : String(e); }
 
     function invoiceCopy() {
         if (!navigator.clipboard || !window.ClipboardItem) { $('#oc-invoice-msg').textContent = 'Trình duyệt không hỗ trợ copy ảnh — hãy dùng Xuất JPG.'; return; }
         $('#oc-invoice-msg').textContent = 'Đang chuẩn bị ảnh...';
-        invoiceCanvas().then(function (canvas) {
-            canvas.toBlob(function (blob) {
-                navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]).then(function () {
-                    $('#oc-invoice-msg').textContent = '✅ Đã copy ảnh hóa đơn — dán (Ctrl/Cmd+V) vào chat để gửi khách.';
-                }).catch(function () { $('#oc-invoice-msg').textContent = 'Không copy được ảnh — hãy dùng Xuất JPG.'; });
-            }, 'image/png');
-        }).catch(function (e) { $('#oc-invoice-msg').textContent = 'Lỗi: ' + e; });
+        // Gọi clipboard.write NGAY trong lúc bấm, đưa Promise ảnh vào ClipboardItem — Safari từ chối nếu chờ chụp xong
+        // rồi mới ghi (hết "user gesture").
+        var blob = invoiceCanvas().then(function (canvas) {
+            return new Promise(function (resolve, reject) {
+                canvas.toBlob(function (b) { b ? resolve(b) : reject(new Error('Không tạo được ảnh.')); }, 'image/png');
+            });
+        });
+        navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]).then(function () {
+            $('#oc-invoice-msg').textContent = '✅ Đã copy ảnh hóa đơn — dán (Ctrl/Cmd+V) vào chat để gửi khách.';
+        }).catch(function (e) {
+            $('#oc-invoice-msg').textContent = 'Không copy được ảnh (' + errText(e) + ') — hãy dùng Xuất JPG.';
+        });
     }
 
     // ---------- tabs ----------

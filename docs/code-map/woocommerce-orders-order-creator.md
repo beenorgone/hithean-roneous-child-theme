@@ -4,7 +4,7 @@
 
 > Trang Tạo đơn hộ khách /tao-don/.
 
-2 file · ~4.500 dòng · 98 hàm (57% có docblock)
+2 file · ~4.600 dòng · 102 hàm (59% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -151,6 +151,10 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `order_creator_order_meta_values(WC_Order $order, string $key)` | — |
 | `order_creator_order_needs_compact_invoice(WC_Order $order)` | — |
 | `order_creator_invoice_html(WC_Order $order)` | — |
+| `order_creator_invoice_qr_hosts()` | Host ảnh QR được phép tải về nhúng vào hóa đơn (danh sách cố định — không tải URL bất kỳ, tránh SSRF). Mẫu link QR đổi được ở cài đặt eim (mặc định qr.sepay.vn). |
+| `order_creator_invoice_qr_host_allowed(string $url)` | URL ảnh có thuộc host QR cho phép không (https + host trong danh sách). |
+| `order_creator_invoice_qr_data_uri(string $url)` | Ảnh QR → data URI (cache transient 1 ngày theo md5(url)). Lỗi / quá 300KB / không phải ảnh → ''. |
+| `order_creator_invoice_inline_qr_images(string $html)` | Nhúng ảnh QR của hóa đơn thành data URI — chỉ dùng cho trang xem/chụp hóa đơn (không đổi email / trang cảm ơn). |
 | `order_creator_first_segment()` | Segment đầu tiên của URL (vd: /tao-don/abc → 'tao-don'). |
 | `order_creator_is_route()` | — |
 | `order_creator_assets_uri(string $file)` | — |

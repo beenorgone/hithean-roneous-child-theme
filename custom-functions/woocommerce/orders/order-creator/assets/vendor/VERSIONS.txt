@@ -1,0 +1,4 @@
+html2canvas 1.4.1 (MIT) — dist/html2canvas.min.js
+  Nguồn: https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js (cùng bản ivarvietnam esign/assets/vendor)
+  sha256: e87e550794322e574a1fda0c1549a3c70dae5a93d9113417a429016838eab8cb
+  Dùng: Xuất JPG / Copy ảnh hóa đơn ở /tao-don/ (html2canvasUrl). Nạp động khi mở popup — không qua CDN.
