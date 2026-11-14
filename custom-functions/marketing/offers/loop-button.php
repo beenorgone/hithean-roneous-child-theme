@@ -1,9 +1,8 @@
 <?php
 /**
  * Nút "Ưu đãi đang áp dụng" trên thẻ sản phẩm ở danh sách (product loop) — bản gọn của nút trang chi tiết.
- * MỖI sản phẩm 1 nút; bấm mở popup .hithean-offers-dialog, nội dung tải AJAX (trang danh sách có thể cache):
- * ưu đãi của sản phẩm (snapshot /uu-dai/, thẻ hithean_offer_cards_from_rows()) — chưa có ưu đãi riêng thì hiện
- * "Ưu đãi tiêu biểu" của cửa hàng. Vị trí chọn ở Ưu đãi sản phẩm → Cấu hình & xuất bản (settings 'loop_button'):
+ * MỖI sản phẩm 1 nút; bấm tải nguồn plugin từ trang sản phẩm rồi dựng popup bằng product-offers.js
+ * dùng chung với trang chi tiết (cache bộ nhớ 1 phút). Snapshot /uu-dai/ chỉ dùng làm nhãn gọn trên thẻ. Vị trí chọn ở Ưu đãi sản phẩm → Cấu hình & xuất bản (settings 'loop_button'):
  *   a = nhãn nổi góc ảnh · b = dải 1 dòng dưới giá (thay khung vàng product-addon-promo) · c = nhãn nhỏ cạnh giá.
  * Máy tính ('loop_button', mặc định c) và điện thoại ≤767px ('loop_button_mobile', mặc định b) chọn riêng: trang danh sách có thể cache
  * nên khi 2 vị trí khác nhau thì in CẢ HAI nút, CSS ẩn theo bề rộng màn hình (.hlo-d = chỉ máy tính, .hlo-m = chỉ điện thoại).
@@ -61,7 +60,7 @@ function hithean_loop_offers_button_html(int $product_id, string $position, stri
     $cards = hithean_offer_cards_from_rows(hithean_loop_offers_rows($product_id));
     $count = count($cards);
     [$label, $aria, $summary] = hithean_loop_offers_labels($count, (string) ($cards[0]['title'] ?? ''));
-    $attrs = ' data-hlo="' . $product_id . '" aria-haspopup="dialog" aria-label="' . esc_attr($aria) . '"';
+    $attrs = ' data-hlo="' . $product_id . '" data-hlo-url="' . esc_url(get_permalink($product_id)) . '" aria-haspopup="dialog" aria-label="' . esc_attr($aria) . '"';
     $star = '<span class="hlo__star" aria-hidden="true">✳</span>';
     if ($position === 'b') {
         return '<button type="button" class="hlo hlo--b' . $device . '"' . $attrs . '>' . $star . '<span class="hlo__label">Ưu đãi</span><span class="hlo__text">' . esc_html($summary) . '</span>'
@@ -84,8 +83,9 @@ function hithean_loop_offers_render(string $position): void {
         echo '<style id="hithean-loop-offers">' . trim((string) @file_get_contents($css)) . '</style>';
         $js = '/custom-functions/marketing/assets/loop-offers.js';
         wp_enqueue_style('hithean-offer-card');
-        wp_enqueue_script('hithean-loop-offers', get_stylesheet_directory_uri() . $js, [], (string) @filemtime(HITHEAN_THEME_DIR . $js), true);
-        wp_localize_script('hithean-loop-offers', 'hitheanLoopOffers', ['ajax' => admin_url('admin-ajax.php')]);
+        $shared = '/custom-functions/marketing/assets/product-offers.js';
+        wp_enqueue_script('hithean-product-offers', get_stylesheet_directory_uri() . $shared, ['jquery'], (string) filemtime(HITHEAN_THEME_DIR . $shared), true);
+        wp_enqueue_script('hithean-loop-offers', get_stylesheet_directory_uri() . $js, ['hithean-product-offers'], (string) @filemtime(HITHEAN_THEME_DIR . $js), true);
     }
     echo hithean_loop_offers_button_html($product->get_id(), $position, $device); // phpcs:ignore WordPress.Security.EscapeOutput
 }

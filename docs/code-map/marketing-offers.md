@@ -83,7 +83,7 @@ Thông báo nhóm Lark khi trang /uu-dai/ đổi chương trình ưu đãi.
 
 ### `marketing/offers/loop-button.php`
 
-Nút "Ưu đãi đang áp dụng" trên thẻ sản phẩm ở danh sách (product loop) — bản gọn của nút trang chi tiết. MỖI sản phẩm 1 nút; bấm mở popup .hithean-offers-dialog, nội dung tải AJ…
+Nút "Ưu đãi đang áp dụng" trên thẻ sản phẩm ở danh sách (product loop) — bản gọn của nút trang chi tiết. MỖI sản phẩm 1 nút; bấm tải nguồn plugin từ trang sản phẩm rồi dựng popu…
 
 | Hàm | Mô tả |
 |---|---|

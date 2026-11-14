@@ -22,6 +22,8 @@ function hithean_product_purchase_enqueue(): void
 {
     if (!function_exists('is_product') || !is_product()) return;
 
+    $offers_js = '/custom-functions/marketing/assets/product-offers.js';
+    wp_enqueue_script('hithean-product-offers', get_stylesheet_directory_uri() . $offers_js, ['jquery'], (string) filemtime(HITHEAN_THEME_DIR . $offers_js), true);
     $base = '/custom-functions/woocommerce/products/assets/product-purchase';
     foreach (['css', 'js'] as $extension) {
         $relative = $base . '.' . $extension;
@@ -29,11 +31,11 @@ function hithean_product_purchase_enqueue(): void
         if ($extension === 'css') {
             wp_enqueue_style('hithean-product-purchase', get_stylesheet_directory_uri() . $relative, ['hithean-custom-style', 'hithean-product-navigation', 'hithean-offer-card'], $version);
         } else {
-            wp_enqueue_script('hithean-product-purchase', get_stylesheet_directory_uri() . $relative, ['jquery', 'hithean-product-navigation'], $version, true);
+            wp_enqueue_script('hithean-product-purchase', get_stylesheet_directory_uri() . $relative, ['jquery', 'hithean-product-navigation', 'hithean-product-offers'], $version, true);
             wp_script_add_data('hithean-product-purchase', 'strategy', 'defer');
         }
     }
-    wp_localize_script('hithean-product-purchase', 'hitheanProductPurchase', [
+    $config = [
         'ajaxUrl' => admin_url('admin-ajax.php'),
         'action' => HITHEAN_PRODUCT_QUOTE_ACTION,
         'nonce' => wp_create_nonce(HITHEAN_PRODUCT_QUOTE_ACTION),
@@ -50,7 +52,12 @@ function hithean_product_purchase_enqueue(): void
         'offerMedia' => hithean_product_purchase_offer_media((int) get_queried_object_id()),
         // Thứ tự nhóm thẻ trong popup ưu đãi (marketing/offers/order.php — cùng thứ tự /uu-dai/).
         'offerOrder' => function_exists('hithean_offers_order') ? hithean_offers_order() : [],
-    ]);
+    ];
+    wp_localize_script('hithean-product-purchase', 'hitheanProductPurchase', $config);
+    // Inert JSON: category popups read this without executing scripts from the fetched page.
+    add_action('wp_footer', static function () use ($config): void {
+        echo '<script type="application/json" id="hithean-product-offers-config">' . wp_json_encode(array_intersect_key($config, array_flip(['offersUrl', 'offerMedia', 'offerOrder'])), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '</script>';
+    });
 }
 
 /**

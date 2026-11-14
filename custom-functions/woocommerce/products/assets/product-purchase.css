@@ -211,22 +211,7 @@ body.hithean-product-purchase .summary .hithean-offers-trigger:focus-visible { o
 .hithean-offers-trigger__more { flex: 0 0 auto; font-size: 13px; font-weight: 600; color: #214f3c; white-space: nowrap; }
 /* Khung popup .hithean-offers-dialog: marketing/assets/offer-card.css (dùng chung với popup "Ưu đãi tiêu biểu" của thanh menu đáy). */
 /* Popup nhỏ chọn số lượng. */
-.hithean-offers-dialog.hithean-offers-qty { width: min(400px, calc(100vw - 32px)); }
-.hithean-offers-qty__body { display: grid; gap: 14px; padding: 18px 24px; overflow-y: auto; }
-.hithean-offers-qty__picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
-.hithean-offers-dialog .hithean-offers-qty__pick { display: flex !important; flex-direction: column; align-items: flex-start; gap: 2px; height: auto !important; min-height: 56px; margin: 0 !important; padding: 8px 12px !important; border: 1px solid #3b22223a !important; border-radius: 10px !important; background: #fff !important; color: var(--ho-ink) !important; box-shadow: none !important; font-family: inherit; font-size: 13px !important; line-height: 1.35 !important; letter-spacing: 0 !important; text-align: left; text-transform: none !important; cursor: pointer; }
-.hithean-offers-dialog .hithean-offers-qty__pick strong { font-weight: 600; }
-.hithean-offers-dialog .hithean-offers-qty__pick[aria-pressed="true"] { border-color: #214f3c !important; background: #edf5ec !important; box-shadow: inset 0 0 0 1px #214f3c !important; }
-.hithean-offers-qty__pick .hithean-offer-card__price,
-.hithean-offers-qty__pick .hithean-offer-card__price .amount { font-size: 13px !important; }
-.hithean-offers-qty__stepper { display: flex; align-items: stretch; justify-content: center; gap: 0; }
-.hithean-offers-dialog .hithean-offers-qty__stepper button { width: 48px; height: 48px !important; min-height: 0; margin: 0 !important; padding: 0 !important; border: 1px solid #3b22223a !important; border-radius: 0 !important; background: #fff !important; color: var(--ho-ink) !important; box-shadow: none !important; font-size: 22px !important; line-height: 1 !important; cursor: pointer; }
-.hithean-offers-dialog .hithean-offers-qty__stepper button:disabled { opacity: .35; cursor: default; }
-.hithean-offers-dialog .hithean-offers-qty__stepper input { width: 80px; height: 48px !important; margin: 0 !important; padding: 0 4px !important; border: 1px solid #3b22223a !important; border-width: 1px 0 !important; border-radius: 0 !important; background: #fff; font-size: 18px; font-weight: 600; text-align: center; box-shadow: none; }
-.hithean-offers-qty__status { margin: 0; font-size: 13px; text-align: center; color: var(--ho-green); }
-.hithean-offers-qty__status .hithean-offer-card__price,
-.hithean-offers-qty__status .hithean-offer-card__price .amount { font-size: 13px !important; }
-.hithean-offers-qty .hithean-offers-dialog__foot .hithean-offer-card__action { margin: 0 !important; }
+
 /* Thanh gộp "Hồ sơ & kiểm nghiệm" (product-page.php): cùng khuôn thanh ưu đãi, tông xanh dương thương hiệu. */
 body.hithean-product-purchase .summary .hithean-offers-trigger.hithean-trust-trigger { margin: 0 !important; border-color: #c9d7ef !important; background: #eef3fb !important; color: #0047ba !important; }
 body.hithean-product-purchase .summary .hithean-offers-trigger.hithean-trust-trigger:hover { border-color: #0047ba !important; box-shadow: 0 4px 12px #0047ba1a !important; }

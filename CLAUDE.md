@@ -109,7 +109,7 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
 - **Nút ưu đãi trên thẻ SP ở danh sách** (`marketing/offers/loop-button.php` + `marketing/assets/loop-offers.{css,js}`, nạp mọi request): mỗi SP 1 nút
   `[data-hlo]`, vị trí chọn ở Ưu đãi sản phẩm → Cấu hình & xuất bản (a = nhãn góc ảnh, b = dải dưới giá, c = nhãn cạnh giá;
   `hithean_offers_settings()['loop_button']` máy tính — **mặc định c**, `['loop_button_mobile']` điện thoại ≤767px — **mặc định b**; 2 vị trí khác nhau
-  thì in cả hai nút, CSS ẩn theo bề rộng `.hlo-d` / `.hlo-m` vì trang cache). Bấm → popup `.hithean-offers-dialog`, AJAX `hithean_loop_offers` (khai ở module `site_footer_menu` để có
+  thì in cả hai nút, CSS ẩn theo bề rộng `.hlo-d` / `.hlo-m` vì trang cache). Bấm → tải trang sản phẩm khi cần (cache bộ nhớ 1 phút, tối đa 20 SP), đọc nguồn plugin + JSON `hithean-product-offers-config`, dùng chung bộ dựng `marketing/assets/product-offers.js` với trang chi tiết. Không thực thi script của trang tải về. Nút mua chuyển tới SP và giữ số lượng đã chọn; không tự gửi form tách rời. Endpoint cũ AJAX `hithean_loop_offers` (khai ở module `site_footer_menu` để có
   `hithean_sfm_featured_cards()`): ưu đãi của SP từ snapshot, SP chưa có ưu đãi riêng → ưu đãi tiêu biểu. Chỉ hiện khi snapshot công khai
   (`hithean_loop_offers_enabled()`); khi hiện thì khung vàng `product-addon-promo` không in nữa. Test: `php tests/loop-offers-button.php`.
   Dải b: lề 10px (điện thoại 5px), tối đa 400px, căn giữa; chữ "Ưu đãi" là `.hlo__label` riêng, không co / không cắt — chỉ phần nội dung `.hlo__text` bị cắt "…".

@@ -10,6 +10,7 @@ function add_action(...$args) {}
 function esc_attr($value) { return htmlspecialchars((string) $value, ENT_QUOTES); }
 function esc_html($value) { return htmlspecialchars((string) $value, ENT_QUOTES); }
 function esc_url($value) { return (string) $value; }
+function get_permalink($id) { return 'https://example.test/product/' . $id . '/'; }
 function home_url($path = '') { return 'https://example.test' . $path; }
 function wp_strip_all_tags($value) { return strip_tags((string) $value); }
 function current_user_can($cap) { return false; }
@@ -51,7 +52,7 @@ ok(count(hithean_loop_offers_rows(7)) === 3, 'Gom dòng theo SP, giải vòng qu
 ok(hithean_loop_offers_rows(8) === [], 'SP khác không có dòng');
 
 $a = hithean_loop_offers_button_html(7, 'a');
-ok(strpos($a, '<span class="hlo-anchor"><span class="hlo hlo--a" role="button" tabindex="0" data-hlo="7"') === 0 && strpos($a, '3 ưu đãi') !== false, 'a: span trong neo, có số ưu đãi');
+ok(strpos($a, '<span class="hlo-anchor"><span class="hlo hlo--a" role="button" tabindex="0" data-hlo="7" data-hlo-url="https://example.test/product/7/"') === 0 && strpos($a, '3 ưu đãi') !== false, 'a: span trong neo, có số ưu đãi');
 $c = hithean_loop_offers_button_html(7, 'c');
 ok(strpos($c, '<span class="hlo hlo--c" role="button"') === 0 && strpos($c, '<button') === false, 'c: span (nằm trong link SP), không phải button');
 $b = hithean_loop_offers_button_html(7, 'b');

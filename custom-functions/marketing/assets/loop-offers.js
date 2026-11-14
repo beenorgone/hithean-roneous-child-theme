@@ -1,82 +1,80 @@
-/**
- * Nút ưu đãi trên thẻ sản phẩm ở danh sách ([data-hlo] — marketing/offers/loop-button.php).
- * Bấm → popup .hithean-offers-dialog (khung dùng chung offer-card.css), nội dung tải AJAX hithean_loop_offers, nhớ theo sản phẩm.
- * Nút vị trí a / c nằm trong link sản phẩm nên phải chặn điều hướng.
- */
+/** Category cards use the product-page offer sources and shared popup renderer. */
 (function () {
     'use strict';
-    var config = window.hitheanLoopOffers || {};
-    if (!config.ajax || typeof HTMLDialogElement === 'undefined') { return; }
-    var dialog = null, cache = {}, current = '';
+    if (typeof HTMLDialogElement === 'undefined') return;
+    var cache = new Map(), current = 0, instance = null, loading = null;
 
-    function build() {
-        dialog = document.createElement('dialog');
-        dialog.className = 'hithean-offers-dialog hlo-dialog';
-        dialog.setAttribute('aria-labelledby', 'hlo-dialog-title');
-        dialog.innerHTML = '<div class="hithean-offers-dialog__head"><div><h3 id="hlo-dialog-title">Ưu đãi đang áp dụng</h3><p data-hlo-meta></p></div>'
-            + '<button type="button" class="hithean-offers-dialog__close" data-hlo-close aria-label="Đóng">×</button></div>'
-            + '<ul class="hithean-offers-dialog__list" data-hlo-list></ul>'
-            + '<div class="hithean-offers-dialog__foot"><a class="hithean-offer-card__action" data-hlo-buy href="#"></a>'
-            + '<a class="hithean-offers-dialog__all" data-hlo-all href="#" hidden>Xem toàn bộ ưu đãi</a></div>';
-        document.body.appendChild(dialog);
-        dialog.addEventListener('click', function (event) {
-            if (event.target === dialog || event.target.closest('[data-hlo-close]')) { dialog.close(); }
+    function status(message, opener, url) {
+        if (loading) loading.remove();
+        loading = document.createElement('dialog');
+        loading.className = 'hithean-offers-dialog hlo-dialog';
+        loading.innerHTML = '<div class="hithean-offers-dialog__head"><h3>Ưu đãi đang áp dụng</h3><button type="button" class="hithean-offers-dialog__close" aria-label="Đóng">×</button></div><p class="hlo-dialog__loading" aria-live="polite"></p><div class="hithean-offers-dialog__foot"><a class="hithean-offer-card__action">Xem ưu đãi trên trang sản phẩm ↗</a></div>';
+        loading.querySelector('p').textContent = message;
+        loading.querySelector('a').href = url + '#uu-dai';
+        loading.querySelector('button').onclick = function () { loading.close(); };
+        loading.addEventListener('click', function (event) { if (event.target === loading) loading.close(); });
+        loading.addEventListener('close', function () {
+            current++;
+            document.documentElement.classList.remove('hithean-offers-open');
+            opener.focus({ preventScroll: true });
         });
-        dialog.addEventListener('close', function () { document.documentElement.classList.remove('hithean-offers-open'); });
-    }
-
-    function message(text) {
-        var item = document.createElement('li');
-        item.className = 'hlo-dialog__loading';
-        item.textContent = text;
-        var list = dialog.querySelector('[data-hlo-list]');
-        list.innerHTML = '';
-        list.appendChild(item);
-    }
-
-    function render(data) {
-        dialog.querySelector('[data-hlo-meta]').textContent = data.meta || '';
-        if (data.html) { dialog.querySelector('[data-hlo-list]').innerHTML = data.html; } else { message(data.meta || 'Hiện chưa có chương trình ưu đãi nào.'); }
-        var buy = dialog.querySelector('[data-hlo-buy]');
-        buy.hidden = !data.url;
-        buy.href = data.url ? data.url + (data.own ? '#uu-dai' : '') : '#';
-        buy.textContent = (data.buy || 'Xem sản phẩm & mua hàng') + ' ↗';
-        var all = dialog.querySelector('[data-hlo-all]');
-        all.hidden = !data.all;
-        if (data.all) { all.href = data.all; }
-    }
-
-    function open(id) {
-        if (!dialog) { build(); }
-        current = id;
-        dialog.querySelector('[data-hlo-meta]').textContent = '';
-        dialog.querySelector('[data-hlo-buy]').hidden = true;
-        dialog.querySelector('[data-hlo-all]').hidden = true;
-        message('Đang tải ưu đãi…');
-        if (!dialog.open) { dialog.showModal(); }
+        document.body.appendChild(loading);
+        loading.showModal();
         document.documentElement.classList.add('hithean-offers-open');
-        if (cache[id]) { render(cache[id]); return; }
-        fetch(config.ajax + '?action=hithean_loop_offers&product_id=' + encodeURIComponent(id), { credentials: 'same-origin' })
-            .then(function (response) { return response.json(); })
-            .then(function (json) {
-                if (!json || !json.success) { throw new Error('load'); }
-                cache[id] = json.data;
-                if (current === id) { render(json.data); }
-            })
-            .catch(function () { if (current === id) { message('Không tải được ưu đãi. Vui lòng thử lại.'); } });
+    }
+
+    function source(url) {
+        var cached = cache.get(url);
+        if (cached && Date.now() - cached.at < 60000) return cached.promise;
+        var promise = fetch(url, { credentials: 'same-origin' }).then(function (response) {
+            if (!response.ok || new URL(response.url || url).origin !== location.origin) throw new Error('product');
+            return response.text();
+        }).then(function (html) {
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var summary = doc.querySelector('.product-single > .product .summary');
+            var config = doc.getElementById('hithean-product-offers-config');
+            if (!summary || !config) throw new Error('sources');
+            return { doc: doc, summary: summary, config: JSON.parse(config.textContent) };
+        }).catch(function (error) { cache.delete(url); throw error; });
+        // Bound memory on long catalog browsing sessions; concurrent clicks share the request.
+        if (cache.size >= 20) cache.delete(cache.keys().next().value);
+        cache.set(url, { at: Date.now(), promise: promise });
+        return promise;
+    }
+
+    function open(button) {
+        var raw = button.getAttribute('data-hlo-url');
+        // Cached older category markup still contains the product's enclosing link.
+        var link = button.closest('a') || button.closest('li.product, .product')?.querySelector('a.woocommerce-LoopProduct-link, a[href]');
+        var url;
+        try { url = new URL(raw || (link && link.href), location.href); } catch (error) { return; }
+        if (url.origin !== location.origin || !/^https?:$/.test(url.protocol)) return;
+        url.hash = '';
+        if (instance) { instance.destroy(); instance = null; }
+        status('Đang tải ưu đãi…', button, url.href);
+        var request = ++current;
+        source(url.href).then(function (data) {
+            if (request !== current || !loading.open) return;
+            var config = Object.assign({}, data.config, { productUrl: url.href, sourceDocument: data.doc, opener: button });
+            instance = window.hitheanSetupProductOffers(data.summary.cloneNode(true), config);
+            if (!instance) {
+                loading.querySelector('p').textContent = 'Hiện chưa có chương trình ưu đãi nào cho sản phẩm này.';
+                return;
+            }
+            loading.remove(); loading = null;
+            instance.open();
+        }).catch(function () {
+            if (request === current && loading && loading.open) loading.querySelector('p').textContent = 'Không tải được ưu đãi. Vui lòng thử lại hoặc mở trang sản phẩm.';
+        });
     }
 
     function trigger(event) {
         var button = event.target.closest && event.target.closest('[data-hlo]');
-        if (!button) { return; }
-        if (event.type === 'keydown') {
-            if (button.tagName === 'BUTTON' || (event.key !== 'Enter' && event.key !== ' ')) { return; }
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        open(button.getAttribute('data-hlo'));
+        if (!button) return;
+        if (event.type === 'keydown' && (button.tagName === 'BUTTON' || (event.key !== 'Enter' && event.key !== ' '))) return;
+        event.preventDefault(); event.stopPropagation();
+        open(button);
     }
-    // Capture: chạy trước handler của link sản phẩm / theme.
     document.addEventListener('click', trigger, true);
     document.addEventListener('keydown', trigger, true);
 })();
