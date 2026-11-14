@@ -47,7 +47,9 @@ add_action('admin_post_hithean_offers_action', static function (): void {
                 'topbar' => !empty($_POST['topbar']),
                 'topbar_text' => sanitize_textarea_field(wp_unslash($_POST['topbar_text'] ?? '')),
                 'topbar_button' => sanitize_text_field(wp_unslash($_POST['topbar_button'] ?? '')) ?: 'Xem chi tiết',
-                'topbar_color' => isset(HITHEAN_TOPBAR_COLORS[$_POST['topbar_color'] ?? '']) ? (string) $_POST['topbar_color'] : 'blue'];
+                'topbar_color' => isset(HITHEAN_TOPBAR_COLORS[$_POST['topbar_color'] ?? '']) ? (string) $_POST['topbar_color'] : 'blue',
+                'topbar_bg' => hithean_offers_topbar_hex(sanitize_text_field(wp_unslash($_POST['topbar_bg'] ?? '')))];
+            if ($next['topbar_color'] === 'custom' && $next['topbar_bg'] === '') { throw new RuntimeException('Mã màu nền thanh ưu đãi không hợp lệ — nhập dạng #e0245e.'); }
             update_option('hithean_offers_settings', $next, false);
             hithean_offers_sync_schedule();
             $order_changed = hithean_offers_order_sanitize($old['order']) !== $next['order'];
@@ -55,7 +57,7 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             // Nút ưu đãi nằm trên mọi trang có danh sách sản phẩm → đổi vị trí / bật công khai thì xoá cache toàn site.
             // Thanh ưu đãi đầu trang in sẵn trong HTML mọi trang → đổi nội dung / bật tắt cũng xoá cache toàn site.
             $topbar_changed = false;
-            foreach (['topbar', 'topbar_text', 'topbar_button', 'topbar_color'] as $field) { $topbar_changed = $topbar_changed || ($old[$field] ?? null) !== $next[$field]; }
+            foreach (['topbar', 'topbar_text', 'topbar_button', 'topbar_color', 'topbar_bg'] as $field) { $topbar_changed = $topbar_changed || ($old[$field] ?? null) !== $next[$field]; }
             if (($old['preview'] !== $next['preview'] || $old['loop_button'] !== $next['loop_button'] || $old['loop_button_mobile'] !== $next['loop_button_mobile'] || $order_changed || $topbar_changed) && function_exists('rocket_clean_domain')) { rocket_clean_domain(); }
         } elseif ($action === 'lark_test') {
             $error = hithean_offers_lark_test();
@@ -226,10 +228,17 @@ function hithean_offers_topbar_fieldset(array $s): string {
         . '<textarea name="topbar_text" rows="4" class="widefat" placeholder="🎁 Mua 2 tặng 1 An New Chapter — đến hết 30/11&#10;🚚 Miễn phí vận chuyển đơn từ 500.000đ | /uu-dai/">' . esc_textarea((string) ($s['topbar_text'] ?? '')) . '</textarea></label></p>'
         . '<p><label>Nhãn nút mở popup <input type="text" name="topbar_button" maxlength="30" value="' . esc_attr((string) ($s['topbar_button'] ?? 'Xem chi tiết')) . '"></label></p>'
         . '<p>Màu nền: ';
-    foreach (HITHEAN_TOPBAR_COLORS as $key => $label) {
-        $html .= '<label style="margin-right:12px"><input type="radio" name="topbar_color" value="' . esc_attr($key) . '" ' . checked($s['topbar_color'] ?? 'blue', $key, false) . '> ' . esc_html($label) . '</label>';
+    $current = isset(HITHEAN_TOPBAR_COLORS[$s['topbar_color'] ?? '']) ? (string) $s['topbar_color'] : 'blue';
+    $custom = hithean_offers_topbar_hex((string) ($s['topbar_bg'] ?? '')) ?: '#e0245e';
+    foreach (HITHEAN_TOPBAR_COLORS as $key => [$label, $hex]) {
+        $swatch = $hex !== '' ? '<span style="display:inline-block;width:14px;height:14px;margin:0 4px -2px 2px;border-radius:3px;background:' . esc_attr($hex) . '"></span>' : '';
+        $html .= '<label style="margin-right:14px"><input type="radio" name="topbar_color" value="' . esc_attr($key) . '" ' . checked($current, $key, false) . '>' . $swatch . ' ' . esc_html($label) . '</label>';
     }
-    return $html . '</p><p class="description">Nút mở popup liệt kê các chương trình đang áp dụng (cùng dữ liệu trang /uu-dai/), mỗi chương trình có nút "Xem sản phẩm" tới trang sản phẩm. '
+    // Ô chọn màu + ô mã hex đồng bộ nhau (admin.js); nhập / chọn màu thì tự tích "Mã màu tự chọn".
+    $html .= '<span data-ho-topbar-color><input type="color" value="' . esc_attr($custom) . '" aria-label="Chọn màu nền" data-ho-topbar-picker style="vertical-align:middle;width:40px;height:28px;padding:0">'
+        . ' <input type="text" name="topbar_bg" value="' . esc_attr($custom) . '" maxlength="7" size="8" placeholder="#e0245e" pattern="#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?" aria-label="Mã màu nền (hex)" data-ho-topbar-hex></span>';
+    $html .= '</p><p class="description">Màu chữ tự đổi trắng / navy theo độ sáng của nền để luôn đọc rõ.</p>';
+    return $html . '<p class="description">Nút mở popup liệt kê các chương trình đang áp dụng (cùng dữ liệu trang /uu-dai/), mỗi chương trình có nút "Xem sản phẩm" tới trang sản phẩm. '
         . 'Thanh ẩn ở trang thanh toán và các landing riêng (/uu-dai/, An New Chapter…); khách bấm × thì ẩn trong phiên, đổi nội dung là hiện lại. '
         . 'Chỉ hiện với khách khi đã bật "Hiển thị snapshot trên trang công khai". Link <code>#uu-dai-chuong-trinh</code> ở bất kỳ trang nào mở sẵn popup.</p></fieldset>';
 }

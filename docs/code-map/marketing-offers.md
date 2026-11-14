@@ -4,7 +4,7 @@
 
 > Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền.
 
-14 file · ~2.200 dòng · 110 hàm (57% có docblock)
+14 file · ~2.200 dòng · 112 hàm (58% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -210,8 +210,10 @@ Thanh ưu đãi dính đầu trang (sticky topbar) — WooCommerce → Ưu đãi
 
 | Hàm | Mô tả |
 |---|---|
+| `hithean_offers_topbar_hex(string $value)` | Chuẩn hóa mã màu "#abc" / "abc" / "#aabbcc" → "#aabbcc" thường; sai định dạng → '' (hàm thuần). |
+| `hithean_offers_topbar_fg(string $hex)` | Màu chữ đọc rõ trên nền $hex: nền sáng → navy, nền tối → trắng (độ sáng tương đối WCAG). |
 | `hithean_offers_topbar_lines(string $raw)` | "Nội dung \| đường dẫn" mỗi dòng → [['text', 'url']] (hàm thuần; url chưa escape). Bỏ dòng trống, tối đa 6 dòng, 200 ký tự. |
-| `hithean_offers_topbar_config()` | Cấu hình đã chuẩn hóa: enabled, lines, button, color. |
+| `hithean_offers_topbar_config()` | Cấu hình đã chuẩn hóa: enabled, lines, button, color (blue \| red \| custom), bg + fg (mã màu nền / chữ). |
 | `hithean_offers_topbar_key(array $config)` | Khóa nội dung — khách đã đóng thanh, admin đổi nội dung thì thanh hiện lại. |
 | `hithean_offers_topbar_visible()` | Thanh có in ở request này không (front). |
 | `hithean_offers_topbar_render()` | HTML thanh (hàm in) — gọi từ header.php qua do_action('hithean_site_topbar'). |

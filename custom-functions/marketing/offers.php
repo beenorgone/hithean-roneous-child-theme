@@ -23,7 +23,7 @@ if (defined('WP_CLI') && WP_CLI) { require_once __DIR__ . '/offers/cli.php'; }
 
 function hithean_offers_settings(): array {
     return array_merge(['enabled' => false, 'ai_enabled' => true, 'provider' => 'auto', 'model' => '', 'preview' => true, 'source' => 'database', 'banner_layout' => 'full', 'loop_button' => 'c', 'loop_button_mobile' => 'b', 'order' => [],
-        'topbar' => false, 'topbar_text' => '', 'topbar_button' => 'Xem chi tiết', 'topbar_color' => 'blue'], (array) get_option('hithean_offers_settings', []));
+        'topbar' => false, 'topbar_text' => '', 'topbar_button' => 'Xem chi tiết', 'topbar_color' => 'blue', 'topbar_bg' => ''], (array) get_option('hithean_offers_settings', []));
 }
 
 /** Migrate the former daily event without changing saved publication/automation switches. */

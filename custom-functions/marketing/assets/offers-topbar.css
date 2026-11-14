@@ -1,11 +1,9 @@
-/* Thanh ưu đãi đầu trang (offers/topbar.php). Cao cố định = --hpt-h → không giật trang khi tải. */
-:root { --hpt-h: 40px; }
-@media (max-width: 767px) { :root { --hpt-h: 44px; } }
+/* Thanh ưu đãi đầu trang (offers/topbar.php). Cao cố định = --hpt-h (nội dung + 2 × --hpt-pad) → không giật trang khi tải. */
+:root { --hpt-pad: 10px; --hpt-h: calc(36px + 2 * var(--hpt-pad)); }
+@media (max-width: 767px) { :root { --hpt-pad: 9px; --hpt-h: calc(38px + 2 * var(--hpt-pad)); } }
 
-.hpt { --hpt-bg: var(--default-color-dark-blue, #0047ba); --hpt-fg: #fff; position: fixed; top: 0; left: 0; right: 0; z-index: 1002; box-sizing: border-box; height: var(--hpt-h); background: var(--hpt-bg); color: var(--hpt-fg); font-size: 14px; line-height: 1.35; }
-.hpt--navy { --hpt-bg: #001f3f; }
-.hpt--green { --hpt-bg: #00843d; }
-.hpt--yellow { --hpt-bg: #fbb917; --hpt-fg: #001f3f; }
+.hpt { --hpt-bg: var(--default-color-dark-blue, #0047ba); --hpt-fg: #fff; position: fixed; top: 0; left: 0; right: 0; z-index: 1002; box-sizing: border-box; height: var(--hpt-h); padding: var(--hpt-pad) 0; background: var(--hpt-bg); color: var(--hpt-fg); font-size: 14px; line-height: 1.35; }
+/* Màu nền / chữ: style inline --hpt-bg / --hpt-fg từ topbar.php (xanh thương hiệu · hồng đỏ · mã màu tự chọn). */
 .hpt *, .hpt *::before, .hpt *::after { box-sizing: border-box; }
 .hpt__inner { display: flex; align-items: center; gap: 12px; max-width: 1200px; height: 100%; margin: 0 auto; padding: 0 8px 0 16px; }
 .hpt__star { flex: 0 0 auto; font-size: 16px; opacity: .85; }

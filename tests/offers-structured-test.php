@@ -344,7 +344,17 @@ ok(count(hithean_sfm_featured_cards()) === 3, 'Featured popup retains out-of-sto
 $lines = hithean_offers_topbar_lines("  🎁 Mua 2 tặng 1   \n\n🚚 Freeship | /uu-dai/\nLink lạ | javascript:alert(1)\n" . str_repeat("x\n", 10));
 ok(count($lines) === HITHEAN_TOPBAR_MAX_LINES && $lines[0] === ['text' => '🎁 Mua 2 tặng 1', 'url' => ''] && $lines[1] === ['text' => '🚚 Freeship', 'url' => '/uu-dai/'], 'Topbar: mỗi dòng 1 thông điệp, "Nội dung | link", bỏ dòng trống, tối đa 6 dòng');
 ok($lines[2]['url'] === '', 'Topbar: chỉ nhận link http(s) / đường dẫn tương đối / #');
-ok(hithean_offers_topbar_config()['button'] === 'Xem chi tiết' && hithean_offers_topbar_config()['color'] === 'blue' && !hithean_offers_topbar_config()['enabled'], 'Topbar: mặc định tắt, nút "Xem chi tiết", màu xanh thương hiệu');
+ok(hithean_offers_topbar_config()['button'] === 'Xem chi tiết' && hithean_offers_topbar_config()['bg'] === '#0047ba' && hithean_offers_topbar_config()['fg'] === '#ffffff' && !hithean_offers_topbar_config()['enabled'], 'Topbar: mặc định tắt, nút "Xem chi tiết", nền xanh thương hiệu chữ trắng');
+ok(hithean_offers_topbar_hex('E0245E') === '#e0245e' && hithean_offers_topbar_hex('#fC0') === '#ffcc00' && hithean_offers_topbar_hex('red') === '' && hithean_offers_topbar_hex('#12345') === '', 'Topbar: chuẩn hóa mã màu hex, từ chối giá trị lạ');
+ok(hithean_offers_topbar_fg('#e0245e') === '#ffffff' && hithean_offers_topbar_fg('#fbb917') === '#001f3f' && hithean_offers_topbar_fg('#ffffff') === '#001f3f', 'Topbar: chữ trắng trên nền tối, navy trên nền sáng');
+$saved_settings = $GLOBALS['options']['hithean_offers_settings'] ?? [];
+$GLOBALS['options']['hithean_offers_settings'] = array_merge($saved_settings, ['topbar_color' => 'custom', 'topbar_bg' => '#fbb917']);
+ok(hithean_offers_topbar_config()['bg'] === '#fbb917' && hithean_offers_topbar_config()['color'] === 'custom', 'Topbar: mã màu tự chọn');
+$GLOBALS['options']['hithean_offers_settings'] = array_merge($saved_settings, ['topbar_color' => 'custom', 'topbar_bg' => 'xyz']);
+ok(hithean_offers_topbar_config()['bg'] === '#0047ba', 'Topbar: mã màu hỏng → về xanh thương hiệu');
+$GLOBALS['options']['hithean_offers_settings'] = array_merge($saved_settings, ['topbar_color' => 'green']);
+ok(hithean_offers_topbar_config()['color'] === 'blue', 'Topbar: lựa chọn màu cũ (navy / xanh lá / vàng) → về xanh thương hiệu');
+$GLOBALS['options']['hithean_offers_settings'] = $saved_settings;
 $topbar = hithean_offers_topbar_cards();
 ok(count($topbar) === 3 && str_contains($topbar[0]['actions_html'], 'product/31') && str_contains($topbar[0]['actions_html'], 'Xem sản phẩm'), 'Popup topbar: chương trình 1 SP có nút "Xem sản phẩm" tới trang SP');
 $multi = array_values(array_filter($topbar, static fn($card) => $card['badge'] === 'Ưu đãi vận chuyển'))[0];

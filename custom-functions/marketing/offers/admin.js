@@ -97,3 +97,20 @@
         });
     });
 })();
+
+/* Thanh ưu đãi đầu trang: ô chọn màu ⇄ ô mã hex, sửa màu thì tự tích "Mã màu tự chọn". */
+(function () {
+    'use strict';
+    const box = document.querySelector('[data-ho-topbar-color]');
+    if (!box) { return; }
+    const picker = box.querySelector('[data-ho-topbar-picker]');
+    const hex = box.querySelector('[data-ho-topbar-hex]');
+    const custom = document.querySelector('input[name="topbar_color"][value="custom"]');
+    const normalize = function (value) {
+        let v = String(value).trim().replace(/^#/, '').toLowerCase();
+        if (/^[0-9a-f]{3}$/.test(v)) { v = v.split('').map(function (c) { return c + c; }).join(''); }
+        return /^[0-9a-f]{6}$/.test(v) ? '#' + v : '';
+    };
+    picker.addEventListener('input', function () { hex.value = picker.value; if (custom) { custom.checked = true; } });
+    hex.addEventListener('input', function () { const v = normalize(hex.value); if (v) { picker.value = v; } if (custom) { custom.checked = true; } });
+})();

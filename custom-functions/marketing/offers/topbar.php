@@ -14,7 +14,22 @@
 defined('ABSPATH') || exit;
 
 const HITHEAN_TOPBAR_MAX_LINES = 6;
-const HITHEAN_TOPBAR_COLORS = ['blue' => 'Xanh dương thương hiệu', 'navy' => 'Xanh navy', 'green' => 'Xanh lá', 'yellow' => 'Vàng'];
+/** Màu nền có sẵn => [nhãn, mã màu]; 'custom' = mã màu admin nhập (settings 'topbar_bg'). */
+const HITHEAN_TOPBAR_COLORS = ['blue' => ['Xanh dương thương hiệu', '#0047ba'], 'red' => ['Hồng đỏ nổi bật', '#e0245e'], 'custom' => ['Mã màu tự chọn', '']];
+
+/** Chuẩn hóa mã màu "#abc" / "abc" / "#aabbcc" → "#aabbcc" thường; sai định dạng → '' (hàm thuần). */
+function hithean_offers_topbar_hex(string $value): string {
+    $value = strtolower(ltrim(trim($value), '#'));
+    if (preg_match('/^[0-9a-f]{3}$/', $value)) { $value = $value[0] . $value[0] . $value[1] . $value[1] . $value[2] . $value[2]; }
+    return preg_match('/^[0-9a-f]{6}$/', $value) ? '#' . $value : '';
+}
+
+/** Màu chữ đọc rõ trên nền $hex: nền sáng → navy, nền tối → trắng (độ sáng tương đối WCAG). */
+function hithean_offers_topbar_fg(string $hex): string {
+    $channel = static function (string $pair): float { $c = hexdec($pair) / 255; return $c <= 0.03928 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4; };
+    $l = 0.2126 * $channel(substr($hex, 1, 2)) + 0.7152 * $channel(substr($hex, 3, 2)) + 0.0722 * $channel(substr($hex, 5, 2));
+    return (1.05 / ($l + 0.05)) >= (($l + 0.05) / (0.0265 + 0.05)) ? '#ffffff' : '#001f3f';
+}
 
 /** "Nội dung | đường dẫn" mỗi dòng → [['text', 'url']] (hàm thuần; url chưa escape). Bỏ dòng trống, tối đa 6 dòng, 200 ký tự. */
 function hithean_offers_topbar_lines(string $raw): array {
@@ -31,16 +46,19 @@ function hithean_offers_topbar_lines(string $raw): array {
     return $lines;
 }
 
-/** Cấu hình đã chuẩn hóa: enabled, lines, button, color. */
+/** Cấu hình đã chuẩn hóa: enabled, lines, button, color (blue | red | custom), bg + fg (mã màu nền / chữ). */
 function hithean_offers_topbar_config(): array {
     $s = hithean_offers_settings();
     $button = trim((string) ($s['topbar_button'] ?? ''));
-    return [
+    $config = [
         'enabled' => !empty($s['topbar']),
         'lines' => hithean_offers_topbar_lines((string) ($s['topbar_text'] ?? '')),
         'button' => $button !== '' ? mb_substr($button, 0, 30) : 'Xem chi tiết',
-        'color' => isset(HITHEAN_TOPBAR_COLORS[$s['topbar_color'] ?? '']) ? (string) $s['topbar_color'] : 'blue',
     ];
+    $color = isset(HITHEAN_TOPBAR_COLORS[$s['topbar_color'] ?? '']) ? (string) $s['topbar_color'] : 'blue';
+    $bg = $color === 'custom' ? hithean_offers_topbar_hex((string) ($s['topbar_bg'] ?? '')) : HITHEAN_TOPBAR_COLORS[$color][1];
+    if ($bg === '') { $color = 'blue'; $bg = HITHEAN_TOPBAR_COLORS['blue'][1]; }
+    return $config + ['color' => $color, 'bg' => $bg, 'fg' => hithean_offers_topbar_fg($bg)];
 }
 
 /** Khóa nội dung — khách đã đóng thanh, admin đổi nội dung thì thanh hiện lại. */
@@ -83,7 +101,7 @@ function hithean_offers_topbar_render(): void {
         $inner = $line['url'] !== '' ? '<a class="hpt__text" href="' . esc_url($line['url']) . '">' . $text . '</a>' : '<span class="hpt__text">' . $text . '</span>';
         $messages .= '<p class="hpt__msg' . ($i === 0 ? ' is-active' : '') . '" data-hpt-msg title="' . esc_attr($line['text']) . '"' . ($i === 0 ? '' : ' aria-hidden="true"') . '>' . $inner . '</p>';
     }
-    echo '<div class="hpt hpt--' . esc_attr($config['color']) . '" id="hithean-topbar" data-hpt data-hpt-key="' . esc_attr($key) . '" role="region" aria-label="Chương trình ưu đãi">'
+    echo '<div class="hpt hpt--' . esc_attr($config['color']) . '" style="--hpt-bg:' . esc_attr($config['bg']) . ';--hpt-fg:' . esc_attr($config['fg']) . '" id="hithean-topbar" data-hpt data-hpt-key="' . esc_attr($key) . '" role="region" aria-label="Chương trình ưu đãi">'
         . '<div class="hpt__inner"><span class="hpt__star" aria-hidden="true">✳</span>'
         . '<div class="hpt__msgs" data-hpt-msgs>' . $messages . '</div>'
         . '<button type="button" class="hpt__more" data-hpt-open aria-haspopup="dialog" aria-controls="hpt-dialog">' . esc_html($config['button']) . '<span aria-hidden="true"> ›</span></button>'
