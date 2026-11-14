@@ -54,48 +54,7 @@ if (!function_exists('hithean_prioritize_first_catalog_product_image')) {
     add_filter('wp_get_attachment_image_attributes', 'hithean_prioritize_first_catalog_product_image', 20, 3);
 }
 
-if (!function_exists('product_list_move_out_of_stock_to_end')) {
-    /**
-     * Move out-of-stock products to the end on WooCommerce catalog main query.
-     */
-    function product_list_move_out_of_stock_to_end($clauses, $query)
-    {
-        if (!($query instanceof WP_Query) || is_admin() || !$query->is_main_query()) {
-            return $clauses;
-        }
-
-        // Restrict to WooCommerce catalog query only (shop, category, tag, attributes).
-        if ('product_query' !== (string) $query->get('wc_query')) {
-            return $clauses;
-        }
-
-        $post_type = $query->get('post_type');
-        if (is_string($post_type) && '' !== $post_type && 'product' !== $post_type) {
-            return $clauses;
-        }
-        if (is_array($post_type) && !in_array('product', $post_type, true)) {
-            return $clauses;
-        }
-
-        global $wpdb;
-
-        $stock_alias = 'product_stock_status_pm';
-        $join = isset($clauses['join']) ? (string) $clauses['join'] : '';
-        $orderby = isset($clauses['orderby']) ? (string) $clauses['orderby'] : '';
-
-        if (false === strpos($join, " {$stock_alias} ")) {
-            $join .= " LEFT JOIN {$wpdb->postmeta} AS {$stock_alias} ON ({$wpdb->posts}.ID = {$stock_alias}.post_id AND {$stock_alias}.meta_key = '_stock_status')";
-        }
-
-        $stock_order = "CASE WHEN {$stock_alias}.meta_value = 'outofstock' THEN 1 ELSE 0 END ASC";
-
-        $clauses['join'] = $join;
-        $clauses['orderby'] = '' !== $orderby ? $stock_order . ', ' . $orderby : $stock_order;
-
-        return $clauses;
-    }
-    add_filter('posts_clauses', 'product_list_move_out_of_stock_to_end', 20, 2);
-}
+// Xếp / ẩn SP hết hàng ở danh sách: out-of-stock-loop.php (Cài đặt ERP → WooCommerce).
 
 if (!function_exists('product_list_display_loop_coming_soon_text')) {
     /**

@@ -535,6 +535,7 @@ function theme_erp_settings_render_page(): void
         <?php endif; ?>
 
         <?php if ($active_tab === 'woocommerce'): ?>
+            <?php if (function_exists('hithean_oos_loop_render_settings')) { hithean_oos_loop_render_settings(); } ?>
             <?php hithean_pcn_render_settings_tab(); ?>
         <?php endif; ?>
 

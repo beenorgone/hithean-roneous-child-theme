@@ -60,6 +60,7 @@ $general_includes = [
     // product-page.php, product-linking.php → conditional (xem tpc_loader_modules)
     'custom-functions/woocommerce/products/product-nutrition-label.php',
     'custom-functions/woocommerce/products/product-list-page.php',
+    'custom-functions/woocommerce/products/out-of-stock-loop.php',
     'custom-functions/shortcodes/pos-post-type.php',
     // 'custom-functions/woocommerce/products/recipe-post-type.php',
     'custom-functions/shortcodes/shortcode-recipes.php',

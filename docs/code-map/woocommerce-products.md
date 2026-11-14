@@ -4,7 +4,7 @@
 
 > Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR.
 
-17 file · ~7.900 dòng · 198 hàm (31% có docblock)
+18 file · ~8.000 dòng · 203 hàm (32% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -59,7 +59,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`admin_enqueue_scripts` ×2 · `admin_footer` · `admin_head` · `admin_init` ×2 · `admin_menu` ×2 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×2 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `template_redirect` · `theme_ai_feature_registry` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_before_shop_loop_item_title` · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_post_class` · `woocommerce_product_tabs` ×3 · `woocommerce_single_product_summary` ×2 · `wp_enqueue_scripts` ×7 · `wp_footer` ×7 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
+`admin_enqueue_scripts` ×2 · `admin_footer` · `admin_head` · `admin_init` ×3 · `admin_menu` ×2 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×2 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `template_redirect` · `theme_ai_feature_registry` · `update_option_hithean_oos_loop_mode` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_before_shop_loop_item_title` · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_post_class` · `woocommerce_product_tabs` ×3 · `woocommerce_related_products` · `woocommerce_shortcode_products_query` · `woocommerce_single_product_summary` ×2 · `wp_enqueue_scripts` ×7 · `wp_footer` ×7 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
 
 ## File
 
@@ -81,6 +81,17 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_atc_popup_is_enabled()` | — |
 | `hithean_atc_popup_enqueue_assets()` | — |
 | `hithean_atc_popup_render_modal()` | — |
+
+### `woocommerce/products/out-of-stock-loop.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_oos_loop_modes()` | — |
+| `hithean_oos_loop_sanitize_mode($value)` | — |
+| `hithean_oos_loop_mode()` | — |
+| `hithean_oos_loop_clauses(array $clauses, string $mode, string $posts_table, string $postmeta_table)` | Hàm thuần: thêm JOIN `_stock_status` + xếp cuối (last) hoặc lọc bỏ (hide) SP 'outofstock'. SP không có meta `_stock_status` coi như còn hàng. |
+| `hithean_oos_loop_is_target_query($query)` | Query này có phải danh sách SP ở front (catalog chính hoặc shortcode Woo đã gắn cờ) không. |
+| `hithean_oos_loop_render_settings()` | Form ở Cài đặt ERP → WooCommerce. |
 
 ### `woocommerce/products/product-archive-footer-menu.php`
 
@@ -129,7 +140,6 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_is_product_listing_context()` | — |
 | `hithean_dequeue_cart_fragments_off_conversion_pages()` | — |
 | `hithean_prioritize_first_catalog_product_image(array $attr, WP_Post $attachment, $size)` | — |
-| `product_list_move_out_of_stock_to_end($clauses, $query)` | Move out-of-stock products to the end on WooCommerce catalog main query. |
 | `product_list_display_loop_coming_soon_text()` | Show a coming soon label below title when a product has no price. |
 | `product_list_display_loop_out_of_stock_text()` | Show out-of-stock text under price on shop/archive loop cards. |
 | `display_loop_product_subheading()` | Show product subheading under product title on shop/archive loop cards. |

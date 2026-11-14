@@ -262,7 +262,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`, `offers-lark-notify.php`, `lark-core.php`, `warehouse-export-lark.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
-- `my-offers.php`, `loop-offers-button.php`, `loop-rule-price.php`, `offers-order.php`; UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
+- `my-offers.php`, `loop-offers-button.php`, `loop-rule-price.php`, `offers-order.php`, `out-of-stock-loop.php` (SP hết hàng + không đặt trước ở danh sách: xếp cuối / ẩn — Cài đặt ERP → WooCommerce, option `hithean_oos_loop_mode`); UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
 - Popup thao tác nhanh (order-quick-modals.php): `node tests/order-quick-modals-ui.cjs` (cần jsdom + php).
 - `create-order-ai-address.php` (quy đổi địa chỉ AI tạo đơn); UI popup "Chỉnh đơn" chế độ AI: `node tests/create-order-ai-ui.cjs` (cần jsdom).
 
