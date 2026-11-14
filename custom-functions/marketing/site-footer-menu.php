@@ -27,8 +27,7 @@ function hithean_sfm_on_offers_page(): bool {
 }
 
 function hithean_sfm_offers_url(): string {
-    $page = get_page_by_path('uu-dai');
-    return $page && $page->post_status === 'publish' ? (string) get_permalink($page) : '';
+    return hithean_offers_page_url();
 }
 
 function hithean_sfm_items(): array {
@@ -75,26 +74,15 @@ function hithean_sfm_icon(string $key): string {
  * khi trang có vòng quay). Thẻ dựng bằng hithean_offer_cards_from_rows() → nhãn / ảnh / bậc giá khớp popup trang SP.
  */
 function hithean_sfm_featured_cards(int $limit = 6): array {
-    if (!function_exists('hithean_offers_visible_items') || !function_exists('hithean_offer_cards_from_rows')) { return []; }
-    $programs = [];
-    foreach (hithean_offers_visible_items() as $row) {
-        if (empty($row['product_id']) || empty($row['product_name']) || ($row['family'] ?? '') === 'wheel') { continue; }
-        $key = (string) ($row['source_id'] ?? '');
-        $programs[$key !== '' ? $key : $row['product_id'] . ':' . md5((string) ($row['title'] ?? ''))][(int) $row['product_id']] = $row;
-    }
-    // Nhóm ưu đãi theo thứ tự cài đặt (offers/order.php — mặc định giảm giá → quà tặng → vận chuyển), cùng nhóm thì chương trình nhiều SP trước.
-    uasort($programs, static function (array $a, array $b): int {
-        return [hithean_offers_rows_rank([reset($a)]), count($b)] <=> [hithean_offers_rows_rank([reset($b)]), count($a)];
-    });
-    $offers_url = hithean_sfm_offers_url();
+    if (!function_exists('hithean_offers_programs') || !function_exists('hithean_offer_cards_from_rows')) { return []; }
     $cards = [];
-    foreach (array_slice($programs, 0, $limit) as $rows) {
+    foreach (hithean_offers_programs($limit) as $rows) {
         $row = reset($rows);
         $card = hithean_offer_cards_from_rows([$row])[0] ?? null;
         if (!$card) { continue; }
         $names = array_column($rows, 'product_name');
         if (count($rows) > 1) {
-            $group = ($row['family'] ?? '') === 'wdr' ? hithean_offers_group_label($row) : ['site_wide' => false, 'url' => $offers_url !== '' ? add_query_arg('xem', 'chuong-trinh', $offers_url) : (function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/san-pham/'))];
+            $group = hithean_offers_program_scope($rows);
             $scope = !empty($group['site_wide']) ? 'Áp dụng cho mọi sản phẩm'
                 : 'Áp dụng cho ' . count($names) . ' sản phẩm: ' . implode(', ', array_slice($names, 0, 3)) . (count($names) > 3 ? '…' : '');
             $url = (string) $group['url'];

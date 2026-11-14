@@ -340,6 +340,15 @@ ok($featured[0]['notes'][0] === 'Áp dụng cho SP giảm giá' && str_contains(
 ok($featured[1]['badge'] === 'Ưu đãi vận chuyển' && $featured[1]['notes'][0] === 'Áp dụng cho 2 sản phẩm: SP A, SP B' && str_contains($featured[1]['actions_html'], 'Xem sản phẩm áp dụng'), 'Chương trình nhiều SP ghi phạm vi áp dụng');
 $GLOBALS['products'][34]->backorders = true;
 ok(count(hithean_sfm_featured_cards()) === 3, 'Featured popup retains out-of-stock products accepting backorders');
+// Thanh ưu đãi đầu trang (offers/topbar.php): nội dung tự soạn + popup chương trình có CTA "Xem sản phẩm".
+$lines = hithean_offers_topbar_lines("  🎁 Mua 2 tặng 1   \n\n🚚 Freeship | /uu-dai/\nLink lạ | javascript:alert(1)\n" . str_repeat("x\n", 10));
+ok(count($lines) === HITHEAN_TOPBAR_MAX_LINES && $lines[0] === ['text' => '🎁 Mua 2 tặng 1', 'url' => ''] && $lines[1] === ['text' => '🚚 Freeship', 'url' => '/uu-dai/'], 'Topbar: mỗi dòng 1 thông điệp, "Nội dung | link", bỏ dòng trống, tối đa 6 dòng');
+ok($lines[2]['url'] === '', 'Topbar: chỉ nhận link http(s) / đường dẫn tương đối / #');
+ok(hithean_offers_topbar_config()['button'] === 'Xem chi tiết' && hithean_offers_topbar_config()['color'] === 'blue' && !hithean_offers_topbar_config()['enabled'], 'Topbar: mặc định tắt, nút "Xem chi tiết", màu xanh thương hiệu');
+$topbar = hithean_offers_topbar_cards();
+ok(count($topbar) === 3 && str_contains($topbar[0]['actions_html'], 'product/31') && str_contains($topbar[0]['actions_html'], 'Xem sản phẩm'), 'Popup topbar: chương trình 1 SP có nút "Xem sản phẩm" tới trang SP');
+$multi = array_values(array_filter($topbar, static fn($card) => $card['badge'] === 'Ưu đãi vận chuyển'))[0];
+ok(substr_count($multi['actions_html'], 'hpt-products__cta') === 2 && $multi['notes'][0] === 'Áp dụng cho 2 sản phẩm', 'Popup topbar: chương trình nhiều SP liệt kê từng SP kèm CTA "Xem sản phẩm"');
 $GLOBALS['products'][31]->stock = false;
 $visible = hithean_offers_visible_items();
 ok(!in_array(31, array_column($visible, 'product_id'), true) && in_array(34, array_column($visible, 'product_id'), true), 'Shared public feed excludes sold-out products but preserves backorders despite stale snapshot stock');

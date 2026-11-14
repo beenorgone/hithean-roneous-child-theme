@@ -4,7 +4,7 @@
 
 > Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền.
 
-12 file · ~2.000 dòng · 98 hàm (52% có docblock)
+14 file · ~2.200 dòng · 110 hàm (57% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -14,7 +14,9 @@
 |---|---|---|
 | AJAX | `hithean_loop_offers` | loop-button.php |
 | AJAX | `hithean_offers_status` | admin.php |
+| AJAX | `hithean_offers_topbar` | topbar.php |
 | AJAX công khai | `hithean_loop_offers` | loop-button.php |
+| AJAX công khai | `hithean_offers_topbar` | topbar.php |
 | admin-post | `hithean_offers_action` | admin.php |
 | cron | `hithean_offers_boundary` | store.php |
 | cron | `hithean_offers_lark_flush` | lark-notify.php |
@@ -27,10 +29,11 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | Hook | File |
 |---|---|
 | `hithean_offers_cache_purged` | store.php |
+| `hithean_offers_topbar_visible` | topbar.php |
 
 ## Hook khu này lắng nghe
 
-`add_option_hithean_offers_snapshot` · `admin_enqueue_scripts` · `admin_menu` · `child_theme_lark_channel_enabled` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `hithean_offers_lark_flush` · `template_redirect` · `update_option_hithean_offers_snapshot` · `woocommerce_after_shop_loop_item` · `woocommerce_after_shop_loop_item_title` · `woocommerce_before_shop_loop_item_title`
+`add_option_hithean_offers_snapshot` · `admin_enqueue_scripts` · `admin_menu` · `child_theme_lark_channel_enabled` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `hithean_offers_lark_flush` · `hithean_site_topbar` · `template_redirect` · `update_option_hithean_offers_snapshot` · `woocommerce_after_shop_loop_item` · `woocommerce_after_shop_loop_item_title` · `woocommerce_before_shop_loop_item_title` · `wp_enqueue_scripts` · `wp_footer`
 
 ## File
 
@@ -41,6 +44,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_offers_form_start(string $action, array $hidden = [])` | — |
 | `hithean_offers_admin_title(array $row, $product)` | Human-readable labels also cover existing addon records without re-syncing sources. |
 | `hithean_offers_admin()` | — |
+| `hithean_offers_topbar_fieldset(array $s)` | Cài đặt thanh ưu đãi đầu trang (offers/topbar.php). |
 | `hithean_offers_order_fieldset($saved)` | Ô sắp thứ tự nhóm ưu đãi (↑ ↓, nút "Về mặc định" — admin.js). Thứ tự gửi lên qua offer_order[]. |
 | `hithean_offers_progress(array $run)` | — |
 
@@ -127,6 +131,16 @@ Thứ tự hiển thị chương trình ưu đãi — MỘT nguồn cho: popup "
 | `hithean_offers_rows_rank(array $rows)` | Vị trí thấp nhất trong các dòng (thẻ gộp nhiều ưu đãi xếp theo ưu đãi đứng đầu của nó). |
 | `hithean_offers_sort_rows(array $rows)` | Sắp các dòng snapshot theo nhóm, giữ thứ tự cũ khi cùng nhóm (usort ổn định từ PHP 8). |
 
+### `marketing/offers/programs.php`
+
+Gom snapshot /uu-dai/ thành CHƯƠNG TRÌNH (1 nguồn rule = 1 chương trình, nhiều sản phẩm) — nguồn chung cho popup "Ưu đãi tiêu biểu" (site-footer-menu.php → hithean_sfm_featured_…
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_offers_page_url()` | URL trang /uu-dai/ khi đã xuất bản, ngược lại ''. |
+| `hithean_offers_programs(int $limit = 0)` | Chương trình đang hiệu lực: mỗi phần tử = [product_id => dòng snapshot]. Xếp theo nhóm ưu đãi (hithean_offers_order(), mặc định giảm giá → quà tặng → vận chuyển), cùng nhóm thì… |
+| `hithean_offers_program_scope(array $rows)` | Phạm vi của 1 chương trình nhiều sản phẩm: ['site_wide' => bool, 'url' => trang xem cả nhóm]. Rule Discount Rules theo danh mục → trang danh mục; còn lại → /uu-dai/ chế độ chươn… |
+
 ### `marketing/offers/public.php`
 
 | Hàm | Mô tả |
@@ -189,6 +203,21 @@ Read-only source adapters. One stored offer per source rule, many product links.
 | `hithean_offers_wheel_summary()` | — |
 | `hithean_offers_wheel_sources(array $products)` | — |
 | `hithean_offers_sync_task($task, array $run)` | — |
+
+### `marketing/offers/topbar.php`
+
+Thanh ưu đãi dính đầu trang (sticky topbar) — WooCommerce → Ưu đãi sản phẩm → Cấu hình & xuất bản → "Thanh ưu đãi đầu trang". - Nội dung admin tự soạn (settings 'topbar_text'):…
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_offers_topbar_lines(string $raw)` | "Nội dung \| đường dẫn" mỗi dòng → [['text', 'url']] (hàm thuần; url chưa escape). Bỏ dòng trống, tối đa 6 dòng, 200 ký tự. |
+| `hithean_offers_topbar_config()` | Cấu hình đã chuẩn hóa: enabled, lines, button, color. |
+| `hithean_offers_topbar_key(array $config)` | Khóa nội dung — khách đã đóng thanh, admin đổi nội dung thì thanh hiện lại. |
+| `hithean_offers_topbar_visible()` | Thanh có in ở request này không (front). |
+| `hithean_offers_topbar_render()` | HTML thanh (hàm in) — gọi từ header.php qua do_action('hithean_site_topbar'). |
+| `hithean_offers_topbar_products_html(array $rows, int $max = 5)` | Danh sách SP của 1 chương trình nhiều SP (mỗi SP 1 CTA "Xem sản phẩm"). |
+| `hithean_offers_topbar_cards(int $limit = 20)` | Thẻ popup: thẻ ưu đãi chung + phạm vi + CTA tới trang sản phẩm. 1 SP → nút "Xem sản phẩm" · toàn shop → "Xem sản phẩm" (cửa hàng / danh mục) · nhiều SP → danh sách ≤5 SP + "Xem… |
+| `hithean_offers_topbar_ajax()` | AJAX: nội dung popup "Xem chi tiết". Chỉ đọc, không nonce (trang cache). |
 
 ### `marketing/offers/worker.php`
 

@@ -1,0 +1,59 @@
+/* Thanh ưu đãi đầu trang (offers/topbar.php). Cao cố định = --hpt-h → không giật trang khi tải. */
+:root { --hpt-h: 40px; }
+@media (max-width: 767px) { :root { --hpt-h: 44px; } }
+
+.hpt { --hpt-bg: var(--default-color-dark-blue, #0047ba); --hpt-fg: #fff; position: fixed; top: 0; left: 0; right: 0; z-index: 1002; box-sizing: border-box; height: var(--hpt-h); background: var(--hpt-bg); color: var(--hpt-fg); font-size: 14px; line-height: 1.35; }
+.hpt--navy { --hpt-bg: #001f3f; }
+.hpt--green { --hpt-bg: #00843d; }
+.hpt--yellow { --hpt-bg: #fbb917; --hpt-fg: #001f3f; }
+.hpt *, .hpt *::before, .hpt *::after { box-sizing: border-box; }
+.hpt__inner { display: flex; align-items: center; gap: 12px; max-width: 1200px; height: 100%; margin: 0 auto; padding: 0 8px 0 16px; }
+.hpt__star { flex: 0 0 auto; font-size: 16px; opacity: .85; }
+.hpt__msgs { position: relative; flex: 1 1 auto; min-width: 0; height: 100%; }
+.hpt__msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0; color: inherit; font-weight: 500; text-align: center; opacity: 0; transform: translateY(6px); transition: opacity .35s ease, transform .35s ease; pointer-events: none; }
+.hpt__msg.is-active { opacity: 1; transform: none; pointer-events: auto; }
+.hpt__text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hpt__msg a { color: inherit !important; text-decoration: underline; text-underline-offset: 3px; }
+.hpt__msg a:hover { opacity: .85; }
+/* Nút riêng (không .button — admin.css / theme ép kiểu nút). */
+.hpt .hpt__more { flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 28px; margin: 0; padding: 4px 12px; border: 1px solid currentColor; border-radius: 999px; background: transparent; color: inherit; font: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; letter-spacing: 0; text-transform: none; white-space: nowrap; cursor: pointer; box-shadow: none; }
+.hpt .hpt__more:hover { background: var(--hpt-fg); color: var(--hpt-bg); }
+.hpt .hpt__close { flex: 0 0 auto; width: 32px; height: 32px; margin: 0; padding: 0; border: 0; background: transparent; color: inherit; font-size: 20px; line-height: 1; opacity: .75; cursor: pointer; box-shadow: none; }
+.hpt .hpt__close:hover { opacity: 1; }
+.hpt button:focus-visible, .hpt a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+@media (max-width: 767px) {
+    .hpt { font-size: 12.5px; }
+    .hpt__inner { gap: 8px; padding: 0 2px 0 10px; }
+    .hpt__star { display: none; }
+    .hpt__msg { justify-content: flex-start; text-align: left; }
+    .hpt__text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; }
+    .hpt .hpt__more { padding: 4px 10px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .hpt__msg { transition: none; transform: none; } }
+
+/* Chừa chỗ cho thanh; menu Roneous khi cuộn (nav.fixed, top:0 !important ở custom.css) đẩy xuống dưới thanh. */
+html.hpt-on body { padding-top: var(--hpt-h); }
+html.hpt-on body .nav-container nav.fixed,
+html.hpt-on body .nav-container nav.absolute,
+html.hpt-on body.site-scrolled .nav-container nav,
+html.hpt-on body.site-scrolled .nav-container nav.fixed,
+html.hpt-on body.site-scrolled .nav-container nav.absolute,
+html.hpt-on body.site-scrolled.admin-bar .nav-container nav,
+html.hpt-on body.site-scrolled.admin-bar .nav-container nav.fixed,
+html.hpt-on body.site-scrolled.admin-bar .nav-container nav.absolute { top: var(--hpt-h) !important; }
+/* Người quản lý: thanh admin WP cố định ở trên cùng. */
+@media (min-width: 783px) { body.admin-bar .hpt { top: 32px; } }
+@media (min-width: 601px) and (max-width: 782px) { body.admin-bar .hpt { top: 46px; } }
+
+/* Popup "Xem chi tiết" — khung .hithean-offers-dialog + thẻ .hithean-offer-card (offer-card.css). */
+.hpt-dialog .hpt-dialog__status { padding: 24px 8px; list-style: none; text-align: center; opacity: .7; }
+.hpt-dialog .hithean-offers-dialog__all { margin-left: auto; }
+.hpt-products { display: grid; gap: 6px; margin: 2px 0 0; padding: 0; list-style: none; }
+.hpt-products li { margin: 0; padding: 0; list-style: none; }
+.hpt-products a { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 6px; border: 1px solid #3b22221c; border-radius: 10px; background: #fff; color: inherit !important; text-decoration: none !important; }
+.hpt-products a:hover { border-color: var(--default-color-dark-blue, #0047ba); }
+.hpt-products img { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 6px; object-fit: cover; }
+.hpt-products__name { flex: 1 1 auto; min-width: 0; font-size: 13.5px; font-weight: 500; line-height: 1.35; }
+.hpt-products__name small { display: block; font-size: 11.5px; opacity: .65; }
+.hpt-products__cta { flex: 0 0 auto; font-size: 12.5px; font-weight: 600; color: var(--default-color-dark-blue, #0047ba); white-space: nowrap; }

@@ -16,5 +16,6 @@
 		<span class="tlg_border border--right"></span>
 		<span class="tlg_border border--left"></span>
 	<?php endif; ?>
+	<?php do_action( 'hithean_site_topbar' ); // Thanh ưu đãi đầu trang — marketing/offers/topbar.php ?>
 	<?php get_template_part( 'templates/header/layout', roneous_get_header_layout() ); ?>
 	<div class="main-container">

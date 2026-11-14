@@ -129,6 +129,14 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   `hithean_offers_lark_state`) → 1 tin "post": mới / thay đổi (nội dung, thời gian, SP thêm-bỏ) / ngừng (hết hạn, gỡ). Lần bật đầu chỉ ghi mốc;
   lỗi gửi giữ mốc, thử lại ≤3 lần. Gửi qua kênh Lark **`uu_dai` — nhóm riêng**, không dùng nhóm kho (Cài đặt ERP → Lark; cùng tab có
   @Tất cả = option `hithean_offers_lark_settings.mention_all` + gửi thử danh sách). Test: `php tests/offers-lark-notify.php`.
+- **Thanh ưu đãi đầu trang** (`marketing/offers/topbar.php` + `marketing/assets/offers-topbar.{css,js}`, nạp mọi request): thanh dính trên cùng, in ở
+  `do_action('hithean_site_topbar')` trong `header.php` (landing template riêng tự không có), ẩn ở thanh toán / cảm ơn / `/uu-dai/`. Bật + soạn nội dung ở
+  Ưu đãi sản phẩm → Cấu hình & xuất bản (`hithean_offers_settings()` `topbar`, `topbar_text` — mỗi dòng 1 thông điệp, `Nội dung | link`, ≤6 dòng xoay vòng 5s —
+  `topbar_button`, `topbar_color`); đổi → `rocket_clean_domain()`. Nút "Xem chi tiết" mở popup `#hpt-dialog` (khung `.hithean-offers-dialog`, AJAX
+  `hithean_offers_topbar`, chỉ đọc): 1 thẻ / chương trình + CTA "Xem sản phẩm" tới trang SP (nhiều SP → danh sách SP). `#uu-dai-chuong-trinh` mở sẵn popup.
+  Gom chương trình dùng chung với "Ưu đãi tiêu biểu": `hithean_offers_programs()` / `hithean_offers_program_scope()` (`offers/programs.php`). Cao cố định `--hpt-h`
+  (40px / 44px mobile), body chừa chỗ + `nav.fixed` của Roneous đẩy xuống khi `html.hpt-on`; khách bấm × → ẩn trong phiên (sessionStorage `hpt-off` = khóa nội dung).
+  Test: `php tests/offers-structured-test.php`, `node tests/offers-topbar-ui.cjs`.
 - /uu-dai/: vừa vào hỏi nhanh (dialog `data-ho-ask`) xem theo sản phẩm hay chương trình; bỏ qua khi URL có `?xem=san-pham|chuong-trinh`
   hoặc đã chọn trong phiên (sessionStorage `ho-mode`).
 
