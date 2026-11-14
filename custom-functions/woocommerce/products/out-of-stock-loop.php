@@ -195,6 +195,50 @@ add_filter('woocommerce_shortcode_products_query', static function ($args, $attr
     return $args;
 }, 20, 2);
 
+/**
+ * Hàm thuần: xếp cuối / bỏ ID hết hàng trong danh sách đã có, giữ thứ tự tương đối.
+ * $status: id => _stock_status.
+ */
+function hithean_oos_loop_apply_ids(array $ids, string $mode, array $status): array
+{
+    $keep = []; $tail = [];
+    foreach ($ids as $id) {
+        if (($status[(int) $id] ?? '') === 'outofstock') {
+            if ($mode !== 'hide') { $tail[] = $id; }
+        } else {
+            $keep[] = $id;
+        }
+    }
+    return array_merge($keep, $tail);
+}
+
+// Lớp chốt cho shortcode: SQL có thể bị plugin khác ghi đè ORDER BY (trang chủ đã gặp) và kết quả nằm trong
+// transient → sắp lại trên danh sách ID mỗi lần render (sau SQL + cache).
+add_filter('woocommerce_shortcode_products_query_results', static function ($results, $shortcode = null) {
+    if (!is_object($results) || empty($results->ids) || !is_array($results->ids)) {
+        return $results;
+    }
+    $args = (is_object($shortcode) && method_exists($shortcode, 'get_query_args')) ? (array) $shortcode->get_query_args() : [];
+    $mode = (string) ($args['hithean_oos_loop'] ?? '');
+    if (!isset(hithean_oos_loop_modes()[$mode])) {
+        return $results;
+    }
+    $ids = array_map('intval', $results->ids);
+    if (function_exists('update_meta_cache')) {
+        update_meta_cache('post', $ids);
+    }
+    $status = [];
+    foreach ($ids as $id) {
+        $status[$id] = (string) get_post_meta($id, '_stock_status', true);
+    }
+    $new = hithean_oos_loop_apply_ids($ids, $mode, $status);
+    if ($mode === 'hide' && count($new) !== count($ids) && isset($results->total)) {
+        $results->total = max(0, (int) $results->total - (count($ids) - count($new)));
+    }
+    $results->ids = $new;
+    return $results;
+}, 20, 2);
+
 // Dấu hiệu trên thẻ bọc khối [products] (class hithean-oos-last|hide) — kiểm tra nhanh trên site là filter đã chạy.
 add_filter('shortcode_atts_products', static function ($out, $pairs, $atts) {
     if (is_array($out)) {

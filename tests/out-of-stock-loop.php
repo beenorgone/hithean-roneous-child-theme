@@ -98,5 +98,19 @@ $cl = $GLOBALS['filters']['posts_clauses']($base, new WP_Query(['post_type' => '
 ok(strpos($cl['where'], 'outofstock') === false && strpos($cl['orderby'], 'outofstock') !== false, 'posts_clauses dùng chế độ gắn trên query shortcode');
 ok(!hithean_oos_loop_is_target_query(new WP_Query(['post_type' => 'product', 'hithean_oos_loop' => '1'])), 'Cờ lạ → không áp');
 
+// Lớp chốt: sắp lại danh sách ID kết quả shortcode
+ok(hithean_oos_loop_apply_ids([5, 2, 7, 3], 'last', [2 => 'outofstock', 3 => 'onbackorder', 7 => 'outofstock']) === [5, 3, 2, 7], 'apply_ids last: hết hàng xuống cuối, giữ thứ tự');
+ok(hithean_oos_loop_apply_ids([5, 2, 7, 3], 'hide', [2 => 'outofstock', 3 => 'onbackorder', 7 => 'outofstock']) === [5, 3], 'apply_ids hide: bỏ hết hàng, giữ đặt trước');
+class FakeShortcode { public $a; public function __construct($a) { $this->a = $a; } public function get_query_args() { return $this->a; } }
+$GLOBALS['meta'] = [9200 => 'outofstock', 7696 => 'outofstock', 8548 => 'onbackorder', 3977 => 'onbackorder'];
+$res = (object) ['ids' => [8548, 9200, 7696, 3977, 4690], 'total' => 5];
+$res = $GLOBALS['filters']['woocommerce_shortcode_products_query_results']($res, new FakeShortcode(['hithean_oos_loop' => 'last']));
+ok($res->ids === [8548, 3977, 4690, 9200, 7696] && $res->total === 5, 'Kết quả shortcode (trang chủ) last: hết hàng xuống cuối');
+$res = (object) ['ids' => [8548, 9200, 7696, 3977, 4690], 'total' => 5];
+$res = $GLOBALS['filters']['woocommerce_shortcode_products_query_results']($res, new FakeShortcode(['hithean_oos_loop' => 'hide']));
+ok($res->ids === [8548, 3977, 4690] && $res->total === 3, 'Kết quả shortcode hide: bỏ hết hàng, trừ total');
+$res = (object) ['ids' => [9200, 8548], 'total' => 2];
+ok($GLOBALS['filters']['woocommerce_shortcode_products_query_results']($res, new FakeShortcode([]))->ids === [9200, 8548], 'Không có cờ → giữ nguyên');
+
 echo $fails ? "\n$fails lỗi\n" : "\nOK\n";
 exit($fails ? 1 : 0);
