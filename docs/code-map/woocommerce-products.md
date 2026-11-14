@@ -89,7 +89,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_oos_loop_modes()` | — |
 | `hithean_oos_loop_sanitize_mode($value)` | — |
 | `hithean_oos_loop_mode()` | — |
-| `hithean_oos_loop_normalize_path(string $value)` | Hàm thuần: URL / đường dẫn → khóa so khớp ('' = trang chủ), bỏ query, /page/N/, giữ `*` cuối. |
+| `hithean_oos_loop_normalize_path(string $value)` | Hàm thuần: URL / đường dẫn → khóa so khớp, luôn bắt đầu bằng '/' ('/' = trang chủ, '/a/b', '/a/b/*', '/*'), bỏ query, /page/N/, giữ `*` cuối. Lũy đẳng — lưu lần đầu WP làm sạch… |
 | `hithean_oos_loop_mode_for_path(string $path, string $default, array $rules)` | Hàm thuần: chế độ cho đường dẫn — khớp đúng trước, rồi nhánh `*` dài nhất, không khớp → mặc định. |
 | `hithean_oos_loop_sanitize_rules($input)` | — |
 | `hithean_oos_loop_rules()` | — |

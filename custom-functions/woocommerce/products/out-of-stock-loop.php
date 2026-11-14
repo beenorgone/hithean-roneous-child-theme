@@ -39,7 +39,11 @@ function hithean_oos_loop_mode(): string
     return hithean_oos_loop_sanitize_mode(get_option(HITHEAN_OOS_LOOP_OPTION, 'last'));
 }
 
-/** Hàm thuần: URL / đường dẫn → khóa so khớp ('' = trang chủ), bỏ query, /page/N/, giữ `*` cuối. */
+/**
+ * Hàm thuần: URL / đường dẫn → khóa so khớp, luôn bắt đầu bằng '/' ('/' = trang chủ, '/a/b', '/a/b/*', '/*'),
+ * bỏ query, /page/N/, giữ `*` cuối. Lũy đẳng — lưu lần đầu WP làm sạch 2 lần (update_option → add_option),
+ * khóa rỗng từng làm mất dòng trang chủ.
+ */
 function hithean_oos_loop_normalize_path(string $value): string
 {
     $value = trim($value);
@@ -52,7 +56,8 @@ function hithean_oos_loop_normalize_path(string $value): string
     $value    = function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
     $value    = trim((string) preg_replace('~/+~', '/', $value), '/');
     $value    = trim((string) preg_replace('~(^|/)page/\d+$~', '', $value), '/');
-    return $wildcard ? ($value === '' ? '*' : $value . '/*') : $value;
+    $value    = '/' . $value;
+    return $wildcard ? rtrim($value, '/') . '/*' : $value;
 }
 
 /** Hàm thuần: chế độ cho đường dẫn — khớp đúng trước, rồi nhánh `*` dài nhất, không khớp → mặc định. */
@@ -61,7 +66,7 @@ function hithean_oos_loop_mode_for_path(string $path, string $default, array $ru
     $path = hithean_oos_loop_normalize_path($path);
     $best = null; $best_len = -1;
     foreach ($rules as $rule) {
-        $key  = (string) ($rule['path'] ?? '');
+        $key  = hithean_oos_loop_normalize_path((string) ($rule['path'] ?? '')); // khóa cũ không có '/' đầu
         $mode = (string) ($rule['mode'] ?? '');
         if (!isset(hithean_oos_loop_modes()[$mode])) {
             continue;
@@ -294,7 +299,8 @@ function hithean_oos_loop_render_settings(): void
     $name  = HITHEAN_OOS_LOOP_RULES_OPTION;
     $row   = static function ($index, array $rule) use ($name): void {
         $path = (string) ($rule['path'] ?? '');
-        $shown = $path === '' && $index !== '__i__' ? '/' : ($path === '' ? '' : ($path === '*' ? '/*' : '/' . $path . (substr($path, -1) === '*' ? '' : '/')));
+        $shown = $path === '' ? '' : hithean_oos_loop_normalize_path($path);
+        $shown = ($shown === '/' || substr($shown, -1) === '*') ? $shown : ($shown === '' ? '' : $shown . '/');
         ?>
         <tr data-hithean-oos-row>
             <td><input type="text" class="regular-text" placeholder="https://hithean.com/danh-muc-san-pham/protein/" name="<?php echo esc_attr($name . '[' . $index . '][path]'); ?>" value="<?php echo esc_attr($shown); ?>"></td>

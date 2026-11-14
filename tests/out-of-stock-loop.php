@@ -67,9 +67,13 @@ ok(strpos($cl['where'], 'outofstock') !== false, 'posts_clauses dùng chế đ�
 
 // Ngoại lệ theo trang
 $n = 'hithean_oos_loop_normalize_path';
-ok($n('https://hithean.com/danh-muc-san-pham/Protein/page/3/?orderby=price') === 'danh-muc-san-pham/protein', 'Chuẩn hóa: bỏ domain, query, /page/N/, chữ hoa');
-ok($n('/') === '' && $n('https://hithean.com') === '' && $n('/page/2/') === '', 'Trang chủ = khóa rỗng');
-ok($n('/danh-muc-san-pham/protein/*') === 'danh-muc-san-pham/protein/*' && $n('*') === '*', 'Giữ * cuối');
+ok($n('https://hithean.com/danh-muc-san-pham/Protein/page/3/?orderby=price') === '/danh-muc-san-pham/protein', 'Chuẩn hóa: bỏ domain, query, /page/N/, chữ hoa');
+ok($n('/') === '/' && $n('https://hithean.com') === '/' && $n('https://hithean.com/') === '/' && $n('/page/2/') === '/', 'Trang chủ = /');
+ok($n('/danh-muc-san-pham/protein/*') === '/danh-muc-san-pham/protein/*' && $n('*') === '/*' && $n('/*') === '/*', 'Giữ * cuối');
+foreach (['/', 'https://hithean.com/', '/a/b/*', '/*', 'https://hithean.com/danh-muc-san-pham/protein/page/2/'] as $raw) { ok($n($n($raw)) === $n($raw), 'Lũy đẳng: ' . $raw); }
+$twice = hithean_oos_loop_sanitize_rules(hithean_oos_loop_sanitize_rules([['path' => 'https://hithean.com/', 'mode' => 'hide'], ['path' => '/uu-dai/', 'mode' => 'hide']]));
+ok($twice === [['path' => '/', 'mode' => 'hide'], ['path' => '/uu-dai', 'mode' => 'hide']], 'Làm sạch 2 lần (lưu lần đầu) vẫn giữ dòng trang chủ');
+ok(hithean_oos_loop_mode_for_path('/', 'last', [['path' => '', 'mode' => 'hide']]) === 'hide' && hithean_oos_loop_mode_for_path('/x/', 'last', [['path' => 'x', 'mode' => 'hide']]) === 'hide', 'Khóa cũ không có / đầu vẫn khớp');
 $rules = hithean_oos_loop_sanitize_rules([
     ['path' => '/', 'mode' => 'hide'],
     ['path' => 'https://hithean.com/danh-muc-san-pham/protein/*', 'mode' => 'hide'],
