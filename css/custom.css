@@ -930,6 +930,7 @@ input[type="submit"],
 }
 
 .woocommerce span.onsale,
+.woocommerce ul.products li.product span.onsale,
 .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link .onsale,
 .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link .onsale {
     top: 10px;
@@ -966,6 +967,7 @@ input[type="submit"],
     }
 
     .woocommerce span.onsale,
+    .woocommerce ul.products li.product span.onsale,
     .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link .onsale,
     .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link .onsale {
         top: 8px;
@@ -984,7 +986,8 @@ input[type="submit"],
 @media screen and (max-width: 767px) {
     .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
     .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
-    .woocommerce .product .image-box span.onsale {
+    .woocommerce .product .image-box span.onsale,
+    .woocommerce ul.products li.product span.onsale {
         min-width: calc(64px * 2 / 3);
         height: calc(34px * 2 / 3);
         min-height: calc(34px * 2 / 3);
@@ -1001,7 +1004,8 @@ input[type="submit"],
 @media screen and (max-width: 480px) {
     .woocommerce .product_tag-new > a.woocommerce-LoopProduct-link::before,
     .woocommerce-page .product_tag-new .image-box > a.woocommerce-LoopProduct-link::before,
-    .woocommerce .product .image-box span.onsale {
+    .woocommerce .product .image-box span.onsale,
+    .woocommerce ul.products li.product span.onsale {
         min-width: 36px;
         height: 20px;
         min-height: 20px;
