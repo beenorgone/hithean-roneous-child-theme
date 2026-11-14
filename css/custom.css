@@ -1019,6 +1019,21 @@ input[type="submit"],
     }
 }
 
+/* Product loop mobile: tăng khoảng cách giữa các hàng sản phẩm
+   (theme cha ép ul.products li.product margin-bottom:20px !important ở ≤480px; lưới /shop 30px). */
+@media screen and (max-width: 767px) {
+    .woocommerce ul.products li.product,
+    .woocommerce-page ul.products li.product,
+    .row.hithean-product-grid > .product {
+        margin-bottom: 44px !important;
+    }
+
+    .woocommerce ul.products li.product:last-child,
+    .row.hithean-product-grid > .product:last-child {
+        margin-bottom: 0 !important;
+    }
+}
+
 /* Messages */
 .woocommerce .woocommerce-message,
 .woocommerce .woocommerce-thankyou-order-received,
