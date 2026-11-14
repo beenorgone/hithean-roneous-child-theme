@@ -4,7 +4,7 @@
 
 > Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR.
 
-18 file · ~8.000 dòng · 203 hàm (32% có docblock)
+18 file · ~8.200 dòng · 209 hàm (33% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -59,7 +59,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`admin_enqueue_scripts` ×2 · `admin_footer` · `admin_head` · `admin_init` ×3 · `admin_menu` ×2 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×2 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `template_redirect` · `theme_ai_feature_registry` · `update_option_hithean_oos_loop_mode` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_before_shop_loop_item_title` · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_post_class` · `woocommerce_product_tabs` ×3 · `woocommerce_related_products` · `woocommerce_shortcode_products_query` · `woocommerce_single_product_summary` ×2 · `wp_enqueue_scripts` ×7 · `wp_footer` ×7 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
+`add_option_hithean_oos_loop_rules` · `admin_enqueue_scripts` ×2 · `admin_footer` · `admin_head` · `admin_init` ×3 · `admin_menu` ×2 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×2 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `shortcode_atts_products` · `template_redirect` · `theme_ai_feature_registry` · `update_option_hithean_oos_loop_mode` · `update_option_hithean_oos_loop_rules` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_before_shop_loop_item_title` · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_post_class` · `woocommerce_product_tabs` ×3 · `woocommerce_related_products` · `woocommerce_shortcode_products_query` · `woocommerce_single_product_summary` ×2 · `wp_enqueue_scripts` ×7 · `wp_footer` ×7 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
 
 ## File
 
@@ -89,6 +89,12 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_oos_loop_modes()` | — |
 | `hithean_oos_loop_sanitize_mode($value)` | — |
 | `hithean_oos_loop_mode()` | — |
+| `hithean_oos_loop_normalize_path(string $value)` | Hàm thuần: URL / đường dẫn → khóa so khớp ('' = trang chủ), bỏ query, /page/N/, giữ `*` cuối. |
+| `hithean_oos_loop_mode_for_path(string $path, string $default, array $rules)` | Hàm thuần: chế độ cho đường dẫn — khớp đúng trước, rồi nhánh `*` dài nhất, không khớp → mặc định. |
+| `hithean_oos_loop_sanitize_rules($input)` | — |
+| `hithean_oos_loop_rules()` | — |
+| `hithean_oos_loop_current_mode()` | Chế độ của trang đang xem (chế độ chung + ngoại lệ theo đường dẫn). |
+| `hithean_oos_loop_attr_mode($value)` | Thuộc tính het_hang của shortcode: an / hide → 'hide', cuoi / last → 'last', khác → ''. |
 | `hithean_oos_loop_clauses(array $clauses, string $mode, string $posts_table, string $postmeta_table)` | Hàm thuần: thêm JOIN `_stock_status` + xếp cuối (last) hoặc lọc bỏ (hide) SP 'outofstock'. SP không có meta `_stock_status` coi như còn hàng. |
 | `hithean_oos_loop_is_target_query($query)` | Query này có phải danh sách SP ở front (catalog chính hoặc shortcode Woo đã gắn cờ) không. |
 | `hithean_oos_loop_render_settings()` | Form ở Cài đặt ERP → WooCommerce. |

@@ -8,7 +8,9 @@ function add_action($tag, $cb, $prio = 10, $n = 1) { $GLOBALS['filters'][$tag] =
 function is_admin() { return $GLOBALS['admin']; }
 function wp_doing_ajax() { return false; }
 function sanitize_key($v) { return strtolower(preg_replace('/[^a-z0-9_\-]/i', '', (string) $v)); }
-function get_option($k, $d = false) { return $GLOBALS['option'] ?? $d; }
+function get_option($k, $d = false) { return $k === 'hithean_oos_loop_rules' ? ($GLOBALS['rules'] ?? $d) : ($GLOBALS['option'] ?? $d); }
+function wp_unslash($v) { return $v; }
+function sanitize_text_field($v) { return trim(strip_tags((string) $v)); }
 function get_post_meta($id, $k, $single) { return $GLOBALS['meta'][$id] ?? ''; }
 class WP_Query {
     public $vars; public $main;
@@ -47,7 +49,7 @@ $GLOBALS['admin'] = true;
 ok(!hithean_oos_loop_is_target_query(new WP_Query(['wc_query' => 'product_query'], true)), 'wp-admin → không áp');
 $GLOBALS['admin'] = false;
 
-$args = $GLOBALS['filters']['woocommerce_shortcode_products_query'](['post_type' => 'product']);
+$args = $GLOBALS['filters']['woocommerce_shortcode_products_query'](['post_type' => 'product'], []);
 ok($args['hithean_oos_loop'] === 'last', 'Shortcode gắn cờ kèm chế độ (khóa cache đổi theo chế độ)');
 
 $GLOBALS['meta'] = [2 => 'outofstock', 3 => 'onbackorder'];
@@ -56,6 +58,38 @@ $GLOBALS['option'] = 'hide';
 ok($GLOBALS['filters']['woocommerce_related_products']([1, 2, 3]) === [1, 3], 'SP liên quan: hide → bỏ SP hết hàng, giữ đặt trước');
 $cl = $GLOBALS['filters']['posts_clauses']($base, new WP_Query(['wc_query' => 'product_query'], true));
 ok(strpos($cl['where'], 'outofstock') !== false, 'posts_clauses dùng chế độ đã lưu');
+
+// Ngoại lệ theo trang
+$n = 'hithean_oos_loop_normalize_path';
+ok($n('https://hithean.com/danh-muc-san-pham/Protein/page/3/?orderby=price') === 'danh-muc-san-pham/protein', 'Chuẩn hóa: bỏ domain, query, /page/N/, chữ hoa');
+ok($n('/') === '' && $n('https://hithean.com') === '' && $n('/page/2/') === '', 'Trang chủ = khóa rỗng');
+ok($n('/danh-muc-san-pham/protein/*') === 'danh-muc-san-pham/protein/*' && $n('*') === '*', 'Giữ * cuối');
+$rules = hithean_oos_loop_sanitize_rules([
+    ['path' => '/', 'mode' => 'hide'],
+    ['path' => 'https://hithean.com/danh-muc-san-pham/protein/*', 'mode' => 'hide'],
+    ['path' => '/danh-muc-san-pham/protein/whey/', 'mode' => 'last'],
+    ['path' => '/danh-muc-san-pham/protein/', 'mode' => 'xx'],
+    ['path' => '  ', 'mode' => 'hide'],
+]);
+ok(count($rules) === 4 && $rules[3]['mode'] === 'last', 'Sanitize: bỏ dòng trống, chế độ lạ → last');
+$m = static function ($uri) use ($rules) { return hithean_oos_loop_mode_for_path($uri, 'last', $rules); };
+ok($m('/') === 'hide' && $m('/?utm=1') === 'hide', 'Trang chủ theo ngoại lệ');
+ok($m('/danh-muc-san-pham/protein/whey/page/2/') === 'last', 'Khớp đúng thắng nhánh *');
+ok($m('/danh-muc-san-pham/protein/vegan/') === 'hide', 'Nhánh * áp cho danh mục con');
+ok($m('/danh-muc-san-pham/protein/') === 'last', 'Khớp đúng (chế độ đã sanitize) thắng nhánh *');
+ok($m('/danh-muc-san-pham/protein-bar/') === 'last', 'Nhánh * không ăn lan sang slug cùng tiền tố');
+ok($m('/shop/') === 'last', 'Trang không có ngoại lệ → chế độ chung');
+ok(hithean_oos_loop_mode_for_path('/bat-ky/', 'hide', [['path' => '*', 'mode' => 'last']]) === 'last', '* = mọi trang');
+
+// Thuộc tính shortcode
+ok(hithean_oos_loop_attr_mode('an') === 'hide' && hithean_oos_loop_attr_mode('cuoi') === 'last' && hithean_oos_loop_attr_mode('x') === '', 'het_hang="an|cuoi"');
+$atts = $GLOBALS['filters']['shortcode_atts_products'](['limit' => 4], [], ['het_hang' => 'an']);
+ok($atts['het_hang'] === 'an', 'Woo giữ thuộc tính het_hang');
+$args = $GLOBALS['filters']['woocommerce_shortcode_products_query'](['post_type' => 'product'], ['het_hang' => 'cuoi']);
+ok($args['hithean_oos_loop'] === 'last', 'Thuộc tính shortcode đè chế độ trang');
+$cl = $GLOBALS['filters']['posts_clauses']($base, new WP_Query(['post_type' => 'product', 'hithean_oos_loop' => 'last']));
+ok(strpos($cl['where'], 'outofstock') === false && strpos($cl['orderby'], 'outofstock') !== false, 'posts_clauses dùng chế độ gắn trên query shortcode');
+ok(!hithean_oos_loop_is_target_query(new WP_Query(['post_type' => 'product', 'hithean_oos_loop' => '1'])), 'Cờ lạ → không áp');
 
 echo $fails ? "\n$fails lỗi\n" : "\nOK\n";
 exit($fails ? 1 : 0);
