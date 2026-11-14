@@ -26,6 +26,8 @@
             if (isAutoOffer(box)) box.setAttribute('data-hithean-offer-source', '');
         });
 
+        if (config.offersAvailable === false) return null;
+
         var form = summary.querySelector('form.cart');
         var quantity = form && form.querySelector('input.qty[name="quantity"]');
         // Lý do không đặt được số lượng `minimum` (rỗng = đặt được) — cùng điều kiện với bậc giá ở trang.

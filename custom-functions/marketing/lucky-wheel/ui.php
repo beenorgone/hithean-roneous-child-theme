@@ -37,7 +37,8 @@ function thean_lw_is_eligible_page(): bool
     }
 
     if (function_exists('is_product') && is_product()) {
-        return true;
+        $product = wc_get_product(get_queried_object_id());
+        return $product && ($product->is_in_stock() || $product->backorders_allowed());
     }
 
     if (function_exists('is_cart') && is_cart()) {

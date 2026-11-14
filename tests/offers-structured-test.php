@@ -332,9 +332,16 @@ $GLOBALS['options'][HITHEAN_OFFERS_SNAPSHOT] = ['items' => [
     $fixture(['source_id' => 'wheel:program', 'family' => 'wheel', 'kind' => 'other', 'product_id' => 31, 'product_name' => 'SP giảm giá']),
     $fixture(['source_id' => 'sale:34', 'product_id' => 34, 'product_name' => 'SP hết hàng', 'in_stock' => false]),
 ]];
+foreach ([31, 32, 33, 34] as $id) { $GLOBALS['products'][$id] = new \OfferTestProduct($id, 'Product ' . $id); }
+$GLOBALS['products'][34]->stock = false;
 $featured = hithean_sfm_featured_cards();
 ok(count($featured) === 2 && !array_filter($featured, static fn($card) => $card['badge'] === 'Vòng quay may mắn'), 'Featured offers: one card per in-stock program, wheel left to its own card');
 ok($featured[0]['notes'][0] === 'Áp dụng cho SP giảm giá' && str_contains($featured[0]['actions_html'], 'product/31#uu-dai'), 'Giảm giá đứng trước vận chuyển; ưu đãi 1 SP mở popup ưu đãi trang SP');
 ok($featured[1]['badge'] === 'Ưu đãi vận chuyển' && $featured[1]['notes'][0] === 'Áp dụng cho 2 sản phẩm: SP A, SP B' && str_contains($featured[1]['actions_html'], 'Xem sản phẩm áp dụng'), 'Chương trình nhiều SP ghi phạm vi áp dụng');
+$GLOBALS['products'][34]->backorders = true;
+ok(count(hithean_sfm_featured_cards()) === 3, 'Featured popup retains out-of-stock products accepting backorders');
+$GLOBALS['products'][31]->stock = false;
+$visible = hithean_offers_visible_items();
+ok(!in_array(31, array_column($visible, 'product_id'), true) && in_array(34, array_column($visible, 'product_id'), true), 'Shared public feed excludes sold-out products but preserves backorders despite stale snapshot stock');
 echo "PASS: $count structured-offer assertions\n";
 }

@@ -4,7 +4,7 @@
 
 > Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền.
 
-11 file · ~2.000 dòng · 97 hàm (52% có docblock)
+12 file · ~2.000 dòng · 98 hàm (52% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -43,6 +43,12 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_offers_admin()` | — |
 | `hithean_offers_order_fieldset($saved)` | Ô sắp thứ tự nhóm ưu đãi (↑ ↓, nút "Về mặc định" — admin.js). Thứ tự gửi lên qua offer_order[]. |
 | `hithean_offers_progress(array $run)` | — |
+
+### `marketing/offers/availability.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_offers_product_available($product)` | A product can advertise offers while in stock or explicitly accepting backorders. |
 
 ### `marketing/offers/cli.php`
 

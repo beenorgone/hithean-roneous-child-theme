@@ -4,7 +4,7 @@
 
 > Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR.
 
-17 file · ~7.900 dòng · 197 hàm (31% có docblock)
+17 file · ~7.900 dòng · 198 hàm (31% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -54,11 +54,12 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `woocommerce_add_to_cart_fragments` | add-to-cart-popup.php |
 | `woocommerce_cart_item_name` | add-to-cart-popup.php |
 | `woocommerce_sale_flash` | product-list-page.php |
+| `woocommerce_single_product_summary` | product-purchase.php |
 | `woocommerce_update_cart_validation` | add-to-cart-popup.php |
 
 ## Hook khu này lắng nghe
 
-`admin_enqueue_scripts` ×2 · `admin_footer` · `admin_head` · `admin_init` ×2 · `admin_menu` ×2 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×2 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `theme_ai_feature_registry` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_before_shop_loop_item_title` · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_post_class` · `woocommerce_product_tabs` ×3 · `woocommerce_single_product_summary` ×2 · `wp_enqueue_scripts` ×7 · `wp_footer` ×7 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
+`admin_enqueue_scripts` ×2 · `admin_footer` · `admin_head` · `admin_init` ×2 · `admin_menu` ×2 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×2 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `template_redirect` · `theme_ai_feature_registry` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_before_shop_loop_item_title` · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_post_class` · `woocommerce_product_tabs` ×3 · `woocommerce_single_product_summary` ×2 · `wp_enqueue_scripts` ×7 · `wp_footer` ×7 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
 
 ## File
 
@@ -229,6 +230,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 |---|---|
 | `hithean_product_purchase_body_class(array $classes)` | — |
 | `hithean_product_purchase_enqueue()` | — |
+| `hithean_product_purchase_offer_fragment()` | Lightweight product-context response: native Woo/plugin summary hooks, without gallery, header, footer, recommendations or the full-page script payload. Never shared-cache cart… |
 | `hithean_product_purchase_offer_media(int $product_id)` | Ảnh nhỏ góc phải thẻ trong popup ưu đãi: ảnh sản phẩm đang xem + ảnh sản phẩm add-on (dòng add-on loại "product" — tặng/mua kèm) theo tên dòng. Chỉ đọc dữ liệu qua hàm của plugi… |
 | `hithean_product_purchase_offers_url()` | Link "Xem mọi ưu đãi" trong popup ưu đãi: chỉ khi trang /uu-dai/ đã công khai (không ở chế độ xem trước). |
 | `hithean_product_purchase_render_quote()` | — |

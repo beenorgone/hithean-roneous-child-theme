@@ -6,6 +6,7 @@ const HITHEAN_OFFERS_RUN = 'hithean_offers_run';
 const HITHEAN_OFFERS_SNAPSHOT = 'hithean_offers_snapshot';
 const HITHEAN_OFFERS_FRESHNESS = 8 * DAY_IN_SECONDS;
 
+require_once __DIR__ . '/offers/availability.php';
 require_once __DIR__ . '/offers/store.php';
 require_once __DIR__ . '/offers/extract.php';
 require_once __DIR__ . '/offers/structured.php';

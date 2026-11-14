@@ -123,25 +123,24 @@ function hithean_offers_product_card(array $offers): string {
 function hithean_offers_visible_items(): array {
     if (hithean_offers_settings()['preview'] && !current_user_can('manage_woocommerce')) { return []; }
     $snapshot = (array) get_option(HITHEAN_OFFERS_SNAPSHOT, []);
-    return array_values(array_filter($snapshot['items'] ?? [], static fn($row) => hithean_offers_status($row) === 'active'));
+    $products = [];
+    $items = [];
+    foreach ($snapshot['items'] ?? [] as $row) {
+        if (hithean_offers_status($row) !== 'active') { continue; }
+        $id = (int) ($row['product_id'] ?? 0);
+        if ($id) {
+            if (!array_key_exists($id, $products)) { $products[$id] = wc_get_product($id); }
+            $product = $products[$id];
+            if (!hithean_offers_product_available($product)) { continue; }
+            $row['in_stock'] = $product->is_in_stock();
+        }
+        $items[] = $row;
+    }
+    return $items;
 }
 function hithean_offers_shortcode(): string {
     $preview = hithean_offers_settings()['preview'];
     $items = hithean_offers_visible_items();
-    // Check live availability once per product before building either view or group membership.
-    $stock = [];
-    $available = [];
-    foreach ($items as &$row) {
-        $id = (int) $row['product_id'];
-        if (!isset($stock[$id])) {
-            $product = $id ? wc_get_product($id) : null;
-            $stock[$id] = $product ? $product->is_in_stock() : !empty($row['in_stock']);
-            $available[$id] = $stock[$id] || ($product && $product->backorders_allowed());
-        }
-        $row['in_stock'] = $stock[$id];
-    }
-    unset($row);
-    $items = array_values(array_filter($items, static fn($row) => $available[(int) $row['product_id']]));
     usort($items, static fn($a, $b) => $b['in_stock'] <=> $a['in_stock']);
     // Product mode shows one card per product with every rule that applies to it, shared programs included.
     $catalog = [];

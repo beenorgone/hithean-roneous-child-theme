@@ -374,6 +374,8 @@ if (!function_exists('hithean_display_loop_addon_promo')) {
             return;
         }
 
+        if (!$product->is_in_stock() && !$product->backorders_allowed()) { return; }
+
         // Đã có nút ưu đãi trên thẻ (marketing/offers/loop-button.php) → không in thêm khung này.
         if (function_exists('hithean_loop_offers_enabled') && hithean_loop_offers_enabled()) {
             return;

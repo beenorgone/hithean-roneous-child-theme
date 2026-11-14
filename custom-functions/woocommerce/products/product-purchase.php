@@ -6,6 +6,7 @@ const HITHEAN_PRODUCT_QUOTE_ACTION = 'hithean_product_purchase_quote';
 
 add_action('wp_ajax_' . HITHEAN_PRODUCT_QUOTE_ACTION, 'hithean_product_purchase_ajax_quote');
 add_action('wp_ajax_nopriv_' . HITHEAN_PRODUCT_QUOTE_ACTION, 'hithean_product_purchase_ajax_quote');
+add_action('template_redirect', 'hithean_product_purchase_offer_fragment', 20);
 add_action('wp_enqueue_scripts', 'hithean_product_purchase_enqueue', 30);
 add_action('woocommerce_before_add_to_cart_button', 'hithean_product_purchase_render_quote', 25);
 add_filter('body_class', 'hithean_product_purchase_body_class');
@@ -14,6 +15,8 @@ function hithean_product_purchase_body_class(array $classes): array
 {
     if (function_exists('is_product') && is_product()) {
         $classes[] = 'hithean-product-purchase';
+        $product = wc_get_product(get_queried_object_id());
+        if (!hithean_offers_product_available($product)) { $classes[] = 'hithean-offers-unavailable'; }
     }
     return $classes;
 }
@@ -48,6 +51,7 @@ function hithean_product_purchase_enqueue(): void
         'chooseQuantity' => __('Chọn số lượng', 'hithean.com'),
         'temporary' => __('Tạm tính sản phẩm', 'hithean.com'),
         'adding' => __('Đang thêm…', 'hithean.com'),
+        'offersAvailable' => hithean_offers_product_available(wc_get_product(get_queried_object_id())),
         'offersUrl' => hithean_product_purchase_offers_url(),
         'offerMedia' => hithean_product_purchase_offer_media((int) get_queried_object_id()),
         // Thứ tự nhóm thẻ trong popup ưu đãi (marketing/offers/order.php — cùng thứ tự /uu-dai/).
@@ -56,8 +60,52 @@ function hithean_product_purchase_enqueue(): void
     wp_localize_script('hithean-product-purchase', 'hitheanProductPurchase', $config);
     // Inert JSON: category popups read this without executing scripts from the fetched page.
     add_action('wp_footer', static function () use ($config): void {
-        echo '<script type="application/json" id="hithean-product-offers-config">' . wp_json_encode(array_intersect_key($config, array_flip(['offersUrl', 'offerMedia', 'offerOrder'])), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '</script>';
+        echo '<script type="application/json" id="hithean-product-offers-config">' . wp_json_encode(array_intersect_key($config, array_flip(['offersAvailable', 'offersUrl', 'offerMedia', 'offerOrder'])), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '</script>';
     });
+}
+
+/**
+ * Lightweight product-context response: native Woo/plugin summary hooks, without gallery,
+ * header, footer, recommendations or the full-page script payload. Never shared-cache cart prices.
+ */
+function hithean_product_purchase_offer_fragment(): void
+{
+    if (empty($_GET['hithean_offer_fragment']) || !is_product()) { return; }
+    if (!defined('DONOTCACHEPAGE')) { define('DONOTCACHEPAGE', true); }
+    nocache_headers();
+    $item = wc_get_product(get_queried_object_id());
+    if (!$item || $item->get_status() !== 'publish' || post_password_required()) {
+        wp_send_json_error(['message' => 'Không tìm thấy sản phẩm.'], 404);
+    }
+    $available = hithean_offers_product_available($item);
+    $config = [
+        'offersAvailable' => $available,
+        'offersUrl' => hithean_product_purchase_offers_url(),
+        'offerOrder' => function_exists('hithean_offers_order') ? hithean_offers_order() : [],
+        'offerMedia' => $available ? hithean_product_purchase_offer_media($item->get_id()) : [],
+    ];
+    $html = '';
+    if ($available) {
+        global $product, $post;
+        $previous_product = $product;
+        $previous_post = $post;
+        $post = get_post($item->get_id());
+        $product = $item;
+        $level = ob_get_level();
+        ob_start();
+        try {
+            do_action('woocommerce_single_product_summary');
+            $html = (string) ob_get_clean();
+        } finally {
+            while (ob_get_level() > $level) { ob_end_clean(); }
+            $product = $previous_product;
+            $post = $previous_post;
+        }
+    }
+    // Widget presence on the real product page, without rendering its full form/assets.
+    $wheel = $available && function_exists('thean_lw_is_eligible_page') && thean_lw_is_eligible_page();
+    wp_send_json_success(['html' => '<div class="summary">' . $html . '</div>'
+        . ($wheel ? '<div id="thean-lw-root"><button class="thean-lw-trigger"><span class="thean-lw-trigger__text">Nhận ưu đãi</span></button></div>' : ''), 'config' => $config]);
 }
 
 /**

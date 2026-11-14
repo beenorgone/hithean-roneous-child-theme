@@ -108,3 +108,9 @@ html.hithean-offers-open { overflow: hidden; }
 .hithean-offers-qty__status .hithean-offer-card__price,
 .hithean-offers-qty__status .hithean-offer-card__price .amount { font-size: 13px !important; }
 .hithean-offers-qty .hithean-offers-dialog__foot .hithean-offer-card__action { margin: 0 !important; }
+
+/* Stock eligibility applies to the actual plugin sources as well as popup triggers. */
+body.hithean-offers-unavailable .product-single .summary .awdr_discount_bar,
+body.hithean-offers-unavailable .product-single .summary .awdr-bulk-customizable-table,
+body.hithean-offers-unavailable .product-single .summary [data-hithean-offer-source],
+body.hithean-offers-unavailable .product-single .summary [data-hithean-offer-source] + br { display: none !important; }

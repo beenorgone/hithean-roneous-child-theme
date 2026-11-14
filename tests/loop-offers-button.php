@@ -17,6 +17,9 @@ function current_user_can($cap) { return false; }
 function hithean_offers_settings(): array { return $GLOBALS['settings'] + ['preview' => true]; }
 function hithean_offers_visible_items(): array { return $GLOBALS['items']; }
 function hithean_offers_date_label(array $row): string { return ''; }
+require dirname(__DIR__) . '/custom-functions/marketing/offers/availability.php';
+$GLOBALS['stock'] = true; $GLOBALS['backorders'] = false;
+function wc_get_product($id) { return new class { function is_in_stock() { return $GLOBALS['stock']; } function backorders_allowed() { return $GLOBALS['backorders']; } }; }
 require dirname(__DIR__) . '/custom-functions/marketing/offers/order.php';
 require dirname(__DIR__) . '/custom-functions/marketing/offers/offer-card.php';
 require dirname(__DIR__) . '/custom-functions/marketing/offers/loop-button.php';
@@ -63,4 +66,8 @@ ok(strpos(hithean_loop_offers_button_html(8, 'c'), 'Xem ưu đãi') !== false, '
 ok(strpos(hithean_loop_offers_button_html(1, 'a', 'hlo-m'), '<span class="hlo-anchor hlo-m"><span class="hlo hlo--a" role') === 0, 'a: lớp thiết bị nằm ở neo');
 ok(strpos(hithean_loop_offers_button_html(1, 'b', 'hlo-m'), 'class="hlo hlo--b hlo-m"') !== false && strpos(hithean_loop_offers_button_html(1, 'c', 'hlo-d'), 'class="hlo hlo--c hlo-d"') !== false, 'b / c: lớp thiết bị trên nút');
 
+$GLOBALS['stock'] = false;
+ok(hithean_loop_offers_button_html(7, 'b') === '', 'Out of stock without backorders has no offer button');
+$GLOBALS['backorders'] = true;
+ok(str_contains(hithean_loop_offers_button_html(7, 'b'), 'data-hlo="7"'), 'Out of stock accepting backorders keeps offer button');
 echo "PASS: $count loop-offers-button assertions\n";

@@ -78,7 +78,7 @@ function hithean_sfm_featured_cards(int $limit = 6): array {
     if (!function_exists('hithean_offers_visible_items') || !function_exists('hithean_offer_cards_from_rows')) { return []; }
     $programs = [];
     foreach (hithean_offers_visible_items() as $row) {
-        if (empty($row['product_id']) || empty($row['product_name']) || empty($row['in_stock']) || ($row['family'] ?? '') === 'wheel') { continue; }
+        if (empty($row['product_id']) || empty($row['product_name']) || ($row['family'] ?? '') === 'wheel') { continue; }
         $key = (string) ($row['source_id'] ?? '');
         $programs[$key !== '' ? $key : $row['product_id'] . ':' . md5((string) ($row['title'] ?? ''))][(int) $row['product_id']] = $row;
     }

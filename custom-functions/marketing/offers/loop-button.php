@@ -56,6 +56,7 @@ function hithean_loop_offers_labels(int $count, string $first_title = ''): array
 
 /** HTML nút của 1 sản phẩm theo vị trí. a / c nằm TRONG link sản phẩm nên dùng span role=button, b là button thật. */
 function hithean_loop_offers_button_html(int $product_id, string $position, string $device = ''): string {
+    if (!hithean_offers_product_available(wc_get_product($product_id))) { return ''; }
     $device = $device !== '' ? ' ' . $device : '';
     $cards = hithean_offer_cards_from_rows(hithean_loop_offers_rows($product_id));
     $count = count($cards);
@@ -73,7 +74,7 @@ function hithean_loop_offers_button_html(int $product_id, string $position, stri
 /** In nút ở hook của vị trí đang chọn; lần đầu in CSS (nhỏ, tránh nháy) + xếp JS / CSS thẻ ưu đãi cho footer. */
 function hithean_loop_offers_render(string $position): void {
     global $product;
-    if (!$product instanceof WC_Product || !hithean_loop_offers_enabled()) { return; }
+    if (!$product instanceof WC_Product || !hithean_offers_product_available($product) || !hithean_loop_offers_enabled()) { return; }
     $device = hithean_loop_offers_device_class($position, hithean_loop_offers_position(), hithean_loop_offers_position(true));
     if ($device === null) { return; }
     static $assets = false;
@@ -100,7 +101,7 @@ add_action('woocommerce_after_shop_loop_item', static function (): void { hithea
  */
 function hithean_loop_offers_ajax(): void {
     $product = function_exists('wc_get_product') ? wc_get_product(absint($_GET['product_id'] ?? 0)) : null;
-    if (!$product || $product->get_status() !== 'publish' || !hithean_loop_offers_enabled()) { wp_send_json_error(['message' => 'Không tìm thấy sản phẩm.'], 404); }
+    if (!$product || $product->get_status() !== 'publish' || !hithean_offers_product_available($product) || !hithean_loop_offers_enabled()) { wp_send_json_error(['message' => 'Không tìm thấy sản phẩm.'], 404); }
     $cards = hithean_offer_cards_from_rows(hithean_loop_offers_rows($product->get_id()));
     $own = count($cards);
     if (!$own && function_exists('hithean_sfm_featured_cards')) { $cards = hithean_sfm_featured_cards(); }
