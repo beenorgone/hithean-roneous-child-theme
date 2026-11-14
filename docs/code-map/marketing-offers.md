@@ -4,7 +4,7 @@
 
 > Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền.
 
-14 file · ~2.200 dòng · 112 hàm (58% có docblock)
+14 file · ~2.300 dòng · 115 hàm (59% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -44,6 +44,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_offers_form_start(string $action, array $hidden = [])` | — |
 | `hithean_offers_admin_title(array $row, $product)` | Human-readable labels also cover existing addon records without re-syncing sources. |
 | `hithean_offers_admin()` | — |
+| `hithean_offers_topbar_hide_field($saved)` | Ô chọn ẩn nút CTA theo thiết bị. |
 | `hithean_offers_topbar_fieldset(array $s)` | Cài đặt thanh ưu đãi đầu trang (offers/topbar.php). |
 | `hithean_offers_order_fieldset($saved)` | Ô sắp thứ tự nhóm ưu đãi (↑ ↓, nút "Về mặc định" — admin.js). Thứ tự gửi lên qua offer_order[]. |
 | `hithean_offers_progress(array $run)` | — |
@@ -210,12 +211,14 @@ Thanh ưu đãi dính đầu trang (sticky topbar) — WooCommerce → Ưu đãi
 
 | Hàm | Mô tả |
 |---|---|
+| `hithean_offers_topbar_hide_value($value)` | Chuẩn hóa tùy chọn ẩn nút CTA (hàm thuần); bản cũ lưu true → 'both'. |
 | `hithean_offers_topbar_hex(string $value)` | Chuẩn hóa mã màu "#abc" / "abc" / "#aabbcc" → "#aabbcc" thường; sai định dạng → '' (hàm thuần). |
 | `hithean_offers_topbar_fg(string $hex)` | Màu chữ đọc rõ trên nền $hex: nền sáng → navy, nền tối → trắng (độ sáng tương đối WCAG). |
 | `hithean_offers_topbar_lines(string $raw)` | "Nội dung \| đường dẫn" mỗi dòng → [['text', 'url']] (hàm thuần; url chưa escape). Bỏ dòng trống, tối đa 6 dòng, 200 ký tự. |
 | `hithean_offers_topbar_config()` | Cấu hình đã chuẩn hóa: enabled, lines, button, color (blue \| red \| custom), bg + fg (mã màu nền / chữ). |
 | `hithean_offers_topbar_key(array $config)` | Khóa nội dung — khách đã đóng thanh, admin đổi nội dung thì thanh hiện lại. |
 | `hithean_offers_topbar_visible()` | Thanh có in ở request này không (front). |
+| `hithean_offers_topbar_message_html(array $line, bool $opens_popup)` | Nội dung 1 thông điệp: có link → <a>; không link + đã ẩn nút CTA ($opens_popup) → <button> bấm mở popup chương trình; còn lại → chữ thường. |
 | `hithean_offers_topbar_render()` | HTML thanh (hàm in) — gọi từ header.php qua do_action('hithean_site_topbar'). |
 | `hithean_offers_topbar_products_html(array $rows, int $max = 5)` | Danh sách SP của 1 chương trình nhiều SP (mỗi SP 1 CTA "Xem sản phẩm"). |
 | `hithean_offers_topbar_cards(int $limit = 20)` | Thẻ popup: thẻ ưu đãi chung + phạm vi + CTA tới trang sản phẩm. 1 SP → nút "Xem sản phẩm" · toàn shop → "Xem sản phẩm" (cửa hàng / danh mục) · nhiều SP → danh sách ≤5 SP + "Xem… |

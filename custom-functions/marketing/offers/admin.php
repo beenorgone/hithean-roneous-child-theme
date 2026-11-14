@@ -47,6 +47,7 @@ add_action('admin_post_hithean_offers_action', static function (): void {
                 'topbar' => !empty($_POST['topbar']),
                 'topbar_text' => sanitize_textarea_field(wp_unslash($_POST['topbar_text'] ?? '')),
                 'topbar_button' => sanitize_text_field(wp_unslash($_POST['topbar_button'] ?? '')) ?: 'Xem chi tiết',
+                'topbar_hide_button' => hithean_offers_topbar_hide_value(sanitize_key(wp_unslash($_POST['topbar_hide_button'] ?? ''))),
                 'topbar_color' => isset(HITHEAN_TOPBAR_COLORS[$_POST['topbar_color'] ?? '']) ? (string) $_POST['topbar_color'] : 'blue',
                 'topbar_bg' => hithean_offers_topbar_hex(sanitize_text_field(wp_unslash($_POST['topbar_bg'] ?? '')))];
             if ($next['topbar_color'] === 'custom' && $next['topbar_bg'] === '') { throw new RuntimeException('Mã màu nền thanh ưu đãi không hợp lệ — nhập dạng #e0245e.'); }
@@ -57,7 +58,7 @@ add_action('admin_post_hithean_offers_action', static function (): void {
             // Nút ưu đãi nằm trên mọi trang có danh sách sản phẩm → đổi vị trí / bật công khai thì xoá cache toàn site.
             // Thanh ưu đãi đầu trang in sẵn trong HTML mọi trang → đổi nội dung / bật tắt cũng xoá cache toàn site.
             $topbar_changed = false;
-            foreach (['topbar', 'topbar_text', 'topbar_button', 'topbar_color', 'topbar_bg'] as $field) { $topbar_changed = $topbar_changed || ($old[$field] ?? null) !== $next[$field]; }
+            foreach (['topbar', 'topbar_text', 'topbar_button', 'topbar_hide_button', 'topbar_color', 'topbar_bg'] as $field) { $topbar_changed = $topbar_changed || ($old[$field] ?? null) !== $next[$field]; }
             if (($old['preview'] !== $next['preview'] || $old['loop_button'] !== $next['loop_button'] || $old['loop_button_mobile'] !== $next['loop_button_mobile'] || $order_changed || $topbar_changed) && function_exists('rocket_clean_domain')) { rocket_clean_domain(); }
         } elseif ($action === 'lark_test') {
             $error = hithean_offers_lark_test();
@@ -220,13 +221,23 @@ function hithean_offers_admin(): void {
     foreach (array_reverse((array) get_option('hithean_offers_history', [])) as $entry) { echo '<p>' . esc_html(wp_date('d/m/Y H:i', $entry['started_at']) . ' · ' . $entry['status'] . ' · ' . $entry['ok'] . '/' . $entry['total'] . ' · ' . $entry['failed'] . ' lỗi') . '</p>'; }
     echo '</details></div>';
 }
+/** Ô chọn ẩn nút CTA theo thiết bị. */
+function hithean_offers_topbar_hide_field($saved): string {
+    $current = hithean_offers_topbar_hide_value($saved);
+    $html = '<p>Ẩn nút CTA: ';
+    foreach (HITHEAN_TOPBAR_HIDE_CTA as $key => $label) {
+        $html .= '<label style="margin-right:14px"><input type="radio" name="topbar_hide_button" value="' . esc_attr($key) . '" ' . checked($current, $key, false) . '> ' . esc_html($label) . '</label>';
+    }
+    return $html . '<br><span class="description">Ở thiết bị đã ẩn nút, khách bấm vào thông điệp để mở popup chương trình (dòng có gắn link vẫn mở link). Điện thoại = màn hình ≤ 767px.</span></p>';
+}
 /** Cài đặt thanh ưu đãi đầu trang (offers/topbar.php). */
 function hithean_offers_topbar_fieldset(array $s): string {
     $html = '<fieldset class="ho-topbar"><legend>Thanh ưu đãi đầu trang (dính trên cùng mọi trang)</legend>'
         . '<p><label><input type="checkbox" name="topbar" ' . checked(!empty($s['topbar']), true, false) . '> Hiện thanh ưu đãi</label></p>'
         . '<p><label>Nội dung — mỗi dòng 1 thông điệp, nhiều dòng thì tự xoay vòng 5 giây (tối đa ' . HITHEAN_TOPBAR_MAX_LINES . ' dòng). Gắn link: <code>Nội dung | /duong-dan/</code>'
         . '<textarea name="topbar_text" rows="4" class="widefat" placeholder="🎁 Mua 2 tặng 1 An New Chapter — đến hết 30/11&#10;🚚 Miễn phí vận chuyển đơn từ 500.000đ | /uu-dai/">' . esc_textarea((string) ($s['topbar_text'] ?? '')) . '</textarea></label></p>'
-        . '<p><label>Nhãn nút mở popup <input type="text" name="topbar_button" maxlength="30" value="' . esc_attr((string) ($s['topbar_button'] ?? 'Xem chi tiết')) . '"></label></p>'
+        . '<p><label>Nhãn nút mở popup <input type="text" name="topbar_button" maxlength="30" value="' . esc_attr((string) ($s['topbar_button'] ?? 'Xem chi tiết')) . '"></label>'
+        . '</p>' . hithean_offers_topbar_hide_field($s['topbar_hide_button'] ?? '')
         . '<p>Màu nền: ';
     $current = isset(HITHEAN_TOPBAR_COLORS[$s['topbar_color'] ?? '']) ? (string) $s['topbar_color'] : 'blue';
     $custom = hithean_offers_topbar_hex((string) ($s['topbar_bg'] ?? '')) ?: '#e0245e';

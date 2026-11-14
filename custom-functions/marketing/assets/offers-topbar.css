@@ -15,6 +15,19 @@
 .hpt__text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .hpt__msg a { color: inherit !important; text-decoration: underline; text-underline-offset: 3px; }
 .hpt__msg a:hover { opacity: .85; }
+/* Ẩn nút CTA → thông điệp là nút mở popup (offers/topbar.php hithean_offers_topbar_message_html). */
+.hpt .hpt__text--open { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; font: inherit; font-weight: 500; line-height: inherit; letter-spacing: 0; text-align: inherit; text-transform: none; box-shadow: none; cursor: pointer; }
+.hpt .hpt__text--open:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* Ẩn nút theo thiết bị; ở thiết bị còn nút thì thông điệp là chữ thường (không bấm). */
+.hpt--cta-both .hpt__more { display: none; }
+@media (max-width: 767px) {
+    .hpt--cta-mobile .hpt__more { display: none; }
+    .hpt--cta-desktop .hpt__text--open { pointer-events: none; cursor: default; text-decoration: none; }
+}
+@media (min-width: 768px) {
+    .hpt--cta-desktop .hpt__more { display: none; }
+    .hpt--cta-mobile .hpt__text--open { pointer-events: none; cursor: default; text-decoration: none; }
+}
 /* Nút riêng (không .button — admin.css / theme ép kiểu nút). */
 .hpt .hpt__more { flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 28px; margin: 0; padding: 4px 12px; border: 1px solid currentColor; border-radius: 999px; background: transparent; color: inherit; font: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; letter-spacing: 0; text-transform: none; white-space: nowrap; cursor: pointer; box-shadow: none; }
 .hpt .hpt__more:hover { background: var(--hpt-fg); color: var(--hpt-bg); }
@@ -45,6 +58,12 @@ html.hpt-on body.site-scrolled.admin-bar .nav-container nav.absolute { top: var(
 /* Người quản lý: thanh admin WP cố định ở trên cùng. */
 @media (min-width: 783px) { body.admin-bar .hpt { top: 32px; } }
 @media (min-width: 601px) and (max-width: 782px) { body.admin-bar .hpt { top: 46px; } }
+
+/* Nút VI / EN dạng fixed góc trên-phải (css/language-switcher.css, top 12px) → xuống dưới thanh để không che nội dung thanh. */
+html.hpt-on .hithean-lang-switch.hithean-lang-switch--mobile-fixed,
+html.hpt-on .hithean-lang-switch.hithean-lang-switch--force-visible,
+html.hpt-on .hithean-lang-switch.hithean-lang-switch--homepage-fixed { top: calc(var(--hpt-h) + 8px) !important; }
+@media (min-width: 783px) { html.hpt-on body.admin-bar .hithean-lang-switch.hithean-lang-switch--force-visible { top: calc(var(--hpt-h) + 40px) !important; } }
 
 /* Popup "Xem chi tiết" — khung .hithean-offers-dialog + thẻ .hithean-offer-card (offer-card.css). */
 .hpt-dialog .hpt-dialog__status { padding: 24px 8px; list-style: none; text-align: center; opacity: .7; }

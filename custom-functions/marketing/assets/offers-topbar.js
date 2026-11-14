@@ -75,7 +75,8 @@
     function close() {
         if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open');
     }
-    bar.querySelector('[data-hpt-open]').addEventListener('click', open);
+    /* Nút CTA, hoặc chính thông điệp khi đã ẩn nút CTA (button.hpt__text--open). */
+    bar.addEventListener('click', function (event) { if (event.target.closest('[data-hpt-open]')) open(); });
     dialog.querySelector('[data-hpt-dialog-close]').addEventListener('click', close);
     dialog.addEventListener('close', function () { document.body.classList.remove('hpt-modal-open'); });
     dialog.addEventListener('click', function (event) {

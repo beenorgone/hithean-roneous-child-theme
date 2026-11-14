@@ -38,5 +38,15 @@ const html = `<!doctype html><html class="hpt-on"><body>
     ok(fetched === 1, 'Mở lại không tải lại');
     d.querySelector('[data-hpt-close]').click();
     ok(!d.getElementById('hithean-topbar') && !d.documentElement.classList.contains('hpt-on') && w.sessionStorage.getItem('hpt-off') === 'abc', 'Đóng thanh: gỡ thanh, bỏ chừa chỗ, nhớ khóa nội dung trong phiên');
+    // Ẩn nút CTA: bấm thông điệp mở popup.
+    const dom2 = new JSDOM(`<!doctype html><html><body><div id="hithean-topbar" data-hpt-key="k"><div class="hpt__msgs"><p data-hpt-msg class="is-active"><button class="hpt__text hpt__text--open" data-hpt-open>Mua 2 tặng 1</button></p></div><button data-hpt-close>×</button></div>
+<dialog id="hpt-dialog"><p data-hpt-meta></p><button data-hpt-dialog-close>×</button><ul data-hpt-list></ul></dialog></body></html>`, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://hithean.test/' });
+    const w2 = dom2.window;
+    w2.hitheanTopbar = { ajaxUrl: '/wp-admin/admin-ajax.php' };
+    w2.fetch = () => Promise.resolve({ json: () => Promise.resolve({ success: true, data: { meta: '1 chương trình', html: '<li>x</li>' } }) });
+    w2.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+    w2.eval(js);
+    w2.document.querySelector('.hpt__text--open').click();
+    ok(w2.document.getElementById('hpt-dialog').hasAttribute('open'), 'Ẩn nút CTA: bấm thông điệp mở popup chương trình');
     console.log(`PASS: ${count} offers-topbar UI assertions`);
 })();

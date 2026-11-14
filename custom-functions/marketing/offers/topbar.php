@@ -8,12 +8,21 @@
  *   - Popup tải AJAX khi mở (hithean_offers_topbar, chỉ đọc, không nonce) — trang có thể cache, snapshot đổi theo lịch.
  * In ở hook `hithean_site_topbar` (header.php, ngay sau <body>) → landing dùng template riêng (/uu-dai/, ANC, /tao-don) tự không có.
  * Ẩn ở trang thanh toán / cảm ơn. Chỉ hiện khi snapshot công khai (hoặc quản lý xem trước) — hithean_loop_offers_enabled().
+ * Tùy chọn ẩn nút CTA ('topbar_hide_button': mobile | desktop | both) → ở thiết bị đó bấm vào thông điệp (dòng không gắn link) mở popup.
  * Khách bấm × → ẩn trong phiên (sessionStorage `hpt-off` = khóa nội dung; đổi nội dung là hiện lại).
  * Chiều cao theo nội dung + padding (5px máy tính / 10px mobile); --hpt-h đo bằng JS ngay khi in thanh để body + menu Roneous dạng fixed chừa chỗ.
  */
 defined('ABSPATH') || exit;
 
 const HITHEAN_TOPBAR_MAX_LINES = 6;
+/** Ẩn nút CTA: '' = luôn hiện · mobile (≤767px) · desktop · both. */
+const HITHEAN_TOPBAR_HIDE_CTA = ['' => 'Không ẩn', 'mobile' => 'Ẩn trên điện thoại', 'desktop' => 'Ẩn trên máy tính', 'both' => 'Ẩn cả hai'];
+
+/** Chuẩn hóa tùy chọn ẩn nút CTA (hàm thuần); bản cũ lưu true → 'both'. */
+function hithean_offers_topbar_hide_value($value): string {
+    if ($value === true || $value === 1 || $value === '1') { return 'both'; }
+    return is_string($value) && isset(HITHEAN_TOPBAR_HIDE_CTA[$value]) ? $value : '';
+}
 /** Màu nền có sẵn => [nhãn, mã màu]; 'custom' = mã màu admin nhập (settings 'topbar_bg'). */
 const HITHEAN_TOPBAR_COLORS = ['blue' => ['Xanh dương thương hiệu', '#0047ba'], 'red' => ['Hồng đỏ nổi bật', '#e0245e'], 'custom' => ['Mã màu tự chọn', '']];
 
@@ -54,6 +63,7 @@ function hithean_offers_topbar_config(): array {
         'enabled' => !empty($s['topbar']),
         'lines' => hithean_offers_topbar_lines((string) ($s['topbar_text'] ?? '')),
         'button' => $button !== '' ? mb_substr($button, 0, 30) : 'Xem chi tiết',
+        'hide_button' => hithean_offers_topbar_hide_value($s['topbar_hide_button'] ?? ''),
     ];
     $color = isset(HITHEAN_TOPBAR_COLORS[$s['topbar_color'] ?? '']) ? (string) $s['topbar_color'] : 'blue';
     $bg = $color === 'custom' ? hithean_offers_topbar_hex((string) ($s['topbar_bg'] ?? '')) : HITHEAN_TOPBAR_COLORS[$color][1];
@@ -90,6 +100,16 @@ add_action('wp_enqueue_scripts', static function (): void {
     wp_localize_script('hithean-offers-topbar', 'hitheanTopbar', ['ajaxUrl' => admin_url('admin-ajax.php')]);
 }, 20);
 
+/**
+ * Nội dung 1 thông điệp: có link → <a>; không link + đã ẩn nút CTA ($opens_popup) → <button> bấm mở popup chương trình; còn lại → chữ thường.
+ */
+function hithean_offers_topbar_message_html(array $line, bool $opens_popup): string {
+    $text = esc_html($line['text']);
+    if ($line['url'] !== '') { return '<a class="hpt__text" href="' . esc_url($line['url']) . '">' . $text . '</a>'; }
+    if ($opens_popup) { return '<button type="button" class="hpt__text hpt__text--open" data-hpt-open aria-haspopup="dialog" aria-controls="hpt-dialog">' . $text . '</button>'; }
+    return '<span class="hpt__text">' . $text . '</span>';
+}
+
 /** HTML thanh (hàm in) — gọi từ header.php qua do_action('hithean_site_topbar'). */
 function hithean_offers_topbar_render(): void {
     if (!hithean_offers_topbar_visible()) { return; }
@@ -97,14 +117,15 @@ function hithean_offers_topbar_render(): void {
     $key = hithean_offers_topbar_key($config);
     $messages = '';
     foreach ($config['lines'] as $i => $line) {
-        $text = esc_html($line['text']);
-        $inner = $line['url'] !== '' ? '<a class="hpt__text" href="' . esc_url($line['url']) . '">' . $text . '</a>' : '<span class="hpt__text">' . $text . '</span>';
-        $messages .= '<p class="hpt__msg' . ($i === 0 ? ' is-active' : '') . '" data-hpt-msg title="' . esc_attr($line['text']) . '"' . ($i === 0 ? '' : ' aria-hidden="true"') . '>' . $inner . '</p>';
+        $messages .= '<p class="hpt__msg' . ($i === 0 ? ' is-active' : '') . '" data-hpt-msg title="' . esc_attr($line['text']) . '"' . ($i === 0 ? '' : ' aria-hidden="true"') . '>'
+            . hithean_offers_topbar_message_html($line, $config['hide_button'] !== '') . '</p>';
     }
-    echo '<div class="hpt hpt--' . esc_attr($config['color']) . '" style="--hpt-bg:' . esc_attr($config['bg']) . ';--hpt-fg:' . esc_attr($config['fg']) . '" id="hithean-topbar" data-hpt data-hpt-key="' . esc_attr($key) . '" role="region" aria-label="Chương trình ưu đãi">'
+    // Trang có thể cache → ẩn nút theo thiết bị bằng CSS (.hpt--cta-mobile / -desktop); thông điệp chỉ bấm được ở thiết bị đã ẩn nút.
+    $cta_class = $config['hide_button'] !== '' ? ' hpt--cta-' . $config['hide_button'] : '';
+    echo '<div class="hpt hpt--' . esc_attr($config['color']) . $cta_class . '" style="--hpt-bg:' . esc_attr($config['bg']) . ';--hpt-fg:' . esc_attr($config['fg']) . '" id="hithean-topbar" data-hpt data-hpt-key="' . esc_attr($key) . '" role="region" aria-label="Chương trình ưu đãi">'
         . '<div class="hpt__inner"><span class="hpt__star" aria-hidden="true">✳</span>'
         . '<div class="hpt__msgs" data-hpt-msgs>' . $messages . '</div>'
-        . '<button type="button" class="hpt__more" data-hpt-open aria-haspopup="dialog" aria-controls="hpt-dialog">' . esc_html($config['button']) . '<span aria-hidden="true"> ›</span></button>'
+        . ($config['hide_button'] === 'both' ? '' : '<button type="button" class="hpt__more" data-hpt-open aria-haspopup="dialog" aria-controls="hpt-dialog">' . esc_html($config['button']) . '<span aria-hidden="true"> ›</span></button>')
         . '<button type="button" class="hpt__close" data-hpt-close aria-label="Ẩn thanh ưu đãi">×</button></div></div>';
     // Chạy ngay (trước khi vẽ phần còn lại): khách đã đóng trong phiên → bỏ thanh; ngược lại bật chừa chỗ cho thanh.
     echo '<script>(function(){var b=document.getElementById("hithean-topbar");try{if(sessionStorage.getItem("hpt-off")===b.getAttribute("data-hpt-key")){b.parentNode.removeChild(b);return;}}catch(e){}var r=document.documentElement;r.style.setProperty("--hpt-h",b.offsetHeight+"px");r.classList.add("hpt-on");})();</script>';

@@ -348,6 +348,14 @@ ok(hithean_offers_topbar_config()['button'] === 'Xem chi tiết' && hithean_offe
 ok(hithean_offers_topbar_hex('E0245E') === '#e0245e' && hithean_offers_topbar_hex('#fC0') === '#ffcc00' && hithean_offers_topbar_hex('red') === '' && hithean_offers_topbar_hex('#12345') === '', 'Topbar: chuẩn hóa mã màu hex, từ chối giá trị lạ');
 ok(hithean_offers_topbar_fg('#e0245e') === '#ffffff' && hithean_offers_topbar_fg('#fbb917') === '#001f3f' && hithean_offers_topbar_fg('#ffffff') === '#001f3f', 'Topbar: chữ trắng trên nền tối, navy trên nền sáng');
 $saved_settings = $GLOBALS['options']['hithean_offers_settings'] ?? [];
+ok(hithean_offers_topbar_config()['hide_button'] === '', 'Topbar: mặc định hiện nút CTA');
+$GLOBALS['options']['hithean_offers_settings'] = array_merge($saved_settings, ['topbar_hide_button' => 'mobile']);
+ok(hithean_offers_topbar_config()['hide_button'] === 'mobile', 'Topbar: ẩn nút CTA trên điện thoại');
+ok(hithean_offers_topbar_hide_value('desktop') === 'desktop' && hithean_offers_topbar_hide_value('both') === 'both' && hithean_offers_topbar_hide_value(true) === 'both' && hithean_offers_topbar_hide_value('x') === '', 'Topbar: chuẩn hóa ẩn nút CTA (mobile / desktop / cả hai; giá trị lạ → không ẩn)');
+$msg_open = hithean_offers_topbar_message_html(['text' => 'Mua 2 tặng 1', 'url' => ''], true);
+$msg_link = hithean_offers_topbar_message_html(['text' => 'Freeship', 'url' => '/uu-dai/'], true);
+ok(str_contains($msg_open, '<button') && str_contains($msg_open, 'data-hpt-open') && str_contains($msg_link, '<a ') && !str_contains($msg_link, 'data-hpt-open'), 'Ẩn nút CTA: thông điệp không link thành nút mở popup, dòng có link giữ link');
+ok(str_starts_with(hithean_offers_topbar_message_html(['text' => 'A', 'url' => ''], false), '<span'), 'Còn nút CTA: thông điệp là chữ thường');
 $GLOBALS['options']['hithean_offers_settings'] = array_merge($saved_settings, ['topbar_color' => 'custom', 'topbar_bg' => '#fbb917']);
 ok(hithean_offers_topbar_config()['bg'] === '#fbb917' && hithean_offers_topbar_config()['color'] === 'custom', 'Topbar: mã màu tự chọn');
 $GLOBALS['options']['hithean_offers_settings'] = array_merge($saved_settings, ['topbar_color' => 'custom', 'topbar_bg' => 'xyz']);
