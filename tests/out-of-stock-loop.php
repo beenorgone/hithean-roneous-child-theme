@@ -3,7 +3,13 @@
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 define('ABSPATH', __DIR__);
 $GLOBALS['filters'] = []; $GLOBALS['option'] = null; $GLOBALS['admin'] = false; $GLOBALS['meta'] = [];
-function add_filter($tag, $cb, $prio = 10, $n = 1) { $GLOBALS['filters'][$tag] = $cb; }
+function add_filter($tag, $cb, $prio = 10, $n = 1) {
+    $GLOBALS['cbs'][$tag][] = $cb;
+    $GLOBALS['filters'][$tag] = static function ($value, ...$args) use ($tag) {
+        foreach ($GLOBALS['cbs'][$tag] as $f) { $value = $f($value, ...$args); }
+        return $value;
+    };
+}
 function add_action($tag, $cb, $prio = 10, $n = 1) { $GLOBALS['filters'][$tag] = $cb; }
 function is_admin() { return $GLOBALS['admin']; }
 function wp_doing_ajax() { return false; }
@@ -85,6 +91,7 @@ ok(hithean_oos_loop_mode_for_path('/bat-ky/', 'hide', [['path' => '*', 'mode' =>
 ok(hithean_oos_loop_attr_mode('an') === 'hide' && hithean_oos_loop_attr_mode('cuoi') === 'last' && hithean_oos_loop_attr_mode('x') === '', 'het_hang="an|cuoi"');
 $atts = $GLOBALS['filters']['shortcode_atts_products'](['limit' => 4], [], ['het_hang' => 'an']);
 ok($atts['het_hang'] === 'an', 'Woo giữ thuộc tính het_hang');
+ok($atts['class'] === 'hithean-oos-hide', 'Thẻ bọc có class dấu hiệu theo chế độ');
 $args = $GLOBALS['filters']['woocommerce_shortcode_products_query'](['post_type' => 'product'], ['het_hang' => 'cuoi']);
 ok($args['hithean_oos_loop'] === 'last', 'Thuộc tính shortcode đè chế độ trang');
 $cl = $GLOBALS['filters']['posts_clauses']($base, new WP_Query(['post_type' => 'product', 'hithean_oos_loop' => 'last']));

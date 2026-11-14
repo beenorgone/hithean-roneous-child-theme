@@ -195,6 +195,16 @@ add_filter('woocommerce_shortcode_products_query', static function ($args, $attr
     return $args;
 }, 20, 2);
 
+// Dấu hiệu trên thẻ bọc khối [products] (class hithean-oos-last|hide) — kiểm tra nhanh trên site là filter đã chạy.
+add_filter('shortcode_atts_products', static function ($out, $pairs, $atts) {
+    if (is_array($out)) {
+        $attr = hithean_oos_loop_attr_mode(is_array($atts) ? ($atts['het_hang'] ?? '') : '');
+        $mode = $attr !== '' ? $attr : hithean_oos_loop_current_mode();
+        $out['class'] = trim((string) ($out['class'] ?? '') . ' hithean-oos-' . $mode);
+    }
+    return $out;
+}, 11, 3);
+
 // SP liên quan: Woo xáo ngẫu nhiên nên chỉ áp được chế độ ẩn.
 add_filter('woocommerce_related_products', static function ($ids) {
     if (!is_array($ids) || hithean_oos_loop_current_mode() !== 'hide') {
