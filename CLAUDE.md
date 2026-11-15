@@ -295,3 +295,14 @@ dùng 1 lần → `order-workspace-tabs.js` gọi AJAX `child_theme_hub_sepay_ur
 Khung `[order_return_management]` (shortcodes/shortcode-order-return-manager.php) ngay dưới danh sách đơn hoàn:
 `thean_order_portal_render_returns_panel()` (order-portal.php, giống hệt bản theanmarket), iframe công cụ `?thean_order_tool=returns`
 (`thean_order_return_tools()` ở order-product-tools.php); chỉ `manage_woocommerce`, iframe tải lần đầu mở tab; xử lý hoàn trong khung → board tự Làm mới.
+
+## Đơn chưa upload ảnh trong form xuất kho
+
+`[upload_export_images_form]` có danh sách **Đơn chưa upload ảnh**, mặc định **30 ngày qua** theo ngày tạo;
+chọn 60/90 ngày và trạng thái, 20 đơn/trang. Không gồm Hủy/Thất bại/Hoàn tiền/đơn nháp hoặc đơn gộp Shopee
+(`_spx_date`). Nút Upload ảnh điền sẵn ID vào form đơn website; không đổi đơn khi đang chọn ảnh cho đơn khác.
+Sau upload thành công, danh sách làm mới và giữ bộ lọc. Helper dùng chung `orders/order-export-missing-images.php`,
+CSS/JS `orders/assets/export-missing-images.*`; AJAX `thean_export_missing_images` khai trong module export của loader,
+kiểm nonce + `manage_woocommerce` + `upload_files`. SQL giới hạn cửa sổ 90 ngày, lấy 21 ID trước phân trang;
+HPOS kiểm cả meta chính và legacy fallback để không báo thiếu ảnh cũ. Không đổi trạng thái hay xác nhận xuất kho.
+Kiểm tra: `php tests/export-missing-images.php`, `node tests/export-missing-images.cjs`.

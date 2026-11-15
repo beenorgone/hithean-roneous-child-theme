@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-35 file · ~11.000 dòng · 411 hàm (62% có docblock)
+36 file · ~11.100 dòng · 417 hàm (62% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -15,6 +15,7 @@
 | AJAX | `child_theme_hub_pay_url` | payment-hub-link.php |
 | AJAX | `child_theme_hub_sepay_url` | payment-hub-link.php |
 | AJAX | `thean_customer_note_templates` | customer-note-templates.php |
+| AJAX | `thean_export_missing_images` | order-export-missing-images.php |
 | AJAX | `thean_order_export_review` | order-export-review.php |
 | AJAX | `thean_order_usearch` | order-universal-search.php |
 | AJAX | `thean_order_usearch_alerts` | order-universal-search.php |
@@ -143,6 +144,17 @@ Cột "Thao tác" ở danh sách đơn admin: [nút bước tiếp theo] [✏ S�
 | `status_change_handle_packaging_status($order_id, $order = null, $status_transition = null)` | — |
 | `status_change_handle_shipping_status($order_id, $order = null, $status_transition = null)` | — |
 | `status_change_handle_received_payment_status($order_id, $order = null, $status_transition = null)` | — |
+
+### `woocommerce/orders/order-export-missing-images.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `thean_export_missing_statuses()` | Website orders only: Shopee aggregate orders keep evidence on their packages. |
+| `thean_export_missing_filters(array $input)` | — |
+| `thean_export_missing_ids(array $filters)` | Bounded SQL before pagination; WC legacy order queries do not support meta_query. |
+| `thean_export_missing_shell()` | — |
+| `thean_export_missing_cards(array $ids)` | — |
+| `thean_export_missing_ajax()` | — |
 
 ### `woocommerce/orders/order-export-review.php`
 

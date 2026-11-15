@@ -1,6 +1,8 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+require_once __DIR__ . '/../woocommerce/orders/order-export-missing-images.php';
+
 if (!function_exists('hithean_upload_internal_order_image')) {
     /**
      * Store internal order evidence images without generating every registered
@@ -468,6 +470,7 @@ function shortcode_upload_export_images_form()
         <div id="ueif-web-bulk-status" style="max-width:640px;"></div>
     </form>
     <?php
+    echo thean_export_missing_shell();
     return ob_get_clean();
 }
 add_shortcode('upload_export_images_form', 'shortcode_upload_export_images_form');
@@ -984,6 +987,7 @@ function hithean_export_confirm_assets(): void
             </div>
         </div>
     </div>
+    <script src="<?php echo esc_url(get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/export-missing-images.js'); ?>?ver=<?php echo esc_attr((string) filemtime(get_stylesheet_directory() . '/custom-functions/woocommerce/orders/assets/export-missing-images.js')); ?>"></script>
     <script src="<?php echo esc_url(get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/export-image-upload.js'); ?>?ver=<?php echo esc_attr((string) @filemtime(get_stylesheet_directory() . '/custom-functions/woocommerce/orders/assets/export-image-upload.js')); ?>"></script>
     <script src="<?php echo esc_url(get_stylesheet_directory_uri() . '/custom-functions/shortcodes/assets/export-bulk.js'); ?>?ver=<?php echo esc_attr((string) @filemtime(__DIR__ . '/assets/export-bulk.js')); ?>"></script>
     <script>
@@ -1371,6 +1375,7 @@ function hithean_export_confirm_assets(): void
             // force: sau thao tác của chính người dùng → chờ hết bận rồi làm mới, luôn render lại.
             window.uexeRefreshLists = function(force) {
                 if (window.frameElement && window.frameElement.closest('[hidden]')) return;
+                if (force) document.dispatchEvent(new CustomEvent('thean:export-images-updated'));
                 const boxes = Array.from(document.querySelectorAll('[data-uexe-live]'));
                 if (!boxes.length) return;
                 if (uexeLiveBusy(false)) {
