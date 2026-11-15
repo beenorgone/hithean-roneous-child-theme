@@ -91,6 +91,7 @@ function thean_qm_render(): void
         'checklist' => function_exists($site['checklist']) ? (array) call_user_func($site['checklist']) : [],
     ];
     ?>
+    <script src="<?php echo esc_url(get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/export-image-upload.js'); ?>?ver=<?php echo esc_attr((string) @filemtime(get_stylesheet_directory() . '/custom-functions/woocommerce/orders/assets/export-image-upload.js')); ?>"></script>
     <style>
         .thean-quick-modal[hidden] { display:none; }
         .thean-quick-modal { position:fixed; z-index:1000000; inset:0; display:grid; place-items:center; padding:24px; }
@@ -198,7 +199,10 @@ function thean_qm_render(): void
         function request(action, fd) {
             fd.append('action', action);
             var ids = String(fd.get('order_id') || fd.get('ueif_order_id') || fd.get('uexe_order_id') || fd.get('order_ids') || '');
-            return fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd }).then(function (r) { return r.json(); }).then(function (response) {
+            var pending = action === 'ajax_upload_images'
+                ? window.TheanExportUpload.upload(cfg.ajaxUrl, fd)
+                : fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd }).then(function (r) { return r.json(); });
+            return pending.then(function (response) {
                 if (response.success && ids && action !== 'thean_export_images_list') document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderIds: ids.split(',') } }));
                 return response;
             });
@@ -322,8 +326,8 @@ function thean_qm_render(): void
             if (!files.length) { setNotice(form, 'Hãy chọn ảnh xuất kho để upload.', true); return; }
             if (files.length > 5) { setNotice(form, 'Chỉ được upload tối đa 5 ảnh mỗi lần.', true); return; }
             if (form.querySelectorAll('[data-thean-checklist] input:not(:checked)').length) { setNotice(form, 'Hãy xác nhận đầy đủ checklist trước khi upload.', true); return; }
-            var aiCheck = form.elements.ueif_ai_check && form.elements.ueif_ai_check.checked, orderId = activeOrder;
-            setLoading(form, true, aiCheck ? 'Đang upload, đưa AI vào hàng đợi...' : 'Đang upload...');
+            var orderId = activeOrder;
+            setLoading(form, true, 'Đang xử lý ảnh và tải lên...');
             var fd = new FormData(form); fd.append('nonce', cfg.nonces.exportImages);
             request('ajax_upload_images', fd).then(function (response) {
                 if (!response.success) throw new Error(messageFrom(response, 'Không thể upload ảnh.'));

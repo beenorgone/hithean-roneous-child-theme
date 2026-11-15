@@ -1,0 +1,61 @@
+<!doctype html><meta charset="utf-8"><title>Export image upload regression checks</title>
+<pre id="result">Running…</pre>
+<script src="../../custom-functions/woocommerce/orders/assets/export-image-upload.js"></script>
+<script>
+(async function () {
+    const checks = [];
+    const ok = (value, label) => { if (!value) throw new Error(label); checks.push(label); };
+    const reject = async (job, text) => {
+        try { await job(); } catch (e) { ok(e.message.includes(text), 'error: ' + text); return; }
+        throw new Error('Expected error: ' + text);
+    };
+    const blobOf = (c, type) => new Promise(resolve => c.toBlob(resolve, type));
+    const decode = async blob => {
+        const url = URL.createObjectURL(blob), image = new Image();
+        try { image.src = url; await image.decode(); return image; } finally { URL.revokeObjectURL(url); }
+    };
+    try {
+        const helper = window.TheanExportUpload, originalFetch = window.fetch;
+        const canvas = document.createElement('canvas'); canvas.width = 2400; canvas.height = 1800;
+        const ctx = canvas.getContext('2d'); ctx.fillStyle = '#0047ba'; ctx.fillRect(0, 0, 2400, 1800);
+        const jpeg = new Uint8Array(await (await blobOf(canvas, 'image/jpeg')).arrayBuffer());
+        // A valid JPEG comment containing a PHP-like marker must not survive re-encoding.
+        const comment = new TextEncoder().encode('<?php echo "fixture"; ?>');
+        const source = new File([jpeg.slice(0, 2), new Uint8Array([255, 254, 0, comment.length + 2]), comment, jpeg.slice(2)], 'evidence.jpeg', {type: 'image/jpeg'});
+        const png = new File([await blobOf(canvas, 'image/png')], 'label.png', {type: 'image/png'});
+        const fd = new FormData(); fd.append('action', 'ajax_upload_images'); fd.append('nonce', 'fixture-nonce'); fd.append('ueif_order_id', '42'); fd.append('ueif_ai_check', '1');
+        fd.append('ueif_images[]', source); fd.append('ueif_images[]', png);
+        const prepared = await helper.prepare(fd), files = prepared.getAll('ueif_images[]');
+        ok(files.length === 2 && files.map(f => f.name).join(',') === 'evidence.jpg,label.jpg', 'count, order, filenames retained as JPG');
+        ok(files.every(f => f.type === 'image/jpeg'), 'output MIME is JPEG');
+        ok(prepared.get('nonce') === 'fixture-nonce' && prepared.get('ueif_order_id') === '42' && prepared.get('ueif_ai_check') === '1', 'nonce, order and AI selection preserved');
+        const image = await decode(files[0]); ok(image.naturalWidth === 1600 && image.naturalHeight === 1200, 'aspect ratio and 1600px cap');
+        ok(!(await files[0].text()).includes('<?php'), 'source JPEG comment removed');
+        ok((await source.text()).includes('<?php') && fd.get('ueif_images[]') === source, 'source file and original FormData untouched');
+        ok(files[0].size < source.size, 'large evidence image compressed');
+        canvas.width = 10; canvas.height = 10; // Clearing creates transparent pixels.
+        const alpha = new FormData(); alpha.append('images[]', new File([await blobOf(canvas, 'image/png')], 'transparent.png'));
+        const alphaImage = await decode((await helper.prepare(alpha)).get('images[]'));
+        ctx.drawImage(alphaImage, 0, 0); const pixel = ctx.getImageData(0, 0, 1, 1).data;
+        ok(pixel[0] > 245 && pixel[1] > 245 && pixel[2] > 245, 'transparent PNG flattened onto white');
+        const invalid = new FormData(); invalid.append('images[]', new File(['not an image'], 'broken.jpg', {type: 'image/jpeg'}));
+        let sends = 0;
+        window.fetch = async (url, opts) => { sends++; ok(opts.credentials === 'same-origin' && opts.body.get('ueif_images[]').name === 'evidence.jpg', 'only normalized bytes sent with same-origin credentials'); return new Response('{"success":true,"data":{"message":"ok"}}'); };
+        await reject(() => helper.upload('/fixture', invalid), 'Không đọc được ảnh'); ok(sends === 0, 'undecodable file never uploaded');
+        const success = await helper.upload('/fixture', fd); ok(success.success && sends === 1, 'upload succeeds without automatic retries');
+        await reject(() => helper.readResponse(new Response('<html>blocked</html>', {status:403})), 'HTTP 403');
+        await reject(() => helper.readResponse(new Response('too large', {status:413})), 'HTTP 413');
+        await reject(() => helper.readResponse(new Response('-1', {status:403})), 'hết hạn');
+        await reject(() => helper.readResponse(new Response('<html>error</html>', {status:500})), 'HTTP 500');
+        await reject(() => helper.readResponse(new Response('0')), 'không hợp lệ');
+        const appError = await helper.readResponse(new Response('{"success":false,"data":"Không có quyền"}'));
+        ok(!appError.success && appError.data === 'Không có quyền', 'application errors retained');
+        window.fetch = async () => { throw new TypeError('Failed to fetch'); };
+        await reject(() => helper.upload('/fixture', fd), 'Mất kết nối');
+        ok(fd.getAll('ueif_images[]').length === 2, 'selection retained after network failure');
+        window.fetch = originalFetch;
+        window.testResult = {success:true, checks};
+    } catch (error) { window.testResult = {success:false, error:error.stack, checks}; }
+    document.getElementById('result').textContent = JSON.stringify(window.testResult, null, 2);
+})();
+</script>

@@ -984,6 +984,7 @@ function hithean_export_confirm_assets(): void
             </div>
         </div>
     </div>
+    <script src="<?php echo esc_url(get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/export-image-upload.js'); ?>?ver=<?php echo esc_attr((string) @filemtime(get_stylesheet_directory() . '/custom-functions/woocommerce/orders/assets/export-image-upload.js')); ?>"></script>
     <script src="<?php echo esc_url(get_stylesheet_directory_uri() . '/custom-functions/shortcodes/assets/export-bulk.js'); ?>?ver=<?php echo esc_attr((string) @filemtime(__DIR__ . '/assets/export-bulk.js')); ?>"></script>
     <script>
         var ueifNonce = "<?php echo esc_js(wp_create_nonce('ajax_upload_images_nonce')); ?>";
@@ -1136,9 +1137,9 @@ function hithean_export_confirm_assets(): void
                 function doUpload() {
                     const btn = uploadForm.querySelector('button[type="submit"]');
                     const originalText = btn.textContent;
-                    const aiCheckRequested = !!uploadForm.querySelector('[name="ueif_ai_check"]:checked');
                     btn.disabled = true;
-                    btn.textContent = aiCheckRequested ? "⏳ Đang upload, đưa AI vào hàng đợi..." : "⏳ Đang upload...";
+                    errorEl.style.display = 'none';
+                    btn.textContent = "⏳ Đang xử lý ảnh và tải lên...";
                     if (isBulk() && webBulk) {
                         btn.textContent = "⏳ Đang tải & AI tách đơn...";
                         webBulk.run(imageInput.files).then(function(state) {
@@ -1159,11 +1160,7 @@ function hithean_export_confirm_assets(): void
                     formData.append("action", "ajax_upload_images");
                     formData.append("nonce", ueifNonce);
 
-                    fetch("<?php echo admin_url('admin-ajax.php'); ?>", {
-                        method: "POST",
-                        body: formData
-                    })
-                    .then(r => r.json())
+                    window.TheanExportUpload.upload("<?php echo esc_js(admin_url('admin-ajax.php')); ?>", formData)
                     .then(res => {
                         const message = res && res.data && typeof res.data === 'object' ? res.data.message : res.data;
                         uexeShowToast(message, res.success);
@@ -1172,8 +1169,10 @@ function hithean_export_confirm_assets(): void
                             uexeRefreshLists(true);
                         }
                     })
-                    .catch(() => {
-                        uexeShowToast("Lỗi kết nối. Vui lòng thử lại.", false);
+                    .catch(error => {
+                        errorEl.textContent = error.message || "Không tải được ảnh. Vui lòng thử lại.";
+                        errorEl.style.display = 'inline-block';
+                        uexeShowToast(errorEl.textContent, false);
                     })
                     .finally(() => {
                         btn.disabled = false;

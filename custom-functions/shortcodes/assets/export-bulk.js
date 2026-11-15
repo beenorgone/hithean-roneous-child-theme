@@ -38,8 +38,10 @@
                 fd.append(k, typeof v === 'object' ? JSON.stringify(v) : v);
             });
             (files || []).forEach(function (f) { fd.append('images[]', f); });
-            return fetch(opts.ajaxUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
-                .then(function (r) { return r.json().catch(function () { throw new Error('Lỗi máy chủ (' + r.status + ')'); }); })
+            var pending = files && files.length
+                ? window.TheanExportUpload.upload(opts.ajaxUrl, fd)
+                : fetch(opts.ajaxUrl, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); });
+            return pending
                 .then(function (j) {
                     if (!j || !j.success) throw new Error((j && j.data && j.data.message) || 'Có lỗi xảy ra');
                     return j.data;

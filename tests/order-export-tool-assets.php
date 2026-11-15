@@ -29,6 +29,8 @@ ob_start(); $callback(); $html = ob_get_clean();
 check(strpos($html, 'id="ueif-checklist-modal"') !== false && strpos($html, 'uexe-gallery-modal') !== false, 'actual checklist and photo gallery rendered');
 check(strpos($html, 'test-ajax_upload_images_nonce') !== false && strpos($html, 'test-ajax_confirm_export_nonce') !== false, 'native upload and confirmation nonces rendered');
 check(strpos($html, 'window.uexeRefreshLists') !== false && strpos($html, "window.frameElement.closest('[hidden]')") !== false, 'live refresh remains available and skips hidden tool frames');
+check(strpos($html, '/orders/assets/export-image-upload.js') !== false && strpos($html, '/orders/assets/export-image-upload.js') < strpos($html, 'var ueifNonce'), 'image preparation helper loads before upload handlers');
+check(strpos($html, 'TheanExportUpload.upload(') !== false, 'single-order upload uses shared image preparation and HTTP errors');
 preg_match_all('/<script\b([^>]*)>([\s\S]*?)<\/script>/i', $html, $scripts, PREG_SET_ORDER);
 $compiled = 0;
 foreach ($scripts as $script) {
