@@ -312,7 +312,7 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_ops_proof_statuses()` | Trạng thái đã giao / xong — thiếu chứng từ xuất kho thì chỉ ở tab "Thiếu / chưa xác nhận ảnh xuất kho". |
 | `thean_ops_shipping_statuses()` | Trạng thái đang giao — thiếu chứng từ thì ở cả tab "Đang giao" (theo dõi) lẫn "Thiếu / chưa xác nhận ảnh xuất kho", không về "Lấy hàng". |
 | `thean_ops_missing_proof(WC_Order $order)` | Chứng từ xuất kho còn thiếu của đơn đang giao / đã giao / xong (rỗng = đủ, hoặc đã đánh dấu bỏ qua, hoặc đơn ngoài diện xét). |
-| `thean_ops_cod_group(WC_Order $order)` | COD debt is independent of fulfillment; completed is not payment confirmation. |
+| `thean_ops_cod_group(WC_Order $order, ?array $flow = null)` | COD debt is independent of fulfillment; completed is not payment confirmation. |
 | `thean_ops_cod_sql(array $t)` | Indexed, persisted COD membership; also admits completed debt with no main step. |
 | `thean_ops_step_from_flow(array $flow, string $status = '')` | Bước tiếp theo (thean_ow_flow) → tab board; '' = không cần xử lý. Hàm thuần. |
 | `thean_ops_step_excluded(WC_Order $order, bool $gated = true)` | Kiểm tra phạm vi riêng để tái dùng flow đã tính mà vẫn giữ bộ lọc hiển thị. Đơn nội bộ KHÔNG bị loại — đi luồng ngoại lệ "Đơn nội bộ" (cờ 'internal' của thean_ops_step_compute). |

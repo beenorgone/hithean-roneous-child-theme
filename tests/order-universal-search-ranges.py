@@ -125,7 +125,7 @@ for scope in scopes:
     created = datetime.fromtimestamp(scope['now'] - D, timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     for oid, step, st, group in [(21, 'none', 'wc-completed', 'cod_fast'),
                                   (22, 'shipping', 'wc-shipping', 'cod'),
-                                  (23, 'picking', 'wc-processing', 'cod_fast')]:
+                                  (23, 'shipping', 'wc-local-shipping', 'cod_fast')]:
         db.execute(f'INSERT INTO {table} VALUES (?,?,?,?,?)', (oid, st, created, 'shop_order', 'customer@example.test'))
         db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (oid, '_thean_ops_step', step))
         db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (oid, '_thean_ops_cod', group))

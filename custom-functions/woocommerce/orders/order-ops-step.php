@@ -41,7 +41,7 @@ add_action('template_redirect', function () {
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '10'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu / chưa xác nhận ảnh xuất kho; 4: cờ chứng từ cho đơn đang giao;
+const THEAN_OPS_STEP_VERSION = '12'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu / chưa xác nhận ảnh xuất kho; 4: cờ chứng từ cho đơn đang giao;
                                     // 5: bắt save_meta_data trên HPOS; 6: lưu bước thật cả đơn nội bộ / đơn cũ + đọc đơn bỏ qua cache;
                                     // 7: tính lại cả đơn đóng còn hoàn hàng; 8: nhóm khách/COD, giao nhanh chưa xuất không tính đã giao đi)
 const THEAN_OPS_COD_META = '_thean_ops_cod'; // Parallel unpaid COD queue: cod_fast | cod.
@@ -106,7 +106,7 @@ function thean_ops_step_groups(string $tab): array
 {
     return [
         'confirm' => ['confirm' => 'Đơn chờ xác nhận', 'payment' => 'Đơn chờ thanh toán trước'],
-        'cod' => ['cod_fast' => 'Giao nhanh / Chưa chọn đơn vị giao / Đã giao, hoàn thành', 'cod' => 'GHTK / Viettel'],
+        'cod' => ['cod_fast' => 'Đang giao nhanh / Đã giao / Hoàn thành', 'cod' => 'GHTK / Viettel'],
     ][$tab] ?? [];
 }
 
@@ -292,19 +292,25 @@ function thean_ops_missing_proof(WC_Order $order): array
 }
 
 /** COD debt is independent of fulfillment; completed is not payment confirmation. */
-function thean_ops_cod_group(WC_Order $order): string
+function thean_ops_cod_group(WC_Order $order, ?array $flow = null): string
 {
     if ($order->get_payment_method() !== 'cod'
         || in_array($order->get_status(), ['cancelled', 'failed', 'refunded', 'chua-ghi-nhan', 'da-ghi-nhan'], true)
         || thean_ow_payment_state($order, true)['done']) {
         return '';
     }
+    $flow = $flow ?? thean_ow_flow($order);
+    // Collect only from delivery onward; shipping evidence can bypass missing export paperwork.
+    if (($flow['next_goto'] ?? '') === 'preorder'
+        || (!thean_ow_is_dispatched($order) && ($flow['next'] ?? '') !== 'delivery'
+            && ($flow['next_goto'] ?? '') !== 'payment')) {
+        return '';
+    }
     $shippers = thean_ow_meta_list($order, 'shipper');
-    if (thean_ow_is_fast_delivery($order) || !$shippers
-        || in_array($order->get_status(), ['delivered', 'completed'], true)) {
+    if (in_array($order->get_status(), ['local-shipping', 'delivered', 'completed'], true)) {
         return 'cod_fast';
     }
-    return array_intersect(['ghtk', 'viettel', 'vietel'], $shippers) ? 'cod' : 'cod_fast';
+    return array_intersect(['ghtk', 'viettel', 'vietel'], $shippers) ? 'cod' : '';
 }
 
 /** Indexed, persisted COD membership; also admits completed debt with no main step. */
@@ -392,7 +398,7 @@ function thean_ops_step_compute(WC_Order $order, bool $gated = true): array
     if ($internal && $step !== '') {
         $hint = '🏢 Nội bộ · ' . ($hint !== '' ? $hint : (thean_ops_step_labels()[$step] ?? $step));
     }
-    return ['step' => $step, 'hint' => $hint, 'proof' => (bool) $missing, 'internal' => $internal, 'cod' => thean_ops_cod_group($order)];
+    return ['step' => $step, 'hint' => $hint, 'proof' => (bool) $missing, 'internal' => $internal, 'cod' => thean_ops_cod_group($order, $flow)];
 }
 
 /** Tính và lưu bước của đơn. Trả kết quả thean_ops_step_compute(). */

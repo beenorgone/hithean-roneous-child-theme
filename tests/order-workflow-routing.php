@@ -110,18 +110,44 @@ $result = thean_ops_step_sync($order);
 check($result['step'] === 'cod_fast' && $order->meta[THEAN_OPS_STEP_META] === 'cod_fast' && $order->meta[THEAN_OPS_STEP_VER] === THEAN_OPS_STEP_VERSION, 'sync stores the new step and version for backfill');
 check(in_array('shipper', thean_ops_step_watched_meta(), true) && in_array('order_shipper', thean_ops_step_watched_meta(), true), 'both sites invalidate classification when carrier changes');
 // COD membership overlaps fulfillment and ignores completed as implicit payment.
-foreach (['packaging', 'shipping', 'delivered', 'completed', 'pre-order'] as $status) {
+foreach (['packaging', 'local-shipping', 'shipping', 'delivered', 'completed', 'pre-order'] as $status) {
     foreach (['', 'ahamove', 'ghtk', 'viettel'] as $shipper) {
         $order = new WC_Order(); $order->status = $status;
         if ($shipper !== '') $order->meta[field('shipper')] = [$shipper];
-        $expected = in_array($status, ['delivered', 'completed'], true) || in_array($shipper, ['', 'ahamove'], true) ? 'cod_fast' : 'cod';
+        if ($status === 'local-shipping') $order->meta['export_confirmed_by'] = 8;
+        $expected = in_array($status, ['local-shipping', 'delivered', 'completed'], true) ? 'cod_fast'
+            : (in_array($shipper, ['ghtk', 'viettel'], true) ? 'cod' : '');
+        if (in_array($status, ['packaging', 'pre-order'], true)) $expected = '';
         $res = thean_ops_step_sync($order);
-        check($res['cod'] === $expected && $order->meta[THEAN_OPS_COD_META] === $expected, "$status / $shipper unpaid COD group");
+        check($res['cod'] === $expected && ($order->meta[THEAN_OPS_COD_META] ?? '') === $expected, "$status / $shipper unpaid COD group");
         $order->meta['_order_payment_confirmation_audit'] = '{"verified":true}';
         $res = thean_ops_step_sync($order);
         check($res['cod'] === '' && !isset($order->meta[THEAN_OPS_COD_META]), 'payment confirmation clears parallel debt');
     }
 }
+$order = new WC_Order(); $order->status = 'shipping';
+$order->meta[THEAN_OPS_COD_META] = 'cod_fast';
+$res = thean_ops_step_sync($order);
+check($res['cod'] === '' && !isset($order->meta[THEAN_OPS_COD_META]), 'unassigned in-transit order removes stale first-group membership');
+$order->meta[field('handling_status')] = ['Giao nhanh 2 giờ'];
+check(thean_ops_cod_group($order) === '', 'fast label without local-shipping status does not enter first group');
+$order->meta[field('shipper')] = ['ghtk'];
+check(thean_ops_cod_group($order) === 'cod', 'carrier still in transit stays in carrier group despite fast label');
+// Export progression must reach delivery before collection can overlap it.
+$order = new WC_Order(); $order->meta[field('shipper')] = ['ghtk'];
+$order->meta[THEAN_OPS_COD_META] = 'cod'; // stale membership from previous version
+$res = thean_ops_step_sync($order);
+check($res['cod'] === '' && !isset($order->meta[THEAN_OPS_COD_META]), 'packing removes stale COD membership');
+$order->meta['warehouse_export_images'] = 'https://example.test/export.jpg';
+check(thean_ops_cod_group($order) === '', 'export images awaiting review are not delivery yet');
+$order->meta['export_confirmed_by'] = 8;
+check(thean_ops_cod_group($order) === 'cod', 'export reviewed and waiting for carrier enters COD');
+$order->status = 'local-shipping'; $order->meta = [field('handling_status') => ['Giao nhanh 2 giờ']];
+check(thean_ops_cod_group($order) === '', 'fast delivery tag alone does not enter COD before export');
+$order->meta['export_confirmed_by'] = 8;
+check(thean_ops_cod_group($order) === 'cod_fast', 'confirmed fast dispatch enters COD despite missing paperwork');
+$order->status = 'processing';
+check(thean_ops_cod_group($order) === '', 'awaiting customer confirmation is outside COD collection');
 $order = new WC_Order(); $order->status = 'completed';
 $order->meta[field('paid_date')] = '2026-11-16';
 check(thean_ops_cod_group($order) === 'cod_fast', 'date without receiving account is not confirmation');
