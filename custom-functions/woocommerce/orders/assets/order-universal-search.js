@@ -353,6 +353,7 @@
             if (node === anchor) anchor = anchor.nextElementSibling;
             else tbody.insertBefore(node, anchor);
         }
+        rows.forEach(function (row) { delete row.dataset.opsGroup; });
         groups.forEach(function (group) {
             var members = rows.filter(function (row) { return (data.tab === 'cod' ? row.dataset.opsCod : row.dataset.opsStep) === group.key; });
             var header = Array.from(tbody.querySelectorAll('[data-ops-group-header]')).find(function (row) { return row.dataset.opsGroupHeader === group.key; });
@@ -375,7 +376,10 @@
                 header.firstElementChild.appendChild(more);
             }
             place(header);
-            members.forEach(place);
+            members.forEach(function (row) {
+                row.dataset.opsGroup = group.key;
+                place(row);
+            });
         });
     }
     function fillTable(modal, data, page) {
