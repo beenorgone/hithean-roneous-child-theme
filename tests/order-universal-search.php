@@ -93,6 +93,7 @@ class FakeWpdb
     public string $postmeta = 'wp_postmeta';
     public array $queries = [];
     public array $board_counts = [];
+    public array $cod_counts = [];
     public array $board_memberships = [];
     public array $board_ids = [];
     public array $unsynced_ids = [];
@@ -112,6 +113,7 @@ class FakeWpdb
     }
     public function get_results($sql, $format) {
         $this->queries[] = $sql;
+        if (strpos($sql, 'SELECT (SELECT cd.meta_value') === 0) return $this->cod_counts;
         return strpos($sql, ' AS proof') !== false ? $this->board_memberships : $this->board_counts;
     }
     public function get_var($sql) {
@@ -288,7 +290,7 @@ check(thean_legacy_meta_empty('  ') && thean_legacy_meta_empty([]) && thean_lega
 check(in_array('warehouse_export_images', thean_legacy_meta_keys(), true) && in_array('export_confirmed_by', thean_legacy_meta_keys(), true), 'legacy meta keys');
 check(thean_ops_shipping_statuses() === ['shipping', 'local-shipping', 'partial-shipping'], 'shipping statuses');
 check(preg_match("/pf\.meta_value = '1'\) AND o\.(date_created_gmt|post_date_gmt) >= '\d{4}-/", thean_ous_board_tab_sql('proof'))
-    && strpos(thean_ous_board_sql(), "s.meta_value <> 'proof' OR o.") !== false, 'proof tab: only orders within THEAN_OPS_PROOF_DAYS (stale flags not counted)');
+    && strpos(thean_ous_board_sql(), "s.meta_value <> 'proof' OR EXISTS") !== false, 'proof tab: only orders within THEAN_OPS_PROOF_DAYS (stale flags not counted)');
 check(isset(thean_ops_step_tabs()['proof']) && thean_ops_proof_statuses() === ['delivered', 'partial-shipped', 'completed'], 'tab Thiếu chứng từ XK');
 check(array_key_last(thean_ops_step_tabs()) === 'internal' && isset(thean_ops_step_tabs()['preorder']) && thean_ops_step_tabs()['confirm'] === 'Chờ khách xác nhận / thanh toán', 'tabs: Đặt trước + Xác nhận khách');
 check(thean_ops_step_from_flow(['next_goto' => 'payment'], 'da-ghi-nhan') === '', 'Đã ghi nhận not in ops flow');
@@ -362,7 +364,7 @@ foreach ([true, false] as $hpos) {
     $counts = thean_ous_board_counts();
     check($counts['picking'] === 25 && $counts['proof'] === 3, 'counts + proof count cached');
     thean_ous_board_counts();
-    check(count($wpdb->queries) === 3, 'second count request skips SQL (steps + proof + internal)');
+    check(count($wpdb->queries) === 4, 'second count request skips SQL (steps + proof + internal)');
     $key = thean_ous_board_cache_key('counts');
     check($GLOBALS['__ttls'][$key] === 10, 'counts expire after 10 seconds');
     $wpdb->board_ids = [901, 900];
@@ -382,7 +384,7 @@ foreach ([true, false] as $hpos) {
     $wpdb->queries = [];
     thean_ous_board_counts(); thean_ous_board_counts();
     thean_ous_board_page_ids('picking', 0, 10); thean_ous_board_page_ids('picking', 0, 10);
-    check(count($wpdb->queries) === 4, 'empty counts and IDs cached');
+    check(count($wpdb->queries) === 5, 'empty counts and IDs cached');
     $key = thean_ous_board_cache_key('counts');
     $GLOBALS['__options']['thean_internal_email_domains'] = 'private.example';
     check(thean_ous_board_cache_key('counts') !== $key, 'domain settings change cache scope');
@@ -428,11 +430,11 @@ foreach ([true, false] as $hpos) {
         check($r->success && $r->data['tab'] === 'picking' && $r->data['panes'] === null && $r->data['rows'] === '', 'active-tab response without all-tab panes');
     }
     $sql = implode("\n", $wpdb->queries);
-    check(count($wpdb->queries) === 4 && strpos($sql, 'LIMIT 10 OFFSET 0') !== false && strpos($sql, "s.meta_value = 'picking'") !== false && strpos($sql, 'a.meta_value') === false, 'only counts and active-page SQL; no foreground backfill');
+    check(count($wpdb->queries) === 5 && strpos($sql, 'LIMIT 10 OFFSET 0') !== false && strpos($sql, "s.meta_value = 'picking'") !== false && strpos($sql, 'a.meta_value') === false, 'only counts and active-page SQL; no foreground backfill');
     $_POST['refresh'] = 1;
     $wpdb->queries = [];
     try { thean_ous_ajax_board(); } catch (JsonResponse $r) {}
-    check(count($wpdb->queries) === 4, 'explicit refresh bypasses server counts and IDs cache');
+    check(count($wpdb->queries) === 5, 'explicit refresh bypasses server counts and IDs cache');
     unset($_POST['refresh']);
     $wpdb->queries = []; $GLOBALS['__caps'] = [];
     try { thean_ous_ajax_board(); } catch (JsonResponse $r) { check(!$r->success, 'unauthorized board rejected'); }
@@ -471,7 +473,7 @@ foreach ([true, false] as $hpos) {
     check(thean_ous_board_cache_key('counts', '30') !== thean_ous_board_cache_key('counts', '90'), 'board range scopes counts cache');
     thean_ops_board_invalidate(); $wpdb->queries = [];
     thean_ous_board_counts('7'); thean_ous_board_counts('90');
-    check(count($wpdb->queries) === 6, 'counts for different ranges do not collide');
+    check(count($wpdb->queries) === 8, 'counts for different ranges do not collide');
     $wpdb->queries = [];
     thean_ous_board_page_ids('return', 0, 10, '7');
     thean_ous_board_page_ids('return', 0, 10, 'all');
@@ -528,14 +530,15 @@ $GLOBALS['__bad_nonce'] = false; $GLOBALS['__caps'] = []; $_POST = [];
 // Grouped tabs preserve raw steps/actions, aggregate SQL and mutation memberships.
 check(!isset(thean_ops_step_tabs()['payment']) && thean_ops_step_tab('payment') === 'confirm', 'payment grouped under customer tab');
 check(thean_ous_board_in_tab(['step' => 'payment'], 'confirm') && thean_ous_board_in_tab(['step' => 'confirm'], 'confirm'), 'both customer groups belong to merged tab');
-check(thean_ous_board_in_tab(['step' => 'cod_fast'], 'cod') && thean_ous_board_in_tab(['step' => 'cod'], 'cod'), 'both COD groups belong to COD tab');
+check(thean_ous_board_in_tab(['step' => 'shipping', 'cod' => 'cod_fast'], 'cod') && thean_ous_board_in_tab(['step' => '', 'cod' => 'cod'], 'cod'), 'both COD groups belong to COD tab');
 check(thean_ops_step_from_flow(['next_goto' => 'payment', 'is_cod' => true, 'is_fast' => true]) === 'cod_fast', 'fast COD has distinct stored step');
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
     check(strpos(thean_ous_board_tab_sql('confirm'), "s.meta_value IN ('confirm','payment') AND NOT ((") === 0, 'merged customer tab SQL');
-    check(strpos(thean_ous_board_tab_sql('cod'), "s.meta_value IN ('cod_fast','cod') AND NOT ((") === 0, 'COD subgroup SQL');
+    check(strpos(thean_ous_board_tab_sql('cod'), "cd.meta_key = '_thean_ops_cod'") !== false, 'COD subgroup SQL');
     thean_ops_board_invalidate();
     $wpdb->board_counts = [['tab' => 'confirm', 'n' => 2], ['tab' => 'payment', 'n' => 3], ['tab' => 'cod_fast', 'n' => 4], ['tab' => 'cod', 'n' => 5]];
+    $wpdb->cod_counts = [['tab' => 'cod_fast', 'n' => 4], ['tab' => 'cod', 'n' => 5]];
     $wpdb->queries = [];
     $counts = thean_ous_board_counts('30');
     $tabs = array_column(thean_ous_board_tabs('30'), null, 'key');
@@ -544,14 +547,14 @@ foreach ([true, false] as $hpos) {
     $flat = array_merge($flow['main'], $flow['side']);
     check(count($flat) === count(array_unique($flat)) && !array_diff(array_keys(thean_ops_step_tabs()), $flat) && !array_diff($flat, array_keys(thean_ops_step_tabs())), 'flow covers every board tab exactly once');
     check(array_column(thean_ous_board_tabs('30'), 'key') === $flat && $tabs['confirm']['lane'] === 'main' && $tabs['confirm']['no'] === 1 && $tabs['cod']['no'] === 6 && $tabs['proof']['lane'] === 'side', 'board tabs ordered + numbered by operating flow');
-    check($tabs['confirm']['groups'][1]['count'] === 3 && $tabs['cod']['groups'][0]['count'] === 4 && count($wpdb->queries) === 3, 'group counts reuse same aggregate queries');
-    $wpdb->board_memberships = [['order_id' => 910, 'step' => 'payment', 'proof' => 0], ['order_id' => 911, 'step' => 'cod_fast', 'proof' => 1]];
+    check($tabs['confirm']['groups'][1]['count'] === 3 && $tabs['cod']['groups'][0]['count'] === 4 && count($wpdb->queries) === 4, 'group counts reuse same aggregate queries');
+    $wpdb->board_memberships = [['order_id' => 910, 'step' => 'payment', 'proof' => 0], ['order_id' => 911, 'step' => 'none', 'cod' => 1, 'proof' => 1]];
     check(thean_ous_board_memberships([910,911], '30') === [910 => ['confirm'], 911 => ['cod','proof']], 'row patches map raw steps to canonical tabs with proof overlap');
-    $wpdb->board_counts = []; $wpdb->board_memberships = [];
+    $wpdb->board_counts = []; $wpdb->cod_counts = []; $wpdb->board_memberships = [];
 }
 ob_start(); thean_ous_render_workflow_guide(); $guide = ob_get_clean();
 check(strpos($guide, 'aria-labelledby="thean-ous-workflow-title"') !== false && strpos($guide, 'Đơn chờ thanh toán trước') !== false
-    && strpos($guide, 'Chờ đối soát đơn vị VC') !== false && strpos($guide, 'AI chỉ hỗ trợ') !== false, 'guide explains both grouped tabs and human export confirmation');
+    && strpos($guide, 'GHTK / Viettel') !== false && strpos($guide, 'AI chỉ hỗ trợ') !== false, 'guide explains both grouped tabs and human export confirmation');
 check(strpos($guide, 'data-thean-ous-guide-tab="confirm"><b>1</b>') !== false && strpos($guide, 'data-thean-ous-guide-tab="cod"><b>6</b>') !== false
     && strpos($guide, 'thean-ous-flowmap__step--side" data-thean-ous-guide-tab="proof"') !== false && strpos($guide, '→ Xong chuyển sang: 2. ') !== false, 'guide shows numbered main flow + side lanes');
 

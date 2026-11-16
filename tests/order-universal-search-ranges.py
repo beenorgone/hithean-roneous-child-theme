@@ -22,7 +22,7 @@ foreach ([true, false] as $hpos) {
     }
     $board = [];
     foreach (['auto','7','30','90','all'] as $range) {
-        foreach (['picking','return','preorder','proof'] as $tab) {
+        foreach (['picking','return','preorder','proof','cod'] as $tab) {
             $board[$range][$tab] = 'SELECT DISTINCT o.' . thean_ops_step_tables()['id'] . ' ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql($tab, $range) . ' ORDER BY o.' . thean_ops_step_tables()['id'];
         }
     }
@@ -101,7 +101,9 @@ for scope in scopes:
         for tab, sql in tabs.items():
             got = [row[0] for row in db.execute(sql)]
             eligible = expected.get(range_name, [1, 2, 4, 5, 8, 9])
-            if tab == 'proof':
+            if tab == 'cod':
+                want = []
+            elif tab == 'proof':
                 proof_eligible = {'auto': [8, 9], '7': [8], '30': [8, 9],
                                   '90': [4, 7, 8, 9, 11], 'all': [4, 7, 8, 9, 11]}
                 want = proof_eligible[range_name]
@@ -110,7 +112,7 @@ for scope in scopes:
             assert got == want, (hpos, range_name, tab, got, want, sql)
             checks += 1
     for range_name, sql in scope['memberships'].items():
-        got = {oid: (step, bool(proof)) for oid, step, proof in db.execute(sql)}
+        got = {oid: (step, bool(proof)) for oid, step, cod, proof, internal in db.execute(sql)}
         eligible = expected.get(range_name, [1, 2, 4, 5, 8, 9])
         proof_ids = {'auto': [8, 9], '7': [8], '30': [8, 9],
                      '90': [4, 7, 8, 9, 11], 'all': [4, 7, 8, 9, 11]}[range_name]
@@ -118,5 +120,26 @@ for scope in scopes:
                 if oid in eligible and oid in [1,4,5,7,8,9,11]}
         assert got == want, (hpos, range_name, 'memberships', got, want, sql)
         checks += 1
+    # Parallel COD queue includes completed orders with no main step and still
+    # observes selected dates, age lock, internal separation and mutation reads.
+    created = datetime.fromtimestamp(scope['now'] - D, timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    for oid, step, st, group in [(21, 'none', 'wc-completed', 'cod_fast'),
+                                  (22, 'shipping', 'wc-shipping', 'cod'),
+                                  (23, 'picking', 'wc-processing', 'cod_fast')]:
+        db.execute(f'INSERT INTO {table} VALUES (?,?,?,?,?)', (oid, st, created, 'shop_order', 'customer@example.test'))
+        db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (oid, '_thean_ops_step', step))
+        db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (oid, '_thean_ops_cod', group))
+    for range_name in scope['board']:
+        got = [row[0] for row in db.execute(scope['board'][range_name]['cod'])]
+        assert got == [21, 22, 23], (hpos, range_name, got)
+        checks += 1
+    db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (22, '_eim_internal', '1'))
+    got = [row[0] for row in db.execute(scope['board']['all']['cod'])]
+    assert got == [21, 23], (hpos, got)
+    checks += 1
+    db.execute(f'DELETE FROM {meta} WHERE {fk}=21 AND meta_key="_thean_ops_cod"')
+    got = [row[0] for row in db.execute(scope['board']['all']['cod'])]
+    assert got == [23], (hpos, got)
+    checks += 1
     db.close()
 print(f'OK ({checks} executed SQL checks)')

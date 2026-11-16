@@ -41,9 +41,10 @@ add_action('template_redirect', function () {
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '9'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu / chưa xác nhận ảnh xuất kho; 4: cờ chứng từ cho đơn đang giao;
+const THEAN_OPS_STEP_VERSION = '10'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu / chưa xác nhận ảnh xuất kho; 4: cờ chứng từ cho đơn đang giao;
                                     // 5: bắt save_meta_data trên HPOS; 6: lưu bước thật cả đơn nội bộ / đơn cũ + đọc đơn bỏ qua cache;
                                     // 7: tính lại cả đơn đóng còn hoàn hàng; 8: nhóm khách/COD, giao nhanh chưa xuất không tính đã giao đi)
+const THEAN_OPS_COD_META = '_thean_ops_cod'; // Parallel unpaid COD queue: cod_fast | cod.
 const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu / chưa xác nhận ảnh xuất kho" (đơn đang giao: kèm tab Đang giao)
 const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu / chưa xác nhận ảnh xuất kho: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
@@ -105,7 +106,7 @@ function thean_ops_step_groups(string $tab): array
 {
     return [
         'confirm' => ['confirm' => 'Đơn chờ xác nhận', 'payment' => 'Đơn chờ thanh toán trước'],
-        'cod' => ['cod_fast' => 'Chờ thu COD giao nhanh', 'cod' => 'Chờ đối soát đơn vị VC'],
+        'cod' => ['cod_fast' => 'Giao nhanh / Chưa chọn đơn vị giao / Đã giao, hoàn thành', 'cod' => 'GHTK / Viettel'],
     ][$tab] ?? [];
 }
 
@@ -290,6 +291,28 @@ function thean_ops_missing_proof(WC_Order $order): array
     return $missing;
 }
 
+/** COD debt is independent of fulfillment; completed is not payment confirmation. */
+function thean_ops_cod_group(WC_Order $order): string
+{
+    if ($order->get_payment_method() !== 'cod'
+        || in_array($order->get_status(), ['cancelled', 'failed', 'refunded', 'chua-ghi-nhan', 'da-ghi-nhan'], true)
+        || thean_ow_payment_state($order, true)['done']) {
+        return '';
+    }
+    $shippers = thean_ow_meta_list($order, 'shipper');
+    if (thean_ow_is_fast_delivery($order) || !$shippers
+        || in_array($order->get_status(), ['delivered', 'completed'], true)) {
+        return 'cod_fast';
+    }
+    return array_intersect(['ghtk', 'viettel', 'vietel'], $shippers) ? 'cod' : 'cod_fast';
+}
+
+/** Indexed, persisted COD membership; also admits completed debt with no main step. */
+function thean_ops_cod_sql(array $t): string
+{
+    return "EXISTS (SELECT 1 FROM {$t['meta']} cd WHERE cd.{$t['fk']} = o.{$t['id']} AND cd.meta_key = '" . THEAN_OPS_COD_META . "' AND cd.meta_value IN ('cod_fast', 'cod'))";
+}
+
 /** Bước tiếp theo (thean_ow_flow) → tab board; '' = không cần xử lý. Hàm thuần. */
 function thean_ops_step_from_flow(array $flow, string $status = ''): string
 {
@@ -336,7 +359,7 @@ function thean_ops_step_excluded(WC_Order $order, bool $gated = true): bool
 function thean_ops_step_compute(WC_Order $order, bool $gated = true): array
 {
     if (thean_ops_step_excluded($order, $gated)) {
-        return ['step' => '', 'hint' => '', 'proof' => false, 'internal' => false];
+        return ['step' => '', 'hint' => '', 'proof' => false, 'internal' => false, 'cod' => ''];
     }
     if (!function_exists('thean_ow_flow')) {
         require_once __DIR__ . '/order-workspace.php';
@@ -369,7 +392,7 @@ function thean_ops_step_compute(WC_Order $order, bool $gated = true): array
     if ($internal && $step !== '') {
         $hint = '🏢 Nội bộ · ' . ($hint !== '' ? $hint : (thean_ops_step_labels()[$step] ?? $step));
     }
-    return ['step' => $step, 'hint' => $hint, 'proof' => (bool) $missing, 'internal' => $internal];
+    return ['step' => $step, 'hint' => $hint, 'proof' => (bool) $missing, 'internal' => $internal, 'cod' => thean_ops_cod_group($order)];
 }
 
 /** Tính và lưu bước của đơn. Trả kết quả thean_ops_step_compute(). */
@@ -379,7 +402,8 @@ function thean_ops_step_sync(WC_Order $order): array
     $value = $res['step'] !== '' ? $res['step'] : 'none';
     // save_meta_data (không phải save) → không kích lại woocommerce_after_order_object_save.
     $proof = !empty($res['proof']) ? '1' : '';
-    if ((string) $order->get_meta(THEAN_OPS_STEP_META) !== $value || (string) $order->get_meta(THEAN_OPS_STEP_VER) !== THEAN_OPS_STEP_VERSION
+    $cod = (string) ($res['cod'] ?? '');
+    if ((string) $order->get_meta(THEAN_OPS_COD_META) !== $cod || (string) $order->get_meta(THEAN_OPS_STEP_META) !== $value || (string) $order->get_meta(THEAN_OPS_STEP_VER) !== THEAN_OPS_STEP_VERSION
         || (string) $order->get_meta(THEAN_OPS_PROOF_META) !== $proof) {
         $order->update_meta_data(THEAN_OPS_STEP_META, $value);
         $order->update_meta_data(THEAN_OPS_STEP_VER, THEAN_OPS_STEP_VERSION);
@@ -387,6 +411,11 @@ function thean_ops_step_sync(WC_Order $order): array
             $order->update_meta_data(THEAN_OPS_PROOF_META, $proof);
         } else {
             $order->delete_meta_data(THEAN_OPS_PROOF_META);
+        }
+        if ($cod !== '') {
+            $order->update_meta_data(THEAN_OPS_COD_META, $cod);
+        } else {
+            $order->delete_meta_data(THEAN_OPS_COD_META);
         }
         $order->save_meta_data();
         thean_ops_board_invalidate();
@@ -609,6 +638,8 @@ function thean_ops_step_open_sql(array $t): string
 {
     $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_excluded_statuses())) . "'";
     $proof    = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_proof_statuses())) . "'";
+    $cod_method = $t['email_col'] !== '' ? "o.payment_method = 'cod'"
+        : "EXISTS (SELECT 1 FROM {$t['meta']} pm WHERE pm.{$t['fk']} = o.{$t['id']} AND pm.meta_key = '_payment_method' AND pm.meta_value = 'cod')";
     $since    = gmdate('Y-m-d H:i:s', time() - THEAN_OPS_PROOF_DAYS * DAY_IN_SECONDS);
     // Đọc yêu cầu hoàn gốc: bước lưu sẵn có thể thiếu / sai nên không đủ để tìm đơn cần backfill.
     // Giữ cả bước return đã lưu để cron dọn bước cũ khi yêu cầu hoàn vừa kết thúc / bị xóa ngoài hook.
@@ -618,7 +649,7 @@ function thean_ops_step_open_sql(array $t): string
                          OR (r.meta_key = '" . THEAN_OPS_STEP_META . "' AND r.meta_value = 'return')))";
     return "FROM {$t['orders']} o WHERE o.{$t['type']} = 'shop_order'
              AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
-             AND (o.{$t['status']} NOT IN ({$excluded}) OR {$returns} OR (o.{$t['status']} IN ({$proof}) AND o.{$t['date']} >= '{$since}'))
+             AND (o.{$t['status']} NOT IN ({$excluded}) OR {$returns} OR (o.{$t['status']} = 'wc-completed' AND ({$cod_method} OR " . thean_ops_cod_sql($t) . ")) OR (o.{$t['status']} IN ({$proof}) AND o.{$t['date']} >= '{$since}'))
              AND " . thean_ops_age_sql($t);
 }
 

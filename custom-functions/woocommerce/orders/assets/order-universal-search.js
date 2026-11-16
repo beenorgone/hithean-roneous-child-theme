@@ -354,7 +354,7 @@
             else tbody.insertBefore(node, anchor);
         }
         groups.forEach(function (group) {
-            var members = rows.filter(function (row) { return row.dataset.opsStep === group.key; });
+            var members = rows.filter(function (row) { return (data.tab === 'cod' ? row.dataset.opsCod : row.dataset.opsStep) === group.key; });
             var header = Array.from(tbody.querySelectorAll('[data-ops-group-header]')).find(function (row) { return row.dataset.opsGroupHeader === group.key; });
             if (!header) {
                 header = document.createElement('tr');

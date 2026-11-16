@@ -1082,7 +1082,7 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?ar
         $phone   = $order->get_billing_phone() ?: $order->get_shipping_phone();
         $address = thean_ous_address_line($order);
         ?>
-        <tr data-order-id="<?php echo esc_attr($id); ?>" data-ops-step="<?php echo esc_attr($flow['step']); ?>" tabindex="0">
+        <tr data-order-id="<?php echo esc_attr($id); ?>" data-ops-step="<?php echo esc_attr($flow['step']); ?>" data-ops-cod="<?php echo esc_attr($flow['cod'] ?? ''); ?>" tabindex="0">
             <td class="thean-ous__c-check"><label><input type="checkbox" data-thean-ous-check value="<?php echo esc_attr($id); ?>" aria-label="Chọn đơn #<?php echo esc_attr($id); ?>"></label></td>
             <td class="thean-ous__c-order">
                 <div class="thean-ous__order-head">
@@ -1115,6 +1115,10 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?ar
             <td class="thean-ous__c-next">
                 <?php if ($flow['hint'] !== '') : ?><div class="thean-ous__hint">👉 <?php echo esc_html($flow['hint']); ?></div><?php endif; ?>
                 <?php echo thean_ous_next_actions($order, $flow['step'], !empty($flow['proof'])); ?>
+                <?php if (!empty($flow['cod']) && !in_array($flow['step'], ['cod', 'cod_fast'], true)) : ?>
+                    <div class="thean-ous__hint">💵 COD chưa xác nhận thanh toán</div>
+                    <?php echo thean_ous_next_actions($order, $flow['cod']); ?>
+                <?php endif; ?>
             </td>
             <td class="thean-ous__c-acts"><?php echo thean_ous_render_actions($order, true); ?></td>
             <td class="thean-ous__c-mact">
@@ -1287,11 +1291,11 @@ function thean_ous_board_sql(string $range = 'auto'): string
     $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_excluded_statuses())) . "'";
     // Điều kiện cuối: mốc khóa đơn cũ và khoảng ngày tạo đang chọn.
     return "FROM {$t['orders']} o
-            JOIN {$t['meta']} s ON s.{$t['fk']} = o.{$t['id']} AND s.meta_key = '" . THEAN_OPS_STEP_META . "' AND s.meta_value <> 'none'
+            JOIN {$t['meta']} s ON s.{$t['fk']} = o.{$t['id']} AND s.meta_key = '" . THEAN_OPS_STEP_META . "' AND (s.meta_value <> 'none' OR " . thean_ops_cod_sql($t) . ")
             WHERE o.{$t['type']} = 'shop_order'
               AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
-              AND (o.{$t['status']} NOT IN ({$excluded}) OR s.meta_value IN ('return', 'proof'))
-              AND (s.meta_value <> 'proof' OR " . thean_ous_proof_since_sql($t) . ")
+              AND (o.{$t['status']} NOT IN ({$excluded}) OR s.meta_value IN ('return', 'proof') OR " . thean_ops_cod_sql($t) . ")
+              AND (s.meta_value <> 'proof' OR " . thean_ops_cod_sql($t) . " OR " . thean_ous_proof_since_sql($t) . ")
               AND NOT EXISTS (SELECT 1 FROM {$t['meta']} x WHERE x.{$t['fk']} = o.{$t['id']} AND x.meta_key = '_spx_date' AND x.meta_value <> '')
               AND " . thean_ops_age_sql($t) . "
               AND " . thean_ous_range_sql($range, 'o', 's.meta_value');
@@ -1314,6 +1318,9 @@ function thean_ous_board_tab_sql(string $tab, string $range = 'auto'): string
             . ' AND ' . thean_ous_proof_since_sql($t)
             . ' AND ' . thean_ous_range_sql($range === 'auto' ? '30' : $range) . $not_internal;
     }
+    if ($tab === 'cod') {
+        return thean_ops_cod_sql($t) . $not_internal;
+    }
     $groups = thean_ops_step_groups(thean_ops_step_tab($tab));
     if ($groups) {
         return 's.meta_value IN (' . implode(',', array_map(static fn($step) => $wpdb->prepare('%s', $step), array_keys($groups))) . ')' . $not_internal;
@@ -1334,7 +1341,10 @@ function thean_ous_proof_since_sql(array $t): string
 function thean_ous_board_in_tab(array $res, string $tab): bool
 {
     if (!empty($res['internal']) || $tab === 'internal') {
-        return $tab === 'internal' && !empty($res['internal']) && (string) ($res['step'] ?? '') !== '';
+        return $tab === 'internal' && !empty($res['internal']) && ((string) ($res['step'] ?? '') !== '' || !empty($res['cod']));
+    }
+    if ($tab === 'cod') {
+        return !empty($res['cod']);
     }
     return $tab === 'proof' ? !empty($res['proof']) : thean_ops_step_tab((string) ($res['step'] ?? '')) === thean_ops_step_tab($tab);
 }
@@ -1383,6 +1393,15 @@ function thean_ous_board_stats(string $range = 'auto'): array
         if (isset($counts[$tab])) {
             $counts[$tab] += (int) $row['n'];
         }
+    }
+    $cod_group = "(SELECT cd.meta_value FROM {$t['meta']} cd WHERE cd.{$t['fk']} = o.{$t['id']} AND cd.meta_key = '" . THEAN_OPS_COD_META . "' LIMIT 1)";
+    $cod_rows = $wpdb->get_results("SELECT {$cod_group} AS tab, COUNT(DISTINCT o.{$t['id']}) AS n "
+        . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('cod', $range) . " GROUP BY {$cod_group}", ARRAY_A);
+    $counts['cod'] = 0;
+    $steps['cod'] = $steps['cod_fast'] = 0;
+    foreach ((array) $cod_rows as $row) {
+        $steps[$row['tab']] = (int) $row['n'];
+        $counts['cod'] += (int) $row['n'];
     }
     if (isset($counts['proof'])) {
         $counts['proof'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . $t['id'] . ') ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('proof', $range));
@@ -1579,7 +1598,7 @@ function thean_ous_board_memberships(array $ids, string $range): array
     }
     $t = thean_ops_step_tables();
     $rows = $wpdb->get_results("SELECT DISTINCT o.{$t['id']} AS order_id, s.meta_value AS step, ("
-        . thean_ous_board_tab_sql('proof', $range) . ') AS proof, (' . thean_ous_board_tab_sql('internal', $range) . ') AS internal ' . thean_ous_board_sql($range)
+        . thean_ous_board_tab_sql('cod', $range) . ') AS cod, (' . thean_ous_board_tab_sql('proof', $range) . ') AS proof, (' . thean_ous_board_tab_sql('internal', $range) . ') AS internal ' . thean_ous_board_sql($range)
         . " AND o.{$t['id']} IN (" . implode(',', $ids) . ')', ARRAY_A);
     $out = array_fill_keys($ids, []);
     $labels = thean_ops_step_tabs();
@@ -1593,8 +1612,11 @@ function thean_ous_board_memberships(array $ids, string $range): array
             continue;
         }
         $tab = thean_ops_step_tab($row['step']);
-        if (isset($labels[$tab]) && $tab !== 'proof') {
+        if (isset($labels[$tab]) && !in_array($tab, ['proof', 'cod'], true)) {
             $out[$id][] = $tab;
+        }
+        if (!empty($row['cod']) && !in_array('cod', $out[$id], true)) {
+            $out[$id][] = 'cod';
         }
         if (!empty($row['proof'])) {
             $out[$id][] = 'proof';
@@ -1938,7 +1960,7 @@ function thean_ous_render_workflow_guide(): void
         'delivery' => 'Đã có ảnh và xác nhận xuất kho: chọn đơn vị vận chuyển, nhập mã vận đơn và ghi nhận bàn giao. Khách tự lấy thì bàn giao khi khách đến.',
         'shipping' => 'Theo dõi giao hàng; chỉ chuyển Đã giao khi có căn cứ khách đã nhận. Theo dõi đơn giao một phần và xử lý yêu cầu hoàn nếu có. Giao không được (không liên lạc được khách, sai địa chỉ, khách từ chối…) → bấm ⚠️ Báo sự cố (bắt buộc ghi chú) để đơn sang tab Sự cố giao hàng.',
         'issue' => 'Đơn chờ giao / đang giao bị gắn cờ sự cố (kèm ghi chú). Liên hệ khách / ĐVVC xử lý, cập nhật ghi chú khi có tiến triển; xong thì bấm ✅ Xử lý xong sự cố để đơn quay lại luồng giao hàng, hoặc tạo yêu cầu hoàn. Đơn chuyển Đã giao / Hoàn thành / Hủy thì cờ tự gỡ.',
-        'cod' => 'Chờ thu COD giao nhanh: đơn giao nhanh đã xác nhận xuất kho nhưng chưa xác nhận thu tiền. Chờ đối soát đơn vị VC: đơn COD đã giao / giao một phần, chờ xác nhận khoản tiền bên vận chuyển chuyển về. Chỉ xác nhận khi thực nhận tiền; xuất kho không đồng nghĩa đã giao thành công hoặc đã thu COD.',
+        'cod' => 'Tất cả đơn COD chưa xác nhận thanh toán, theo dõi song song với bước xử lý. Nhóm 1: giao nhanh, chưa chọn đơn vị giao hoặc đã giao / hoàn thành. Nhóm 2: GHTK / Viettel còn lại. Chỉ xác nhận khi thực nhận tiền; hoàn thành đơn không phải xác nhận thu COD.',
         'proof' => 'Danh sách ngoại lệ: đơn đã giao đi (đang giao, đã giao, giao một phần, hoàn thành…) còn thiếu ảnh hoặc thiếu người xác nhận xuất kho. Bổ sung ảnh / kiểm tra và xác nhận. Một đơn có thể đồng thời ở tab theo dõi giao, COD hoặc hoàn hàng. Đơn giao nhanh chỉ mang nhãn Giao nhanh chưa được coi là đã bàn giao.',
         'return' => 'Theo dõi yêu cầu hoàn, tiếp nhận hàng thực tế, kiểm tra ảnh và số lượng rồi ghi nhận kết quả theo quyền được cấp.',
         'preorder' => 'Giữ đơn đến lịch hẹn; khi tiếp tục, liên hệ khách xác nhận giao lại trước khi xử lý các bước tiếp theo.',

@@ -179,6 +179,10 @@ Xử lý đơn → "Khóa đơn cũ" (option `thean_order_age_lock_relax`). Boar
 - `admin.css` (Material) ép mọi `.wp-core-ui .button` / `.button-primary`: chữ in hoa, `margin-bottom:10px`,
   màu `--md-primary`, tất cả `!important`. Component admin riêng nên dùng class nút riêng, không gắn `.button`.
 
+## Chờ thu COD trên `/quan-ly-don/`
+
+Tab COD theo dõi song song với bước vận hành: mọi đơn COD chưa xác nhận thanh toán trong phạm vi bộ lọc board (giữ mốc khóa đơn cũ, ngày tạo, luồng đơn nội bộ và loại đơn gộp Shopee). Meta `_thean_ops_cod` lưu nhóm `cod_fast` (giao nhanh, chưa chọn đơn vị giao, hoặc trạng thái Đã giao / Hoàn thành — ưu tiên kể cả GHTK/Viettel) và `cod` (GHTK / Viettel còn lại). Hoàn thành không tự coi là xác nhận thu COD; vẫn đọc audit thanh toán / ngày nhận + tài khoản nhận tiền và trạng thái thanh toán. Hủy / Thất bại / Hoàn tiền / đơn kế toán không vào hàng đợi thu. Version bước 10 tính lại cả COD hoàn thành trong mốc khóa, không giới hạn theo tuổi chứng từ xuất kho. Test: `php tests/order-workflow-routing.php`, `python3 tests/order-universal-search-ranges.py`, `node tests/order-universal-search-row-updates.cjs`.
+
 ## Ô tìm đơn (`woocommerce/orders/order-universal-search.php`)
 
 - **Bảng danh sách của Woo tắt mặc định** (`order-list-lazy.php`, nạp sớm ở đầu `core/admin.php` vì WC truy vấn danh sách

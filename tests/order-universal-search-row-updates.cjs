@@ -187,5 +187,25 @@ const get = (f, id) => f.ctx.body(f.ctx.board).querySelector(`tr[data-order-id="
     check(g.ctx.boardState.shown === 3 && groupBody.querySelectorAll('[data-ops-group-header]').length === 2 && get(g,51) === stable51, 'load more merges group rows without duplicating headers or rebuilding unrelated rows');
     g.ctx.loadBoard('payment', 1, false);
     check(g.ctx.boardState.tab === 'confirm' && g.requests.length === 3, 'legacy payment tab reuses merged customer cache');
+    const cd = fixture();
+    const codTabs = (fast, carrier) => [{ key: 'cod', label: 'COD', count: fast + carrier, groups: [
+        { key: 'cod_fast', label: 'Giao nhanh / Đã giao', count: fast }, { key: 'cod', label: 'GHTK / Viettel', count: carrier }
+    ] }];
+    const codRow = (id, step, group) => gr(id, step).replace('tabindex="0"', `data-ops-cod="${group}" tabindex="0"`);
+    cd.ctx.loadBoard('cod', 1, false);
+    const cp = page('cod', [61,60], codTabs(1,1), 60);
+    cp.data.rows = codRow(61,'shipping','cod') + codRow(60,'none','cod_fast');
+    cd.requests[0].resolve(cp); await settle();
+    check(get(cd,60).previousElementSibling.dataset.opsGroupHeader === 'cod_fast', 'completed COD with no main step appears in first COD group');
+    check(get(cd,61).previousElementSibling.dataset.opsGroupHeader === 'cod', 'in-transit carrier COD grouped independently of main shipping step');
+    const stableCod = get(cd,60);
+    task = cd.ctx.refreshOrders([61]); await settle();
+    const delivered = patch(61,['cod'],codTabs(2,0));
+    delivered.data.orders[0].rows = codRow(61,'cod','cod_fast');
+    cd.requests[1].resolve(delivered); await task;
+    check(get(cd,61).dataset.opsCod === 'cod_fast' && get(cd,60) === stableCod, 'delivered carrier moves COD subgroup while preserving unrelated row');
+    task = cd.ctx.refreshOrders([61]); await settle();
+    cd.requests[2].resolve(patch(61,[],codTabs(1,0))); await task;
+    check(!get(cd,61) && get(cd,60) === stableCod && cd.ctx.boardState.shown === 1, 'payment confirmation removes only paid COD row and updates pagination');
     console.log(`OK (${checks} DOM and request checks)`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

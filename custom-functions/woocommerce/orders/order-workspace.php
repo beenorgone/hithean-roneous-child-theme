@@ -229,7 +229,7 @@ function thean_ow_field_hints(): array
     ];
 }
 
-function thean_ow_payment_state(WC_Order $order): array
+function thean_ow_payment_state(WC_Order $order, bool $confirmation_only = false): array
 {
     $status = $order->get_status();
     $audit_raw = (string) $order->get_meta('_order_payment_confirmation_audit');
@@ -240,7 +240,7 @@ function thean_ow_payment_state(WC_Order $order): array
     if ($status === 'partial-paid') {
         return ['key' => 'partial', 'label' => 'CK 1 phần', 'tone' => 'warning', 'done' => false, 'audit' => $audit];
     }
-    if ($audit || $legacy || in_array($status, ['paid', 'received-payment', 'completed'], true)) {
+    if ($audit || $legacy || in_array($status, $confirmation_only ? ['paid', 'received-payment'] : ['paid', 'received-payment', 'completed'], true)) {
         return ['key' => 'paid', 'label' => 'Đã thanh toán', 'tone' => 'success', 'done' => true, 'audit' => $audit];
     }
     if ($order->get_payment_method() === 'cod') {

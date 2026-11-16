@@ -109,4 +109,29 @@ $order->created = new DateTimeImmutable();$order->status = 'local-shipping';$ord
 $result = thean_ops_step_sync($order);
 check($result['step'] === 'cod_fast' && $order->meta[THEAN_OPS_STEP_META] === 'cod_fast' && $order->meta[THEAN_OPS_STEP_VER] === THEAN_OPS_STEP_VERSION, 'sync stores the new step and version for backfill');
 check(in_array('shipper', thean_ops_step_watched_meta(), true) && in_array('order_shipper', thean_ops_step_watched_meta(), true), 'both sites invalidate classification when carrier changes');
+// COD membership overlaps fulfillment and ignores completed as implicit payment.
+foreach (['packaging', 'shipping', 'delivered', 'completed', 'pre-order'] as $status) {
+    foreach (['', 'ahamove', 'ghtk', 'viettel'] as $shipper) {
+        $order = new WC_Order(); $order->status = $status;
+        if ($shipper !== '') $order->meta[field('shipper')] = [$shipper];
+        $expected = in_array($status, ['delivered', 'completed'], true) || in_array($shipper, ['', 'ahamove'], true) ? 'cod_fast' : 'cod';
+        $res = thean_ops_step_sync($order);
+        check($res['cod'] === $expected && $order->meta[THEAN_OPS_COD_META] === $expected, "$status / $shipper unpaid COD group");
+        $order->meta['_order_payment_confirmation_audit'] = '{"verified":true}';
+        $res = thean_ops_step_sync($order);
+        check($res['cod'] === '' && !isset($order->meta[THEAN_OPS_COD_META]), 'payment confirmation clears parallel debt');
+    }
+}
+$order = new WC_Order(); $order->status = 'completed';
+$order->meta[field('paid_date')] = '2026-11-16';
+check(thean_ops_cod_group($order) === 'cod_fast', 'date without receiving account is not confirmation');
+$order->meta[field('bank_account_received')] = ['cash'];
+check(thean_ops_cod_group($order) === '', 'legacy payment date plus receiving account confirms payment');
+$order->meta = []; $order->payment = 'bacs';
+check(thean_ops_cod_group($order) === '', 'non-COD never enters COD queue');
+$order->payment = 'cod';
+foreach (['cancelled', 'failed', 'refunded'] as $status) {
+    $order->status = $status;
+    check(thean_ops_cod_group($order) === '', "$status is outside collectible COD");
+}
 echo "OK ($checks workflow routing checks)\n";
