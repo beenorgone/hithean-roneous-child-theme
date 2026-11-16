@@ -364,6 +364,16 @@
             }
             header.firstElementChild.textContent = group.label + ' — đang hiện ' + members.length + ' / ' + group.count + ' đơn'
                 + (!members.length && group.count ? ' · Bấm Xem thêm để tải các đơn còn lại.' : '');
+            if (members.length < group.count) {
+                var more = document.createElement('button');
+                more.type = 'button';
+                more.className = 'thean-ous__more-btn thean-ous-group__more';
+                more.setAttribute('data-thean-ous-more', '');
+                more.textContent = 'Xem thêm';
+                more.setAttribute('aria-label', 'Tải tiếp danh sách đơn — ' + group.label);
+                more.title = 'Tải tiếp danh sách; các đơn được xếp vào nhóm tương ứng.';
+                header.firstElementChild.appendChild(more);
+            }
             place(header);
             members.forEach(place);
         });
@@ -377,7 +387,18 @@
         });
         groupBoardRows(modal, data);
         data.shown = tbody.querySelectorAll('tr[data-order-id]').length;
-        if (typeof data.exhausted === 'boolean') data.has_more = !data.exhausted && data.shown < data.total;
+        if (modal === board) {
+            data.has_more = data.shown < data.total;
+            // A short scan may predate a count/membership update. Rescan from the top
+            // on the next explicit click; merge by ID to preserve existing rows.
+            if (data.has_more && data.exhausted) {
+                data.exhausted = false;
+                data.next_cursor = 0;
+                boardState.cursor = 0;
+            }
+        } else if (typeof data.exhausted === 'boolean') {
+            data.has_more = !data.exhausted && data.shown < data.total;
+        }
         syncBulk(modal);
         updateMore(modal, data);
     }
@@ -831,7 +852,7 @@
             boardCache.forEach(function (_, k) { if (k.indexOf(tab + '|') === 0) boardCache.delete(k); });
         }
         boardState.loading = true;
-        var moreBtn = body(board).querySelector('[data-thean-ous-more]');
+        var moreBtn = body(board).querySelector('.thean-ous__more [data-thean-ous-more]');
         if (page === 1) notice(body(board), 'Đang tải đơn cần xử lý…');
         else if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = 'Đang tải…'; }
         var data = { tab: tab, range: currentRange, before_id: page === 1 ? 0 : boardState.cursor, offset: page === 1 || !boardState.cursor ? 0 : boardState.shown, limit: page === 1 ? 10 : (limit || BOARD_MORE) };

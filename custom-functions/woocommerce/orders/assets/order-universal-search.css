@@ -306,6 +306,7 @@ body.thean-ous-open { overflow:hidden; }
 
 /* Subgroups share one cursor; headings never count as orders or selectable rows. */
 .thean-ous__table .thean-ous-group th { padding:12px 10px; border-top:1px solid var(--ous-border); background:var(--ous-primary-light); color:var(--ous-primary-dark); font-size:13px; }
+.thean-ous__table .thean-ous-group__more { margin:4px 0 4px 12px; padding:4px 10px; font-size:12px; vertical-align:middle; }
 .thean-ous__step.is-cod_fast .thean-ous__step-label { background:#fff1f0; color:#b42318; }
 .thean-ous-modal--guide { z-index:100080; }
 .thean-ous-modal--guide .thean-ous-modal__dialog { width:min(900px,100%); }

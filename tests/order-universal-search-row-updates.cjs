@@ -35,7 +35,7 @@ function fixture() {
         boardCtl: null, searchCtl: null, currentRange: 'auto', BOARD_TTL: 10000, BOARD_MORE: 20,
         rowUpdates: Promise.resolve(), rowEpoch: 0, rowScope: 0, rowPatches: new Map(), lastPatchTabs: null,
         activeBoardData: null, activeSearchData: null, blockedUntil: 0,
-        rememberTab() {}, syncUrlTab() {}, openPreview() {},
+        rememberTab() {}, syncUrlTab() {}, openPreview() {}, onBulkClick() { return false; },
         message: (_, text) => text, toast: text => errors.push(text),
         notice(el, text) { el.textContent = text; },
         setOpen(el, open) { el.hidden = !open; },
@@ -49,6 +49,7 @@ function fixture() {
         ['    function patchRow(', '    // Chỉ tải 10 đơn'],
         ['    function loadBoard(', '\n    function changeRange('],
     ]) vm.runInContext(section(start, end), ctx);
+    vm.runInContext(section("    board.addEventListener('click',", '    // Mutation thành công:'), ctx);
     return { ctx, requests, errors, dom };
 }
 async function settle() { for (let i = 0; i < 14; i++) await Promise.resolve(); }
@@ -207,5 +208,26 @@ const get = (f, id) => f.ctx.body(f.ctx.board).querySelector(`tr[data-order-id="
     task = cd.ctx.refreshOrders([61]); await settle();
     cd.requests[2].resolve(patch(61,[],codTabs(1,0))); await task;
     check(!get(cd,61) && get(cd,60) === stableCod && cd.ctx.boardState.shown === 1, 'payment confirmation removes only paid COD row and updates pagination');
+    // Regression: a 4/8 group must expose pagination even when the response's
+    // scan cursor incorrectly says exhausted after membership/count changes.
+    const short = fixture(); short.ctx.loadBoard('cod', 1, false);
+    const half = page('cod', [80,79,78,77], codTabs(8,0), 77, true);
+    half.data.rows = [80,79,78,77].map(id => codRow(id,'shipping','cod_fast')).join('');
+    short.requests[0].resolve(half); await settle();
+    const remainingButton = short.ctx.body(short.ctx.board).querySelector('[data-ops-group-header="cod_fast"] [data-thean-ous-more]');
+    check(remainingButton && remainingButton.textContent === 'Xem thêm', 'partially loaded COD group exposes inline load-more button');
+    check(!short.ctx.body(short.ctx.board).querySelector('.thean-ous__more').hidden && short.ctx.activeBoardData.has_more, '4 of 8 keeps footer pagination visible despite exhausted scan');
+    check(!short.ctx.body(short.ctx.board).querySelector('[data-ops-group-header="cod"] [data-thean-ous-more]'), 'complete or empty group has no unnecessary load-more button');
+    const stableShort = get(short,80);
+    remainingButton.click();
+    check(short.requests.length === 2 && short.requests[1].data.before_id === 0 && short.requests[1].data.offset === 0, 'group button starts a safe rescan when cursor is exhausted');
+    remainingButton.click();
+    check(short.requests.length === 2, 'repeated clicks while loading do not create duplicate requests');
+    const rest = page('cod', [80,79,78,77,76,75,74,73], codTabs(8,0), 73, true);
+    rest.data.rows = [80,79,78,77,76,75,74,73].map(id => codRow(id,'shipping','cod_fast')).join('');
+    short.requests[1].resolve(rest); await settle();
+    check(short.ctx.boardState.shown === 8 && get(short,80) === stableShort, 'remaining four orders appear without replacing existing rows or duplicating rescanned IDs');
+    check(!short.ctx.body(short.ctx.board).querySelector('[data-ops-group-header="cod_fast"] [data-thean-ous-more]')
+        && short.ctx.body(short.ctx.board).querySelector('.thean-ous__more').hidden, 'both load-more controls disappear after all eight orders are displayed');
     console.log(`OK (${checks} DOM and request checks)`);
 })().catch(error => { console.error(error); process.exitCode = 1; });
