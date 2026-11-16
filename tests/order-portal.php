@@ -80,7 +80,7 @@ try { $render(); throw new RuntimeException('missing login'); } catch (RuntimeEx
 check(!function_exists('thean_ous_render_ui'), 'denied requests never load board modules');
 check(!empty($no_cache) && !empty($frame_header), 'private route sets no-cache and framing headers');
 // Pre-rendered first board page: ?thean_board beats the saved-tab cookie; create workspace / failures fall back to AJAX.
-function thean_ous_range($r) { return in_array($r, ['auto', '7', '30', '90', 'all'], true) ? $r : 'auto'; }
+function thean_ous_range($r) { return in_array($r, ['auto', '7', '30', '90', '120', '180', '270', '360', 'year', 'all'], true) ? $r : 'auto'; }
 function thean_ous_board_payload($req) { if (!empty($GLOBALS['board_fail'])) throw new RuntimeException('db'); $GLOBALS['board_req'] = $req; return ['data' => ['tab' => $req['tab'] ?: 'confirm'], 'timings' => ['board_total' => 1.0]]; }
 $_COOKIE = ['thean_ous_tab' => 'cod']; $_GET = [];
 $init = thean_order_portal_board_initial();

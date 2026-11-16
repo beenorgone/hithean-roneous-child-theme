@@ -9,7 +9,7 @@
     var currentRange = 'auto';
     try {
         var linkedRange = new URLSearchParams(location.search).get('thean_range');
-        if (['auto', '7', '30', '90', 'all'].indexOf(linkedRange) !== -1) currentRange = linkedRange;
+        if (['auto', '7', '30', '90', '120', '180', '270', '360', 'year', 'all'].indexOf(linkedRange) !== -1) currentRange = linkedRange;
     } catch (e) {}
     if (rangeSelect) rangeSelect.value = currentRange;
     var suggest = document.getElementById('thean-ous-suggest');

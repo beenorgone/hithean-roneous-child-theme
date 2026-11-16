@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-36 file · ~11.100 dòng · 419 hàm (62% có docblock)
+36 file · ~11.200 dòng · 419 hàm (62% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -297,7 +297,7 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_ops_step_flow()` | Thứ tự vận hành của board — nguồn duy nhất cho tab (đánh số + mũi tên), select mobile và sơ đồ ở 📖 Quy trình. 'main' = luồng chính, đơn đi lần lượt từ trái sang phải; 'side' = h… |
 | `thean_ops_step_position(string $tab)` | Vị trí tab trong luồng: ['lane' => main\|side, 'no' => số thứ tự 1.. trong lane]. |
 | `thean_ops_step_tab(string $step)` | Bước lưu sẵn vẫn riêng biệt để giữ đúng thao tác; chỉ gộp ở lớp hiển thị board. |
-| `thean_ops_step_groups(string $tab)` | Hai nhóm trong cùng một tab; khóa là bước gốc, dùng chung cho SQL, badge và UI. |
+| `thean_ops_step_groups(string $tab)` | Nhóm trong cùng một tab; dùng chung cho SQL, badge và UI. |
 | `thean_ops_step_labels()` | — |
 | `thean_ops_board_url(string $tab = '')` | Link mở thẳng board "Đơn cần xử lý" ở 1 tab (danh sách đơn admin + ?thean_board=<tab>, xử lý ở assets/order-universal-search.js). Tab không hợp lệ / trống → board mở tab có đơn… |
 | `thean_ops_excluded_statuses()` | Trạng thái không thuộc luồng vận hành: đã đóng / xong, và "Chưa ghi nhận" / "Đã ghi nhận" (đơn kế toán / nội bộ). Đơn đóng còn hoàn hàng dở vẫn vào tab Hoàn hàng. |

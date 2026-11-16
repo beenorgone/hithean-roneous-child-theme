@@ -10,13 +10,14 @@ using the number of rows already shown as the offset.
 The shared **Ngày tạo** selector applies to both search and the board. It defaults
 to **Mặc định: 30 / 90 ngày**: 30 rolling days from order creation (UTC), except
 return/preorder steps use 90 days. General search also recognizes the pre-order
-status. Select 7, 30, 90 days, or all time to override this default; explicit
+status. Choose an explicit rolling-day, current-year or all-time range to override this default; explicit
 selections apply equally to every tab. The proof tab retains its existing
 60-day business limit, and all board ranges retain the existing age lock and
 operational exclusions. All-time search is not subject to the board age lock.
 
 In default mode, exact ID/display-number candidates can match older orders;
 other free-text matches remain date-limited. Explicit ranges apply to IDs too.
+Explicit ranges include 7, 30, 90, 120, 180, 270 and 360 rolling days, the current calendar year (January 1 through December 31 in the site timezone), and all time.
 The selected range is included in requests and server cache keys. Changing it
 clears browser caches, cancels obsolete requests, and restarts the visible board
 and search from page one. The URL parameter `thean_range` preserves explicit

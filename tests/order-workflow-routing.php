@@ -116,7 +116,8 @@ foreach (['packaging', 'local-shipping', 'shipping', 'delivered', 'completed', '
         if ($shipper !== '') $order->meta[field('shipper')] = [$shipper];
         if ($status === 'local-shipping') $order->meta['export_confirmed_by'] = 8;
         $expected = in_array($status, ['local-shipping', 'delivered', 'completed'], true) ? 'cod_fast'
-            : (in_array($shipper, ['ghtk', 'viettel'], true) ? 'cod' : '');
+            : '';
+        if (in_array($status, ['delivered', 'completed'], true) && in_array($shipper, ['ghtk', 'viettel'], true)) $expected = 'cod_delivered';
         if (in_array($status, ['packaging', 'pre-order'], true)) $expected = '';
         $res = thean_ops_step_sync($order);
         check($res['cod'] === $expected && ($order->meta[THEAN_OPS_COD_META] ?? '') === $expected, "$status / $shipper unpaid COD group");
@@ -132,7 +133,13 @@ check($res['cod'] === '' && !isset($order->meta[THEAN_OPS_COD_META]), 'unassigne
 $order->meta[field('handling_status')] = ['Giao nhanh 2 giờ'];
 check(thean_ops_cod_group($order) === '', 'fast label without local-shipping status does not enter first group');
 $order->meta[field('shipper')] = ['ghtk'];
-check(thean_ops_cod_group($order) === 'cod', 'carrier still in transit stays in carrier group despite fast label');
+check(thean_ops_cod_group($order) === '', 'carrier still in transit stays outside COD despite fast label');
+$order->status = 'delivered';
+$res = thean_ops_step_sync($order);
+check($res['cod'] === 'cod_delivered' && $order->meta[THEAN_OPS_COD_META] === 'cod_delivered', 'delivered GHTK enters completed carrier group');
+$order->status = 'shipping';
+check(thean_ops_cod_group($order) === '', 'carrier status reverted to shipping leaves COD queue');
+check(array_keys(thean_ops_step_groups('cod')) === ['cod_fast', 'cod_delivered'], 'only fast and delivered carrier groups remain');
 // Export progression must reach delivery before collection can overlap it.
 $order = new WC_Order(); $order->meta[field('shipper')] = ['ghtk'];
 $order->meta[THEAN_OPS_COD_META] = 'cod'; // stale membership from previous version
@@ -141,7 +148,7 @@ check($res['cod'] === '' && !isset($order->meta[THEAN_OPS_COD_META]), 'packing r
 $order->meta['warehouse_export_images'] = 'https://example.test/export.jpg';
 check(thean_ops_cod_group($order) === '', 'export images awaiting review are not delivery yet');
 $order->meta['export_confirmed_by'] = 8;
-check(thean_ops_cod_group($order) === 'cod', 'export reviewed and waiting for carrier enters COD');
+check(thean_ops_cod_group($order) === '', 'waiting for GHTK does not enter COD');
 $order->status = 'local-shipping'; $order->meta = [field('handling_status') => ['Giao nhanh 2 giờ']];
 check(thean_ops_cod_group($order) === '', 'fast delivery tag alone does not enter COD before export');
 $order->meta['export_confirmed_by'] = 8;

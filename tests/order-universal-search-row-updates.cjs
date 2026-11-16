@@ -53,6 +53,12 @@ function fixture() {
     return { ctx, requests, errors, dom };
 }
 async function settle() { for (let i = 0; i < 14; i++) await Promise.resolve(); }
+for (const range of ['120', '180', '270', '360', 'year', 'invalid']) {
+    const linked = { URLSearchParams, location: { search: '?thean_range=' + range }, rangeSelect: { value: '' } };
+    vm.createContext(linked);
+    vm.runInContext(section("    var currentRange = 'auto';", '    var suggest ='), linked);
+    check(linked.currentRange === (range === 'invalid' ? 'auto' : range) && linked.rangeSelect.value === linked.currentRange, 'shared link restores range selector: ' + range);
+}
 const get = (f, id) => f.ctx.body(f.ctx.board).querySelector(`tr[data-order-id="${id}"]`);
 (async () => {
     const f = fixture(), c = f.ctx;
@@ -189,22 +195,23 @@ const get = (f, id) => f.ctx.body(f.ctx.board).querySelector(`tr[data-order-id="
     g.ctx.loadBoard('payment', 1, false);
     check(g.ctx.boardState.tab === 'confirm' && g.requests.length === 3, 'legacy payment tab reuses merged customer cache');
     const cd = fixture();
-    const codTabs = (fast, carrier) => [{ key: 'cod', label: 'COD', count: fast + carrier, groups: [
-        { key: 'cod_fast', label: 'Giao nhanh / Đã giao', count: fast }, { key: 'cod', label: 'GHTK / Viettel', count: carrier }
+    const codTabs = (fast, delivered = 0) => [{ key: 'cod', label: 'COD', count: fast + delivered, groups: [
+        { key: 'cod_fast', label: 'Giao nhanh / Đã giao', count: fast }, { key: 'cod_delivered', label: 'GHTK / Viettel — Đã giao / Hoàn thành', count: delivered }
     ] }];
     const codRow = (id, step, group) => gr(id, step).replace('tabindex="0"', `data-ops-cod="${group}" tabindex="0"`);
     cd.ctx.loadBoard('cod', 1, false);
     const cp = page('cod', [61,60], codTabs(1,1), 60);
-    cp.data.rows = codRow(61,'shipping','cod') + codRow(60,'none','cod_fast');
+    cp.data.rows = codRow(61,'none','cod_delivered') + codRow(60,'none','cod_fast');
     cd.requests[0].resolve(cp); await settle();
     check(get(cd,60).previousElementSibling.dataset.opsGroupHeader === 'cod_fast', 'completed COD with no main step appears in first COD group');
-    check(get(cd,61).previousElementSibling.dataset.opsGroupHeader === 'cod', 'in-transit carrier COD grouped independently of main shipping step');
+    check(get(cd,61).previousElementSibling.dataset.opsGroupHeader === 'cod_delivered', 'delivered carrier COD is in the remaining carrier group');
     const stableCod = get(cd,60);
     task = cd.ctx.refreshOrders([61]); await settle();
-    const delivered = patch(61,['cod'],codTabs(2,0));
-    delivered.data.orders[0].rows = codRow(61,'cod','cod_fast');
+    const delivered = patch(61,['cod'],codTabs(1,1));
+    delivered.data.orders[0].rows = codRow(61,'cod','cod_delivered');
     cd.requests[1].resolve(delivered); await task;
-    check(get(cd,61).dataset.opsCod === 'cod_fast' && get(cd,60) === stableCod, 'delivered carrier moves COD subgroup while preserving unrelated row');
+    check(get(cd,61).dataset.opsCod === 'cod_delivered' && get(cd,60) === stableCod, 'delivered carrier moves COD subgroup while preserving unrelated row');
+    check(get(cd,61).previousElementSibling.dataset.opsGroupHeader === 'cod_delivered', 'delivered carrier row follows the fast group');
     task = cd.ctx.refreshOrders([61]); await settle();
     cd.requests[2].resolve(patch(61,[],codTabs(1,0))); await task;
     check(!get(cd,61) && get(cd,60) === stableCod && cd.ctx.boardState.shown === 1, 'payment confirmation removes only paid COD row and updates pagination');
@@ -217,7 +224,7 @@ const get = (f, id) => f.ctx.body(f.ctx.board).querySelector(`tr[data-order-id="
     const remainingButton = short.ctx.body(short.ctx.board).querySelector('[data-ops-group-header="cod_fast"] [data-thean-ous-more]');
     check(remainingButton && remainingButton.textContent === 'Xem thêm', 'partially loaded COD group exposes inline load-more button');
     check(!short.ctx.body(short.ctx.board).querySelector('.thean-ous__more').hidden && short.ctx.activeBoardData.has_more, '4 of 8 keeps footer pagination visible despite exhausted scan');
-    check(!short.ctx.body(short.ctx.board).querySelector('[data-ops-group-header="cod"] [data-thean-ous-more]'), 'complete or empty group has no unnecessary load-more button');
+    check(!short.ctx.body(short.ctx.board).querySelector('[data-ops-group-header="cod"]') && !short.ctx.body(short.ctx.board).querySelector('[data-ops-group-header="cod_delivered"] [data-thean-ous-more]'), 'removed group is absent and empty remaining group has no load-more button');
     const stableShort = get(short,80);
     remainingButton.click();
     check(short.requests.length === 2 && short.requests[1].data.before_id === 0 && short.requests[1].data.offset === 0, 'group button starts a safe rescan when cursor is exhausted');

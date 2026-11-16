@@ -19,6 +19,7 @@ function add_action($hook, $callback, ...$a) { $GLOBALS['__actions'][$hook][] = 
 function wp_strip_all_tags($s) { return strip_tags((string) $s); }
 function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
 if (!function_exists('esc_attr')) { function esc_attr($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); } }
+function wp_timezone() { return new DateTimeZone('Asia/Ho_Chi_Minh'); }
 function get_user_meta() { return ''; }
 function add_filter(...$a) {}
 $GLOBALS['__transients'] = [];
@@ -447,6 +448,11 @@ foreach ([true, false] as $hpos) {
 $GLOBALS['__caps'] = []; $_POST = [];
 
 // Khoảng ngày tạo: chuẩn hóa, tách cache, lọc ngay trước LIMIT nguồn.
+foreach (['120', '180', '270', '360', 'year'] as $range) {
+    check(thean_ous_range($range) === $range, 'extended date range is accepted: ' . $range);
+    check(thean_ous_range_label($range, 'cod') === ($range === 'year' ? 'Năm nay' : $range . ' ngày gần nhất'), 'extended range label: ' . $range);
+}
+
 check(thean_ous_range('500') === 'auto' && thean_ous_range("30 OR 1=1") === 'auto', 'unknown ranges cannot alter SQL policy');
 check(thean_ous_range_label('auto', 'return') === '90 ngày gần nhất' && thean_ous_range_label('auto', 'preorder') === '90 ngày gần nhất', 'return and preorder default to 90 days');
 check(thean_ous_range_label('auto', 'picking') === '30 ngày gần nhất' && thean_ous_range_label('7', 'return') === '7 ngày gần nhất', 'ordinary default 30; explicit selection overrides exception');
@@ -530,7 +536,7 @@ $GLOBALS['__bad_nonce'] = false; $GLOBALS['__caps'] = []; $_POST = [];
 // Grouped tabs preserve raw steps/actions, aggregate SQL and mutation memberships.
 check(!isset(thean_ops_step_tabs()['payment']) && thean_ops_step_tab('payment') === 'confirm', 'payment grouped under customer tab');
 check(thean_ous_board_in_tab(['step' => 'payment'], 'confirm') && thean_ous_board_in_tab(['step' => 'confirm'], 'confirm'), 'both customer groups belong to merged tab');
-check(thean_ous_board_in_tab(['step' => 'shipping', 'cod' => 'cod_fast'], 'cod') && thean_ous_board_in_tab(['step' => '', 'cod' => 'cod'], 'cod'), 'both COD groups belong to COD tab');
+check(thean_ous_board_in_tab(['step' => 'shipping', 'cod' => 'cod_fast'], 'cod') && thean_ous_board_in_tab(['step' => '', 'cod' => 'cod_delivered'], 'cod'), 'both COD groups belong to COD tab');
 check(thean_ops_step_from_flow(['next_goto' => 'payment', 'is_cod' => true, 'is_fast' => true]) === 'cod_fast', 'fast COD has distinct stored step');
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
@@ -538,11 +544,12 @@ foreach ([true, false] as $hpos) {
     check(strpos(thean_ous_board_tab_sql('cod'), "cd.meta_key = '_thean_ops_cod'") !== false, 'COD subgroup SQL');
     thean_ops_board_invalidate();
     $wpdb->board_counts = [['tab' => 'confirm', 'n' => 2], ['tab' => 'payment', 'n' => 3], ['tab' => 'cod_fast', 'n' => 4], ['tab' => 'cod', 'n' => 5]];
-    $wpdb->cod_counts = [['tab' => 'cod_fast', 'n' => 4], ['tab' => 'cod', 'n' => 5]];
+    $wpdb->cod_counts = [['tab' => 'cod_fast', 'n' => 4], ['tab' => 'cod_delivered', 'n' => 6]];
     $wpdb->queries = [];
     $counts = thean_ous_board_counts('30');
     $tabs = array_column(thean_ous_board_tabs('30'), null, 'key');
-    check($counts['confirm'] === 5 && $counts['cod'] === 9 && !isset($counts['payment']), 'group counts sum into parent tabs');
+    check($counts['confirm'] === 5 && $counts['cod'] === 10 && !isset($counts['payment']), 'group counts sum into parent tabs');
+    check(array_column($tabs['cod']['groups'], 'key') === ['cod_fast', 'cod_delivered'] && $tabs['cod']['groups'][1]['count'] === 6, 'only remaining groups contribute to COD totals');
     $flow = thean_ops_step_flow();
     $flat = array_merge($flow['main'], $flow['side']);
     check(count($flat) === count(array_unique($flat)) && !array_diff(array_keys(thean_ops_step_tabs()), $flat) && !array_diff($flat, array_keys(thean_ops_step_tabs())), 'flow covers every board tab exactly once');

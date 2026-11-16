@@ -409,7 +409,7 @@ function thean_ous_like(string $term): string
 /** Khoảng theo ngày tạo đơn (UTC), dùng chung UI, SQL và cache. */
 function thean_ous_range(string $range): string
 {
-    return in_array($range, ['auto', '7', '30', '90', 'all'], true) ? $range : 'auto';
+    return in_array($range, ['auto', '7', '30', '90', '120', '180', '270', '360', 'year', 'all'], true) ? $range : 'auto';
 }
 
 function thean_ous_range_label(string $range, string $tab = ''): string
@@ -417,6 +417,9 @@ function thean_ous_range_label(string $range, string $tab = ''): string
     $range = thean_ous_range($range);
     if ($range === 'all') {
         return $tab === '' ? 'Toàn bộ thời gian' : 'Toàn bộ trong phạm vi xử lý';
+    }
+    if ($range === 'year') {
+        return 'Năm nay';
     }
     if ($range === 'auto' && $tab === '') {
         return '30 ngày; Hoàn hàng / Đặt trước: 90 ngày';
@@ -438,6 +441,14 @@ function thean_ous_range_sql(string $range, string $alias = 'o', ?string $step_c
     $t = thean_ops_step_tables();
     $date = $alias . '.' . $t['date'];
     $now = $now ?? time();
+    if ($range === 'year') {
+        // Calendar year in the site's timezone; stored order dates are UTC.
+        $local = (new DateTimeImmutable('@' . $now))->setTimezone(wp_timezone());
+        $start = $local->setDate((int) $local->format('Y'), 1, 1)->setTime(0, 0, 0);
+        $utc = new DateTimeZone('UTC');
+        return $date . " >= '" . $start->setTimezone($utc)->format('Y-m-d H:i:s') . "'"
+            . ' AND ' . $date . " < '" . $start->modify('+1 year')->setTimezone($utc)->format('Y-m-d H:i:s') . "'";
+    }
     $since = static fn(int $days) => "'" . gmdate('Y-m-d H:i:s', $now - $days * DAY_IN_SECONDS) . "'";
     if ($range !== 'auto') {
         return $date . ' >= ' . $since((int) $range);
@@ -861,6 +872,7 @@ function thean_ous_next_actions(WC_Order $order, string $step, bool $proof = fal
         'payment' => ['order-payment'],
         'cod'     => ['order-payment'],
         'cod_fast' => ['order-payment'],
+        'cod_delivered' => ['order-payment'],
         'picking' => ['order-export-images', 'in-van-don-ghtk', 'print_pxk'],
         'export'  => ['order-export-confirm'],
         'return'  => ['order-return-record', 'order-return-images'],
@@ -895,7 +907,7 @@ function thean_ous_next_actions(WC_Order $order, string $step, bool $proof = fal
         $buttons[] = thean_ous_button('kho', '🚚 Đăng GHTK ↗', $order->get_edit_order_url() . '#step-ghtk', '', true);
     }
     if (!$buttons || in_array($step, ['delivery', 'shipping', 'issue'], true)) {
-        $tab = ['cod' => 'payment', 'cod_fast' => 'payment', 'shipping' => 'delivery', 'issue' => 'delivery'][$step] ?? $step;
+        $tab = ['cod' => 'payment', 'cod_fast' => 'payment', 'cod_delivered' => 'payment', 'shipping' => 'delivery', 'issue' => 'delivery'][$step] ?? $step;
         $labels = function_exists('thean_ops_step_labels') ? thean_ops_step_labels() : [];
         $buttons[] = thean_ous_button('view', 'Mở bước ' . ($labels[$step] ?? $step) . ' ↗', $order->get_edit_order_url() . '#step-' . $tab, '', true, '➡');
     }
@@ -1398,7 +1410,9 @@ function thean_ous_board_stats(string $range = 'auto'): array
     $cod_rows = $wpdb->get_results("SELECT {$cod_group} AS tab, COUNT(DISTINCT o.{$t['id']}) AS n "
         . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('cod', $range) . " GROUP BY {$cod_group}", ARRAY_A);
     $counts['cod'] = 0;
-    $steps['cod'] = $steps['cod_fast'] = 0;
+    foreach (array_keys(thean_ops_step_groups('cod')) as $group) {
+        $steps[$group] = 0;
+    }
     foreach ((array) $cod_rows as $row) {
         $steps[$row['tab']] = (int) $row['n'];
         $counts['cod'] += (int) $row['n'];
@@ -1960,7 +1974,7 @@ function thean_ous_render_workflow_guide(): void
         'delivery' => 'Đã có ảnh và xác nhận xuất kho: chọn đơn vị vận chuyển, nhập mã vận đơn và ghi nhận bàn giao. Khách tự lấy thì bàn giao khi khách đến.',
         'shipping' => 'Theo dõi giao hàng; chỉ chuyển Đã giao khi có căn cứ khách đã nhận. Theo dõi đơn giao một phần và xử lý yêu cầu hoàn nếu có. Giao không được (không liên lạc được khách, sai địa chỉ, khách từ chối…) → bấm ⚠️ Báo sự cố (bắt buộc ghi chú) để đơn sang tab Sự cố giao hàng.',
         'issue' => 'Đơn chờ giao / đang giao bị gắn cờ sự cố (kèm ghi chú). Liên hệ khách / ĐVVC xử lý, cập nhật ghi chú khi có tiến triển; xong thì bấm ✅ Xử lý xong sự cố để đơn quay lại luồng giao hàng, hoặc tạo yêu cầu hoàn. Đơn chuyển Đã giao / Hoàn thành / Hủy thì cờ tự gỡ.',
-        'cod' => 'Đơn COD từ bước giao hàng trở đi chưa xác nhận thanh toán, theo dõi song song với bước xử lý. Đơn còn chờ xác nhận, lấy hàng hoặc kiểm tra xuất kho chưa vào tab này. Nhóm 1: COD chưa xác nhận thanh toán và có trạng thái Đang giao nhanh / Đã giao / Hoàn thành. Nhóm 2: GHTK / Viettel còn lại. Chỉ xác nhận khi thực nhận tiền; hoàn thành đơn không phải xác nhận thu COD.',
+        'cod' => 'Đơn COD từ bước giao hàng trở đi chưa xác nhận thanh toán, theo dõi song song với bước xử lý. Đơn còn chờ xác nhận, lấy hàng hoặc kiểm tra xuất kho chưa vào tab này. Nhóm 1: COD chưa xác nhận thanh toán và có trạng thái Đang giao nhanh / Đã giao / Hoàn thành. Nhóm 2: GHTK / Viettel đã giao / hoàn thành (tách khỏi nhóm 1). GHTK / Viettel chưa giao xong không thuộc tab này. Chỉ xác nhận khi thực nhận tiền; hoàn thành đơn không phải xác nhận thu COD.',
         'proof' => 'Danh sách ngoại lệ: đơn đã giao đi (đang giao, đã giao, giao một phần, hoàn thành…) còn thiếu ảnh hoặc thiếu người xác nhận xuất kho. Bổ sung ảnh / kiểm tra và xác nhận. Một đơn có thể đồng thời ở tab theo dõi giao, COD hoặc hoàn hàng. Đơn giao nhanh chỉ mang nhãn Giao nhanh chưa được coi là đã bàn giao.',
         'return' => 'Theo dõi yêu cầu hoàn, tiếp nhận hàng thực tế, kiểm tra ảnh và số lượng rồi ghi nhận kết quả theo quyền được cấp.',
         'preorder' => 'Giữ đơn đến lịch hẹn; khi tiếp tục, liên hệ khách xác nhận giao lại trước khi xử lý các bước tiếp theo.',
@@ -2122,6 +2136,11 @@ function thean_ous_render_ui(): void
                     <option value="7" title="7 ngày gần nhất">7 ngày</option>
                     <option value="30" title="30 ngày gần nhất">30 ngày</option>
                     <option value="90" title="90 ngày gần nhất">90 ngày</option>
+                    <option value="120" title="120 ngày gần nhất">120 ngày</option>
+                    <option value="180" title="180 ngày gần nhất">180 ngày</option>
+                    <option value="270" title="270 ngày gần nhất">270 ngày</option>
+                    <option value="360" title="360 ngày gần nhất">360 ngày</option>
+                    <option value="year" title="Từ ngày 1/1 của năm hiện tại theo múi giờ website">Năm nay</option>
                     <option value="all" title="Toàn bộ thời gian">Toàn bộ</option>
                 </select>
             </label>

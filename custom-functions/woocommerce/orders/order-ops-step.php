@@ -41,10 +41,10 @@ add_action('template_redirect', function () {
 
 const THEAN_OPS_STEP_META = '_thean_ops_step';
 const THEAN_OPS_STEP_VER  = '_thean_ops_step_v';
-const THEAN_OPS_STEP_VERSION = '12'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu / chưa xác nhận ảnh xuất kho; 4: cờ chứng từ cho đơn đang giao;
+const THEAN_OPS_STEP_VERSION = '14'; // tăng khi đổi logic bước vận hành (2: Đặt trước; 3: Thiếu / chưa xác nhận ảnh xuất kho; 4: cờ chứng từ cho đơn đang giao;
                                     // 5: bắt save_meta_data trên HPOS; 6: lưu bước thật cả đơn nội bộ / đơn cũ + đọc đơn bỏ qua cache;
                                     // 7: tính lại cả đơn đóng còn hoàn hàng; 8: nhóm khách/COD, giao nhanh chưa xuất không tính đã giao đi)
-const THEAN_OPS_COD_META = '_thean_ops_cod'; // Parallel unpaid COD queue: cod_fast | cod.
+const THEAN_OPS_COD_META = '_thean_ops_cod'; // Parallel unpaid COD queue: cod_fast | cod_delivered.
 const THEAN_OPS_PROOF_META = '_thean_ops_proof'; // '1' = thiếu chứng từ XK → tab "Thiếu / chưa xác nhận ảnh xuất kho" (đơn đang giao: kèm tab Đang giao)
 const THEAN_OPS_PROOF_DAYS = 60;    // tab Thiếu / chưa xác nhận ảnh xuất kho: chỉ xét đơn tạo trong 60 ngày (đơn cũ có trước quy trình ảnh xuất kho)
 const THEAN_OPS_CRON      = 'thean_ops_step_sweep';
@@ -98,15 +98,15 @@ function thean_ops_step_position(string $tab): array
 /** Bước lưu sẵn vẫn riêng biệt để giữ đúng thao tác; chỉ gộp ở lớp hiển thị board. */
 function thean_ops_step_tab(string $step): string
 {
-    return ['payment' => 'confirm', 'cod_fast' => 'cod'][$step] ?? $step;
+    return ['payment' => 'confirm', 'cod_fast' => 'cod', 'cod_delivered' => 'cod'][$step] ?? $step;
 }
 
-/** Hai nhóm trong cùng một tab; khóa là bước gốc, dùng chung cho SQL, badge và UI. */
+/** Nhóm trong cùng một tab; dùng chung cho SQL, badge và UI. */
 function thean_ops_step_groups(string $tab): array
 {
     return [
         'confirm' => ['confirm' => 'Đơn chờ xác nhận', 'payment' => 'Đơn chờ thanh toán trước'],
-        'cod' => ['cod_fast' => 'Đang giao nhanh / Đã giao / Hoàn thành', 'cod' => 'GHTK / Viettel'],
+        'cod' => ['cod_fast' => 'Đang giao nhanh / Đã giao / Hoàn thành', 'cod_delivered' => 'GHTK / Viettel — Đã giao / Hoàn thành'],
     ][$tab] ?? [];
 }
 
@@ -307,16 +307,20 @@ function thean_ops_cod_group(WC_Order $order, ?array $flow = null): string
         return '';
     }
     $shippers = thean_ow_meta_list($order, 'shipper');
+    $is_carrier = (bool) array_intersect(['ghtk', 'viettel', 'vietel'], $shippers);
+    if ($is_carrier && in_array($order->get_status(), ['delivered', 'completed'], true)) {
+        return 'cod_delivered';
+    }
     if (in_array($order->get_status(), ['local-shipping', 'delivered', 'completed'], true)) {
         return 'cod_fast';
     }
-    return array_intersect(['ghtk', 'viettel', 'vietel'], $shippers) ? 'cod' : '';
+    return '';
 }
 
 /** Indexed, persisted COD membership; also admits completed debt with no main step. */
 function thean_ops_cod_sql(array $t): string
 {
-    return "EXISTS (SELECT 1 FROM {$t['meta']} cd WHERE cd.{$t['fk']} = o.{$t['id']} AND cd.meta_key = '" . THEAN_OPS_COD_META . "' AND cd.meta_value IN ('cod_fast', 'cod'))";
+    return "EXISTS (SELECT 1 FROM {$t['meta']} cd WHERE cd.{$t['fk']} = o.{$t['id']} AND cd.meta_key = '" . THEAN_OPS_COD_META . "' AND cd.meta_value IN ('cod_fast', 'cod_delivered'))";
 }
 
 /** Bước tiếp theo (thean_ow_flow) → tab board; '' = không cần xử lý. Hàm thuần. */

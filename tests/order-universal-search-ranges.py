@@ -1,7 +1,7 @@
 """Execute production-generated date predicates on SQLite fixtures (no WordPress).
 Run: python3 tests/order-universal-search-ranges.py
 """
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 from pathlib import Path
 import sqlite3
@@ -14,25 +14,30 @@ $out = [];
 foreach ([true, false] as $hpos) {
     \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
     $rows = [];
-    foreach (['auto','7','30','90','all'] as $range) {
+    foreach (['auto','7','30','90','120','180','270','360','all'] as $range) {
         $rows[$range] = [
             'search' => thean_ous_range_sql($range, 'o', null, 1700000000),
             'board' => thean_ous_range_sql($range, 'o', 's.meta_value', 1700000000),
         ];
     }
     $board = [];
-    foreach (['auto','7','30','90','all'] as $range) {
+    foreach (['auto','7','30','90','120','180','270','360','all'] as $range) {
         foreach (['picking','return','preorder','proof','cod'] as $tab) {
             $board[$range][$tab] = 'SELECT DISTINCT o.' . thean_ops_step_tables()['id'] . ' ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql($tab, $range) . ' ORDER BY o.' . thean_ops_step_tables()['id'];
         }
     }
     $memberships = [];
-    foreach (['auto','7','30','90','all'] as $range) {
+    foreach (['auto','7','30','90','120','180','270','360','all'] as $range) {
         $wpdb->queries = [];
         thean_ous_board_memberships([1,4,5,7,8,9,11], $range);
         $memberships[$range] = end($wpdb->queries);
     }
-    $out[] = ['hpos' => $hpos, 'queries' => $rows, 'board' => $board, 'memberships' => $memberships, 'now' => time()];
+    $year_cases = [];
+    foreach (['2026-01-01 00:00:00 UTC', '2026-12-31 18:00:00 UTC'] as $instant) {
+        $timestamp = strtotime($instant);
+        $year_cases[] = ['now' => $timestamp, 'sql' => thean_ous_range_sql('year', 'o', null, $timestamp)];
+    }
+    $out[] = ['hpos' => $hpos, 'queries' => $rows, 'board' => $board, 'memberships' => $memberships, 'now' => time(), 'year_cases' => $year_cases];
 }
 echo json_encode($out);
 '''
@@ -59,6 +64,8 @@ fixtures = [
 expected = {'7': [1, 8], '30': [1, 2, 8, 9],
             '90': [1, 2, 3, 4, 5, 7, 8, 9, 10, 11],
             'all': list(range(1, 12))}
+for days in ['120','180','270','360']:
+    expected[days] = list(range(1, 12))
 checks = 0
 for scope in scopes:
     db = sqlite3.connect(':memory:')
@@ -79,6 +86,22 @@ for scope in scopes:
             if range_name == 'auto':
                 want = [1, 2, 4, 5, 8, 9] + ([10] if mode == 'search' else [])
             assert got == want, (hpos, range_name, mode, got, want, sql)
+            checks += 1
+    # Execute rolling-window boundaries and calendar-year boundaries in site time.
+    for days in [120, 180, 270, 360]:
+        for age, want in [(days * D, 1), (days * D + 1, 0)]:
+            predicate = scope['queries'][str(days)]['search']
+            got = db.execute(f"SELECT ({predicate}) FROM (SELECT ? AS {date}) o", (at(age),)).fetchone()[0]
+            assert got == want, (hpos, days, age, got)
+            checks += 1
+    for case in scope['year_cases']:
+        local_now = datetime.fromtimestamp(case['now'], timezone.utc) + timedelta(hours=7)
+        start = datetime(local_now.year, 1, 1, tzinfo=timezone.utc).timestamp() - 7 * 3600
+        end = datetime(local_now.year + 1, 1, 1, tzinfo=timezone.utc).timestamp() - 7 * 3600
+        for timestamp, want in [(start-1, 0), (start, 1), (end-1, 1), (end, 0)]:
+            value = datetime.fromtimestamp(timestamp, timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+            got = db.execute(f"SELECT ({case['sql']}) FROM (SELECT ? AS {date}) o", (value,)).fetchone()[0]
+            assert got == want, (hpos, case, value, got)
             checks += 1
     # Execute complete production board queries too, including proof overlap and
     # the pre-existing business age lock. Move near-boundary rows away from the
@@ -106,7 +129,7 @@ for scope in scopes:
             elif tab == 'proof':
                 proof_eligible = {'auto': [8, 9], '7': [8], '30': [8, 9],
                                   '90': [4, 7, 8, 9, 11], 'all': [4, 7, 8, 9, 11]}
-                want = proof_eligible[range_name]
+                want = proof_eligible.get(range_name, [4, 7, 8, 9, 11])
             else:
                 want = [oid for oid, _, step, _ in fixtures if oid in eligible and step == tab]
             assert got == want, (hpos, range_name, tab, got, want, sql)
@@ -115,7 +138,7 @@ for scope in scopes:
         got = {oid: (step, bool(proof)) for oid, step, cod, proof, internal in db.execute(sql)}
         eligible = expected.get(range_name, [1, 2, 4, 5, 8, 9])
         proof_ids = {'auto': [8, 9], '7': [8], '30': [8, 9],
-                     '90': [4, 7, 8, 9, 11], 'all': [4, 7, 8, 9, 11]}[range_name]
+                     '90': [4, 7, 8, 9, 11], 'all': [4, 7, 8, 9, 11]}.get(range_name, [4, 7, 8, 9, 11])
         want = {oid: (step, oid in proof_ids) for oid, _, step, _ in fixtures
                 if oid in eligible and oid in [1,4,5,7,8,9,11]}
         assert got == want, (hpos, range_name, 'memberships', got, want, sql)
@@ -125,21 +148,22 @@ for scope in scopes:
     created = datetime.fromtimestamp(scope['now'] - D, timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     for oid, step, st, group in [(21, 'none', 'wc-completed', 'cod_fast'),
                                   (22, 'shipping', 'wc-shipping', 'cod'),
-                                  (23, 'shipping', 'wc-local-shipping', 'cod_fast')]:
+                                  (23, 'shipping', 'wc-local-shipping', 'cod_fast'),
+                                  (24, 'none', 'wc-completed', 'cod_delivered')]:
         db.execute(f'INSERT INTO {table} VALUES (?,?,?,?,?)', (oid, st, created, 'shop_order', 'customer@example.test'))
         db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (oid, '_thean_ops_step', step))
         db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (oid, '_thean_ops_cod', group))
     for range_name in scope['board']:
         got = [row[0] for row in db.execute(scope['board'][range_name]['cod'])]
-        assert got == [21, 22, 23], (hpos, range_name, got)
+        assert got == [21, 23, 24], (hpos, range_name, got)
         checks += 1
     db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (22, '_eim_internal', '1'))
     got = [row[0] for row in db.execute(scope['board']['all']['cod'])]
-    assert got == [21, 23], (hpos, got)
+    assert got == [21, 23, 24], (hpos, got)
     checks += 1
     db.execute(f'DELETE FROM {meta} WHERE {fk}=21 AND meta_key="_thean_ops_cod"')
     got = [row[0] for row in db.execute(scope['board']['all']['cod'])]
-    assert got == [23], (hpos, got)
+    assert got == [23, 24], (hpos, got)
     checks += 1
     db.close()
 print(f'OK ({checks} executed SQL checks)')
