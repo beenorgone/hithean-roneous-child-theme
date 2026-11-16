@@ -2302,7 +2302,11 @@
         btn.disabled = true; btn.textContent = isDraft ? 'Đang lưu...' : (state.editOrderId ? 'Đang cập nhật...' : 'Đang tạo...');
         post('order_creator_create_order', { payload: JSON.stringify(payload) }).then(function (res) {
             btn.disabled = false; btn.textContent = label;
-            if (!res.success) { alert((res.data && res.data.message) || 'Lỗi tạo đơn.'); return; }
+            if (!res.success) {
+                var error = (res.data && res.data.message) || 'Lỗi tạo đơn.';
+                if (!window.hitheanPaymentStatusDialog || !window.hitheanPaymentStatusDialog(error)) alert(error);
+                return;
+            }
             state.lastOrder = res.data;
             if (window.parent !== window) window.parent.postMessage({ type: 'thean:order-created', orderId: res.data.order_id }, window.location.origin);
             setEditorDisabled(true);

@@ -27,6 +27,7 @@
     }
 
     function toast(msg, isError) {
+        if (isError && window.hitheanPaymentStatusDialog) window.hitheanPaymentStatusDialog(msg);
         toastEl.textContent = plain(msg);
         toastEl.classList.toggle('is-error', !!isError);
         toastEl.classList.add('is-show');

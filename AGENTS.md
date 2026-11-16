@@ -172,6 +172,16 @@ hub eim đổi trạng thái / đối soát, Action Scheduler, request không đ
 và ghi chú vào đơn. `order-auto-tasks.php` không chạy dây chuyền trên đơn cũ. Tạm nới có thời hạn (1 giờ … 3 ngày) ở Cài đặt ERP →
 Xử lý đơn → "Khóa đơn cũ" (option `thean_order_age_lock_relax`). Board "Tải đơn cần xử lý" luôn bỏ đơn cũ (theo mốc). Test: `php tests/order-age-lock.php`.
 
+## Chặn hoàn thành / đã giao khi chưa xác nhận thanh toán
+
+`woocommerce/orders/order-payment-status-guard.php` (nạp mọi request) chặn **thao tác thủ công** sang `completed` / `delivered`
+nếu chưa có xác nhận thanh toán theo `thean_ow_payment_state(..., true)`; Administrator (`manage_options`) được miễn.
+Đọc trạng thái gốc trước khi đổi: đích `completed` không được tự coi là bằng chứng thanh toán; thanh toán một phần chưa đủ.
+Chặn tại `woocommerce_before_order_object_save`, phục hồi trạng thái / ngày thanh toán / ngày hoàn thành và hủy transition trước khi báo lỗi.
+Board / bảng điều phối kiểm tra trước để trả lỗi rõ ràng; trang tạo/sửa đơn giữ quyền người thao tác khi mạo danh khách.
+Modal hướng dẫn nhân sự kiểm tra tiền nhận → Xác nhận thanh toán → đổi trạng thái; form truyền thống hiện modal sau chuyển trang.
+Cron / REST / webhook giữ luồng tự động hiện có. Test: `php tests/order-payment-status-guard.php`.
+
 ## Màu
 
 - Thương hiệu: **xanh dương đậm `#0047ba`** (`--default-color-dark-blue` ở `css/custom.css`), navy `#001f3f`,

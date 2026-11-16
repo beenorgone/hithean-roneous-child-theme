@@ -28,7 +28,13 @@ function wp_bulk_order_status_form()
             foreach ($order_ids as $id) {
                 $order = wc_get_order($id);
                 if ($order) {
-                    $order->update_status(str_replace('wc-', '', $new_status), __('Bulk status update via shortcode', 'woocommerce'));
+                    $target = str_replace('wc-', '', $new_status);
+                    if (function_exists('hithean_order_payment_status_error') && ($error = hithean_order_payment_status_error($order, $target)) !== '') {
+                        set_transient('hithean_payment_status_block_' . get_current_user_id(), $error, 5 * MINUTE_IN_SECONDS);
+                        $results[] = '#' . $id . ': ' . $error;
+                        continue;
+                    }
+                    $order->update_status($target, __('Bulk status update via shortcode', 'woocommerce'));
                     $results[] = sprintf(__('Order #%d updated.', 'woocommerce'), $id);
                 } else {
                     $results[] = sprintf(__('Order #%d not found.', 'woocommerce'), $id);

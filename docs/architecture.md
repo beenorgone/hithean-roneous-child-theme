@@ -82,7 +82,7 @@ Viết tay, máy kiểm (`docs-sync --check`): mọi `paths` / `tpc_loader_path_
 | `marketing/` | 23 | ~5.800 |
 | `shortcodes/` | 22 | ~15.000 |
 | `woocommerce/checkout/` | 5 | ~2.600 |
-| `woocommerce/orders/` | 38 | ~15.700 |
+| `woocommerce/orders/` | 39 | ~15.800 |
 | `woocommerce/products/` | 18 | ~8.300 |
 <!-- /AUTO:layers -->
 

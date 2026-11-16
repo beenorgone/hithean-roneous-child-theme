@@ -1636,6 +1636,9 @@ function thean_ow_ajax(): void
             if (function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order)) {
                 wp_send_json_error(['message' => 'Đơn đã bị khóa đổi trạng thái (chỉ admin).']);
             }
+            if (function_exists('hithean_order_payment_status_error') && ($error = hithean_order_payment_status_error($order, $target)) !== '') {
+                wp_send_json_error(['message' => $error]);
+            }
             $order->update_status($target, 'Đổi trạng thái từ bảng điều phối đơn.', true);
             wp_send_json_success(['message' => 'Đã chuyển sang: ' . wc_get_order_status_name($target)]);
             break;
@@ -1728,6 +1731,9 @@ function thean_ow_ajax(): void
             }
             if ($order->get_status() === $target) wp_send_json_error(['message' => 'Đơn đã ở trạng thái ' . wc_get_order_status_name($target) . '.']);
             $reason = sanitize_text_field(wp_unslash($_POST['reason'] ?? ''));
+            if (function_exists('hithean_order_payment_status_error') && ($error = hithean_order_payment_status_error($order, $target)) !== '') {
+                wp_send_json_error(['message' => $error]);
+            }
             $order->update_status($target, '🔁 Đổi trạng thái tùy ý (bảng điều phối)' . ($reason !== '' ? ': ' . $reason : '') . '.', true);
             wp_send_json_success(['message' => 'Đã chuyển sang: ' . wc_get_order_status_name($target)]);
             break;

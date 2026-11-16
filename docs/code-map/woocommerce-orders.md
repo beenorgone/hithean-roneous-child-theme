@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-36 file · ~11.200 dòng · 419 hàm (62% có docblock)
+37 file · ~11.200 dòng · 423 hàm (62% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -59,7 +59,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`acp/column/value` · `acp/storage_model/meta` · `add_meta_boxes` · `added_post_meta` · `admin_body_class` ×2 · `admin_enqueue_scripts` ×3 · `admin_footer` ×9 · `admin_head` ×2 · `admin_init` ×2 · `admin_menu` · `admin_notices` · `admin_print_footer_scripts` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `cron_schedules` · `current_screen` · `deleted_post_meta` ×2 · `disable_months_dropdown` · `edit_form_top` · `eim_is_internal_order` · `get_post_metadata` · `hithean_export_ai_check_async` · `hithean_export_ai_check_completed` · `hithean_export_lark_alert_async` · `hithean_export_lark_batch_async` · `hithean_export_lark_notify_async` · `hithean_export_lark_remind_async` · `hithean_warehouse_export_confirmed` · `init` ×3 · `manage_posts_extra_tablenav` · `order_edit_form_top` · `post_class` · `posts_pre_query` · `redirect_post_location` · `request` · `rwmb_field_meta` · `rwmb_meta_boxes` · `rwmb_warehouse_export_images_value` · `save_post_shop_order` · `shutdown` ×3 · `template_redirect` ×2 · `thean_ops_step_backfill` · `thean_ops_step_sweep` · `theme_ai_feature_registry` · `updated_post_meta` · `wc_order_statuses` · `woocommerce_admin_order_actions` ×4 · `woocommerce_admin_order_actions_end` · `woocommerce_admin_order_actions_start` · `woocommerce_after_order_object_save` · `woocommerce_before_order_itemmeta` · `woocommerce_before_order_object_save` · `woocommerce_hpos_pre_query` · `woocommerce_order_list_table_extra_tablenav` · `woocommerce_order_list_table_prepare_items_query_args` · `woocommerce_order_number` · `woocommerce_order_status_changed` ×2 · `woocommerce_order_status_failed` · `woocommerce_order_status_on-hold` · `woocommerce_order_status_packaging` · `woocommerce_order_status_processing` · `woocommerce_order_status_received-payment` · `woocommerce_order_status_shipping` · `woocommerce_order_statuses_that_restore_stock` · `woocommerce_process_shop_order_meta` · `woocommerce_thankyou` · `woocommerce_update_order` · `wp_footer` ×2 · `⟨$thean_hpc_hook⟩` · `⟨$thean_lms_hook⟩` · `⟨$thean_ops_hook⟩` ×2
+`acp/column/value` · `acp/storage_model/meta` · `add_meta_boxes` · `added_post_meta` · `admin_body_class` ×2 · `admin_enqueue_scripts` ×4 · `admin_footer` ×10 · `admin_head` ×2 · `admin_init` ×2 · `admin_menu` · `admin_notices` · `admin_print_footer_scripts` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `cron_schedules` · `current_screen` · `deleted_post_meta` ×2 · `disable_months_dropdown` · `edit_form_top` · `eim_is_internal_order` · `get_post_metadata` · `hithean_export_ai_check_async` · `hithean_export_ai_check_completed` · `hithean_export_lark_alert_async` · `hithean_export_lark_batch_async` · `hithean_export_lark_notify_async` · `hithean_export_lark_remind_async` · `hithean_warehouse_export_confirmed` · `init` ×3 · `manage_posts_extra_tablenav` · `order_edit_form_top` · `post_class` · `posts_pre_query` · `redirect_post_location` · `request` · `rwmb_field_meta` · `rwmb_meta_boxes` · `rwmb_warehouse_export_images_value` · `save_post_shop_order` · `shutdown` ×3 · `template_redirect` ×2 · `thean_ops_step_backfill` · `thean_ops_step_sweep` · `theme_ai_feature_registry` · `updated_post_meta` · `wc_order_statuses` · `woocommerce_admin_order_actions` ×4 · `woocommerce_admin_order_actions_end` · `woocommerce_admin_order_actions_start` · `woocommerce_after_order_object_save` · `woocommerce_before_order_itemmeta` · `woocommerce_before_order_object_save` ×2 · `woocommerce_hpos_pre_query` · `woocommerce_order_list_table_extra_tablenav` · `woocommerce_order_list_table_prepare_items_query_args` · `woocommerce_order_number` · `woocommerce_order_status_changed` ×2 · `woocommerce_order_status_failed` · `woocommerce_order_status_on-hold` · `woocommerce_order_status_packaging` · `woocommerce_order_status_processing` · `woocommerce_order_status_received-payment` · `woocommerce_order_status_shipping` · `woocommerce_order_statuses_that_restore_stock` · `woocommerce_process_shop_order_meta` · `woocommerce_thankyou` · `woocommerce_update_order` · `wp_enqueue_scripts` · `wp_footer` ×3 · `⟨$thean_hpc_hook⟩` · `⟨$thean_lms_hook⟩` · `⟨$thean_ops_hook⟩` ×2
 
 ## File
 
@@ -335,6 +335,15 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_order_ops_settings_section()` | Các mục của luồng vận hành trong Cài đặt ERP → tab Xử lý đơn (gọi từ core/ai-settings.php của mỗi theme): "Đơn nội bộ" + "Quyền đổi trạng thái tùy ý" + "Mẫu ghi chú thao tác" +… |
 | `thean_status_change_settings_section()` | Mục "Quyền đổi trạng thái tùy ý": danh sách user (email / tên đăng nhập / ID) → option thean_status_change_users. |
 | `thean_internal_domains_settings_section()` | Mục "Đơn nội bộ" (domain email nội bộ). |
+
+### `woocommerce/orders/order-payment-status-guard.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_order_payment_status_error(WC_Order $order, string $target)` | Manual delivery/completion requires payment confirmation; administrators may override. |
+| `hithean_order_guard_unpaid_status($order)` | Protect every WC save, including native editing and bulk actions, before transition hooks run. |
+| `hithean_order_payment_guard_assets()` | Load the guidance dialog only for staff; redirects from native saves consume the pending message. |
+| `hithean_order_payment_guard_pending()` | Show blocked native form submissions after redirects or shortcode rendering. |
 
 ### `woocommerce/orders/order-portal.php`
 

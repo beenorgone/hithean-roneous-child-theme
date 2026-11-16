@@ -498,6 +498,7 @@
         syncBulk(modal);
     }
     function toast(text, isError, retry) {
+        if (isError && window.hitheanPaymentStatusDialog) window.hitheanPaymentStatusDialog(text);
         var t = document.createElement('div');
         t.className = 'thean-ous-toast' + (isError ? ' is-error' : '');
         t.textContent = text;
@@ -530,7 +531,7 @@
                 return refreshOrders(d.done || []).then(function () {
                     var box = body(modal).querySelector('.thean-ous-bulk-result');
                     if (box) { box.textContent = lines.join(' · '); box.hidden = false; box.classList.toggle('is-error', (d.failed || []).length > 0); }
-                    toast(d.message, (d.failed || []).length > 0);
+                    toast(lines.join(" · "), (d.failed || []).length > 0);
                     document.dispatchEvent(new CustomEvent('thean:order-updated', { detail: { orderIds: d.done || [], synced: true } }));
                 });
             });

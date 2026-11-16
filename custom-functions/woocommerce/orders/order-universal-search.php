@@ -1691,6 +1691,9 @@ function thean_ous_bulk_status(WC_Order $order, string $status, string $note): a
     if ($order->get_status() === $status) {
         return [false, 'Đơn đã ở trạng thái ' . wc_get_order_status_name($status) . '.'];
     }
+    if (function_exists('hithean_order_payment_status_error') && ($error = hithean_order_payment_status_error($order, $status)) !== '') {
+        return [false, $error];
+    }
     $order->update_status($status, '🔁 Đổi trạng thái hàng loạt (ô tìm đơn)' . ($note !== '' ? ': ' . $note : '') . '.', true);
     return [true, 'Đã chuyển sang: ' . wc_get_order_status_name($status)];
 }
