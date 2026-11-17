@@ -363,7 +363,7 @@ function hcf_ajax_delete(): void
 }
 
 
-/** Nhập JSON (mảng kịch bản, cùng định dạng file xuất) — ghi option 1 lần. Trùng tiêu đề → cập nhật bản đang có. */
+/** Tạo kịch bản mẫu (starter) hoặc nhập mảng kịch bản — ghi option 1 lần. Nhập file từ giao diện dùng gói chung hithean_consult_import (shortcode-consult-faqs.php). */
 add_action('wp_ajax_hithean_cflow_import', 'hcf_ajax_import');
 function hcf_ajax_import(): void
 {
@@ -409,8 +409,9 @@ function hcf_shortcode(): string
             <input type="text" class="hcf-in hcf-in--name" data-hcf-name placeholder="Tên khách (thay {ten})" aria-label="Tên khách">
             <?php if ($cfg['manage']) : ?>
                 <button type="button" class="hcf-btn hcf-btn--pri" data-hcf-new>＋ Thêm kịch bản</button>
-                <button type="button" class="hcf-btn" data-hcf-export title="Tải toàn bộ kịch bản (JSON) — sao lưu / chuyển sang chatbot">⤓ Xuất</button>
-                <label class="hcf-btn" title="Nhập file JSON đã xuất (trùng tiêu đề → cập nhật)">⤒ Nhập<input type="file" accept=".json,application/json" data-hcf-import hidden></label>
+                <button type="button" class="hcf-btn" data-hcb-export="flows" title="Tải kịch bản (JSON) — sao lưu / nhập sang site khác">⤓ Xuất</button>
+                <button type="button" class="hcf-btn" data-hcb-export="all" title="Kịch bản + FAQ + tài liệu tham khảo chung trong 1 file — mang sang site khác">⤓ Trọn bộ</button>
+                <label class="hcf-btn" title="Nhập file xuất từ site này hoặc site khác (trùng tiêu đề / câu hỏi → cập nhật)">⤒ Nhập<input type="file" accept=".json,application/json" data-hcb-import hidden></label>
             <?php endif; ?>
         </div>
         <p class="hcf-status" role="status" data-hcf-status>Đang tải kịch bản…</p>
@@ -439,5 +440,6 @@ function hcf_assets(): string
     $ver = static function (string $f) use ($dir): string { return (string) (@filemtime($dir . $f) ?: '1'); };
 
     return '<link rel="stylesheet" href="' . esc_url($base . 'consult-tools.css?v=' . $ver('consult-tools.css')) . '">'
+        . '<script src="' . esc_url($base . 'consult-bundle.js?v=' . $ver('consult-bundle.js')) . '" defer></script>'
         . '<script src="' . esc_url($base . 'consult-flows.js?v=' . $ver('consult-flows.js')) . '" defer></script>';
 }

@@ -8,6 +8,7 @@ function thean_order_product_tools(): array
         'info' => ['label' => 'Tra thông tin & HDSD sản phẩm', 'shortcode' => 'product_info_search', 'file' => 'shortcode-product-info-search.php'],
         'advisor' => ['label' => '✨ AI tư vấn', 'shortcode' => 'product_advisor_ai', 'file' => 'shortcode-product-advisor.php'],
         'flows' => ['label' => '🗂️ Kịch bản tư vấn', 'shortcode' => 'consult_flows', 'file' => 'shortcode-consult-flows.php'],
+        'faqs' => ['label' => '💬 FAQ tư vấn', 'shortcode' => 'consult_faqs', 'file' => 'shortcode-consult-faqs.php'],
         'compare' => ['label' => 'So sánh sản phẩm', 'shortcode' => 'product_compare', 'file' => 'shortcode-product-compare.php'],
         'protein' => ['label' => 'Tính protein', 'shortcode' => 'protein_calculator', 'file' => 'shortcode-protein-calculator.php'],
     ];

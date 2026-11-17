@@ -556,6 +556,13 @@ function tpc_loader_modules()
             'ajax_actions' => ['hithean_cflow_list', 'hithean_cflow_save', 'hithean_cflow_delete', 'hithean_cflow_import'],
         ],
         [
+            // FAQ tư vấn nội bộ + tài liệu tham khảo chung cho AI + gói xuất / nhập sang site khác (kịch bản + FAQ).
+            'id' => 'consult_faqs',
+            'file' => 'custom-functions/shortcodes/shortcode-consult-faqs.php',
+            'shortcodes' => ['consult_faqs'],
+            'ajax_actions' => ['hithean_faq_list', 'hithean_faq_suggest', 'hithean_faq_save', 'hithean_faq_delete', 'hithean_faq_used', 'hithean_consult_export', 'hithean_consult_import', 'hithean_consult_ref_save'],
+        ],
+        [
             'id' => 'product_advisor',
             'file' => 'custom-functions/shortcodes/shortcode-product-advisor.php',
             'shortcodes' => ['product_advisor_ai'],

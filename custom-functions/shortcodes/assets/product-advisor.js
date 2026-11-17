@@ -9,7 +9,8 @@
     var form = $('[data-hpa-form]'), out = $('[data-hpa-out]'), statusEl = $('[data-hpa-status]');
     var chipsEl = $('[data-hpa-chips]'), skuIn = $('[data-hpa-sku]'), askBtn = $('[data-hpa-ask]');
     var keepEl = $('[data-hpa-keep]'), turnsEl = $('[data-hpa-turns]');
-    var qIn = form.elements.namedItem('question');
+    var qIn = form.elements.namedItem('question'), extraIn = form.elements.namedItem('extra');
+    var faqEl = $('[data-hpa-faq]'), faqTimer = 0, faqSeq = 0;
     var skus = [], history = [], last = null;
 
     function el(tag, attrs, children) {
@@ -70,7 +71,7 @@
     function renderTurns() { turnsEl.textContent = history.length ? '(' + history.length + ' lượt)' : ''; }
     $('[data-hpa-reset]').addEventListener('click', function () {
         history = []; skus = []; last = null; renderChips(); renderTurns();
-        qIn.value = ''; out.hidden = true; out.innerHTML = ''; status(''); qIn.focus();
+        qIn.value = ''; extraIn.value = ''; faqEl.hidden = true; faqEl.innerHTML = ''; out.hidden = true; out.innerHTML = ''; status(''); qIn.focus();
     });
 
     function post(action, data, nonce) {
@@ -113,11 +114,14 @@
                 addSku(p.sku); qIn.value = question; form.requestSubmit();
             } });
         }))));
+        if (d.faqs && d.faqs.length) src.push(el('p', {}, [el('b', { text: 'FAQ đã lưu được dùng: ' })].concat(d.faqs.map(function (f) {
+            return el('span', { class: 'hpa-prod', text: '❓ ' + f.q.slice(0, 60) });
+        }))));
         if (d.flows && d.flows.length) src.push(el('p', {}, [el('b', { text: 'Kịch bản liên quan: ' })].concat(d.flows.map(function (f) {
             return el('span', { class: 'hpa-prod', text: (f.used ? '✓ ' : '') + f.title });
         }))));
         src.push(el('p', { class: 'hpa-meta', text: [d.model, d.labels_read ? 'đọc ' + d.labels_read + ' ảnh nhãn' : '', d.cached ? 'kết quả lưu sẵn' : ''].filter(Boolean).join(' · ') }));
-        var actions = [];
+        var actions = [faqSaver(question, reply, d)];
         if (cfg.manage) {
             var saveBtn = el('button', { type: 'button', class: 'hcf-btn', text: '➕ Lưu thành kịch bản (nháp)' });
             saveBtn.addEventListener('click', function () {
@@ -130,8 +134,74 @@
             });
             actions.push(saveBtn);
         }
-        out.appendChild(card('📚 Nguồn dữ liệu', src.concat(actions.length ? [el('p', {}, actions)] : [])));
+        out.appendChild(card('📚 Nguồn dữ liệu', src.concat([el('div', { class: 'hpa-save' }, actions)])));
         out.hidden = false;
+    }
+
+
+    // ── FAQ đã lưu: gợi ý khi gõ câu hỏi (copy dùng luôn, không tốn lượt AI) + lưu câu trả lời AI vào FAQ ──
+    function faqCard(f) {
+        var btn = el('button', { type: 'button', class: 'hcf-btn hcf-btn--sm', text: '📋 Copy' });
+        var box = el('div', { class: 'hcf-say', title: 'Bấm để copy' }, [el('p', {}, [el('b', { text: '❓ ' + f.q }), el('br'), f.a]), btn]);
+        box.addEventListener('click', function () {
+            copy(f.a, btn);
+            post('hithean_faq_used', { id: f.id }, cfg.flowNonce).catch(function () { /* không chặn */ });
+        });
+        return box;
+    }
+    function suggestFaq() {
+        var text = qIn.value.trim();
+        if (text.length < 8) { faqEl.hidden = true; faqEl.innerHTML = ''; return; }
+        var seq = ++faqSeq;
+        post('hithean_faq_suggest', { q: text, skus: skus.join(',') }, cfg.flowNonce).then(function (d) {
+            if (seq !== faqSeq) return;
+            faqEl.innerHTML = '';
+            if (!d.items || !d.items.length) { faqEl.hidden = true; return; }
+            faqEl.appendChild(el('p', { class: 'hpa-lbl', text: '📚 FAQ đã lưu khớp (' + d.items.length + ') — dùng ngay, không cần hỏi AI:' }));
+            d.items.forEach(function (f) { faqEl.appendChild(faqCard(f)); });
+            faqEl.hidden = false;
+        }).catch(function () { /* gợi ý không bắt buộc */ });
+    }
+    qIn.addEventListener('input', function () { clearTimeout(faqTimer); faqTimer = setTimeout(suggestFaq, 500); });
+
+    function faqSaver(question, reply, d) {
+        var wrap = el('div', { class: 'hpa-faqsave' });
+        var open = el('button', { type: 'button', class: 'hcf-btn hcf-btn--pri', text: '💾 Lưu vào FAQ' });
+        open.addEventListener('click', function () {
+            open.remove();
+            var q = el('textarea', { class: 'hcf-in hpa-q', rows: 2, 'aria-label': 'Câu hỏi FAQ' });
+            q.value = question.split('\n').filter(Boolean).slice(-1)[0].slice(0, 300);
+            var a = el('textarea', { class: 'hcf-in hpa-q', rows: 4, 'aria-label': 'Câu trả lời FAQ' });
+            a.value = reply.value;
+            var save = el('button', { type: 'button', class: 'hcf-btn hcf-btn--pri', text: '💾 Lưu' });
+            save.addEventListener('click', function () {
+                save.disabled = true;
+                post('hithean_faq_save', { faq: JSON.stringify({ q: q.value, a: a.value, source: 'ai', skus: (d.products || []).map(function (p) { return p.sku; }) }) }, cfg.flowNonce)
+                    .then(function (r) { wrap.innerHTML = ''; wrap.appendChild(el('p', { class: 'hpa-meta', text: (r.updated ? '✓ Đã cập nhật FAQ #' : '✓ Đã lưu FAQ #') + r.id + ' — lần sau gõ câu tương tự sẽ hiện gợi ý.' })); })
+                    .catch(function (err) { status(err.message, true); save.disabled = false; });
+            });
+            wrap.appendChild(el('p', { class: 'hpa-lbl', text: 'Câu hỏi (viết gọn, chung chung để lần sau dễ khớp):' }));
+            wrap.appendChild(q);
+            wrap.appendChild(el('p', { class: 'hpa-lbl', text: 'Câu trả lời:' }));
+            wrap.appendChild(a);
+            wrap.appendChild(save);
+            q.focus();
+        });
+        wrap.appendChild(open);
+        return wrap;
+    }
+
+    // ── Tài liệu tham khảo chung ──
+    var refText = root.querySelector('[data-hpa-ref-text]'), refMeta = root.querySelector('[data-hpa-ref-meta]'), refSave = root.querySelector('[data-hpa-ref-save]');
+    function refInfo(r) { refMeta.textContent = r && r.updated ? 'Cập nhật ' + r.updated + (r.by ? ' · ' + r.by : '') + ' · ' + (r.text || '').length + '/20000 ký tự' : 'Chưa có tài liệu.'; }
+    if (refText) {
+        refText.value = (cfg.reference && cfg.reference.text) || '';
+        refInfo(cfg.reference);
+        if (refSave) refSave.addEventListener('click', function () {
+            refSave.disabled = true;
+            post('hithean_consult_ref_save', { text: refText.value }, cfg.flowNonce).then(function (d) { refInfo(d.reference); status('Đã lưu tài liệu tham khảo.'); })
+                .catch(function (err) { status(err.message, true); }).finally(function () { refSave.disabled = false; });
+        });
     }
 
     form.addEventListener('submit', function (e) {
@@ -148,7 +218,7 @@
         askBtn.disabled = true; status('AI đang đọc dữ liệu sản phẩm và soạn câu trả lời…');
         post('hithean_advisor_ask', {
             question: question, skus: skus.join(','), length: form.elements.namedItem('reply_length').value, labels: form.elements.namedItem('labels').checked ? '1' : '',
-            history: JSON.stringify(keepEl.checked ? history : [])
+            history: JSON.stringify(keepEl.checked ? history : []), extra: extraIn.value
         }).then(function (d) {
             last = { q: question, a: d.reply };
             render(d, question); renderTurns(); status('');

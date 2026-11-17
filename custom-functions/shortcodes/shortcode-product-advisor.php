@@ -10,12 +10,14 @@ defined('ABSPATH') || exit;
  *  2. danh mục rút gọn mọi SP đang bán (tên / SKU / giá / còn hàng) để AI gợi ý SP khác;
  *  3. kịch bản tư vấn: nội dung đầy đủ các kịch bản khớp từ khóa / SKU (hcf_match, shortcode-consult-flows.php)
  *     + mục lục mọi kịch bản đang dùng (id, tiêu đề, nhóm, từ khóa) để AI bám đúng bước & giọng công ty.
+ *  4. FAQ tư vấn đã lưu khớp câu hỏi (hcf_faq_match) — AI ưu tiên dùng lại; nhân viên cũng thấy FAQ khớp ngay khi gõ (copy không tốn lượt AI);
+ *  5. thông tin tham khảo: tài liệu chung (hcf_reference — ship, đổi trả, ưu đãi…) + ô "tham khảo thêm" nhân viên nhập riêng cho câu này.
  * AI cần dữ liệu SP / nội dung kịch bản chưa có → trả need_product_details / need_flow_ids → server tự hỏi lại 1 lượt kèm phần đó.
  * Tùy chọn đọc ảnh nhãn thành phần (dùng lại tpc_compare_ai_nutrition_* của AI so sánh SP).
  * Feature AI: `product_advisor_ai` (Cài đặt ERP → AI). Hàm thuần: hpa_detect_products, hpa_parse_reply — test `php tests/product-advisor.php`.
  */
 
-require_once __DIR__ . '/shortcode-consult-flows.php';
+require_once __DIR__ . '/shortcode-consult-faqs.php'; // kéo theo shortcode-consult-flows.php
 
 defined('HPA_MAX_DETAIL') || define('HPA_MAX_DETAIL', 5);
 
@@ -214,6 +216,8 @@ function hpa_system_prompt(string $length): string
         . 'Nhiệm vụ: soạn sẵn tin nhắn trả lời khách để nhân viên kiểm tra rồi gửi. '
         . 'Quy tắc bắt buộc: chỉ dùng thông tin trong DỮ LIỆU SẢN PHẨM và KỊCH BẢN được cung cấp; không bịa thành phần, công dụng, giá, ưu đãi, thời gian giao hàng. '
         . 'Không chẩn đoán, không nói sản phẩm chữa / trị / khỏi bệnh hay thay thế thuốc; khách có bệnh nền, đang dùng thuốc, mang thai / cho con bú → khuyên hỏi ý kiến bác sĩ. '
+        . 'THÔNG TIN THAM KHẢO (tài liệu chung + nhân viên nhập thêm) là dữ liệu đáng tin, dùng khi liên quan; phần nhân viên nhập thêm được ưu tiên nếu mâu thuẫn. '
+        . 'Có FAQ ĐÃ LƯU khớp câu hỏi thì ưu tiên dùng lại nội dung đó (chỉnh cho hợp ngữ cảnh). '
         . 'Có KỊCH BẢN khớp nhu cầu thì đi theo đúng bước và giọng văn của kịch bản (bước hiện tại tùy ngữ cảnh hội thoại). '
         . 'Thiếu thông tin để tư vấn đúng (mục tiêu, người dùng, tình trạng…) thì hỏi lại khách thay vì đoán. '
         . 'Giọng: xưng "em", gọi khách "anh/chị" (hoặc theo ngữ cảnh), lịch sự, tự nhiên như chat, tiếng Việt có dấu, không markdown, độ dài ' . $len . '. '
@@ -266,6 +270,15 @@ function hpa_call_ai(array $ctx)
         $prompt .= "\n";
     }
     $prompt .= "CÂU HỎI / TIN NHẮN MỚI CỦA KHÁCH:\n" . $ctx['question'] . "\n\n";
+    if ($ctx['reference'] !== '') {
+        $prompt .= "THÔNG TIN THAM KHẢO CHUNG:\n" . $ctx['reference'] . "\n\n";
+    }
+    if ($ctx['extra'] !== '') {
+        $prompt .= "THÔNG TIN THAM KHẢO NHÂN VIÊN NHẬP THÊM CHO CÂU NÀY (không gửi nguyên văn cho khách):\n" . $ctx['extra'] . "\n\n";
+    }
+    if ($ctx['faqs']) {
+        $prompt .= "FAQ ĐÃ LƯU KHỚP CÂU HỎI:\n" . wp_json_encode($ctx['faqs'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n\n";
+    }
     $prompt .= "DỮ LIỆU SẢN PHẨM (chi tiết):\n" . ($ctx['products'] ? wp_json_encode($ctx['products'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '(chưa có — nếu cần, liệt kê SKU ở need_product_details)') . "\n\n";
     $prompt .= "KỊCH BẢN TƯ VẤN KHỚP (nội dung đầy đủ):\n" . ($ctx['flows'] ? wp_json_encode($ctx['flows'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '(không có)') . "\n\n";
     if ($ctx['flow_index']) {
@@ -339,6 +352,8 @@ function hpa_ajax_ask(): void
         }
     }
     $skus = hcf_clean_list(wp_unslash($_POST['skus'] ?? ''), 10, 60);
+    $extra = hcf_clean_text(wp_unslash($_POST['extra'] ?? ''), 6000);
+    $reference = hcf_reference()['text'];
     $length = sanitize_key(wp_unslash($_POST['length'] ?? 'medium'));
     $labels = !empty($_POST['labels']);
 
@@ -348,14 +363,15 @@ function hpa_ajax_ask(): void
     $ids = array_slice(array_values(array_unique(array_merge($manual_ids, hpa_detect_products($context_text, $catalogue)))), 0, HPA_MAX_DETAIL);
 
     // Cùng câu hỏi + ngữ cảnh + SP trong 30 phút → trả lại kết quả cũ, không tốn lượt AI.
-    $cache_key = 'hpa_ans_' . md5((string) wp_json_encode([$question, $history, $ids, $length, $labels]));
+    $cache_key = 'hpa_ans_' . md5((string) wp_json_encode([$question, $history, $ids, $length, $labels, $extra, md5($reference)]));
     $cached = get_transient($cache_key);
     if (is_array($cached)) {
         wp_send_json_success($cached + ['cached' => true]);
     }
 
     $flows_all = hcf_get_flows(false);
-    $build = static function (array $ids, array $extra_flow_ids = []) use ($question, $history, $length, $labels, $catalogue, $flows_all, $context_text): array {
+    $faq_items = array_values(hcf_faq_read()['items']);
+    $build = static function (array $ids, array $extra_flow_ids = []) use ($question, $history, $length, $labels, $catalogue, $flows_all, $faq_items, $context_text, $extra, $reference, $skus): array {
         $products = array_values(array_filter(array_map('hpa_product_snapshot', $ids)));
         $flow_skus = array_column($products, 'sku');
         $picked = hcf_match($flows_all, $context_text, $flow_skus, 3);
@@ -382,6 +398,11 @@ function hpa_ajax_ask(): void
             'products'  => $products,
             'flows'     => $flows,
             'flow_index' => $flow_index,
+            'faqs'      => array_map(static function (array $f): array {
+                return ['id' => $f['id'], 'q' => $f['q'], 'a' => $f['a']];
+            }, hcf_faq_match($faq_items, $question, array_merge($skus, $flow_skus), 3)),
+            'extra'     => $extra,
+            'reference' => $reference,
             'catalogue' => array_map(static function (array $c): array {
                 return ['sku' => $c['sku'] ?: ($c['skus'][0] ?? ''), 'name' => $c['name'], 'price' => $c['price'], 'stock' => $c['stock']];
             }, array_slice($catalogue, 0, 300)),
@@ -426,6 +447,7 @@ function hpa_ajax_ask(): void
         'flows'               => array_map(static function (array $f) use ($answer): array {
             return ['id' => $f['id'], 'title' => $f['title'], 'used' => $f['id'] === $answer['flow_id']];
         }, $ctx['flows']),
+        'faqs'                => $ctx['faqs'],
         'labels_read'         => count($ctx['documents']),
         'model'               => $answer['model'],
     ];
@@ -444,6 +466,7 @@ function hpa_shortcode(): string
         'nonce'     => wp_create_nonce('hpa_advisor'),
         'flowNonce' => wp_create_nonce('hcf_flows'),
         'manage'    => hcf_can_manage(),
+        'reference' => hcf_reference(),
         'catalogue' => array_map(static function (array $c): array {
             return ['sku' => $c['sku'] ?: ($c['skus'][0] ?? ''), 'name' => $c['name']];
         }, array_values(array_filter(hpa_catalogue(), static function (array $c): bool { return (bool) $c['skus']; }))),
@@ -454,6 +477,11 @@ function hpa_shortcode(): string
         <form class="hpa-form" data-hpa-form>
             <label class="hpa-lbl" for="hpa-q">Câu hỏi / tin nhắn của khách <small>(dán cả đoạn chat được)</small></label>
             <textarea id="hpa-q" class="hcf-in hpa-q" name="question" rows="4" required placeholder="VD: Chị đang cho con bú dùng được viên ANC Prenatal không em? Uống ngày mấy viên?"></textarea>
+            <div class="hpa-faq" data-hpa-faq hidden></div>
+            <details class="hpa-extra">
+                <summary>📎 Thông tin tham khảo thêm cho câu này <small>(AI đọc, không gửi nguyên văn cho khách)</small></summary>
+                <textarea class="hcf-in hpa-q" name="extra" rows="3" placeholder="VD: khách đã mua đơn #1234 tháng trước; đang có ưu đãi mua 2 tặng 1; khách dị ứng đậu nành…"></textarea>
+            </details>
             <div class="hpa-row">
                 <div class="hpa-skus">
                     <label class="hpa-lbl" for="hpa-sku">Sản phẩm liên quan <small>(không bắt buộc — hệ thống tự nhận SKU / tên trong câu hỏi)</small></label>
@@ -472,6 +500,12 @@ function hpa_shortcode(): string
                 <button type="button" class="hcf-btn" data-hpa-reset>🧹 Hội thoại mới</button>
             </div>
         </form>
+        <details class="hpa-ref" data-hpa-ref>
+            <summary>📚 Tài liệu tham khảo chung <small>(AI luôn đọc: chính sách giao hàng, đổi trả, ưu đãi đang chạy, cách xưng hô…)</small></summary>
+            <textarea class="hcf-in hpa-q" rows="8" data-hpa-ref-text <?php echo hcf_can_manage() ? '' : 'readonly'; ?> placeholder="Mỗi mục 1 đoạn. VD: Phí ship: miễn phí đơn từ 500k… Đổi trả: trong 7 ngày nếu…"></textarea>
+            <p class="hpa-meta" data-hpa-ref-meta></p>
+            <?php if (hcf_can_manage()) : ?><button type="button" class="hcf-btn" data-hpa-ref-save>💾 Lưu tài liệu</button><?php endif; ?>
+        </details>
         <p class="hcf-status" role="status" data-hpa-status></p>
         <section class="hpa-out" data-hpa-out hidden aria-live="polite"></section>
     </div>

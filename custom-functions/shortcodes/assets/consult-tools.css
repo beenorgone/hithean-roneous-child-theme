@@ -86,3 +86,17 @@ button.hpa-prod { border:1px dashed #94a3b8; cursor:pointer; }
   .hcf-in--name { width:100%; }
   .hcf-step { padding-left:12px; padding-top:44px; }
 }
+
+/* FAQ tư vấn + thông tin tham khảo */
+.hfq-list { display:grid; gap:0; margin-top:8px; }
+.hfq-item { padding-left:12px; }
+.hfq-item h3 { font-size:15px; }
+.hpa-faq { display:grid; gap:6px; padding:10px; border:1px solid #bbf7d0; border-radius:10px; background:#f0fdf4; }
+.hpa-faq .hcf-say { background:#fff; }
+.hpa-extra, .hpa-ref { border:1px solid var(--c-line); border-radius:10px; padding:8px 12px; background:#fafcff; }
+.hpa-extra summary, .hpa-ref summary { cursor:pointer; font-weight:500; }
+.hpa-extra summary small, .hpa-ref summary small { color:var(--c-muted); font-weight:400; }
+.hpa-extra textarea, .hpa-ref textarea { margin-top:8px; }
+.hpa-ref { margin-top:10px; }
+.hpa-save { display:grid; gap:8px; }
+.hpa-faqsave { display:grid; gap:6px; }

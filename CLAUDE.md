@@ -301,17 +301,25 @@ Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 ## Tab "📦 Sản phẩm - Tư vấn" ở `/quan-ly-don`
 
 Subtab = công cụ cố định ở `thean_order_product_tools()` (order-product-tools.php, iframe `?thean_order_tool=`): Tra thông tin & HDSD ·
-**✨ AI tư vấn** (`advisor`) · **🗂️ Kịch bản tư vấn** (`flows`) · So sánh SP · Tính protein. Link thẳng: `?thean_product_tool=advisor|flows`.
-- **Kịch bản tư vấn** `[consult_flows]` (`shortcodes/shortcode-consult-flows.php`, module `consult_flows`): **không dùng CPT** — 1 option
-  `hithean_consult_flows` (autoload no) = {next_id, flows{id: title, group, keywords[], skus[], steps[{title, say, note}], status publish|draft, updated, by}};
-  sửa / xóa đẩy bản cũ vào `hithean_consult_flows_history` (≤50). Câu mẫu nhiều phương án tách dòng `---`, `{ten}` thay bằng tên khách khi copy;
-  bấm câu mẫu = copy. Xem/copy: `edit_shop_orders`; thêm/sửa/xóa/nhập/xuất JSON: `manage_woocommerce`. Nháp: AI không dùng.
+**✨ AI tư vấn** (`advisor`) · **🗂️ Kịch bản tư vấn** (`flows`) · **💬 FAQ tư vấn** (`faqs`) · So sánh SP · Tính protein. Link thẳng `?thean_product_tool=<key>`.
+**Không dùng CPT** — mỗi kho 1 option (autoload no), sửa / xóa đẩy bản cũ vào option `*_history` (≤50):
+- **Kịch bản** `[consult_flows]` (`shortcodes/shortcode-consult-flows.php`, module `consult_flows`): option `hithean_consult_flows` =
+  {next_id, flows{id: title, group, keywords[], skus[], steps[{title, say, note}], status publish|draft, updated, by}}. Câu mẫu nhiều phương án
+  tách dòng `---`, `{ten}` thay tên khách khi copy; bấm câu mẫu = copy. Nháp: AI không dùng.
+- **FAQ tư vấn** `[consult_faqs]` (`shortcodes/shortcode-consult-faqs.php`, module `consult_faqs`): option `hithean_consult_faqs` = {next_id,
+  items{id: q, a, skus[], keywords[], source ai|manual, uses, …}} — FAQ **nội bộ**, không phải `product_info_faq` công khai. Nhân viên thêm được
+  (trùng câu hỏi bỏ dấu → báo trùng), quản lý sửa / xóa. `hcf_faq_match()` (Dice trên chữ có nghĩa + từ khóa +0.5 + SKU +0.2, ngưỡng 0.45).
+  Copy → `hithean_faq_used` đếm lượt, dùng nhiều lên đầu. Cùng file: **tài liệu tham khảo chung** (option `hithean_consult_reference`, ≤20.000
+  ký tự, quản lý sửa ở tab AI tư vấn) và **gói xuất / nhập sang site khác** `thean-consult-bundle` (kịch bản + FAQ + tài liệu, không mang
+  ID / lượt dùng; `hithean_consult_export` scope all|flows|faqs, `hithean_consult_import` — trùng tiêu đề / câu hỏi → cập nhật, tài liệu gộp
+  kèm nguồn). JS dùng chung `consult-bundle.js`. Site nhận phải có cùng module (theanmarket **chưa port**).
 - **AI tư vấn** `[product_advisor_ai]` (`shortcodes/shortcode-product-advisor.php`, module `product_advisor`, feature AI `product_advisor_ai`):
-  câu hỏi / đoạn chat khách + SKU (tùy chọn; tự nhận SKU / tên SP trong câu — `hpa_detect_products()`) → dữ liệu chi tiết SP (catalogue +
-  metabox `product_info_*`: USP, HDSD, thành phần, FAQ, biến thể, tồn) ≤5 SP + danh mục rút gọn + **nội dung kịch bản khớp** (`hcf_match()`) + mục lục
-  mọi kịch bản. AI xin thêm `need_product_details` / `need_flow_ids` → server hỏi lại 1 lượt. Tùy chọn đọc ảnh nhãn (dùng lại
-  `tpc_compare_ai_nutrition_*`). Giữ ≤3 lượt hội thoại (bản nhân viên đã sửa), cache 30 phút, ≤10 lượt/phút/người. "Lưu thành kịch bản (nháp)".
-- CSS/JS: `shortcodes/assets/consult-tools.css`, `consult-flows.js`, `product-advisor.js`. Test: `php tests/consult-flows.php`, `node tests/consult-tools-ui.cjs`.
+  câu hỏi / đoạn chat khách + SKU (tùy chọn; tự nhận SKU / tên SP — `hpa_detect_products()`) → AI đọc: dữ liệu SP (catalogue + metabox
+  `product_info_*`) ≤5 SP + danh mục rút gọn + **kịch bản khớp + mục lục kịch bản** + **FAQ khớp** + tài liệu tham khảo chung + ô "tham khảo thêm"
+  nhân viên nhập cho câu đó. AI xin thêm `need_product_details` / `need_flow_ids` → hỏi lại 1 lượt. Gõ câu hỏi → gợi ý FAQ khớp ngay (copy, không
+  tốn lượt AI). Kết quả: 💾 Lưu vào FAQ (mọi nhân viên), Lưu thành kịch bản nháp (quản lý). ≤3 lượt hội thoại, cache 30 phút, ≤10 lượt/phút/người.
+- Quyền: xem / copy `edit_shop_orders`; quản lý / xuất / nhập `manage_woocommerce`. CSS/JS `shortcodes/assets/consult-tools.css`, `consult-flows.js`,
+  `consult-faqs.js`, `consult-bundle.js`, `product-advisor.js`. Test: `php tests/consult-flows.php`, `node tests/consult-tools-ui.cjs`.
 
 ## Tab 🏦 Sepay ở `/quan-ly-don`
 

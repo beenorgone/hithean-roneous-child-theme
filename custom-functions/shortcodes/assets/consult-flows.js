@@ -220,23 +220,7 @@
     nameEl.addEventListener('input', function () { try { sessionStorage.setItem('hcf-name', nameEl.value); } catch (e) { /* bỏ qua */ } if (!editing) renderDetail(); });
     var newBtn = $('[data-hcf-new]');
     if (newBtn) newBtn.addEventListener('click', function () { currentId = 0; editing = true; renderList(); renderDetail(); });
-    var exportBtn = $('[data-hcf-export]');
-    if (exportBtn) exportBtn.addEventListener('click', function () {
-        var out = flows.map(function (f) { return { title: f.title, group: f.group, keywords: f.keywords, skus: f.skus, status: f.status, steps: f.steps }; });
-        var blob = new Blob([JSON.stringify({ version: 1, exported: new Date().toISOString(), flows: out }, null, 2)], { type: 'application/json' });
-        var a = el('a', { href: URL.createObjectURL(blob), download: 'kich-ban-tu-van-' + cfg.site + '-' + new Date().toISOString().slice(0, 10) + '.json' });
-        document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-    });
-    var importInput = $('[data-hcf-import]');
-    if (importInput) importInput.addEventListener('change', function () {
-        var file = importInput.files && importInput.files[0];
-        if (!file) return;
-        file.text().then(function (text) {
-            status('Đang nhập…');
-            return post('hithean_cflow_import', { data: text });
-        }).then(function (d) { load(d.flows); status(d.message); }).catch(function (err) { status(err.message, true); })
-            .finally(function () { importInput.value = ''; });
-    });
+    if (window.hcfBundleTools) window.hcfBundleTools(root, cfg, 'flows', function (d) { load(d.flows); }, status);
 
     post('hithean_cflow_list').then(function (d) {
         var m = /#kb-(\d+)/.exec(location.hash);

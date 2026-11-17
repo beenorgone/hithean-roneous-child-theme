@@ -6,7 +6,7 @@ function add_shortcode($tag, $cb) {}
 function add_action(...$args) {}
 function did_action($hook) { return 0; }
 
-require dirname(__DIR__) . '/custom-functions/shortcodes/shortcode-consult-flows.php';
+require dirname(__DIR__) . '/custom-functions/shortcodes/shortcode-consult-faqs.php'; // kéo theo consult-flows
 // Chỉ lấy các hàm thuần của advisor (file cần WooCommerce khi chạy thật nhưng include chỉ khai báo hàm).
 require dirname(__DIR__) . '/custom-functions/shortcodes/shortcode-product-advisor.php';
 
@@ -80,6 +80,46 @@ check($r['follow_up_questions'] === ['Chị bao nhiêu tuổi?', 'a', 'b'], 'câ
 check($r['need_flow_ids'] === [] , 'need_flow_ids mặc định rỗng');
 check(hpa_parse_reply(['need_flow_ids' => ['3', 3, 0, 'x', 9, 12]])['need_flow_ids'] === [3, 9], 'need_flow_ids: số nguyên dương, bỏ trùng, tối đa 2');
 check($r['staff_notes'] === [] && $r['suggested_skus'] === [] && $r['flow_id'] === 7 && $r['need_product_details'] === ['ANC-PRE'], 'ép kiểu các trường khác');
+
+
+// ── FAQ tư vấn ──
+$fs = hcf_faq_store_normalize(null);
+[$fs, $f1] = hcf_faq_store_upsert($fs, ['q' => 'Đang cho con bú uống được không?', 'a' => 'Dạ {ten} dùng được ạ', 'skus' => 'anc-pre', 'source' => 'ai'], 't', 'NV A', false);
+[$fs, $f2] = hcf_faq_store_upsert($fs, ['q' => 'Phí ship bao nhiêu?', 'a' => 'Miễn phí từ 500k', 'keywords' => 'ship, giao hàng'], 't', 'NV A', false);
+check($f1 === 1 && $f2 === 2 && $fs['items'][1]['source'] === 'ai' && $fs['items'][1]['skus'] === ['ANC-PRE'], 'thêm FAQ, giữ nguồn AI, SKU in hoa');
+[, $err] = hcf_faq_store_upsert($fs, ['q' => 'DANG CHO CON BU UONG DUOC KHONG', 'a' => 'x'], 't', 'NV B', false);
+check(is_string($err) && strpos($err, '#1') !== false, 'nhân viên thêm câu hỏi trùng (không dấu) → báo trùng');
+[$fs2, $id, $before] = hcf_faq_store_upsert($fs, ['q' => 'đang cho con bú uống được không?', 'a' => 'Bản mới'], 't2', 'QL', true);
+check($id === 1 && $before && $fs2['items'][1]['a'] === 'Bản mới' && $fs2['items'][1]['source'] === 'ai', 'quản lý: trùng câu hỏi → cập nhật, giữ nguồn');
+[, $err] = hcf_faq_store_upsert($fs, ['id' => 2, 'q' => 'Phí ship?', 'a' => 'x'], 't', 'NV', false);
+check(is_string($err), 'nhân viên không sửa được FAQ có sẵn');
+[, $err] = hcf_faq_store_upsert($fs, ['q' => 'Hỏi gì', 'a' => ''], 't', 'NV', true);
+check(is_string($err), 'thiếu câu trả lời → lỗi');
+$items = array_values($fs['items']);
+$m = hcf_faq_match($items, 'chị ơi chị đang cho con bú thì uống được ko em', []);
+check($m && $m[0]['id'] === 1, 'khớp FAQ theo chữ có nghĩa, bỏ xưng hô');
+check(hcf_faq_match($items, 'giao hàng mất mấy ngày', [])[0]['id'] === 2, 'khớp FAQ theo từ khóa');
+check(hcf_faq_match($items, 'thành phần có đường không', []) === [], 'không khớp câu khác hẳn');
+check(hcf_faq_match($items, 'uống được không', ['ANC-PRE'])[0]['id'] === 1, 'SKU cộng điểm');
+
+// ── Gói xuất / nhập sang site khác ──
+$bundle = hcf_bundle_build(hcf_store_list($store, true), hcf_faq_list($fs), 'Ship: miễn phí từ 500k', 'hithean.com', '2026-11-18', 'all');
+check($bundle['format'] === 'thean-consult-bundle' && count($bundle['flows']) === 3 && count($bundle['faqs']) === 2 && $bundle['reference'] !== '', 'gói trọn bộ đủ 3 phần');
+check(!isset($bundle['flows'][0]['id']) && !isset($bundle['faqs'][0]['id']) && !isset($bundle['faqs'][0]['uses']), 'gói không mang ID / lượt dùng của site nguồn');
+check(!isset(hcf_bundle_build([], $items, 'x', 's', 't', 'faqs')['flows']) && !isset(hcf_bundle_build([], $items, 'x', 's', 't', 'faqs')['reference']), 'xuất riêng FAQ không kèm kịch bản / tài liệu');
+[$pf, $pq, $pr] = hcf_bundle_parse(json_decode(json_encode($bundle), true));
+check(count($pf) === 3 && count($pq) === 2 && $pr === 'Ship: miễn phí từ 500k', 'đọc lại gói');
+[$pf, $pq] = hcf_bundle_parse(['flows' => [['id' => 5, 'title' => 'A', 'steps' => [['say' => 'x']]]]]);
+check(count($pf) === 1 && !isset($pf[0]['id']) && $pq === [], 'file cũ chỉ có {flows}: bỏ id');
+[$pf, $pq] = hcf_bundle_parse([['title' => 'A', 'steps' => []], ['q' => 'B', 'a' => 'c', 'uses' => 9]]);
+check(count($pf) === 1 && count($pq) === 1 && !isset($pq[0]['uses']), 'mảng trơn: tự phân loại kịch bản / FAQ');
+check(hcf_bundle_parse('rác') === [[], [], ''], 'dữ liệu hỏng → rỗng');
+// Nhập vào site đích (kho trống) rồi nhập lại lần 2 → cập nhật, không nhân bản.
+[$dest, $c] = hcf_store_import(hcf_store_normalize(null), $bundle['flows'], 't', 'x');
+[$dest, $c2, $u2] = hcf_store_import($dest, $bundle['flows'], 't', 'x');
+check($c === 3 && $c2 === 0 && $u2 === 3 && count($dest['flows']) === 3, 'nhập 2 lần không nhân bản kịch bản');
+check(hcf_reference_merge('', 'A', 'n') === 'A' && hcf_reference_merge('A\n\nB', 'B', 'n') === 'A\n\nB', 'gộp tài liệu: trống lấy luôn, đã chứa giữ nguyên');
+check(hcf_reference_merge('A', 'B', 'Nhập từ x') === "A\n\n--- Nhập từ x ---\nB", 'gộp tài liệu: khác → nối kèm nguồn');
 
 // Kịch bản mẫu hợp lệ.
 foreach (hcf_starter_flows() as $starter) {

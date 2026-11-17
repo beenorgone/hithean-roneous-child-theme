@@ -4,7 +4,7 @@
 
 > Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nhúng Google Docs/Sheets…
 
-24 file · ~15.900 dòng · 248 hàm (29% có docblock)
+25 file · ~16.400 dòng · 271 hàm (30% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -23,6 +23,9 @@
 | AJAX | `hithean_cflow_import` | shortcode-consult-flows.php |
 | AJAX | `hithean_cflow_list` | shortcode-consult-flows.php |
 | AJAX | `hithean_cflow_save` | shortcode-consult-flows.php |
+| AJAX | `hithean_consult_export` | shortcode-consult-faqs.php |
+| AJAX | `hithean_consult_import` | shortcode-consult-faqs.php |
+| AJAX | `hithean_consult_ref_save` | shortcode-consult-faqs.php |
 | AJAX | `hithean_export_ai_check` | shortcode-order-export-confirm.php |
 | AJAX | `hithean_export_bulk_assign` | export-bulk-web.php |
 | AJAX | `hithean_export_bulk_discard` | export-bulk-web.php |
@@ -30,6 +33,11 @@
 | AJAX | `hithean_export_bulk_read` | export-bulk-web.php |
 | AJAX | `hithean_export_bulk_upload` | export-bulk-web.php |
 | AJAX | `hithean_export_list_refresh` | shortcode-order-export-confirm.php |
+| AJAX | `hithean_faq_delete` | shortcode-consult-faqs.php |
+| AJAX | `hithean_faq_list` | shortcode-consult-faqs.php |
+| AJAX | `hithean_faq_save` | shortcode-consult-faqs.php |
+| AJAX | `hithean_faq_suggest` | shortcode-consult-faqs.php |
+| AJAX | `hithean_faq_used` | shortcode-consult-faqs.php |
 | AJAX | `load_return_board` | shortcode-order-return-manager.php |
 | AJAX | `load_return_orders` | shortcode-order-return-manager.php |
 | AJAX | `ost_confirm_export_image` | shortcode-order-shipped.php |
@@ -65,6 +73,7 @@
 | shortcode | `[blog_posts_slider]` | shortcode-posts.php |
 | shortcode | `[certifications]` | shortcode-certifications.php |
 | shortcode | `[company_info]` | shortcode-company-info.php |
+| shortcode | `[consult_faqs]` | shortcode-consult-faqs.php |
 | shortcode | `[consult_flows]` | shortcode-consult-flows.php |
 | shortcode | `[field_content]` | shortcode-field-content.php |
 | shortcode | `[google_doc_editable]` | shortcode-google-docs.php |
@@ -210,6 +219,34 @@ Shortcode: [certifications] Khối "Hệ thống sản xuất & chứng nhận" 
 | Hàm | Mô tả |
 |---|---|
 | `hithean_company_info_shortcode($atts)` | [company_info field="hotline"] — in ra 1 trường thông tin doanh nghiệp (khai báo ở Cài đặt ERP > Thông tin doanh nghiệp), dùng trong nội dung bài viết. |
+
+### `shortcodes/shortcode-consult-faqs.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `hcf_faq_sanitize(array $raw)` | — |
+| `hcf_faq_store_normalize($raw)` | — |
+| `hcf_faq_store_upsert(array $store, array $raw, string $now, string $by, bool $can_update)` | Thêm / sửa FAQ (hàm thuần). Câu hỏi trùng (bỏ dấu) với FAQ khác → cập nhật FAQ đó nếu $can_update, ngược lại báo trùng. |
+| `hcf_faq_tokens(string $text)` | Chữ có nghĩa của câu (bỏ dấu, bỏ từ xưng hô / đệm hay gặp trong chat). |
+| `hcf_faq_match(array $faqs, string $text, array $skus = [], int $limit = 3, float $min = 0.45)` | FAQ khớp câu hỏi (hàm thuần): độ giống Dice trên chữ có nghĩa (câu khách vs câu hỏi FAQ), + 0.5 nếu cụm từ khóa xuất hiện (1 từ khóa là đủ khớp), + 0.2 nếu trùng SKU. Giữ điểm ≥… |
+| `hcf_faq_list(array $store)` | Danh sách FAQ: dùng nhiều trước, rồi mới cập nhật trước. |
+| `hcf_faq_read()` | — |
+| `hcf_faq_write(array $store, ?array $before = null, string $action = 'save')` | — |
+| `hcf_faq_public(array $faq)` | Gọn cho trình duyệt (không gửi lịch sử). |
+| `hcf_faq_ajax_list()` | — |
+| `hcf_faq_ajax_suggest()` | — |
+| `hcf_faq_ajax_save()` | — |
+| `hcf_faq_ajax_delete()` | — |
+| `hcf_faq_ajax_used()` | — |
+| `hcf_reference()` | {text, updated, by} — chính sách ship / đổi trả / ưu đãi đang chạy… AI tư vấn luôn đọc (≤ 20.000 ký tự). |
+| `hcf_reference_save(string $text)` | — |
+| `hcf_reference_ajax_save()` | — |
+| `hcf_bundle_build(array $flows, array $faqs, string $reference, string $site, string $now, string $scope =…)` | Gói JSON mang sang site khác (hàm thuần): không có ID / lượt dùng / người sửa của site nguồn. $scope: all \| flows \| faqs. |
+| `hcf_bundle_parse($data)` | Tách gói đã giải mã (hàm thuần) → [flows[], faqs[], reference]. Nhận: gói chuẩn, file cũ chỉ có {flows} / {items}, hoặc mảng trơn (phần tử có `steps` = kịch bản, có `q` = FAQ). |
+| `hcf_reference_merge(string $current, string $incoming, string $label)` | Gộp tài liệu tham khảo nhập vào (hàm thuần): trống → lấy luôn; đã chứa → giữ nguyên; khác → nối thêm có tiêu đề nguồn. |
+| `hcf_bundle_ajax_export()` | — |
+| `hcf_bundle_ajax_import()` | — |
+| `hcf_faq_shortcode()` | — |
 
 ### `shortcodes/shortcode-consult-flows.php`
 

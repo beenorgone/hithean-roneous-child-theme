@@ -9,7 +9,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 let checks = 0;
 const ok = (v, m) => { checks++; assert.ok(v, m); };
 
-function boot(html, file, handler) {
+function boot(html, file, handler, pre) {
     const dom = new JSDOM('<!doctype html><body>' + html + '</body>', { url: 'https://example.test/?x=1', runScripts: 'outside-only' });
     const w = dom.window;
     const calls = [];
@@ -22,6 +22,7 @@ function boot(html, file, handler) {
     w.document.execCommand = () => { w.copied.push([...w.document.querySelectorAll('textarea')].pop().value); return true; };
     w.matchMedia = () => ({ matches: false });
     w.confirm = () => true;
+    (pre || []).forEach((f) => w.eval(fs.readFileSync(path.join(assets, f), 'utf8')));
     w.eval(fs.readFileSync(path.join(assets, file), 'utf8'));
     return { w, d: w.document, calls };
 }
@@ -71,14 +72,19 @@ function boot(html, file, handler) {
     ok(f.d.querySelector('[data-hcf-detail] h2').textContent === 'Khách hỏi ship', 'lưu xong mở kịch bản vừa tạo');
 
     // ── AI tư vấn ──
-    const advDom = `<div id="hpa-root"><form data-hpa-form><textarea name="question"></textarea><div data-hpa-chips></div><input data-hpa-sku><datalist id="hpa-cat"></datalist>
+    const advDom = `<div id="hpa-root"><form data-hpa-form><textarea name="question"></textarea><div data-hpa-faq hidden></div><textarea name="extra"></textarea><div data-hpa-chips></div><input data-hpa-sku><datalist id="hpa-cat"></datalist>
         <select name="reply_length"><option value="medium" selected>Vừa</option></select><input type="checkbox" name="labels">
         <button type="submit" data-hpa-ask></button><input type="checkbox" data-hpa-keep checked><b data-hpa-turns></b><button type="button" data-hpa-reset></button></form>
+        <details data-hpa-ref><textarea data-hpa-ref-text></textarea><p data-hpa-ref-meta></p><button type="button" data-hpa-ref-save></button></details>
         <p data-hpa-status></p><section data-hpa-out hidden></section></div>
-        <script type="application/json" id="hpa-cfg">{"ajax":"/a","nonce":"n","flowNonce":"f","manage":true,"catalogue":[{"sku":"ANC-PRE","name":"Perfect Prenatal"},{"sku":"YH-MEN","name":"Yeast Hero Men"}]}</script>`;
+        <script type="application/json" id="hpa-cfg">{"ajax":"/a","nonce":"n","flowNonce":"f","manage":true,"reference":{"text":"Ship free 500k","updated":"2026-11-18","by":"QL"},"catalogue":[{"sku":"ANC-PRE","name":"Perfect Prenatal"},{"sku":"YH-MEN","name":"Yeast Hero Men"}]}</script>`;
     let n = 0;
     const a = boot(advDom, 'product-advisor.js', (data) => {
         if (data.action === 'hithean_cflow_save') return { success: true, data: { id: 9, flows: [] } };
+        if (data.action === 'hithean_faq_suggest') return { success: true, data: { items: [{ id: 4, q: 'Cho con bú dùng được không?', a: 'Dạ dùng được ạ', skus: [] }] } };
+        if (data.action === 'hithean_faq_save') return { success: true, data: { id: 5, updated: false, items: [] } };
+        if (data.action === 'hithean_faq_used') return { success: true, data: {} };
+        if (data.action === 'hithean_consult_ref_save') return { success: true, data: { reference: { text: data.text, updated: 'now', by: 'QL' } } };
         n++;
         return { success: true, data: { reply: 'Dạ chị dùng được ạ ' + n, follow_up_questions: ['Bé mấy tháng ạ?'], staff_notes: ['Kiểm tra hạn dùng'],
             products: [{ id: 10, sku: 'ANC-PRE', name: 'Perfect Prenatal', url: '/sp', stock: 'còn hàng' }], suggested: [{ id: 11, sku: 'YH-MEN', name: 'Yeast Hero Men', url: '/y', stock: 'còn hàng' }],
@@ -89,12 +95,25 @@ function boot(html, file, handler) {
     sku.value = 'prenatal';
     sku.dispatchEvent(new a.w.KeyboardEvent('keydown', { key: 'Enter' }));
     ok(a.d.querySelector('[data-hpa-chips]').textContent.includes('ANC-PRE'), 'gõ tên → chip SKU đúng');
+    ok(a.d.querySelector('[data-hpa-ref-text]').value === 'Ship free 500k' && a.d.querySelector('[data-hpa-ref-meta]').textContent.includes('QL'), 'hiện tài liệu tham khảo chung');
+    a.d.querySelector('[data-hpa-ref-text]').value = 'Ship free 600k';
+    a.d.querySelector('[data-hpa-ref-save]').click();
+    await tick(); await tick();
+    ok(a.calls.find((c) => c.action === 'hithean_consult_ref_save').text === 'Ship free 600k', 'lưu tài liệu tham khảo chung');
     const formA = a.d.querySelector('[data-hpa-form]');
     formA.elements.namedItem('question').value = 'Chị cho con bú uống được không?';
+    formA.elements.namedItem('question').dispatchEvent(new a.w.Event('input'));
+    await new Promise((r) => setTimeout(r, 600)); await tick();
+    const faqBox = a.d.querySelector('[data-hpa-faq]');
+    ok(!faqBox.hidden && faqBox.textContent.includes('Dạ dùng được ạ'), 'gõ câu hỏi → gợi ý FAQ đã lưu');
+    faqBox.querySelector('.hcf-say').click();
+    await tick();
+    ok(a.calls.some((c) => c.action === 'hithean_faq_used' && c.id === '4' && c.nonce === 'f'), 'copy FAQ → đếm lượt dùng');
+    formA.elements.namedItem('extra').value = 'Khách dị ứng đậu nành';
     formA.dispatchEvent(new a.w.Event('submit', { cancelable: true }));
     await tick(); await tick();
     const ask1 = a.calls.find((c) => c.action === 'hithean_advisor_ask');
-    ok(ask1.skus === 'ANC-PRE' && ask1.length === 'medium' && ask1.history === '[]', 'gửi câu hỏi + SKU + độ dài');
+    ok(ask1.skus === 'ANC-PRE' && ask1.length === 'medium' && ask1.history === '[]' && ask1.extra === 'Khách dị ứng đậu nành', 'gửi câu hỏi + SKU + độ dài + tham khảo thêm');
     ok(a.d.querySelector('.hpa-reply').value === 'Dạ chị dùng được ạ 1', 'hiện tin nhắn soạn sẵn');
     ok(!a.d.querySelector('[data-hpa-out]').hidden && a.d.querySelector('[data-hpa-out]').textContent.includes('✓ Mẹ sau sinh'), 'hiện kịch bản AI đã dùng');
     a.d.querySelector('.hpa-reply').value = 'Bản nhân viên sửa';
@@ -109,8 +128,55 @@ function boot(html, file, handler) {
     const save = a.calls.find((c) => c.action === 'hithean_cflow_save');
     const flow = JSON.parse(save.flow);
     ok(save.nonce === 'f' && flow.status === 'draft' && flow.skus[0] === 'ANC-PRE' && flow.steps[0].say === 'Dạ chị dùng được ạ 2', 'lưu câu trả lời thành kịch bản nháp');
+    [...a.d.querySelectorAll('button')].find((b) => b.textContent.includes('Lưu vào FAQ')).click();
+    const faqTa = a.d.querySelectorAll('.hpa-faqsave textarea');
+    ok(faqTa.length === 2 && faqTa[0].value === 'Uống ngày mấy viên?' && faqTa[1].value === 'Dạ chị dùng được ạ 2', 'form lưu FAQ điền sẵn câu hỏi + câu trả lời');
+    [...a.d.querySelectorAll('.hpa-faqsave button')].find((b) => b.textContent.includes('Lưu')).click();
+    await tick(); await tick();
+    const fsave = JSON.parse(a.calls.find((c) => c.action === 'hithean_faq_save').faq);
+    ok(fsave.source === 'ai' && fsave.skus[0] === 'ANC-PRE' && a.d.querySelector('.hpa-faqsave').textContent.includes('#5'), 'lưu câu trả lời AI vào FAQ');
     a.d.querySelector('[data-hpa-reset]').click();
     ok(a.d.querySelector('[data-hpa-out]').hidden && a.d.querySelector('[data-hpa-chips]').textContent === '', 'hội thoại mới xóa ngữ cảnh');
+
+
+    // ── FAQ tư vấn + gói xuất / nhập ──
+    const faqDom = `<div id="hfq-root"><input data-hfq-q><input data-hfq-name><button data-hfq-new></button>
+        <button data-hcb-export="faqs"></button><button data-hcb-export="all"></button><input type="file" data-hcb-import>
+        <p data-hfq-status></p><div data-hfq-form-slot></div><div data-hfq-list></div></div>
+        <script type="application/json" id="hfq-cfg">{"ajax":"/a","nonce":"n","manage":true,"site":"hithean"}</script>`;
+    const faqs = [{ id: 1, q: 'Phí ship?', a: 'Dạ {ten} miễn phí ạ', skus: [], keywords: ['giao hàng'], uses: 3, source: 'ai' }, { id: 2, q: 'Đổi trả?', a: '7 ngày', skus: [], keywords: [], uses: 0 }];
+    const q = boot(faqDom, 'consult-faqs.js', (data) => {
+        if (data.action === 'hithean_consult_export') return { success: true, data: { bundle: { format: 'thean-consult-bundle', scope: data.scope } } };
+        if (data.action === 'hithean_consult_import') return { success: true, data: { message: 'FAQ: thêm 1', items: faqs.concat([{ id: 3, q: 'Mới?', a: 'x', skus: [], keywords: [] }]), flows: [] } };
+        if (data.action === 'hithean_faq_save') return { success: true, data: { id: 9, updated: false, items: faqs } };
+        return { success: true, data: { items: faqs } };
+    }, ['consult-bundle.js']);
+    q.w.URL.createObjectURL = () => 'blob:x'; q.w.URL.revokeObjectURL = () => {};
+    await tick(); await tick();
+    const fl = q.d.querySelector('[data-hfq-list]');
+    ok(fl.querySelectorAll('.hfq-item').length === 2 && fl.textContent.includes('từ AI') && fl.textContent.includes('dùng 3 lần'), 'liệt kê FAQ + nguồn + lượt dùng');
+    q.d.querySelector('[data-hfq-name]').value = 'chị Mai';
+    q.d.querySelector('[data-hfq-name]').dispatchEvent(new q.w.Event('input'));
+    q.d.querySelector('[data-hfq-q]').value = 'giao hang';
+    q.d.querySelector('[data-hfq-q]').dispatchEvent(new q.w.Event('input'));
+    ok(fl.querySelectorAll('.hfq-item').length === 1, 'tìm FAQ không dấu (cả từ khóa)');
+    fl.querySelector('.hcf-say').click();
+    await tick();
+    ok(q.w.copied.pop() === 'Dạ chị Mai miễn phí ạ' && q.calls.some((c) => c.action === 'hithean_faq_used'), 'copy FAQ thay {ten} + đếm lượt');
+    q.d.querySelector('[data-hfq-new]').click();
+    const fform = q.d.querySelector('[data-hfq-form-slot] form');
+    const tas = fform.querySelectorAll('textarea'); tas[0].value = 'Có hóa đơn VAT không?'; tas[1].value = 'Dạ có ạ';
+    fform.dispatchEvent(new q.w.Event('submit', { cancelable: true }));
+    await tick(); await tick();
+    ok(JSON.parse(q.calls.find((c) => c.action === 'hithean_faq_save').faq).q === 'Có hóa đơn VAT không?', 'thêm FAQ tay');
+    q.d.querySelector('[data-hcb-export="all"]').click();
+    await tick(); await tick();
+    ok(q.calls.find((c) => c.action === 'hithean_consult_export').scope === 'all', 'xuất trọn bộ');
+    const inp = q.d.querySelector('[data-hcb-import]');
+    Object.defineProperty(inp, 'files', { value: [{ text: () => Promise.resolve('{"format":"thean-consult-bundle","faqs":[]}') }] });
+    inp.dispatchEvent(new q.w.Event('change'));
+    await tick(); await tick(); await tick();
+    ok(q.calls.find((c) => c.action === 'hithean_consult_import').data.includes('thean-consult-bundle') && fl.querySelectorAll('.hfq-item').length >= 1 && q.d.querySelector('[data-hfq-status]').textContent === 'FAQ: thêm 1', 'nhập gói → tải lại danh sách');
 
     console.log('OK (' + checks + ' consult tools UI checks)');
 })().catch((e) => { console.error(e); process.exit(1); });
