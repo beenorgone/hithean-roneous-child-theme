@@ -1,7 +1,7 @@
 ---
 audience: dev
 owner: người phụ trách kỹ thuật theme
-reviewed: 2026-11-15
+reviewed: 2026-11-18
 applies_to: [custom-functions/bootstrap.php, functions.php, custom-functions/core/module-loader.php, custom-functions/core/admin.php, custom-functions/core/template-router.php]
 ---
 
@@ -80,7 +80,7 @@ Viết tay, máy kiểm (`docs-sync --check`): mọi `paths` / `tpc_loader_path_
 | `core/` | 20 | ~4.500 |
 | `integrations/` | 3 | 90 |
 | `marketing/` | 23 | ~5.800 |
-| `shortcodes/` | 22 | ~15.000 |
+| `shortcodes/` | 24 | ~15.900 |
 | `woocommerce/checkout/` | 5 | ~2.600 |
 | `woocommerce/orders/` | 39 | ~15.800 |
 | `woocommerce/products/` | 18 | ~8.300 |

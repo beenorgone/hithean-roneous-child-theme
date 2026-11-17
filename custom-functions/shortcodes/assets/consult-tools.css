@@ -1,0 +1,88 @@
+/* Sản phẩm - Tư vấn: [consult_flows] (.hcf) + [product_advisor_ai] (.hpa). Màu thương hiệu #0047ba. */
+.hcf, .hpa { --c-pri:#0047ba; --c-pri-soft:#eef4ff; --c-line:#d8e2f2; --c-muted:#64748b; --c-ok:#00843d; --c-warn:#b45309; color:#1e293b; }
+.hcf-in { padding:8px 10px; border:1px solid var(--c-line); border-radius:8px; background:#fff; min-width:0; }
+.hcf-in:focus { outline:2px solid var(--c-pri); outline-offset:-1px; }
+.hcf-btn { display:inline-flex; align-items:center; gap:4px; padding:8px 12px; border:1px solid #b9cdf0; border-radius:8px; background:var(--c-pri-soft); color:var(--c-pri); cursor:pointer; white-space:nowrap; font-weight:500; }
+.hcf-btn:hover { background:#dfeaff; }
+.hcf-btn--pri { background:var(--c-pri); border-color:var(--c-pri); color:#fff; }
+.hcf-btn--pri:hover { background:#003a99; }
+.hcf-btn--danger { color:#b91c1c; border-color:#fecaca; background:#fef2f2; }
+.hcf-btn--sm { padding:4px 8px; font-size:12px; }
+.hcf-btn[disabled] { opacity:.6; cursor:wait; }
+.hcf-btn.is-copied { background:var(--c-ok); border-color:var(--c-ok); color:#fff; }
+.hcf-status { margin:8px 0; color:var(--c-muted); min-height:1.2em; }
+.hcf-status.is-error { color:#b91c1c; }
+
+/* ── Kịch bản ── */
+.hcf-bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.hcf-bar [data-hcf-q] { flex:1 1 240px; }
+.hcf-in--name { width:170px; }
+.hcf-body { display:grid; grid-template-columns:minmax(220px, 300px) 1fr; gap:16px; align-items:start; }
+.hcf-list { border:1px solid var(--c-line); border-radius:10px; max-height:calc(100vh - 140px); overflow:auto; position:sticky; top:8px; }
+.hcf-list h4 { margin:0; padding:8px 12px 4px; font-size:12px; text-transform:uppercase; color:var(--c-muted); background:#f8fafc; position:sticky; top:0; }
+.hcf-list button { display:block; width:100%; text-align:left; padding:8px 12px; border:0; border-top:1px solid #eef2f7; background:#fff; cursor:pointer; }
+.hcf-list button:hover { background:#f5f8ff; }
+.hcf-list button[aria-current="true"] { background:var(--c-pri-soft); box-shadow:inset 3px 0 var(--c-pri); }
+.hcf-list small { display:block; color:var(--c-muted); font-size:12px; }
+.hcf-draft { display:inline-block; padding:0 6px; margin-left:4px; border-radius:6px; background:#fef3c7; color:var(--c-warn); font-size:11px; }
+.hcf-detail { min-width:0; }
+.hcf-detail__head { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; justify-content:space-between; }
+.hcf-detail h2 { margin:0 0 4px; font-size:20px; }
+.hcf-tags { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0; }
+.hcf-tag { padding:2px 8px; border-radius:999px; background:#f1f5f9; font-size:12px; }
+.hcf-tag--sku { background:#ecfdf5; color:var(--c-ok); }
+.hcf-steps { list-style:none; margin:12px 0 0; padding:0; counter-reset:step; }
+.hcf-step { position:relative; margin:0 0 12px; padding:12px 12px 12px 48px; border:1px solid var(--c-line); border-radius:10px; background:#fff; }
+.hcf-step::before { counter-increment:step; content:counter(step); position:absolute; left:12px; top:12px; width:26px; height:26px; border-radius:50%; background:var(--c-pri); color:#fff; display:grid; place-items:center; font-weight:600; font-size:13px; }
+.hcf-step h3 { margin:0 0 6px; font-size:15px; }
+.hcf-note { margin:6px 0 0; padding:6px 10px; border-left:3px solid #fbb917; background:#fffbeb; color:#78350f; font-size:13px; white-space:pre-wrap; }
+.hcf-say { display:flex; gap:8px; align-items:flex-start; margin:6px 0 0; padding:8px 10px; border-radius:8px; background:var(--c-pri-soft); cursor:copy; }
+.hcf-say p { flex:1; margin:0; white-space:pre-wrap; }
+.hcf-say:hover { background:#dfeaff; }
+.hcf-empty { padding:24px; text-align:center; color:var(--c-muted); border:1px dashed var(--c-line); border-radius:10px; }
+
+/* Form sửa */
+.hcf-form { display:grid; gap:10px; }
+.hcf-form label { display:grid; gap:4px; font-weight:500; }
+.hcf-form small { color:var(--c-muted); font-weight:400; }
+.hcf-form textarea { resize:vertical; }
+.hcf-form__grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.hcf-fstep { display:grid; gap:6px; padding:10px; border:1px solid var(--c-line); border-radius:10px; background:#fafcff; }
+.hcf-fstep__bar { display:flex; gap:6px; align-items:center; }
+.hcf-fstep__bar b { flex:1; }
+.hcf-form__actions { display:flex; flex-wrap:wrap; gap:8px; position:sticky; bottom:0; padding:8px 0; background:#fff; }
+
+/* ── AI tư vấn ── */
+.hpa-form { display:grid; gap:10px; }
+.hpa-lbl { font-weight:500; }
+.hpa-lbl small { color:var(--c-muted); font-weight:400; }
+.hpa-q { width:100%; resize:vertical; }
+.hpa-row { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+.hpa-skus { flex:1 1 320px; display:grid; gap:6px; }
+.hpa-opts { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+.hpa-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.hpa-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 4px 3px 10px; border-radius:999px; background:#ecfdf5; color:var(--c-ok); font-size:13px; }
+.hpa-chip button { border:0; background:none; color:inherit; cursor:pointer; font-size:15px; line-height:1; padding:0 4px; }
+.hpa-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.hpa-keep { color:var(--c-muted); }
+.hpa-out { display:grid; gap:12px; margin-top:4px; }
+.hpa-card { padding:12px; border:1px solid var(--c-line); border-radius:10px; background:#fff; }
+.hpa-card h3 { margin:0 0 8px; font-size:15px; display:flex; gap:8px; align-items:center; justify-content:space-between; }
+.hpa-card--reply { border-color:var(--c-pri); box-shadow:0 0 0 1px var(--c-pri) inset; }
+.hpa-reply { width:100%; min-height:120px; resize:vertical; line-height:1.6; }
+.hpa-list { margin:0; padding-left:18px; }
+.hpa-list li { margin:4px 0; }
+.hpa-list--copy li { cursor:copy; }
+.hpa-list--copy li:hover { color:var(--c-pri); }
+.hpa-meta { color:var(--c-muted); font-size:12px; }
+.hpa-prod { display:inline-flex; gap:4px; align-items:center; margin:2px 6px 2px 0; padding:3px 10px; border-radius:999px; background:#f1f5f9; font-size:13px; text-decoration:none; color:inherit; }
+button.hpa-prod { border:1px dashed #94a3b8; cursor:pointer; }
+.hpa-prod.is-oos { background:#fee2e2; }
+
+@media (max-width: 760px) {
+  .hcf-body { grid-template-columns:1fr; }
+  .hcf-list { position:static; max-height:40vh; }
+  .hcf-form__grid { grid-template-columns:1fr; }
+  .hcf-in--name { width:100%; }
+  .hcf-step { padding-left:12px; padding-top:44px; }
+}

@@ -4,7 +4,7 @@
 
 > Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nhúng Google Docs/Sheets…
 
-22 file · ~15.000 dòng · 211 hàm (23% có docblock)
+24 file · ~15.900 dòng · 248 hàm (29% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -18,6 +18,11 @@
 | AJAX | `ajax_upload_images` | shortcode-order-export-confirm.php |
 | AJAX | `attach_return_order` | shortcode-order-return-manager.php |
 | AJAX | `get_greenspark_banner` | shortcode-greenspark-banner.php |
+| AJAX | `hithean_advisor_ask` | shortcode-product-advisor.php |
+| AJAX | `hithean_cflow_delete` | shortcode-consult-flows.php |
+| AJAX | `hithean_cflow_import` | shortcode-consult-flows.php |
+| AJAX | `hithean_cflow_list` | shortcode-consult-flows.php |
+| AJAX | `hithean_cflow_save` | shortcode-consult-flows.php |
 | AJAX | `hithean_export_ai_check` | shortcode-order-export-confirm.php |
 | AJAX | `hithean_export_bulk_assign` | export-bulk-web.php |
 | AJAX | `hithean_export_bulk_discard` | export-bulk-web.php |
@@ -60,6 +65,7 @@
 | shortcode | `[blog_posts_slider]` | shortcode-posts.php |
 | shortcode | `[certifications]` | shortcode-certifications.php |
 | shortcode | `[company_info]` | shortcode-company-info.php |
+| shortcode | `[consult_flows]` | shortcode-consult-flows.php |
 | shortcode | `[field_content]` | shortcode-field-content.php |
 | shortcode | `[google_doc_editable]` | shortcode-google-docs.php |
 | shortcode | `[google_sheet_editable]` | shortcode-google-docs.php, shortcode-google-sheet.php |
@@ -70,6 +76,7 @@
 | shortcode | `[order_shipped_table]` | shortcode-order-shipped.php |
 | shortcode | `[pdf_embed]` | shortcode-embed.php |
 | shortcode | `[pos]` | shortcode-pos.php |
+| shortcode | `[product_advisor_ai]` | shortcode-product-advisor.php |
 | shortcode | `[product_compare]` | shortcode-product-compare.php |
 | shortcode | `[product_info_search]` | shortcode-product-info-search.php |
 | shortcode | `[protein_calculator]` | shortcode-protein-calculator.php |
@@ -88,6 +95,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_export_ai_check_completed` | shortcode-order-export-confirm.php |
 | `hithean_export_ai_config` | shortcode-order-export-confirm.php |
 | `hithean_warehouse_export_confirmed` | shortcode-order-export-confirm.php, shortcode-order-shipped.php |
+| `hpa_ai_config` | shortcode-product-advisor.php |
 | `ivar_certifications_config` | shortcode-certifications.php |
 | `litespeed_purge_post` | shortcode-anc-new-partner-offer.php |
 | `pis_default_product_ids` | shortcode-product-info-search.php |
@@ -202,6 +210,35 @@ Shortcode: [certifications] Khối "Hệ thống sản xuất & chứng nhận" 
 | Hàm | Mô tả |
 |---|---|
 | `hithean_company_info_shortcode($atts)` | [company_info field="hotline"] — in ra 1 trường thông tin doanh nghiệp (khai báo ở Cài đặt ERP > Thông tin doanh nghiệp), dùng trong nội dung bài viết. |
+
+### `shortcodes/shortcode-consult-flows.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `hcf_can_view()` | Xem / copy kịch bản: nhân viên xử lý đơn. |
+| `hcf_can_manage()` | Thêm / sửa / xóa / nhập kịch bản. |
+| `hcf_norm(string $text)` | Chuỗi so khớp: chữ thường, bỏ dấu tiếng Việt, chỉ giữ a-z0-9 cách nhau 1 khoảng trắng. |
+| `hcf_clean_text($value, int $max = 4000, bool $multiline = true)` | Làm sạch 1 chuỗi văn bản thuần (giữ xuống dòng), cắt độ dài. |
+| `hcf_clean_list($value, int $max_items = 40, int $max_len = 80)` | Danh sách chuỗi ngắn (từ khóa / SKU) từ mảng hoặc chuỗi phân tách bằng dấu phẩy / xuống dòng. |
+| `hcf_sanitize_flow(array $raw)` | Chuẩn hóa dữ liệu 1 kịch bản (từ form / file nhập). Thiếu tiêu đề hoặc không có bước nào có nội dung → steps rỗng (nơi lưu tự báo lỗi). Tối đa 30 bước. |
+| `hcf_store_normalize($raw)` | Kho rỗng / chuẩn hóa kho đọc từ option. |
+| `hcf_store_upsert(array $store, array $raw, string $now, string $by)` | Thêm / sửa 1 kịch bản trong kho (hàm thuần). id = 0 → thêm mới. |
+| `hcf_store_list(array $store, bool $include_drafts)` | Danh sách kịch bản đã sắp: nhóm (trống cuối) → tiêu đề, bỏ dấu. Nháp chỉ khi $include_drafts. |
+| `hcf_store_read()` | — |
+| `hcf_store_write(array $store, ?array $before = null, string $action = 'save')` | Ghi kho + đẩy bản cũ vào lịch sử (≤ 50). |
+| `hcf_current_user_label()` | — |
+| `hcf_store_import(array $store, array $items, string $now, string $by)` | Nhập nhiều kịch bản (hàm thuần): trùng tiêu đề (bỏ dấu) → cập nhật, còn lại thêm mới. |
+| `hcf_get_flows(bool $include_drafts = false)` | Mọi kịch bản (nháp chỉ cho người quản lý). |
+| `hcf_save_flow(array $raw)` | Lưu (thêm / sửa) 1 kịch bản. @return int\|WP_Error ID |
+| `hcf_match(array $flows, string $text, array $skus = [], int $limit = 3)` | Chấm điểm kịch bản theo câu hỏi + SKU: cụm từ khóa xuất hiện nguyên cụm (+2 + số chữ), tiêu đề nằm trong câu (+3), SKU trùng (+3 mỗi mã). Trả tối đa $limit kịch bản điểm > 0, ca… |
+| `hcf_starter_flows()` | Kịch bản mẫu chung (không gắn SP) — tạo khi người quản lý bấm "Tạo kịch bản mẫu" lúc danh sách trống. |
+| `hcf_ajax_guard(bool $manage)` | — |
+| `hcf_ajax_list()` | — |
+| `hcf_ajax_save()` | — |
+| `hcf_ajax_delete()` | — |
+| `hcf_ajax_import()` | — |
+| `hcf_shortcode()` | — |
+| `hcf_assets()` | CSS + JS của [consult_flows] (in 1 lần). |
 
 ### `shortcodes/shortcode-embed.php`
 
@@ -356,6 +393,24 @@ Shortcode: [certifications] Khối "Hệ thống sản xuất & chứng nhận" 
 | Hàm | Mô tả |
 |---|---|
 | `display_blog_posts_slider($atts)` | — |
+
+### `shortcodes/shortcode-product-advisor.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `hpa_can_use()` | — |
+| `hpa_catalogue()` | Danh mục rút gọn SP đang bán: [{id, name, sku, skus[] (gồm SKU biến thể), price, stock, url}] — cache 30 phút (file chỉ nạp ở công cụ / AJAX nên không nghe save_post; dữ liệu ch… |
+| `hpa_detect_products(string $text, array $catalogue, int $limit = HPA_MAX_DETAIL)` | Nhận ra SP trong câu hỏi (hàm thuần): SKU (cha hoặc biến thể) xuất hiện nguyên từ; hoặc tên SP — ≥ 2 chữ có nghĩa (≥ 3 ký tự, không phải chữ chung) và phủ ≥ 60% các chữ đó. Trả… |
+| `hpa_ids_from_skus(array $skus, array $catalogue)` | SKU (cha hoặc biến thể) → ID SP cha, theo danh mục. |
+| `hpa_plain($html, int $max)` | Văn bản thuần từ HTML / shortcode metabox, cắt độ dài. |
+| `hpa_product_snapshot(int $product_id)` | Dữ liệu chi tiết 1 SP cho AI (catalogue + metabox product_info_*), không có đường dẫn file / dữ liệu nội bộ. |
+| `hpa_config()` | — |
+| `hpa_system_prompt(string $length)` | — |
+| `hpa_parse_reply(array $data)` | Đọc JSON AI trả về (hàm thuần): ép kiểu, cắt độ dài, bỏ phần tử rỗng. |
+| `hpa_call_ai(array $ctx)` | Gọi AI 1 lượt với ngữ cảnh đã gom. @return array\|WP_Error |
+| `hpa_label_documents(array $product_ids)` | Ảnh nhãn thành phần của các SP (tái dùng logic AI so sánh SP: chỉ ảnh trong Media Library khai ở metabox, ≤ 3MB, ≤ 8 ảnh). |
+| `hpa_ajax_ask()` | — |
+| `hpa_shortcode()` | — |
 
 ### `shortcodes/shortcode-product-compare.php`
 

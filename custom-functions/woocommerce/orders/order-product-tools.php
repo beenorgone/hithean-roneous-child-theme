@@ -6,6 +6,8 @@ function thean_order_product_tools(): array
 {
     return [
         'info' => ['label' => 'Tra thông tin & HDSD sản phẩm', 'shortcode' => 'product_info_search', 'file' => 'shortcode-product-info-search.php'],
+        'advisor' => ['label' => '✨ AI tư vấn', 'shortcode' => 'product_advisor_ai', 'file' => 'shortcode-product-advisor.php'],
+        'flows' => ['label' => '🗂️ Kịch bản tư vấn', 'shortcode' => 'consult_flows', 'file' => 'shortcode-consult-flows.php'],
         'compare' => ['label' => 'So sánh sản phẩm', 'shortcode' => 'product_compare', 'file' => 'shortcode-product-compare.php'],
         'protein' => ['label' => 'Tính protein', 'shortcode' => 'protein_calculator', 'file' => 'shortcode-protein-calculator.php'],
     ];
@@ -149,7 +151,7 @@ function thean_order_render_tool_workspace(string $scope): void
     $tools = $is_export ? thean_order_export_tools() : thean_order_product_tools();
     $first = array_key_first($tools);
     $prefix = $is_export ? 'export' : 'product';
-    $title = $is_export ? 'Xuất kho' : 'Sản phẩm';
+    $title = $is_export ? 'Xuất kho' : 'Sản phẩm - Tư vấn';
     ?>
     <section class="thean-ous-products" id="thean-ous-<?php echo esc_attr($scope); ?>-panel" data-tool-workspace="<?php echo esc_attr($scope); ?>" role="tabpanel" aria-labelledby="thean-workspace-<?php echo esc_attr($scope); ?>" hidden>
         <div class="thean-ous-board__head">

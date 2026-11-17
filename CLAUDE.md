@@ -51,7 +51,7 @@ woocommerce/
                shortcode-bank-transfer-confirmation, shortcode-payment-pending-confirm
   products/    product-page, product-metabox, sales-count (+ -admin), product-navigation, add-to-cart-popup,
                product-archive-footer-menu, proof-embed-cache, product-nutrition-label…
-shortcodes/    order-export-confirm (+ export-bulk-web), order-shipped, order-return-manager, product-compare(-ai),
+shortcodes/    order-export-confirm (+ export-bulk-web), order-shipped, order-return-manager, product-compare(-ai), product-advisor + consult-flows,
                protein-calculator, anc-product-cards, anc-new-partner-offer, company-info, google-docs/sheet…
 marketing/     offers/ (ưu đãi), lucky-wheel/, popup-widget, cro-landing-agent (chạy theo lịch, không chạy ở front),
                site-footer-menu + my-offers (thanh menu đáy toàn site + "Ưu đãi của tôi" — xem dưới)
@@ -289,6 +289,7 @@ Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
   `offers-structured-test.php`, `landing-template-test.php`.
 - `my-offers.php`, `loop-offers-button.php`, `loop-rule-price.php`, `offers-order.php`, `out-of-stock-loop.php` (SP hết hàng + không đặt trước ở danh sách: xếp cuối / ẩn — Cài đặt ERP → WooCommerce, option `hithean_oos_loop_mode` + ngoại lệ theo đường dẫn trang `hithean_oos_loop_rules` (`*` = cả nhánh); shortcode `[products het_hang="an|cuoi"]` đè cả hai); UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
 - Popup thao tác nhanh (order-quick-modals.php): `node tests/order-quick-modals-ui.cjs` (cần jsdom + php).
+- Sản phẩm - Tư vấn: `php tests/consult-flows.php`, `node tests/consult-tools-ui.cjs` (cần jsdom), `php tests/order-product-tools.php`.
 - `create-order-ai-address.php` (quy đổi địa chỉ AI tạo đơn); UI popup "Chỉnh đơn" chế độ AI: `node tests/create-order-ai-ui.cjs` (cần jsdom).
 
 ## Quy ước
@@ -296,6 +297,21 @@ Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - Commit & push thẳng `main` (như theanmarket).
 - Comment / commit message bằng tiếng Việt, kiểu `feat(orders): …`, `fix(…)`.
 - `custom-functions/firebase_credentials.json` không commit (.gitignore).
+
+## Tab "📦 Sản phẩm - Tư vấn" ở `/quan-ly-don`
+
+Subtab = công cụ cố định ở `thean_order_product_tools()` (order-product-tools.php, iframe `?thean_order_tool=`): Tra thông tin & HDSD ·
+**✨ AI tư vấn** (`advisor`) · **🗂️ Kịch bản tư vấn** (`flows`) · So sánh SP · Tính protein. Link thẳng: `?thean_product_tool=advisor|flows`.
+- **Kịch bản tư vấn** `[consult_flows]` (`shortcodes/shortcode-consult-flows.php`, module `consult_flows`): **không dùng CPT** — 1 option
+  `hithean_consult_flows` (autoload no) = {next_id, flows{id: title, group, keywords[], skus[], steps[{title, say, note}], status publish|draft, updated, by}};
+  sửa / xóa đẩy bản cũ vào `hithean_consult_flows_history` (≤50). Câu mẫu nhiều phương án tách dòng `---`, `{ten}` thay bằng tên khách khi copy;
+  bấm câu mẫu = copy. Xem/copy: `edit_shop_orders`; thêm/sửa/xóa/nhập/xuất JSON: `manage_woocommerce`. Nháp: AI không dùng.
+- **AI tư vấn** `[product_advisor_ai]` (`shortcodes/shortcode-product-advisor.php`, module `product_advisor`, feature AI `product_advisor_ai`):
+  câu hỏi / đoạn chat khách + SKU (tùy chọn; tự nhận SKU / tên SP trong câu — `hpa_detect_products()`) → dữ liệu chi tiết SP (catalogue +
+  metabox `product_info_*`: USP, HDSD, thành phần, FAQ, biến thể, tồn) ≤5 SP + danh mục rút gọn + **nội dung kịch bản khớp** (`hcf_match()`) + mục lục
+  mọi kịch bản. AI xin thêm `need_product_details` / `need_flow_ids` → server hỏi lại 1 lượt. Tùy chọn đọc ảnh nhãn (dùng lại
+  `tpc_compare_ai_nutrition_*`). Giữ ≤3 lượt hội thoại (bản nhân viên đã sửa), cache 30 phút, ≤10 lượt/phút/người. "Lưu thành kịch bản (nháp)".
+- CSS/JS: `shortcodes/assets/consult-tools.css`, `consult-flows.js`, `product-advisor.js`. Test: `php tests/consult-flows.php`, `node tests/consult-tools-ui.cjs`.
 
 ## Tab 🏦 Sepay ở `/quan-ly-don`
 

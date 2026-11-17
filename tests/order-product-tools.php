@@ -34,7 +34,8 @@ function reject($status, $message) {
     try { thean_order_product_tool_response(); } catch (RuntimeException $error) { check($error->getCode() === $status, $message); return; }
     throw new RuntimeException('Expected rejection: ' . $message);
 }
-check(array_keys(thean_order_product_tools()) === ['info', 'compare', 'protein'], 'only three fixed tool IDs');
+check(array_keys(thean_order_product_tools()) === ['info', 'advisor', 'flows', 'compare', 'protein'], 'only five fixed tool IDs (info, AI tư vấn, kịch bản, so sánh, protein)');
+check(array_column(thean_order_product_tools(), 'shortcode') === ['product_info_search', 'product_advisor_ai', 'consult_flows', 'product_compare', 'protein_calculator'], 'consult subtabs map to their shortcodes');
 check(array_keys(thean_order_export_tools()) === ['export_review', 'export_waiting', 'export_upload'], 'export review and waiting list precede uploads');
 check(array_column(thean_order_export_tools(), 'shortcode') === ['list_unconfirmed_exports', 'list_uploaded_not_shipped_exports', 'upload_export_images_form'], 'export keys map to the three existing shortcodes');
 check(strpos(thean_order_product_tool_url('export_review'), 'thean_order_tool=export_review') !== false, 'export tool uses authenticated allowlisted URL');
@@ -57,8 +58,9 @@ check(strpos($exports, 'data-product-tool="export_review"') < strpos($exports, '
     && strpos($exports, 'data-product-tool="export_waiting"') < strpos($exports, 'data-product-tool="export_upload"'), 'rendered export tabs follow requested order');
 check(strpos($exports, 'aria-selected="true" tabindex="0" data-product-tool="export_review"') !== false && strpos($exports, 'data-thean-ous-workflow-guide="exports"') !== false, 'review opens first and export help is available');
 ob_start(); thean_order_render_product_workspace(); $html = ob_get_clean();
-check(substr_count($html, '<iframe ') === 3 && substr_count($html, 'data-src=') === 3 && !preg_match('/<iframe[^>]*\ssrc=/', $html), 'tool iframes have no eager src');
+check(substr_count($html, '<iframe ') === 5 && substr_count($html, 'data-src=') === 5 && !preg_match('/<iframe[^>]*\ssrc=/', $html), 'tool iframes have no eager src');
 check(strpos($html, 'data-thean-ous-workflow-guide="products"') !== false && strpos($html, 'aria-controls="thean-product-compare"') !== false, 'product guide and accessible subtabs rendered');
+check(strpos($html, '<h2>Sản phẩm - Tư vấn</h2>') !== false, 'product workspace titled Sản phẩm - Tư vấn');
 foreach (thean_order_workspace_tools() as $key => $tool) {
     $cmd = [PHP_BINARY, __FILE__, 'render', $key];
     $pipes = []; $process = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);

@@ -549,6 +549,19 @@ function tpc_loader_modules()
             'ajax_actions' => ['product_info_search'],
         ],
         [
+            // Tab "Sản phẩm - Tư vấn" ở /quan-ly-don: kịch bản tư vấn (CPT hithean_consult_flow) + AI tư vấn theo SKU.
+            'id' => 'consult_flows',
+            'file' => 'custom-functions/shortcodes/shortcode-consult-flows.php',
+            'shortcodes' => ['consult_flows'],
+            'ajax_actions' => ['hithean_cflow_list', 'hithean_cflow_save', 'hithean_cflow_delete', 'hithean_cflow_import'],
+        ],
+        [
+            'id' => 'product_advisor',
+            'file' => 'custom-functions/shortcodes/shortcode-product-advisor.php',
+            'shortcodes' => ['product_advisor_ai'],
+            'ajax_actions' => ['hithean_advisor_ask'],
+        ],
+        [
             'id' => 'company_info',
             'file' => 'custom-functions/shortcodes/shortcode-company-info.php',
             'shortcodes' => ['company_info'],

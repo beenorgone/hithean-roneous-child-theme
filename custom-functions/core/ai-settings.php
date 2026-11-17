@@ -35,6 +35,10 @@ function theme_ai_feature_registry(): array
             'label'       => 'So sánh sản phẩm bằng AI',
             'description' => 'Tạo bản nháp kết luận mua hàng và phân tích trung lập cho bảng so sánh sản phẩm.',
         ],
+        'product_advisor_ai' => [
+            'label'       => 'AI tư vấn sản phẩm',
+            'description' => 'Tab Sản phẩm - Tư vấn ở /quan-ly-don: soạn tin nhắn trả lời khách từ dữ liệu SP (theo SKU) và kịch bản tư vấn.',
+        ],
         'export_image_ai_check' => [
             'label'       => 'Xuất kho — AI kiểm tra ảnh lấy hàng',
             'description' => 'Đối chiếu ảnh lấy hàng với mã đơn, sản phẩm và số lượng. Kết quả chỉ để hỗ trợ kiểm tra, không tự xác nhận xuất kho.',

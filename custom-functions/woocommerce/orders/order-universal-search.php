@@ -2045,9 +2045,11 @@ function thean_ous_render_workflow_guide(): void
                 <p class="thean-ous-guide__note">Chuyển tab giữ dữ liệu đang nhập và ảnh đang chọn. Hai danh sách được làm mới khi mở lại; biểu mẫu Up ảnh giữ nguyên cho tới khi bạn chủ động tải lại. Dùng nút Tải lại công cụ khi cần khởi động lại toàn bộ công cụ.</p>
             </div>
             <div data-workflow-guide-scope="products" hidden>
-                <p>Chọn một trong ba công cụ. Chuyển tab giữ kết quả và dữ liệu đang nhập; Tải lại công cụ sẽ khởi động lại công cụ đó.</p>
+                <p>Chọn một trong năm công cụ. Chuyển tab giữ kết quả và dữ liệu đang nhập; Tải lại công cụ sẽ khởi động lại công cụ đó.</p>
                 <ol class="thean-ous-guide">
                     <li><h3>Tra thông tin &amp; HDSD sản phẩm</h3><p>Nhập tên sản phẩm, chọn đúng sản phẩm hoặc biến thể, đọc thông tin và hướng dẫn sử dụng. Dùng nút Copy giới thiệu / Copy HDSD để gửi nội dung phù hợp cho khách.</p></li>
+                    <li><h3>✨ AI tư vấn</h3><p>Dán câu hỏi hoặc cả đoạn chat của khách, thêm SKU nếu biết (hệ thống tự nhận SKU / tên SP trong câu). AI đọc thông tin, thành phần, HDSD, FAQ của SP và kịch bản tư vấn khớp để soạn tin nhắn; sửa lại nếu cần rồi bấm Copy. Luôn kiểm tra trước khi gửi khách.</p></li>
+                    <li><h3>🗂️ Kịch bản tư vấn</h3><p>Tìm theo nhu cầu / từ khóa, bấm vào câu mẫu để copy (gõ tên khách để thay {ten}). Quản lý thêm / sửa / nhập / xuất kịch bản; từ khóa giúp AI tư vấn nhận ra kịch bản. Kịch bản nháp AI không dùng.</p></li>
                     <li><h3>So sánh sản phẩm</h3><p>Tìm và thêm các sản phẩm cần so sánh, kiểm tra biến thể và đơn vị. Đọc bảng so sánh theo tiêu chí khách quan tâm; nội dung AI chỉ hỗ trợ, cần kiểm tra thông tin trước khi tư vấn.</p></li>
                     <li><h3>Tính protein</h3><p>Nhập thông tin và lựa chọn phù hợp trong biểu mẫu để xem kết quả ước tính. Dùng kết quả làm thông tin tham khảo khi tư vấn và đọc các giải thích ngay trong công cụ.</p></li>
                 </ol>
@@ -2117,7 +2119,7 @@ function thean_ous_render_ui(): void
             <?php if (function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()) : ?>
                 <button type="button" id="thean-workspace-create" role="tab" aria-controls="thean-ous-create-panel" aria-selected="false" tabindex="-1" data-order-workspace="create">＋ Tạo đơn</button>
             <?php endif; ?>
-            <button type="button" id="thean-workspace-products" role="tab" aria-controls="thean-ous-products-panel" aria-selected="false" tabindex="-1" data-order-workspace="products">📦 Sản phẩm</button>
+            <button type="button" id="thean-workspace-products" role="tab" aria-controls="thean-ous-products-panel" aria-selected="false" tabindex="-1" data-order-workspace="products">📦 Sản phẩm - Tư vấn</button>
             <?php if (current_user_can('manage_woocommerce')) : ?>
                 <button type="button" id="thean-workspace-exports" role="tab" aria-controls="thean-ous-exports-panel" aria-selected="false" tabindex="-1" data-order-workspace="exports">📤 Xuất kho</button>
             <?php endif; ?>
@@ -2204,7 +2206,7 @@ function thean_ous_render_ui(): void
         <?php if (function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()) : ?>
             <button type="button" data-order-workspace="create" aria-pressed="false">＋ Tạo đơn</button>
         <?php endif; ?>
-        <button type="button" data-order-workspace="products" aria-pressed="false">📦 Sản phẩm</button>
+        <button type="button" data-order-workspace="products" aria-pressed="false" title="Sản phẩm - Tư vấn">📦 SP - Tư vấn</button>
         <?php if (current_user_can('manage_woocommerce')) : ?>
             <button type="button" data-order-workspace="exports" aria-pressed="false">📤 Xuất kho</button>
         <?php endif; ?>
