@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-37 file · ~11.200 dòng · 423 hàm (62% có docblock)
+37 file · ~11.300 dòng · 424 hàm (63% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -366,6 +366,7 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_order_return_tools()` | Board hoàn hàng (shortcode ở shipping/) — /quan-ly-don nhúng dưới tab Hoàn hàng của board. |
 | `thean_order_workspace_tools()` | — |
 | `thean_order_product_tool_url(string $tool)` | — |
+| `thean_mobile_forms_asset_url(string $ext)` | URL bộ "form trên mobile → nút + popup" (assets/mobile-forms.{css,js}, giống hệt 2 site) kèm version theo filemtime. Dùng ở tài liệu công cụ nhúng (iframe) và portal /quan-ly-do… |
 | `thean_order_product_tool_response()` | Isolated document keeps the existing shortcodes' CSS, IDs and inline JS out of the order board. |
 | `thean_order_render_product_workspace()` | — |
 | `thean_order_render_export_workspace()` | — |

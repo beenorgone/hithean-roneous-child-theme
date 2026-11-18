@@ -134,6 +134,12 @@ add_action('template_redirect', function (): void {
     thean_ous_enqueue_assets();
     thean_export_review_enqueue();
     if (function_exists('thean_spx_embed_enqueue')) thean_spx_embed_enqueue();
+    if (function_exists('thean_spx_embed_render')) {
+        // Khối Shopee in thẳng vào trang (không qua iframe công cụ): mobile gom form nhiều trường thành nút + popup.
+        wp_enqueue_style('thean-mobile-forms', thean_mobile_forms_asset_url('css'), [], null);
+        wp_enqueue_script('thean-mobile-forms', thean_mobile_forms_asset_url('js'), [], null, true);
+        wp_add_inline_script('thean-mobile-forms', "window.TheanMobileForms && TheanMobileForms.init(document.getElementById('thean-spx-embed'));");
+    }
     $asset = '/custom-functions/woocommerce/orders/assets/order-portal.css';
     wp_enqueue_style('thean-order-portal', get_stylesheet_directory_uri() . $asset, ['thean-ous'], (string) filemtime(get_stylesheet_directory() . $asset));
     $timings = ['wp_boot' => (microtime(true) - (float) ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true))) * 1000];

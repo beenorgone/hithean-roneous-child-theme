@@ -344,3 +344,13 @@ CSS/JS `orders/assets/export-missing-images.*`; AJAX `thean_export_missing_image
 kiểm nonce + `manage_woocommerce` + `upload_files`. SQL giới hạn cửa sổ 90 ngày, lấy 21 ID trước phân trang;
 HPOS kiểm cả meta chính và legacy fallback để không báo thiếu ảnh cũ. Không đổi trạng thái hay xác nhận xuất kho.
 Kiểm tra: `php tests/export-missing-images.php`, `node tests/export-missing-images.cjs`.
+
+## Form trên mobile ở các tab `/quan-ly-don` → nút + popup (`orders/assets/mobile-forms.{css,js}` — GIỐNG HỆT hithean ↔ theanmarket)
+
+Mọi tab công cụ nhúng (iframe `?thean_order_tool=` — Sản phẩm / Tư vấn, Xuất kho, khung Hoàn hàng; **trừ Tạo đơn**) và khối 🛍️ Shopee của portal:
+≤782px, form ≥2 trường hoặc có ô file / textarea được gói **tại chỗ** vào `<dialog>` (không chuyển form đi → id / `closest()` / handler jQuery cũ chạy nguyên),
+chỗ cũ hiện nút `.tmf-trigger`; desktop gỡ ra như cũ. Form 1 ô (quét mã / tìm) và form chỉ có nút giữ nguyên; form trong modal sẵn có bỏ qua; form render sau
+(AJAX) tự gom (MutationObserver). Submit → popup tự đóng, trừ form có ô trạng thái (`status` / `aria-live`). Tuỳ chỉnh: `data-mform="off"`, khối không phải form
+`data-mform` (VD nhập chứng từ đối soát Shopee), `data-mform-label`, `data-mform-close`, `data-mform-keep`; nhãn mặc định ở mảng `LABELS` trong JS.
+Nạp: `<main data-mform-root>` của `thean_order_product_tool_response()`; portal gọi `TheanMobileForms.init(#thean-spx-embed)` (order-portal.php). URL: `thean_mobile_forms_asset_url()`.
+Test: `node tests/mobile-forms-ui.cjs` (cần jsdom).

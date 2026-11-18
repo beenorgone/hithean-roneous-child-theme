@@ -52,6 +52,16 @@ function thean_order_product_tool_url(string $tool): string
     return wp_nonce_url(add_query_arg(['thean_order_tool' => $tool], home_url('/')), 'thean_order_product_tool');
 }
 
+/**
+ * URL bộ "form trên mobile → nút + popup" (assets/mobile-forms.{css,js}, giống hệt 2 site) kèm version theo filemtime.
+ * Dùng ở tài liệu công cụ nhúng (iframe) và portal /quan-ly-don (khối Shopee).
+ */
+function thean_mobile_forms_asset_url(string $ext): string
+{
+    $rel = '/custom-functions/woocommerce/orders/assets/mobile-forms.' . ($ext === 'css' ? 'css' : 'js');
+    return get_stylesheet_directory_uri() . $rel . '?ver=' . (string) @filemtime(get_stylesheet_directory() . $rel);
+}
+
 /** Isolated document keeps the existing shortcodes' CSS, IDs and inline JS out of the order board. */
 function thean_order_product_tool_response(): void
 {
@@ -107,6 +117,7 @@ function thean_order_product_tool_response(): void
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?php echo esc_html($tool['label']); ?></title>
         <?php wp_print_styles(); wp_print_head_scripts(); ?>
+        <link rel="stylesheet" href="<?php echo esc_url(thean_mobile_forms_asset_url('css')); ?>">
         <style>
             :root { --default-color-green:#0047ba; }
             * { box-sizing:border-box; }
@@ -120,9 +131,11 @@ function thean_order_product_tool_response(): void
         </style>
     </head>
     <body>
-        <main><?php echo $content; // Trusted registered shortcode, not request-supplied markup. ?></main>
+        <main data-mform-root><?php echo $content; // Trusted registered shortcode, not request-supplied markup. ?></main>
         <?php
         wp_print_footer_scripts();
+        // Mobile: form nhiều trường → nút thao tác + popup (sau script shortcode để form render bằng JS cũng được gom).
+        echo '<script src="' . esc_url(thean_mobile_forms_asset_url('js')) . '"></script>';
         if ($is_export) {
             foreach (['thean_export_confirm_assets', 'hithean_export_confirm_assets'] as $render) {
                 if (function_exists($render)) { $render(); break; }

@@ -1,0 +1,38 @@
+/* Form trên mobile → nút thao tác + popup (mobile-forms.js) — GIỐNG HỆT hithean ↔ theanmarket. */
+.tmf-trigger {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%; min-height: 48px; margin: 8px 0; padding: 12px 14px;
+    border: 1px solid #b9cdf0; border-radius: 12px; background: #eef4ff; color: #0047ba;
+    font: inherit; font-weight: 600; text-align: left; cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 31, 63, .06); -webkit-tap-highlight-color: transparent;
+}
+.tmf-trigger[hidden] { display: none; }
+.tmf-trigger:active { background: #dce8ff; }
+.tmf-trigger:focus-visible { outline: 2px solid #0047ba; outline-offset: 2px; }
+.tmf-trigger__label { flex: 1 1 auto; min-width: 0; }
+.tmf-trigger__chev { flex: 0 0 auto; font-size: 22px; line-height: 1; }
+
+.tmf-dialog {
+    width: 100%; max-width: 640px; max-height: calc(100dvh - 24px); margin: auto auto 0; padding: 0;
+    border: 0; border-radius: 16px 16px 0 0; background: #fff; color: #1e293b;
+    box-shadow: 0 -8px 30px rgba(0, 31, 63, .25); overflow: hidden;
+}
+.tmf-dialog[open] { display: flex; flex-direction: column; }
+.tmf-dialog::backdrop { background: rgba(0, 31, 63, .45); }
+.tmf-dialog__head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 14px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+}
+.tmf-dialog__title { font-size: 16px; color: #001f3f; }
+.tmf-dialog__x {
+    flex: 0 0 auto; width: 40px; height: 40px; border: 0; border-radius: 50%;
+    background: #e2e8f0; color: #001f3f; font-size: 16px; cursor: pointer;
+}
+.tmf-dialog__body {
+    flex: 1 1 auto; overflow: auto; padding: 14px; -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+}
+.tmf-dialog__body > form, .tmf-dialog__body > [data-mform] { margin: 0; max-width: none; }
+.tmf-dialog__body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.tmf-dialog__body select, .tmf-dialog__body textarea { max-width: 100%; font-size: 16px; /* iOS không tự zoom */ }
+html.tmf-locked, html.tmf-locked body { overflow: hidden; }
