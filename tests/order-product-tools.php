@@ -34,13 +34,15 @@ function reject($status, $message) {
     try { thean_order_product_tool_response(); } catch (RuntimeException $error) { check($error->getCode() === $status, $message); return; }
     throw new RuntimeException('Expected rejection: ' . $message);
 }
-check(array_keys(thean_order_product_tools()) === ['info', 'advisor', 'library', 'compare', 'protein'], 'five tools with one unified consultation library');
-check(array_column(thean_order_product_tools(), 'shortcode') === ['product_info_search', 'product_advisor_ai', 'consult_library', 'product_compare', 'protein_calculator'], 'consult subtabs map to their shortcodes');
+check(array_keys(thean_order_product_tools()) === ['info', 'library', 'compare', 'protein'], 'four tools; AI advisor lives inside the library');
+check(array_column(thean_order_product_tools(), 'shortcode') === ['product_info_search', 'consult_library', 'product_compare', 'protein_calculator'], 'consult subtabs map to their shortcodes');
 check(array_keys(thean_order_export_tools()) === ['export_review', 'export_waiting', 'export_upload'], 'export review and waiting list precede uploads');
 check(array_column(thean_order_export_tools(), 'shortcode') === ['list_unconfirmed_exports', 'list_uploaded_not_shipped_exports', 'upload_export_images_form'], 'export keys map to the three existing shortcodes');
 check(strpos(thean_order_product_tool_url('export_review'), 'thean_order_tool=export_review') !== false, 'export tool uses authenticated allowlisted URL');
 
 check(strpos(thean_order_product_tool_url('flows'), 'thean_order_tool=library') !== false && strpos(thean_order_product_tool_url('faqs'), 'thean_order_tool=library') !== false, 'legacy tool links resolve to library');
+$advisor = thean_order_product_tool_url('advisor');
+check(strpos($advisor, 'thean_order_tool=library') !== false && strpos($advisor, 'hcl_view=ai') !== false, 'legacy advisor link opens the AI tab inside the library');
 check(thean_order_product_tool_url('not-a-tool') === '', 'unknown tool has no endpoint URL');
 check(strpos(thean_order_product_tool_url('info'), 'thean_order_tool=info') !== false && strpos(thean_order_product_tool_url('info'), '_wpnonce=') !== false, 'iframe URL has allowlisted tool and nonce');
 $GLOBALS['allowed'] = false; $_GET = ['thean_order_tool' => 'info']; reject(403, 'unauthorized reader blocked');
@@ -59,7 +61,7 @@ check(strpos($exports, 'data-product-tool="export_review"') < strpos($exports, '
     && strpos($exports, 'data-product-tool="export_waiting"') < strpos($exports, 'data-product-tool="export_upload"'), 'rendered export tabs follow requested order');
 check(strpos($exports, 'aria-selected="true" tabindex="0" data-product-tool="export_review"') !== false && strpos($exports, 'data-thean-ous-workflow-guide="exports"') !== false, 'review opens first and export help is available');
 ob_start(); thean_order_render_product_workspace(); $html = ob_get_clean();
-check(substr_count($html, '<iframe ') === 5 && substr_count($html, 'data-src=') === 5 && !preg_match('/<iframe[^>]*\ssrc=/', $html), 'tool iframes have no eager src');
+check(substr_count($html, '<iframe ') === 4 && substr_count($html, 'data-src=') === 4 && !preg_match('/<iframe[^>]*\ssrc=/', $html), 'tool iframes have no eager src');
 check(strpos($html, 'data-thean-ous-workflow-guide="products"') !== false && strpos($html, 'aria-controls="thean-product-compare"') !== false, 'product guide and accessible subtabs rendered');
 check(strpos($html, '<h2>Sản phẩm - Tư vấn</h2>') !== false, 'product workspace titled Sản phẩm - Tư vấn');
 foreach (thean_order_workspace_tools() as $key => $tool) {

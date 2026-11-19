@@ -430,6 +430,22 @@ function hcf_shortcode(): string
     return (string) ob_get_clean();
 }
 
+/** CSS chung + popup mobile của Thư viện / AI tư vấn (in 1 lần dù 2 công cụ chung trang). */
+function hcf_base_assets(): string
+{
+    static $done = false;
+    if ($done) {
+        return '';
+    }
+    $done = true;
+    $base = get_stylesheet_directory_uri() . '/custom-functions/shortcodes/assets/';
+    $dir = get_stylesheet_directory() . '/custom-functions/shortcodes/assets/';
+    $ver = static function (string $f) use ($dir): string { return (string) (@filemtime($dir . $f) ?: '1'); };
+
+    return '<link rel="stylesheet" href="' . esc_url($base . 'consult-tools.css?v=' . $ver('consult-tools.css')) . '">'
+        . '<script src="' . esc_url($base . 'consult-modal.js?v=' . $ver('consult-modal.js')) . '" defer></script>';
+}
+
 /** CSS + JS của [consult_flows] (in 1 lần). */
 function hcf_assets(): string
 {
@@ -442,8 +458,7 @@ function hcf_assets(): string
     $dir = get_stylesheet_directory() . '/custom-functions/shortcodes/assets/';
     $ver = static function (string $f) use ($dir): string { return (string) (@filemtime($dir . $f) ?: '1'); };
 
-    return '<link rel="stylesheet" href="' . esc_url($base . 'consult-tools.css?v=' . $ver('consult-tools.css')) . '">'
-        . '<script src="' . esc_url($base . 'consult-modal.js?v=' . $ver('consult-modal.js')) . '" defer></script>'
+    return hcf_base_assets()
         . '<script src="' . esc_url($base . 'consult-bundle.js?v=' . $ver('consult-bundle.js')) . '" defer></script>'
         . '<script src="' . esc_url($base . 'consult-flows.js?v=' . $ver('consult-flows.js')) . '" defer></script>';
 }

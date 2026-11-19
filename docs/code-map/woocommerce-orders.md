@@ -360,7 +360,7 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 
 | Hàm | Mô tả |
 |---|---|
-| `thean_order_product_tools()` | Fixed registry: request values never become shortcode names or include paths. |
+| `thean_order_product_tools()` | Fixed registry: request values never become shortcode names or include paths. AI tư vấn là tab con trong Thư viện (`advisor` → library). |
 | `thean_order_export_tools()` | Export lists come first; uploads are a separate, final step. |
 | `thean_order_export_has_shopee()` | Module Xuất kho Shopee có ở site này không (theanmarket có, hithean không). Có → khu Xuất kho thêm bộ chọn loại đơn Website / Shopee, truyền vào iframe bằng ?thean_export_kind=a… |
 | `thean_order_return_tools()` | Board hoàn hàng (shortcode ở shipping/) — /quan-ly-don nhúng dưới tab Hoàn hàng của board. |

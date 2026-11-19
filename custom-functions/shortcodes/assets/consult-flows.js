@@ -127,13 +127,19 @@
     }
 
     function notifyLibrary() {
-        if (cfg.library) try { localStorage.setItem('hcf-library-updated', Date.now() + ':' + Math.random()); } catch (e) { /* storage may be unavailable */ }
+        if (!cfg.library) return;
+        try { localStorage.setItem('hcf-library-updated', Date.now() + ':' + Math.random()); } catch (e) { /* storage may be unavailable */ }
+        // storage chỉ báo sang tài liệu khác; AI tư vấn cùng trang Thư viện nghe sự kiện này.
+        window.dispatchEvent(new CustomEvent('hcf:library-updated', { detail: { source: 'library' } }));
     }
     function refreshLibrary() {
         if (editing) { libraryPending = true; return; }
         post('hithean_cflow_list').then(function (d) { libraryPending = false; load(d.flows); }).catch(function (err) { status(err.message, true); });
     }
-    if (cfg.library) window.addEventListener('storage', function (event) { if (event.key === 'hcf-library-updated') refreshLibrary(); });
+    if (cfg.library) {
+        window.addEventListener('storage', function (event) { if (event.key === 'hcf-library-updated') refreshLibrary(); });
+        window.addEventListener('hcf:library-updated', function (event) { if (!event.detail || event.detail.source !== 'library') refreshLibrary(); });
+    }
 
     function haystack(f) {
         return norm([f.title, f.group, (f.keywords || []).join(' '), (f.skus || []).join(' ')].concat((f.steps || []).map(function (s) { return s.title + ' ' + s.say; })).join(' '));

@@ -137,3 +137,9 @@ button.hpa-prod { border:1px dashed #94a3b8; cursor:pointer; }
 }
 
 .hcf .hcf-in[hidden], .hcf .hcf-btn[hidden], .hcf .hcf-fstep[hidden], .hcf .hcf-fstep__bar[hidden] { display:none; }
+/* [consult_library]: tab con 📚 Thư viện / ✨ AI tư vấn (consult-views.js). */
+.hcl-views { display:flex; gap:4px; margin:0 0 12px; border-bottom:1px solid #d8e2f2; }
+.hcl-views button { padding:8px 14px; border:1px solid transparent; border-bottom:0; border-radius:8px 8px 0 0; background:none; color:#64748b; font-weight:500; cursor:pointer; margin-bottom:-1px; }
+.hcl-views button:hover { color:#0047ba; }
+.hcl-views button[aria-selected="true"] { background:#fff; border-color:#d8e2f2; color:#0047ba; box-shadow:inset 0 2px #0047ba; }
+.hcl-views button:focus-visible { outline:2px solid #0047ba; outline-offset:-2px; }

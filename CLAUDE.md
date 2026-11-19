@@ -300,8 +300,13 @@ Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 
 ## Tab Sản phẩm - Tư vấn
 
-Registry `thean_order_product_tools()` có 5 mục: Tra thông tin → AI tư vấn → **📚 Thư viện tư vấn** (`library`)
-→ So sánh → Protein. `flows` / `faqs` trong link công cụ cũ được ánh xạ sang `library`; shortcode và AJAX cũ vẫn tương thích.
+Registry `thean_order_product_tools()` có 4 mục: Tra thông tin → **📚 Thư viện tư vấn** (`library`) → So sánh → Protein.
+**✨ AI tư vấn nằm TRONG Thư viện**: `[consult_library]` render 2 tab con 📚 Thư viện / ✨ AI tư vấn (`hcl_shortcode` gọi
+`hpa_shortcode()`; `assets/consult-views.js`, nhớ tab ở sessionStorage, nút **✨ Hỏi AI** chuyển tab + điền nội dung đang tìm).
+Link cũ `flows` / `faqs` → `library`; `advisor` → `library` + `?hcl_view=ai` (mở sẵn tab AI). Shortcode `[product_advisor_ai]` và AJAX cũ
+vẫn chạy riêng được. CSS + consult-modal.js in 1 lần qua `hcf_base_assets()`. Cùng trang nên AI ↔ Thư viện báo nhau bằng sự kiện
+`hcf:library-updated` (detail.source = ai|library, bỏ qua sự kiện của chính mình) ngoài `storage` cho iframe khác.
+GIỐNG HỆT theanmarket (khác đường dẫn `shortcodes/` và tiền tố AJAX `hithean_`).
 
 - `[consult_library]` ở `shortcodes/consult-library.php`: một danh sách/tìm kiếm/nhóm, lọc Tất cả / Hỏi đáp nhanh / Kịch bản,
   một form chung (hỏi đáp = 1 câu trả lời; kịch bản = nhiều bước), xuất/nhập chung qua gói `thean-consult-bundle`.

@@ -82,5 +82,29 @@ const library = manage => `<div class="hcf" id="hcf-root"><input data-hcf-q><sel
  check(aiSaved.type === 'flow' && aiSaved.status === 'draft' && aiSaved.steps[0].say === 'Staff edited answer' && aiSaved.steps.length === 2, 'AI common save retains staff edit/follow-ups and creates reviewed draft');
  check(!!a.w.localStorage.getItem('hcf-library-updated'), 'AI save notifies other tool frames without storing customer content');
  check(!a.d.querySelector('.hpa-faqsave').closest('dialog') && a.d.querySelector('.hpa-faqsave').textContent.includes('thư viện'), 'successful save closes popup and reports library location');
+
+ // Combined page: AI advisor is a subtab of the library and both refresh each other in the same document.
+ const views = '<div data-hcl-views><button data-hcl-view="library" aria-selected="true">L</button><button data-hcl-view="ai" aria-selected="false">A</button></div>';
+ const combined = views + '<section data-hcl-panel="library">' + library(true).replace('<button data-hcf-new>New</button>', '<button data-hcf-new>New</button><button data-hcl-ask>Ask AI</button>') + '</section><section data-hcl-panel="ai" hidden>' + advisor + '</section>';
+ let listed = 0;
+ const c = boot(combined, ['consult-modal.js', 'consult-flows.js', 'product-advisor.js', 'consult-views.js'], p => {
+  if (p.action === 'hithean_library_list') { listed++; return { success: true, data: { flows: entries } }; }
+  if (p.action === 'hithean_library_suggest') return { success: true, data: { items: [] } };
+  if (p.action === 'hithean_library_save') return { success: true, data: { id: 'faq-9' } };
+  if (p.action === 'hithean_advisor_ask') return { success: true, data: { reply: 'Dạ em gửi', products: [], suggested: [], faqs: [], flows: [], follow_up_questions: [], staff_notes: [] } };
+  return { success: true, data: {} };
+ });
+ await tick();
+ const cq = c.d.querySelector('[data-hcf-q]'); cq.value = 'phí ship nội thành';
+ c.d.querySelector('[data-hcl-ask]').click();
+ check(!c.d.querySelector('[data-hcl-panel="ai"]').hidden && c.d.querySelector('[data-hcl-panel="library"]').hidden && c.d.querySelector('[data-hcl-view="ai"]').getAttribute('aria-selected') === 'true', 'Ask AI switches to the AI subtab');
+ check(c.d.querySelector('#hpa-root textarea[name="question"]').value === 'phí ship nội thành', 'Ask AI carries the library search into the question');
+ c.d.querySelector('[data-hcl-view="library"]').click();
+ check(!c.d.querySelector('[data-hcl-panel="library"]').hidden && c.w.sessionStorage.getItem('hcl-view') === 'library', 'subtab choice is remembered for the session');
+ c.d.querySelector('[data-hpa-form]').dispatchEvent(new c.w.Event('submit', { cancelable: true })); await tick(); await tick();
+ c.d.querySelector('.hpa-faqsave button').click();
+ const before = listed;
+ [...c.d.querySelectorAll('.hpa-faqsave button')].pop().click(); await tick(); await tick();
+ check(listed === before + 1, 'saving an AI answer refreshes the library list on the same page');
  console.log(`OK (${checks} unified library UI checks)`);
 })().catch(e => { console.error(e); process.exit(1); });

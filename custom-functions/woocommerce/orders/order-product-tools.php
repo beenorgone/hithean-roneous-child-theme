@@ -1,12 +1,11 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-/** Fixed registry: request values never become shortcode names or include paths. */
+/** Fixed registry: request values never become shortcode names or include paths. AI tư vấn là tab con trong Thư viện (`advisor` → library). */
 function thean_order_product_tools(): array
 {
     return [
         'info' => ['label' => 'Tra thông tin & HDSD sản phẩm', 'shortcode' => 'product_info_search', 'file' => 'shortcode-product-info-search.php'],
-        'advisor' => ['label' => '✨ AI tư vấn', 'shortcode' => 'product_advisor_ai', 'file' => 'shortcode-product-advisor.php'],
         'library' => ['label' => '📚 Thư viện tư vấn', 'shortcode' => 'consult_library', 'file' => 'consult-library.php'],
         'compare' => ['label' => 'So sánh sản phẩm', 'shortcode' => 'product_compare', 'file' => 'shortcode-product-compare.php'],
         'protein' => ['label' => 'Tính protein', 'shortcode' => 'protein_calculator', 'file' => 'shortcode-protein-calculator.php'],
@@ -47,9 +46,11 @@ function thean_order_workspace_tools(): array
 
 function thean_order_product_tool_url(string $tool): string
 {
-    if (in_array($tool, ['flows', 'faqs'], true)) $tool = 'library';
+    $args = [];
+    if ($tool === 'advisor') $args['hcl_view'] = 'ai';
+    if (in_array($tool, ['flows', 'faqs', 'advisor'], true)) $tool = 'library';
     if (!isset(thean_order_workspace_tools()[$tool])) return '';
-    return wp_nonce_url(add_query_arg(['thean_order_tool' => $tool], home_url('/')), 'thean_order_product_tool');
+    return wp_nonce_url(add_query_arg(['thean_order_tool' => $tool] + $args, home_url('/')), 'thean_order_product_tool');
 }
 
 /** Isolated document keeps the existing shortcodes' CSS, IDs and inline JS out of the order board. */
@@ -61,7 +62,7 @@ function thean_order_product_tool_response(): void
     check_admin_referer('thean_order_product_tool');
     $raw = $_GET['thean_order_tool'] ?? '';
     $key = is_string($raw) ? sanitize_key(wp_unslash($raw)) : '';
-    if (in_array($key, ['flows', 'faqs'], true)) $key = 'library';
+    if (in_array($key, ['flows', 'faqs', 'advisor'], true)) $key = 'library';
     $tool = thean_order_workspace_tools()[$key] ?? null;
     $is_export = isset(thean_order_export_tools()[$key]);
     $is_return = isset(thean_order_return_tools()[$key]);

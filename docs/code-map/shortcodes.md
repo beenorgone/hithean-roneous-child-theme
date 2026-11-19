@@ -4,7 +4,7 @@
 
 > Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nhúng Google Docs/Sheets…
 
-27 file · ~16.700 dòng · 291 hàm (32% có docblock)
+27 file · ~16.800 dòng · 294 hàm (33% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -140,7 +140,9 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hcl_suggest(array $entries, string $text, array $skus)` | Rank both kinds in one lookup, published entries only. Raw tokens stay intact until preview/copy. |
 | `hcl_ajax_suggest()` | — |
 | `hcl_ajax_copy()` | — |
-| `hcl_shortcode()` | — |
+| `hcl_initial_view($raw)` | Tab con mở sẵn: ?hcl_view=ai (link công cụ cũ "advisor") → AI tư vấn, còn lại → Thư viện. |
+| `hcl_shortcode()` | Thư viện tư vấn + AI tư vấn chung 1 trang: 2 tab con, AI đọc / lưu đúng kho thư viện, cập nhật qua sự kiện cùng trang. |
+| `hcl_library_markup()` | — |
 
 ### `shortcodes/consult-variables.php`
 
@@ -312,6 +314,7 @@ Shortcode: [certifications] Khối "Hệ thống sản xuất & chứng nhận" 
 | `hcf_ajax_delete()` | — |
 | `hcf_ajax_import()` | — |
 | `hcf_shortcode()` | — |
+| `hcf_base_assets()` | CSS chung + popup mobile của Thư viện / AI tư vấn (in 1 lần dù 2 công cụ chung trang). |
 | `hcf_assets()` | CSS + JS của [consult_flows] (in 1 lần). |
 
 ### `shortcodes/shortcode-embed.php`

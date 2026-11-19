@@ -164,10 +164,37 @@ function hcl_ajax_copy(): void
     wp_send_json_success($result);
 }
 
+/** Tab con mở sẵn: ?hcl_view=ai (link công cụ cũ "advisor") → AI tư vấn, còn lại → Thư viện. */
+function hcl_initial_view($raw): string
+{
+    return is_string($raw) && sanitize_key($raw) === 'ai' ? 'ai' : 'library';
+}
+
 add_shortcode('consult_library', 'hcl_shortcode');
+/** Thư viện tư vấn + AI tư vấn chung 1 trang: 2 tab con, AI đọc / lưu đúng kho thư viện, cập nhật qua sự kiện cùng trang. */
 function hcl_shortcode(): string
 {
     if (!is_user_logged_in() || !hcf_can_view()) return '<p>Cần đăng nhập tài khoản nhân viên để xem thư viện tư vấn.</p>';
+    if (!function_exists('hpa_shortcode')) require_once __DIR__ . '/shortcode-product-advisor.php';
+    $view = hcl_initial_view($_GET['hcl_view'] ?? '');
+    $views = ['library' => '📚 Thư viện', 'ai' => '✨ AI tư vấn'];
+    ob_start(); ?>
+    <div class="hcl-views" role="tablist" aria-label="Thư viện tư vấn" data-hcl-views>
+        <?php foreach ($views as $key => $label) : ?>
+            <button type="button" role="tab" id="hcl-tab-<?php echo esc_attr($key); ?>" aria-controls="hcl-view-<?php echo esc_attr($key); ?>" aria-selected="<?php echo $key === $view ? 'true' : 'false'; ?>" tabindex="<?php echo $key === $view ? '0' : '-1'; ?>" data-hcl-view="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></button>
+        <?php endforeach; ?>
+    </div>
+    <section id="hcl-view-library" role="tabpanel" aria-labelledby="hcl-tab-library" data-hcl-panel="library" <?php echo $view !== 'library' ? 'hidden' : ''; ?>><?php echo hcl_library_markup(); ?></section>
+    <section id="hcl-view-ai" role="tabpanel" aria-labelledby="hcl-tab-ai" data-hcl-panel="ai" <?php echo $view !== 'ai' ? 'hidden' : ''; ?>><?php echo hpa_shortcode(); ?></section>
+    <?php
+    $base = get_stylesheet_directory_uri() . '/custom-functions/shortcodes/assets/';
+    $ver = @filemtime(__DIR__ . '/assets/consult-views.js') ?: '1';
+    echo '<script src="' . esc_url($base . 'consult-views.js?v=' . $ver) . '" defer></script>';
+    return (string) ob_get_clean();
+}
+
+function hcl_library_markup(): string
+{
     $cfg = ['ajax' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('hcf_flows'), 'manage' => hcf_can_manage(), 'site' => sanitize_title(get_bloginfo('name')) ?: 'site', 'library' => true];
     ob_start(); ?>
     <div class="hcf" id="hcf-root" data-hcf>
@@ -177,6 +204,7 @@ function hcl_shortcode(): string
             <select class="hcf-in" data-hcf-group aria-label="Nhóm"><option value="">Mọi nhóm</option></select>
             <input type="text" class="hcf-in hcf-in--name" data-hcf-name placeholder="Tên khách (thay {ten})" aria-label="Tên khách">
             <button type="button" class="hcf-btn hcf-btn--pri" data-hcf-new>＋ Thêm vào thư viện</button>
+            <button type="button" class="hcf-btn" data-hcl-ask title="Mở tab AI tư vấn, điền sẵn nội dung đang tìm">✨ Hỏi AI</button>
             <?php if (hcf_can_manage()) : ?>
                 <button type="button" class="hcf-btn" data-hcb-export="all">⤓ Xuất thư viện &amp; tài liệu</button>
                 <label class="hcf-btn">⤒ Nhập<input type="file" accept=".json,application/json" data-hcb-import hidden></label>

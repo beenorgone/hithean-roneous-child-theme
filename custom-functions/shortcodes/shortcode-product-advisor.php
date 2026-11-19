@@ -2,7 +2,8 @@
 defined('ABSPATH') || exit;
 
 /**
- * AI tư vấn sản phẩm — [product_advisor_ai] (tab Sản phẩm - Tư vấn ở /quan-ly-don).
+ * AI tư vấn sản phẩm — [product_advisor_ai], hiện là tab con ✨ AI tư vấn trong [consult_library] (📚 Thư viện tư vấn ở /quan-ly-don);
+ * shortcode riêng vẫn dùng được.
  *
  * Nhân viên dán câu hỏi / đoạn chat của khách (+ chọn SKU nếu biết). Server tự gom ngữ cảnh:
  *  1. SKU nhập tay + SKU / tên SP nhận ra trong câu hỏi (hpa_detect_products — so khớp bỏ dấu với danh mục)
@@ -517,8 +518,7 @@ function hpa_shortcode(): string
     <?php
     $base = get_stylesheet_directory_uri() . '/custom-functions/shortcodes/assets/';
     $dir = get_stylesheet_directory() . '/custom-functions/shortcodes/assets/';
-    echo '<link rel="stylesheet" href="' . esc_url($base . 'consult-tools.css?v=' . (@filemtime($dir . 'consult-tools.css') ?: '1')) . '">';
-    echo '<script src="' . esc_url($base . 'consult-modal.js?v=' . (@filemtime($dir . 'consult-modal.js') ?: '1')) . '" defer></script>';
+    echo hcf_base_assets();
     echo '<script src="' . esc_url($base . 'product-advisor.js?v=' . (@filemtime($dir . 'product-advisor.js') ?: '1')) . '" defer></script>';
 
     return (string) ob_get_clean();
