@@ -25,6 +25,9 @@ function hcf_faq_sanitize(array $raw): array
 {
     return [
         'id'       => max(0, (int) ($raw['id'] ?? 0)),
+        'group'    => hcf_clean_text($raw['group'] ?? '', 80, false),
+        'status'   => ($raw['status'] ?? 'publish') === 'draft' ? 'draft' : 'publish',
+        'note'     => hcf_clean_text($raw['note'] ?? '', 1500),
         'q'        => hcf_clean_text($raw['q'] ?? '', 500),
         'a'        => hcf_clean_text($raw['a'] ?? '', 4000),
         'skus'     => array_map('strtoupper', hcf_clean_list($raw['skus'] ?? [], 10, 60)),
@@ -86,6 +89,7 @@ function hcf_faq_store_upsert(array $store, array $raw, string $now, string $by,
         $before = $store['items'][$faq['id']];
         $faq['uses'] = $before['uses'];
         $faq['source'] = $before['source'];
+        foreach (['group', 'status', 'note'] as $field) if (!array_key_exists($field, $raw)) $faq[$field] = $before[$field];
     } else {
         if (count($store['items']) >= HCF_FAQ_MAX) {
             return [$store, 'Đã đủ ' . HCF_FAQ_MAX . ' FAQ — gộp hoặc xóa bớt.', null];
@@ -124,6 +128,7 @@ function hcf_faq_match(array $faqs, string $text, array $skus = [], int $limit =
     $skus = array_map(static function ($s) { return strtoupper(trim((string) $s)); }, $skus);
     $out = [];
     foreach ($faqs as $faq) {
+        if (($faq['status'] ?? 'publish') !== 'publish') continue;
         $f = hcf_faq_tokens((string) ($faq['q'] ?? ''));
         $score = ($q && $f) ? 2 * count(array_intersect($q, $f)) / (count($q) + count($f)) : 0.0;
         foreach ((array) ($faq['keywords'] ?? []) as $kw) {
@@ -181,13 +186,21 @@ function hcf_faq_public(array $faq): array
     return array_intersect_key($faq, array_flip(['id', 'q', 'a', 'skus', 'keywords', 'source', 'uses', 'updated', 'by', 'score']));
 }
 
+/** Staff-facing legacy endpoints obey the same draft visibility as the unified library. */
+function hcf_faq_visible_list(array $store): array
+{
+    return array_values(array_filter(hcf_faq_list($store), static function (array $faq): bool {
+        return hcf_can_manage() || ($faq['status'] ?? 'publish') === 'publish';
+    }));
+}
+
 // ─────────────────────────────── AJAX ───────────────────────────────
 
 add_action('wp_ajax_hithean_faq_list', 'hcf_faq_ajax_list');
 function hcf_faq_ajax_list(): void
 {
     hcf_ajax_guard(false);
-    wp_send_json_success(['items' => array_map('hcf_faq_public', hcf_faq_list(hcf_faq_read()))]);
+    wp_send_json_success(['items' => array_map('hcf_faq_public', hcf_faq_visible_list(hcf_faq_read()))]);
 }
 
 /** Gợi ý FAQ khớp câu đang gõ (AI tư vấn). */
@@ -210,7 +223,7 @@ function hcf_faq_ajax_save(): void
         wp_send_json_error(['message' => $result], 400);
     }
     hcf_faq_write($store, $before);
-    wp_send_json_success(['id' => $result, 'updated' => (bool) $before, 'items' => array_map('hcf_faq_public', hcf_faq_list($store))]);
+    wp_send_json_success(['id' => $result, 'updated' => (bool) $before, 'items' => array_map('hcf_faq_public', hcf_faq_visible_list($store))]);
 }
 
 add_action('wp_ajax_hithean_faq_delete', 'hcf_faq_ajax_delete');
@@ -225,7 +238,7 @@ function hcf_faq_ajax_delete(): void
     $before = $store['items'][$id];
     unset($store['items'][$id]);
     hcf_faq_write($store, $before, 'delete');
-    wp_send_json_success(['items' => array_map('hcf_faq_public', hcf_faq_list($store))]);
+    wp_send_json_success(['items' => array_map('hcf_faq_public', hcf_faq_visible_list($store))]);
 }
 
 /** Đếm lượt dùng khi nhân viên copy câu trả lời — FAQ dùng nhiều lên đầu danh sách. */
@@ -291,7 +304,7 @@ function hcf_bundle_build(array $flows, array $faqs, string $reference, string $
     }
     if ($scope !== 'flows') {
         $bundle['faqs'] = array_map(static function (array $f): array {
-            return ['q' => $f['q'], 'a' => $f['a'], 'skus' => $f['skus'], 'keywords' => $f['keywords'], 'source' => $f['source']];
+            return ['q' => $f['q'], 'a' => $f['a'], 'skus' => $f['skus'], 'keywords' => $f['keywords'], 'source' => $f['source'], 'group' => $f['group'] ?? '', 'status' => $f['status'] ?? 'publish', 'note' => $f['note'] ?? ''];
         }, array_values($faqs));
     }
     if ($scope === 'all' && $reference !== '') {
@@ -398,7 +411,7 @@ function hcf_bundle_ajax_import(): void
     wp_send_json_success([
         'message' => implode('. ', $msg) . '.',
         'flows'   => hcf_get_flows(true),
-        'items'   => array_map('hcf_faq_public', hcf_faq_list(hcf_faq_read())),
+        'items'   => array_map('hcf_faq_public', hcf_faq_visible_list(hcf_faq_read())),
     ]);
 }
 

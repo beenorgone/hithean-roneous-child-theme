@@ -4,7 +4,7 @@
 
 > Hạ tầng theme: module loader (what-loads-when), nạp theo màn admin, template router, enqueue, guard upload/file/CSP, AI settings/providers, địa chỉ VN, thông tin công ty, admin chrome.
 
-20 file · ~4.500 dòng · 142 hàm (38% có docblock)
+20 file · ~4.600 dòng · 142 hàm (38% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 

@@ -135,3 +135,5 @@ button.hpa-prod { border:1px dashed #94a3b8; cursor:pointer; }
 @media (max-width:760px) {
   .hcf-variable-picker > select:first-child, .hcf-variable-picker > input { flex-basis:100%; }
 }
+
+.hcf .hcf-in[hidden], .hcf .hcf-btn[hidden], .hcf .hcf-fstep[hidden], .hcf .hcf-fstep__bar[hidden] { display:none; }

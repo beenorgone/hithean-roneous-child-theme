@@ -298,40 +298,35 @@ Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
 - Comment / commit message bằng tiếng Việt, kiểu `feat(orders): …`, `fix(…)`.
 - `custom-functions/firebase_credentials.json` không commit (.gitignore).
 
-## Tab "📦 Sản phẩm - Tư vấn" ở `/quan-ly-don`
+## Tab Sản phẩm - Tư vấn
 
-Subtab = công cụ cố định ở `thean_order_product_tools()` (order-product-tools.php, iframe `?thean_order_tool=`): Tra thông tin & HDSD ·
-**✨ AI tư vấn** (`advisor`) · **🗂️ Kịch bản tư vấn** (`flows`) · **💬 FAQ tư vấn** (`faqs`) · So sánh SP · Tính protein. Link thẳng `?thean_product_tool=<key>`.
-**Không dùng CPT** — mỗi kho 1 option (autoload no), sửa / xóa đẩy bản cũ vào option `*_history` (≤50):
-- **Kịch bản** `[consult_flows]` (`shortcodes/shortcode-consult-flows.php`, module `consult_flows`): option `hithean_consult_flows` =
-  {next_id, flows{id: title, group, keywords[], skus[], steps[{title, say, note}], status publish|draft, updated, by}}. Câu mẫu nhiều phương án
-  tách dòng `---`, `{ten}` thay tên khách khi copy; bấm câu mẫu = copy. Nháp: AI không dùng.
-- **FAQ tư vấn** `[consult_faqs]` (`shortcodes/shortcode-consult-faqs.php`, module `consult_faqs`): option `hithean_consult_faqs` = {next_id,
-  items{id: q, a, skus[], keywords[], source ai|manual, uses, …}} — FAQ **nội bộ**, không phải `product_info_faq` công khai. Nhân viên thêm được
-  (trùng câu hỏi bỏ dấu → báo trùng), quản lý sửa / xóa. `hcf_faq_match()` (Dice trên chữ có nghĩa + từ khóa +0.5 + SKU +0.2, ngưỡng 0.45).
-  Copy → `hithean_faq_used` đếm lượt, dùng nhiều lên đầu. Cùng file: **tài liệu tham khảo chung** (option `hithean_consult_reference`, ≤20.000
-  ký tự, quản lý sửa ở tab AI tư vấn) và **gói xuất / nhập sang site khác** `thean-consult-bundle` (kịch bản + FAQ + tài liệu, không mang
-  ID / lượt dùng; `hithean_consult_export` scope all|flows|faqs, `hithean_consult_import` — trùng tiêu đề / câu hỏi → cập nhật, tài liệu gộp
-  kèm nguồn). JS dùng chung `consult-bundle.js`. Site nhận phải có cùng module (đã port sang theanmarket, gói JSON tương thích).
-- **AI tư vấn** `[product_advisor_ai]` (`shortcodes/shortcode-product-advisor.php`, module `product_advisor`, feature AI `product_advisor_ai`):
-  câu hỏi / đoạn chat khách + SKU (tùy chọn; tự nhận SKU / tên SP — `hpa_detect_products()`) → AI đọc: dữ liệu SP (catalogue + metabox
-  `product_info_*`) ≤5 SP + danh mục rút gọn + **kịch bản khớp + mục lục kịch bản** + **FAQ khớp** + tài liệu tham khảo chung + ô "tham khảo thêm"
-  nhân viên nhập cho câu đó. AI xin thêm `need_product_details` / `need_flow_ids` → hỏi lại 1 lượt. Gõ câu hỏi → gợi ý FAQ khớp ngay (copy, không
-  tốn lượt AI). Kết quả: 💾 Lưu vào FAQ (mọi nhân viên), Lưu thành kịch bản nháp (quản lý). ≤3 lượt hội thoại, cache 30 phút, ≤10 lượt/phút/người.
-- Quyền: xem / copy `edit_shop_orders`; quản lý / xuất / nhập `manage_woocommerce`. CSS/JS `shortcodes/assets/consult-tools.css`, `consult-flows.js`,
-  `consult-faqs.js`, `consult-bundle.js`, `product-advisor.js`. Test: `php tests/consult-flows.php`, `node tests/consult-tools-ui.cjs`.
+Registry `thean_order_product_tools()` có 5 mục: Tra thông tin → AI tư vấn → **📚 Thư viện tư vấn** (`library`)
+→ So sánh → Protein. `flows` / `faqs` trong link công cụ cũ được ánh xạ sang `library`; shortcode và AJAX cũ vẫn tương thích.
 
-Biến kịch bản: `{sp:SKU:title|link|gia}`, `{nhom:slug:title|link}`, `{danh_muc:slug:title|link}`,
-`{thuong_hieu:slug:title|link}`; nhóm = product_tag. `consult-variables.php` tra dữ liệu công khai khi xem/copy
-và trước khi đưa kịch bản vào AI; AJAX `hithean_consult_resolve` có nonce/quyền, tối đa 60 biến/lượt.
-Copy tra lại giá/link; thiếu dữ liệu chặn copy. Gói xuất giữ token, mỗi site tự tra. Màn sửa có Chèn biến + Xem thử.
-Nút tải `consult-starter.json`: 10 kịch bản draft để sửa rồi nhập, không tự ghi dữ liệu. Hướng dẫn và mẫu đọc được:
-[`docs/consultation-starter-scripts.md`](docs/consultation-starter-scripts.md).
-Kiểm tra thêm: `php tests/consult-variables.php`, `node tests/consult-variables-ui.cjs`.
-
-Mobile ≤760px: form AI và tài liệu chung thu thành CTA; form thêm/sửa kịch bản, FAQ và lưu FAQ từ AI
-mở popup native `<dialog>` qua `consult-modal.js`. Đóng/Escape giữ nguyên bản nháp; lưu/AI thành công đóng
-popup, lỗi hiển thị trong popup. Chuyển về desktop trả chính form đó về trang; kiểm tra `node tests/consult-mobile.cjs`.
+- `[consult_library]` ở `shortcodes/consult-library.php`: một danh sách/tìm kiếm/nhóm, lọc Tất cả / Hỏi đáp nhanh / Kịch bản,
+  một form chung (hỏi đáp = 1 câu trả lời; kịch bản = nhiều bước), xuất/nhập chung qua gói `thean-consult-bundle`.
+  Mẫu 10 kịch bản nháp và hướng dẫn: [`docs/consultation-starter-scripts.md`](docs/consultation-starter-scripts.md).
+- **Mô hình chung, không di chuyển/xóa dữ liệu cũ**: `hcl_normalize()` / `hcl_items()` đọc hai kho hiện tại,
+  khóa `faq-N` / `flow-N` không trùng. Lưu/xóa qua adapter giữ nguyên option `hithean_consult_flows`,
+  `hithean_consult_faqs` và các lịch sử `*_history` (≤50). Không sao chép sang kho thứ ba; đọc không ghi dữ liệu.
+  Hỏi đáp bổ sung `group`, `status`, `note`; dữ liệu cũ mặc định publish. Legacy editor không làm mất các trường mới khi bỏ trống payload.
+- Quyền giữ nguyên: nhân viên `edit_shop_orders` xem/copy nội dung publish và thêm hỏi đáp mới;
+  `manage_woocommerce` quản lý kịch bản, sửa/xóa mọi loại, xem/duyệt nháp, nhập/xuất. Không đổi loại bản ghi đã lưu.
+  Nội dung nháp ở cả hai loại không vào AI hoặc gợi ý. Sửa/xóa lưu lịch sử; số lượt dùng và nguồn FAQ giữ nguyên.
+- AI dùng `hcl_ai_sources()` và `hithean_library_suggest`; một nút **Lưu vào thư viện** cho chọn Hỏi đáp / Kịch bản
+  (quản lý lưu nháp để duyệt). Cache câu trả lời có dấu vết nội dung thư viện để cập nhật sau khi sửa/duyệt.
+  `product_advisor_ai` ở Cài đặt ERP → AI; provider qua `core/ai-providers.php`, không tự gửi khách.
+- AJAX `hithean_library_list/save/delete/suggest/copy` khai trong module loader. Thư viện và AI thông báo cập nhật giữa
+  các iframe qua sự kiện storage chỉ chứa version, không chứa nội dung khách. Có bản nháp đang sửa thì hoãn làm mới.
+- Biến câu mẫu: `{ten}`, `{sp:SKU:title|link|gia}`, `{nhom:slug:title|link}` (product_tag),
+  `{danh_muc:slug:title|link}` (product_cat), `{thuong_hieu:slug:title|link}`.
+  `consult-variables.php` tra dữ liệu công khai, tối đa 60 biến/lượt; xem trước/copy và AI dùng dữ liệu từng site.
+  Copy tra lại dữ liệu, chặn khi biến sai/thiếu. Gói xuất giữ token, không đóng băng giá/link của site nguồn.
+- Mobile ≤760px: form mở bằng CTA trong native dialog qua `consult-modal.js`; đóng/Escape giữ bản nháp,
+  lưu thành công đóng popup, lỗi hiện trong popup, chuyển desktop trả chính form về trang.
+- Kiểm tra: `php tests/consult-library.php`, `node tests/consult-library-ui.cjs`, `php tests/consult-flows.php`,
+  `php tests/consult-variables.php`, `node tests/consult-tools-ui.cjs`, `node tests/consult-mobile.cjs`,
+  `node tests/consult-variables-ui.cjs`, `php tests/order-product-tools.php`, `node tests/order-workspace-tabs.cjs`.
 
 ## Tab 🏦 Sepay ở `/quan-ly-don`
 

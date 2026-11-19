@@ -17,7 +17,7 @@ defined('ABSPATH') || exit;
  * Feature AI: `product_advisor_ai` (Cài đặt ERP → AI). Hàm thuần: hpa_detect_products, hpa_parse_reply — test `php tests/consult-flows.php`.
  */
 
-require_once __DIR__ . '/shortcode-consult-faqs.php'; // kéo theo shortcode-consult-flows.php
+require_once __DIR__ . '/consult-library.php'; // kéo theo shortcode-consult-flows.php
 
 defined('HPA_MAX_DETAIL') || define('HPA_MAX_DETAIL', 5);
 
@@ -364,14 +364,15 @@ function hpa_ajax_ask(): void
     $ids = array_slice(array_values(array_unique(array_merge($manual_ids, hpa_detect_products($context_text, $catalogue)))), 0, HPA_MAX_DETAIL);
 
     // Cùng câu hỏi + ngữ cảnh + SP trong 30 phút → trả lại kết quả cũ, không tốn lượt AI.
-    $cache_key = 'hpa_ans_' . md5((string) wp_json_encode([$question, $history, $ids, $length, $labels, $extra, md5($reference)]));
+    $library_content = array_map(static function (array $entry): array { unset($entry['uses']); return $entry; }, hcl_items(false));
+    $library_version = md5((string) wp_json_encode($library_content));
+    $cache_key = 'hpa_ans_' . md5((string) wp_json_encode([$question, $history, $ids, $length, $labels, $extra, md5($reference), $library_version]));
     $cached = get_transient($cache_key);
     if (is_array($cached)) {
         wp_send_json_success($cached + ['cached' => true]);
     }
 
-    $flows_all = hcf_get_flows(false);
-    $faq_items = array_values(hcf_faq_read()['items']);
+    [$flows_all, $faq_items] = hcl_ai_sources();
     $build = static function (array $ids, array $extra_flow_ids = []) use ($question, $history, $length, $labels, $catalogue, $flows_all, $faq_items, $context_text, $extra, $reference, $skus): array {
         $products = array_values(array_filter(array_map('hpa_product_snapshot', $ids)));
         $flow_skus = array_column($products, 'sku');
@@ -400,7 +401,8 @@ function hpa_ajax_ask(): void
             'flows'     => $flows,
             'flow_index' => $flow_index,
             'faqs'      => array_map(static function (array $f): array {
-                return ['id' => $f['id'], 'q' => $f['q'], 'a' => $f['a']];
+                $resolved = hcf_variable_ai_flow(['steps' => [['title' => $f['q'], 'say' => $f['a'], 'note' => '']]]);
+                return ['id' => $f['id'], 'q' => $resolved['steps'][0]['title'], 'a' => $resolved['steps'][0]['say'], 'missing_variables' => $resolved['steps'][0]['missing_variables'] ?? []];
             }, hcf_faq_match($faq_items, $question, array_merge($skus, $flow_skus), 3)),
             'extra'     => $extra,
             'reference' => $reference,
@@ -466,6 +468,7 @@ function hpa_shortcode(): string
         'ajax'      => admin_url('admin-ajax.php'),
         'nonce'     => wp_create_nonce('hpa_advisor'),
         'flowNonce' => wp_create_nonce('hcf_flows'),
+        'library' => true,
         'manage'    => hcf_can_manage(),
         'reference' => hcf_reference(),
         'catalogue' => array_map(static function (array $c): array {

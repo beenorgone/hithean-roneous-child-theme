@@ -24,7 +24,7 @@
             btn.addEventListener('click', function () {
                 var which = btn.getAttribute('data-hcb-export') || scope;
                 btn.disabled = true;
-                post('hithean_consult_export', { scope: which }).then(function (d) { download(d.bundle, which); status('Đã tải file — nhập ở tab Kịch bản / FAQ tư vấn của site khác.'); })
+                post('hithean_consult_export', { scope: which }).then(function (d) { download(d.bundle, which); status('Đã tải file — nhập trong Thư viện tư vấn của site khác.'); })
                     .catch(function (err) { status(err.message, true); }).finally(function () { btn.disabled = false; });
             });
         });

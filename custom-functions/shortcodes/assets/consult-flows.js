@@ -8,7 +8,8 @@
     var $ = function (sel) { return root.querySelector(sel); };
     var listEl = $('[data-hcf-list]'), detailEl = $('[data-hcf-detail]'), statusEl = $('[data-hcf-status]');
     var qEl = $('[data-hcf-q]'), groupEl = $('[data-hcf-group]'), nameEl = $('[data-hcf-name]');
-    var flows = [], currentId = 0, editing = false, editor = null, previewSeq = 0;
+    var typeEl = $('[data-hcl-type]');
+    var flows = [], currentId = 0, editing = false, editor = null, previewSeq = 0, libraryPending = false;
 
     try { nameEl.value = sessionStorage.getItem('hcf-name') || ''; } catch (e) { /* bỏ qua */ }
 
@@ -62,6 +63,11 @@
 
     function post(action, data) {
         var body = new FormData();
+        if (cfg.library) {
+            var actions = { hithean_cflow_list: 'hithean_library_list', hithean_cflow_save: 'hithean_library_save', hithean_cflow_delete: 'hithean_library_delete' };
+            action = actions[action] || action;
+            if (data && data.flow) { data = Object.assign({}, data, { entry: data.flow }); delete data.flow; }
+        }
         body.append('action', action); body.append('nonce', cfg.nonce);
         Object.keys(data || {}).forEach(function (k) { body.append(k, data[k]); });
         return fetch(cfg.ajax, { method: 'POST', body: body, credentials: 'same-origin' })
@@ -75,7 +81,7 @@
     }
     function copyResolved(texts, btn) {
         btn.disabled = true;
-        resolveTexts(texts.map(fill)).then(function (d) {
+        (cfg.library ? post('hithean_library_copy', { key: currentId, texts: JSON.stringify(texts.map(fill)) }) : resolveTexts(texts.map(fill))).then(function (d) {
             if (d.errors && d.errors.length) { status(d.errors.join(' '), true); return; }
             var paragraph = btn.parentNode.querySelector('[data-hcf-say]');
             if (paragraph && d.texts.length === 1) paragraph.textContent = d.texts[0];
@@ -120,6 +126,15 @@
             el('div', { class: 'hcf-variable-picker' }, [type, ref, prop, insert, preview]), result]);
     }
 
+    function notifyLibrary() {
+        if (cfg.library) try { localStorage.setItem('hcf-library-updated', Date.now() + ':' + Math.random()); } catch (e) { /* storage may be unavailable */ }
+    }
+    function refreshLibrary() {
+        if (editing) { libraryPending = true; return; }
+        post('hithean_cflow_list').then(function (d) { libraryPending = false; load(d.flows); }).catch(function (err) { status(err.message, true); });
+    }
+    if (cfg.library) window.addEventListener('storage', function (event) { if (event.key === 'hcf-library-updated') refreshLibrary(); });
+
     function haystack(f) {
         return norm([f.title, f.group, (f.keywords || []).join(' '), (f.skus || []).join(' ')].concat((f.steps || []).map(function (s) { return s.title + ' ' + s.say; })).join(' '));
     }
@@ -127,6 +142,7 @@
         var q = norm(qEl.value).trim().split(/\s+/).filter(Boolean), g = groupEl.value;
         return flows.filter(function (f) {
             if (g && f.group !== g) return false;
+            if (typeEl && typeEl.value && f.type !== typeEl.value) return false;
             var h = f._h || (f._h = haystack(f));
             return q.every(function (w) { return h.indexOf(w) !== -1; });
         });
@@ -144,13 +160,13 @@
     function renderList() {
         var items = filtered(), lastGroup = null;
         listEl.innerHTML = '';
-        if (!items.length) { listEl.appendChild(el('p', { class: 'hcf-empty', text: flows.length ? 'Không có kịch bản khớp.' : 'Chưa có kịch bản.' })); return; }
+        if (!items.length) { listEl.appendChild(el('p', { class: 'hcf-empty', text: cfg.library ? (flows.length ? 'Không có nội dung khớp.' : 'Chưa có nội dung.') : (flows.length ? 'Không có kịch bản khớp.' : 'Chưa có kịch bản.') })); return; }
         items.forEach(function (f) {
             var g = f.group || 'Khác';
             if (g !== lastGroup) { listEl.appendChild(el('h4', { text: g })); lastGroup = g; }
             listEl.appendChild(el('button', { type: 'button', 'aria-current': f.id === currentId ? 'true' : 'false', onclick: function () { select(f.id, true); } }, [
-                f.title, f.status === 'draft' ? el('span', { class: 'hcf-draft', text: 'nháp' }) : null,
-                el('small', { text: (f.steps || []).length + ' bước' + ((f.skus || []).length ? ' · ' + f.skus.join(', ') : '') })
+                (cfg.library ? (f.type === 'faq' ? '💬 ' : '🗂️ ') : '') + f.title, f.status === 'draft' ? el('span', { class: 'hcf-draft', text: 'nháp' }) : null,
+                el('small', { text: (f.type === 'faq' ? 'Hỏi đáp · dùng ' + (f.uses || 0) + ' lần' : (f.steps || []).length + ' bước') + ((f.skus || []).length ? ' · ' + f.skus.join(', ') : '') })
             ]));
         });
     }
@@ -177,8 +193,8 @@
         if (editing) return renderForm();
         var f = flows.find(function (x) { return x.id === currentId; });
         if (!f) {
-            var kids = [el('p', { text: flows.length ? 'Chọn một kịch bản ở danh sách bên trái.' : 'Chưa có kịch bản tư vấn nào.' })];
-            if (!flows.length && cfg.manage) kids.push(el('button', { type: 'button', class: 'hcf-btn', text: '✨ Tạo 2 kịch bản mẫu', onclick: starter }));
+            var kids = [el('p', { text: flows.length ? (cfg.library ? 'Chọn hỏi đáp hoặc kịch bản trong danh sách.' : 'Chọn một kịch bản ở danh sách bên trái.') : (cfg.library ? 'Chưa có nội dung. Bấm Thêm vào thư viện để bắt đầu.' : 'Chưa có kịch bản tư vấn nào.') })];
+            if (!flows.length && cfg.manage && !cfg.library) kids.push(el('button', { type: 'button', class: 'hcf-btn', text: '✨ Tạo 2 kịch bản mẫu', onclick: starter }));
             detailEl.appendChild(el('div', { class: 'hcf-empty' }, kids));
             return;
         }
@@ -209,14 +225,16 @@
     }
 
     function renderForm() {
-        var f = flows.find(function (x) { return x.id === currentId; }) || { id: 0, title: '', group: '', keywords: [], skus: [], steps: [{ title: '', say: '', note: '' }], status: 'publish' };
+        var f = flows.find(function (x) { return x.id === currentId; }) || { id: 0, type: cfg.library ? (cfg.manage ? (typeEl && typeEl.value || 'faq') : 'faq') : 'flow', title: '', group: '', keywords: [], skus: [], steps: [{ title: '', say: '', note: '' }], status: 'publish' };
         var form = el('form', { class: 'hcf-form' });
+        var kind = el('select', { class: 'hcf-in', 'aria-label': 'Dạng nội dung mới', disabled: !!f.id }, [el('option', { value: 'faq', text: 'Hỏi đáp nhanh — một câu trả lời' })].concat(cfg.manage ? [el('option', { value: 'flow', text: 'Kịch bản — nhiều bước' })] : []));
+        kind.value = f.type || 'flow';
         var groups = flows.map(function (x) { return x.group; }).filter(function (g, i, a) { return g && a.indexOf(g) === i; });
         var dl = el('datalist', { id: 'hcf-groups' }, groups.map(function (g) { return el('option', { value: g }); }));
         var field = function (label, input, hint) { return el('label', {}, [label, hint ? el('small', { text: hint }) : null, input]); };
-        var title = el('input', { class: 'hcf-in', name: 'title', required: true, value: f.title, placeholder: 'VD: Khách hỏi sữa bột cho mẹ sau sinh' });
-        var group = el('input', { class: 'hcf-in', name: 'group', list: 'hcf-groups', value: f.group, placeholder: 'VD: Mẹ & bé' });
-        var kw = el('textarea', { class: 'hcf-in', name: 'keywords', rows: 2, placeholder: 'sau sinh, cho con bú, lợi sữa' }); kw.value = (f.keywords || []).join(', ');
+        var title = el('input', { class: 'hcf-in', name: 'title', required: true, value: f.title, placeholder: cfg.library ? 'VD: Phí giao hàng bao nhiêu?' : 'VD: Khách hỏi sữa bột cho mẹ sau sinh' });
+        var group = el('input', { class: 'hcf-in', name: 'group', list: 'hcf-groups', value: f.group, placeholder: cfg.library ? 'VD: Giao hàng' : 'VD: Mẹ & bé' });
+        var kw = el('textarea', { class: 'hcf-in', name: 'keywords', rows: 2, placeholder: cfg.library ? 'phí ship, giao hàng, thời gian giao' : 'sau sinh, cho con bú, lợi sữa' }); kw.value = (f.keywords || []).join(', ');
         var skus = el('input', { class: 'hcf-in', name: 'skus', value: (f.skus || []).join(', '), placeholder: 'SKU1, SKU2' });
         var st = el('select', { class: 'hcf-in', name: 'status' }, [el('option', { value: 'publish', text: 'Đang dùng' }), el('option', { value: 'draft', text: 'Nháp (AI không dùng)' })]); st.value = f.status;
         var stepsBox = el('div', { class: 'hcf-form', 'data-steps': '' });
@@ -235,37 +253,50 @@
             stepsBox.appendChild(box);
         }
         (f.steps && f.steps.length ? f.steps : [{}]).forEach(addStep);
+        var moreStep;
+        function updateKind() {
+            if (!cfg.library) return;
+            var faq = kind.value === 'faq';
+            if (moreStep) moreStep.hidden = faq;
+            Array.prototype.forEach.call(stepsBox.children, function (box, i) { box.hidden = faq && i > 0; var bar = box.querySelector('.hcf-fstep__bar'); if (bar) bar.hidden = faq; var stepTitle = box.querySelector('input'); if (stepTitle) { stepTitle.hidden = faq; if (faq && !stepTitle.value) stepTitle.value = 'Trả lời'; } });
+        }
+        kind.addEventListener('change', updateKind);
         var saveBtn = el('button', { type: 'submit', class: 'hcf-btn hcf-btn--pri', text: '💾 Lưu' });
-        form.appendChild(el('h2', { text: f.id ? 'Sửa kịch bản' : 'Kịch bản mới' }));
-        form.appendChild(field('Nhu cầu / tình huống của khách', title));
+        form.appendChild(el('h2', { text: cfg.library ? (f.id ? 'Sửa nội dung thư viện' : 'Thêm vào thư viện') : (f.id ? 'Sửa kịch bản' : 'Kịch bản mới') }));
+        if (cfg.library) form.appendChild(field('Dạng nội dung', kind));
+        form.appendChild(field(cfg.library ? 'Câu hỏi / tình huống của khách' : 'Nhu cầu / tình huống của khách', title));
         form.appendChild(el('div', { class: 'hcf-form__grid' }, [field('Nhóm', group), field('Trạng thái', st)]));
         form.appendChild(dl);
         form.appendChild(field('Từ khóa khách hay nói', kw, ' — phân cách dấu phẩy; AI tư vấn dùng để nhận ra kịch bản (không phân biệt dấu)'));
         form.appendChild(field('SKU liên quan', skus, ' — không bắt buộc'));
         form.appendChild(stepsBox);
+        moreStep = el('button', { type: 'button', class: 'hcf-btn', text: '＋ Thêm bước', onclick: function () { addStep({}); updateKind(); } });
         form.appendChild(el('div', { class: 'hcf-form__actions' }, [
-            el('button', { type: 'button', class: 'hcf-btn', text: '＋ Thêm bước', onclick: function () { addStep({}); } }),
+            moreStep,
             saveBtn,
-            el('button', { type: 'button', class: 'hcf-btn', text: 'Hủy', onclick: function () { editing = false; renderDetail(); } }),
+            el('button', { type: 'button', class: 'hcf-btn', text: 'Hủy', onclick: function () { editing = false; renderDetail(); if (libraryPending) refreshLibrary(); } }),
             f.id ? el('button', { type: 'button', class: 'hcf-btn hcf-btn--danger', text: '🗑 Xóa', onclick: function () { remove(f.id); } }) : null
         ]));
         form.addEventListener('submit', function (e) {
             e.preventDefault();
-            var data = { id: f.id, title: title.value, group: group.value, keywords: kw.value, skus: skus.value, status: st.value,
+            var data = { id: f.id, type: cfg.library ? kind.value : 'flow', title: title.value, group: group.value, keywords: kw.value, skus: skus.value, status: st.value,
                 steps: Array.prototype.map.call(stepsBox.children, function (b) { return b._get(); }) };
+            if (cfg.library && kind.value === 'faq') data.steps = data.steps.slice(0, 1);
             saveBtn.disabled = true; status('Đang lưu…');
             post('hithean_cflow_save', { flow: JSON.stringify(data) }).then(function (d) {
-                editing = false; load(d.flows); status('Đã lưu.'); select(d.id);
+                editing = false; libraryPending = false; load(d.flows); status('Đã lưu.'); select(d.id); notifyLibrary();
             }).catch(function (err) { status(err.message, true); }).finally(function () { saveBtn.disabled = false; });
         });
+        if (cfg.library && !cfg.manage) { st.disabled = true; st.value = 'publish'; }
+        updateKind();
         detailEl.appendChild(form);
-        if (window.hcfMobileForm) editor = window.hcfMobileForm(form, { title: f.id ? 'Sửa kịch bản' : 'Kịch bản mới', cta: '✏️ Tiếp tục soạn kịch bản', autoOpen: true, status: statusEl });
+        if (window.hcfMobileForm) editor = window.hcfMobileForm(form, { title: cfg.library ? (f.id ? 'Sửa nội dung thư viện' : 'Thêm vào thư viện') : (f.id ? 'Sửa kịch bản' : 'Kịch bản mới'), cta: cfg.library ? '✏️ Tiếp tục soạn nội dung' : '✏️ Tiếp tục soạn kịch bản', autoOpen: true, status: statusEl });
         title.focus();
     }
 
     function remove(id) {
-        if (!window.confirm('Xóa kịch bản này? (bản cũ vẫn giữ trong lịch sử để khôi phục khi cần)')) return;
-        post('hithean_cflow_delete', { id: id }).then(function (d) { currentId = 0; load(d.flows); status('Đã xóa.'); }).catch(function (err) { status(err.message, true); });
+        if (!window.confirm((cfg.library ? 'Xóa nội dung này?' : 'Xóa kịch bản này?') + ' (bản cũ vẫn giữ trong lịch sử để khôi phục khi cần)')) return;
+        post('hithean_cflow_delete', { id: id }).then(function (d) { currentId = 0; load(d.flows); status('Đã xóa.'); notifyLibrary(); }).catch(function (err) { status(err.message, true); });
     }
     function starter() {
         post('hithean_cflow_import', { starter: 1 }).then(function (d) { load(d.flows); status(d.message); }).catch(function (err) { status(err.message, true); });
@@ -278,14 +309,15 @@
 
     qEl.addEventListener('input', renderList);
     groupEl.addEventListener('change', renderList);
+    if (typeEl) typeEl.addEventListener('change', renderList);
     nameEl.addEventListener('input', function () { try { sessionStorage.setItem('hcf-name', nameEl.value); } catch (e) { /* bỏ qua */ } if (!editing) renderDetail(); });
     var newBtn = $('[data-hcf-new]');
     if (newBtn) newBtn.addEventListener('click', function () { if (editor && editing && !currentId) { editor.open(); return; } currentId = 0; editing = true; renderList(); renderDetail(); });
-    if (window.hcfBundleTools) window.hcfBundleTools(root, cfg, 'flows', function (d) { load(d.flows); }, status);
+    if (window.hcfBundleTools) window.hcfBundleTools(root, cfg, 'flows', function (d) { if (cfg.library) { notifyLibrary(); refreshLibrary(); } else load(d.flows); }, status);
 
     post('hithean_cflow_list').then(function (d) {
-        var m = /#kb-(\d+)/.exec(location.hash);
-        if (m) currentId = +m[1];
+        var m = /#kb-(flow-\d+|faq-\d+|\d+)/.exec(location.hash);
+        if (m) currentId = cfg.library ? (/^\d+$/.test(m[1]) ? 'flow-' + m[1] : m[1]) : +m[1];
         load(d.flows);
         status(flows.length ? 'Bấm vào câu mẫu để copy. Gõ tên khách để thay {ten}.' : '');
     }).catch(function (err) { status(err.message, true); });

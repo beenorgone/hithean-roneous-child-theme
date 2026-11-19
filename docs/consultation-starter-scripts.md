@@ -23,13 +23,13 @@ Không thực thi shortcode/PHP hoặc tra option tùy ý. Giá báo trên mẫu
 1. Mở JSON bằng trình soạn thảo. Tìm/thay `SKU_CAN_SUA`, `SKU_A_CAN_SUA`, `SKU_B_CAN_SUA`,
    `nhom-can-sua`, `danh-muc-can-sua`, `thuong-hieu-can-sua` bằng dữ liệu thật. Sửa cả mảng `skus` nếu có.
 2. Sửa lời thoại, bước, từ khóa và ghi chú theo nghiệp vụ. Giữ `status: "draft"` cho tới khi duyệt.
-3. Ở mỗi site: SP - Tư vấn → Kịch bản → **Nhập** → chọn JSON. Nhập cùng gói ở Hithean và Theanmarket.
+3. Ở mỗi site: SP - Tư vấn → Thư viện tư vấn → **Nhập** → chọn JSON. Nhập cùng gói ở Hithean và Theanmarket.
    Nếu SKU/slug khác giữa hai site, dùng hai bản JSON đã sửa riêng cho mỗi site.
 4. Mở từng kịch bản, kiểm tra tên/link/giá và copy thử. Trong màn Sửa có công cụ **Chèn biến / Xem thử câu mẫu**.
 5. Sau khi duyệt, đổi Trạng thái sang **Đang dùng** rồi Lưu ở từng site. AI bỏ qua kịch bản nháp.
 
 Nhập lại cùng tiêu đề (so khớp không dấu) sẽ cập nhật bản có sẵn. Đổi tiêu đề sẽ tạo bản mới.
-Có thể tải lại gói từ nút **Kịch bản mẫu để sửa** ngay trong tab Kịch bản. Gói mẫu không tự nhập hoặc tự bật kịch bản.
+Có thể tải lại gói từ nút **Kịch bản mẫu để sửa** ngay trong Thư viện tư vấn. Gói mẫu không tự nhập hoặc tự bật kịch bản.
 
 ## Nội dung đề xuất
 

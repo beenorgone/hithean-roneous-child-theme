@@ -4,7 +4,7 @@
 
 > Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nhúng Google Docs/Sheets…
 
-26 file · ~16.500 dòng · 278 hàm (32% có docblock)
+27 file · ~16.700 dòng · 291 hàm (32% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -39,6 +39,11 @@
 | AJAX | `hithean_faq_save` | shortcode-consult-faqs.php |
 | AJAX | `hithean_faq_suggest` | shortcode-consult-faqs.php |
 | AJAX | `hithean_faq_used` | shortcode-consult-faqs.php |
+| AJAX | `hithean_library_copy` | consult-library.php |
+| AJAX | `hithean_library_delete` | consult-library.php |
+| AJAX | `hithean_library_list` | consult-library.php |
+| AJAX | `hithean_library_save` | consult-library.php |
+| AJAX | `hithean_library_suggest` | consult-library.php |
 | AJAX | `load_return_board` | shortcode-order-return-manager.php |
 | AJAX | `load_return_orders` | shortcode-order-return-manager.php |
 | AJAX | `ost_confirm_export_image` | shortcode-order-shipped.php |
@@ -76,6 +81,7 @@
 | shortcode | `[company_info]` | shortcode-company-info.php |
 | shortcode | `[consult_faqs]` | shortcode-consult-faqs.php |
 | shortcode | `[consult_flows]` | shortcode-consult-flows.php |
+| shortcode | `[consult_library]` | consult-library.php |
 | shortcode | `[field_content]` | shortcode-field-content.php |
 | shortcode | `[google_doc_editable]` | shortcode-google-docs.php |
 | shortcode | `[google_sheet_editable]` | shortcode-google-docs.php, shortcode-google-sheet.php |
@@ -118,6 +124,23 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 `hithean_anc_offer_expired` · `init` · `mb_relationships_init` · `rwmb_meta_boxes` · `wp_enqueue_scripts` · `wp_footer`
 
 ## File
+
+### `shortcodes/consult-library.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `hcl_key(string $key)` | Unified consultation model/UI over the existing stores. Stable typed keys prevent ID collisions; legacy options and histories remain authoritative so rollout needs no destructiv… |
+| `hcl_normalize(array $flows, array $faqs, bool $drafts)` | Pure adapters, preserving IDs, drafts, usage and authorship. |
+| `hcl_items(bool $drafts = false)` | — |
+| `hcl_ai_sources()` | Existing editors/importers and AI read the same records; never copy old data into a second source of truth. |
+| `hcl_save_entry(array $raw, bool $manage)` | New FAQ is available to order staff. All edits/deletes and scripts still require Woo management. |
+| `hcl_ajax_list()` | — |
+| `hcl_ajax_save()` | — |
+| `hcl_ajax_delete()` | — |
+| `hcl_suggest(array $entries, string $text, array $skus)` | Rank both kinds in one lookup, published entries only. Raw tokens stay intact until preview/copy. |
+| `hcl_ajax_suggest()` | — |
+| `hcl_ajax_copy()` | — |
+| `hcl_shortcode()` | — |
 
 ### `shortcodes/consult-variables.php`
 
@@ -246,6 +269,7 @@ Shortcode: [certifications] Khối "Hệ thống sản xuất & chứng nhận" 
 | `hcf_faq_read()` | — |
 | `hcf_faq_write(array $store, ?array $before = null, string $action = 'save')` | — |
 | `hcf_faq_public(array $faq)` | Gọn cho trình duyệt (không gửi lịch sử). |
+| `hcf_faq_visible_list(array $store)` | Staff-facing legacy endpoints obey the same draft visibility as the unified library. |
 | `hcf_faq_ajax_list()` | — |
 | `hcf_faq_ajax_suggest()` | — |
 | `hcf_faq_ajax_save()` | — |

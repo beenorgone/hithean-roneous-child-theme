@@ -563,6 +563,12 @@ function tpc_loader_modules()
             'ajax_actions' => ['hithean_faq_list', 'hithean_faq_suggest', 'hithean_faq_save', 'hithean_faq_delete', 'hithean_faq_used', 'hithean_consult_export', 'hithean_consult_import', 'hithean_consult_ref_save'],
         ],
         [
+            'id' => 'consult_library',
+            'file' => 'custom-functions/shortcodes/consult-library.php',
+            'shortcodes' => ['consult_library'],
+            'ajax_actions' => ['hithean_library_list', 'hithean_library_save', 'hithean_library_delete', 'hithean_library_suggest', 'hithean_library_copy'],
+        ],
+        [
             'id' => 'product_advisor',
             'file' => 'custom-functions/shortcodes/shortcode-product-advisor.php',
             'shortcodes' => ['product_advisor_ai'],

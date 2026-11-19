@@ -77,10 +77,10 @@ Viết tay, máy kiểm (`docs-sync --check`): mọi `paths` / `tpc_loader_path_
 | `(file gốc)` | 2 | ~700 |
 | `admin/` | 4 | ~800 |
 | `auth/` | 4 | ~500 |
-| `core/` | 20 | ~4.500 |
+| `core/` | 20 | ~4.600 |
 | `integrations/` | 3 | 90 |
 | `marketing/` | 23 | ~5.800 |
-| `shortcodes/` | 26 | ~16.500 |
+| `shortcodes/` | 27 | ~16.700 |
 | `woocommerce/checkout/` | 5 | ~2.600 |
 | `woocommerce/orders/` | 39 | ~15.800 |
 | `woocommerce/products/` | 18 | ~8.300 |

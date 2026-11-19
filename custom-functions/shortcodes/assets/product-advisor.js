@@ -117,14 +117,14 @@
             } });
         }))));
         if (d.faqs && d.faqs.length) src.push(el('p', {}, [el('b', { text: 'FAQ đã lưu được dùng: ' })].concat(d.faqs.map(function (f) {
-            return el('span', { class: 'hpa-prod', text: '❓ ' + f.q.slice(0, 60) });
+            return el('span', { class: 'hpa-prod', text: (cfg.library ? (f.type === 'flow' ? '🗂️ ' : '💬 ') : '❓ ') + f.q.slice(0, 60) });
         }))));
         if (d.flows && d.flows.length) src.push(el('p', {}, [el('b', { text: 'Kịch bản liên quan: ' })].concat(d.flows.map(function (f) {
             return el('span', { class: 'hpa-prod', text: (f.used ? '✓ ' : '') + f.title });
         }))));
         src.push(el('p', { class: 'hpa-meta', text: [d.model, d.labels_read ? 'đọc ' + d.labels_read + ' ảnh nhãn' : '', d.cached ? 'kết quả lưu sẵn' : ''].filter(Boolean).join(' · ') }));
         var actions = [faqSaver(question, reply, d)];
-        if (cfg.manage) {
+        if (cfg.manage && !cfg.library) {
             var saveBtn = el('button', { type: 'button', class: 'hcf-btn', text: '➕ Lưu thành kịch bản (nháp)' });
             saveBtn.addEventListener('click', function () {
                 saveBtn.disabled = true;
@@ -144,10 +144,18 @@
     // ── FAQ đã lưu: gợi ý khi gõ câu hỏi (copy dùng luôn, không tốn lượt AI) + lưu câu trả lời AI vào FAQ ──
     function faqCard(f) {
         var btn = el('button', { type: 'button', class: 'hcf-btn hcf-btn--sm', text: '📋 Copy' });
-        var box = el('div', { class: 'hcf-say', title: 'Bấm để copy' }, [el('p', {}, [el('b', { text: '❓ ' + f.q }), el('br'), f.a]), btn]);
+        var box = el('div', { class: 'hcf-say', title: 'Bấm để copy' }, [el('p', {}, [el('b', { text: (cfg.library ? (f.type === 'flow' ? '🗂️ ' : '💬 ') : '❓ ') + f.q }), el('br'), f.a]), btn]);
         box.addEventListener('click', function () {
-            copy(f.a, btn);
-            post('hithean_faq_used', { id: f.id }, cfg.flowNonce).catch(function () { /* không chặn */ });
+            if (cfg.library) {
+                btn.disabled = true;
+                post('hithean_library_copy', { key: f.key }, cfg.flowNonce).then(function (r) {
+                    if (r.errors && r.errors.length) { status(r.errors.join(' '), true); return; }
+                    copy(r.texts.join('\n\n').replace(/\{ten\}/g, 'anh/chị'), btn);
+                }).catch(function (err) { status(err.message, true); }).finally(function () { btn.disabled = false; });
+            } else {
+                copy(f.a, btn);
+                post('hithean_faq_used', { id: f.id }, cfg.flowNonce).catch(function () { /* không chặn */ });
+            }
         });
         return box;
     }
@@ -155,39 +163,45 @@
         var text = qIn.value.trim();
         if (text.length < 8) { faqEl.hidden = true; faqEl.innerHTML = ''; return; }
         var seq = ++faqSeq;
-        post('hithean_faq_suggest', { q: text, skus: skus.join(',') }, cfg.flowNonce).then(function (d) {
+        post(cfg.library ? 'hithean_library_suggest' : 'hithean_faq_suggest', { q: text, skus: skus.join(',') }, cfg.flowNonce).then(function (d) {
             if (seq !== faqSeq) return;
             faqEl.innerHTML = '';
             if (!d.items || !d.items.length) { faqEl.hidden = true; return; }
-            faqEl.appendChild(el('p', { class: 'hpa-lbl', text: '📚 FAQ đã lưu khớp (' + d.items.length + ') — dùng ngay, không cần hỏi AI:' }));
+            faqEl.appendChild(el('p', { class: 'hpa-lbl', text: (cfg.library ? '📚 Thư viện khớp (' : '📚 FAQ đã lưu khớp (') + d.items.length + ') — dùng ngay, không cần hỏi AI:' }));
             d.items.forEach(function (f) { faqEl.appendChild(faqCard(f)); });
             faqEl.hidden = false;
         }).catch(function () { /* gợi ý không bắt buộc */ });
     }
+    if (cfg.library) window.addEventListener('storage', function (event) { if (event.key === 'hcf-library-updated') suggestFaq(); });
     qIn.addEventListener('input', function () { clearTimeout(faqTimer); faqTimer = setTimeout(suggestFaq, 500); });
 
     function faqSaver(question, reply, d) {
         var wrap = el('div', { class: 'hpa-faqsave' });
-        var open = el('button', { type: 'button', class: 'hcf-btn hcf-btn--pri', text: '💾 Lưu vào FAQ' });
+        var open = el('button', { type: 'button', class: 'hcf-btn hcf-btn--pri', text: cfg.library ? '💾 Lưu vào thư viện' : '💾 Lưu vào FAQ' });
         open.addEventListener('click', function () {
             open.remove();
             var q = el('textarea', { class: 'hcf-in hpa-q', rows: 2, 'aria-label': 'Câu hỏi FAQ' });
             q.value = question.split('\n').filter(Boolean).slice(-1)[0].slice(0, 300);
             var a = el('textarea', { class: 'hcf-in hpa-q', rows: 4, 'aria-label': 'Câu trả lời FAQ' });
             a.value = reply.value;
+            var kind = el('select', { class: 'hcf-in', 'aria-label': 'Lưu thành' }, [el('option', { value: 'faq', text: 'Hỏi đáp nhanh' })].concat(cfg.manage ? [el('option', { value: 'flow', text: 'Kịch bản' })] : []));
             var save = el('button', { type: 'button', class: 'hcf-btn hcf-btn--pri', text: '💾 Lưu' });
             save.addEventListener('click', function () {
                 save.disabled = true;
-                post('hithean_faq_save', { faq: JSON.stringify({ q: q.value, a: a.value, source: 'ai', skus: (d.products || []).map(function (p) { return p.sku; }) }) }, cfg.flowNonce)
-                    .then(function (r) { if (faqEditor) { faqEditor.destroy(); faqEditor = null; } wrap.innerHTML = ''; wrap.appendChild(el('p', { class: 'hpa-meta', text: (r.updated ? '✓ Đã cập nhật FAQ #' : '✓ Đã lưu FAQ #') + r.id + ' — lần sau gõ câu tương tự sẽ hiện gợi ý.' })); })
+                var skus = (d.products || []).map(function (p) { return p.sku; });
+                var entry = { id: 0, type: kind.value, title: q.value, group: 'Từ AI tư vấn', keywords: [], skus: skus, source: 'ai', status: cfg.manage ? 'draft' : 'publish', steps: [{ title: 'Trả lời', say: a.value, note: (d.staff_notes || []).join('\n') }] };
+                if (kind.value === 'flow' && (d.follow_up_questions || []).length) entry.steps.push({ title: 'Hỏi thêm', say: d.follow_up_questions.join('\n---\n'), note: '' });
+                post(cfg.library ? 'hithean_library_save' : 'hithean_faq_save', cfg.library ? { entry: JSON.stringify(entry) } : { faq: JSON.stringify({ q: q.value, a: a.value, source: 'ai', skus: skus }) }, cfg.flowNonce)
+                    .then(function (r) { if (cfg.library) try { localStorage.setItem('hcf-library-updated', Date.now() + ':' + Math.random()); } catch (e) { /* storage unavailable */ } if (faqEditor) { faqEditor.destroy(); faqEditor = null; } wrap.innerHTML = ''; wrap.appendChild(el('p', { class: 'hpa-meta', text: (cfg.library ? '✓ Đã lưu vào thư viện: ' : (r.updated ? '✓ Đã cập nhật FAQ #' : '✓ Đã lưu FAQ #')) + r.id + (cfg.library ? ' — xem lại trong Thư viện tư vấn.' : ' — lần sau gõ câu tương tự sẽ hiện gợi ý.') })); })
                     .catch(function (err) { status(err.message, true); save.disabled = false; });
             });
+            if (cfg.library) { wrap.appendChild(el('label', {}, ['Dạng nội dung', kind])); wrap.appendChild(el('p', { class: 'hpa-meta', text: cfg.manage ? 'Lưu nháp để duyệt trong thư viện trước khi AI dùng lại.' : 'Bạn có thể thêm hỏi đáp. Nhờ quản lý chỉnh sửa hoặc tạo kịch bản.' })); }
             wrap.appendChild(el('p', { class: 'hpa-lbl', text: 'Câu hỏi (viết gọn, chung chung để lần sau dễ khớp):' }));
             wrap.appendChild(q);
             wrap.appendChild(el('p', { class: 'hpa-lbl', text: 'Câu trả lời:' }));
             wrap.appendChild(a);
             wrap.appendChild(save);
-            if (window.hcfMobileForm) faqEditor = window.hcfMobileForm(wrap, { title: 'Lưu vào FAQ', cta: '💾 Tiếp tục lưu FAQ', autoOpen: true, status: statusEl });
+            if (window.hcfMobileForm) faqEditor = window.hcfMobileForm(wrap, { title: cfg.library ? 'Lưu vào thư viện' : 'Lưu vào FAQ', cta: cfg.library ? '💾 Tiếp tục lưu vào thư viện' : '💾 Tiếp tục lưu FAQ', autoOpen: true, status: statusEl });
             q.focus();
         });
         wrap.appendChild(open);

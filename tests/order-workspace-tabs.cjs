@@ -104,6 +104,16 @@ for (const scope of ['orders','shopee','products','exports']) {
  d.activeElement.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
  check(guide.hidden && d.activeElement === button && !d.body.classList.contains('thean-ous-open'), 'Escape closes guide and restores opener focus');
 }
+// Legacy tool URLs and external callers route to the unified library without eager sibling loads.
+const aliasDom = new JSDOM(dom.serialize(), { url: 'https://example.test/?thean_workspace=products&thean_product_tool=faqs', runScripts: 'outside-only' });
+const ad = aliasDom.window.document, ap = ad.getElementById('thean-ous-products-panel');
+ap.querySelector('[role="tablist"]').insertAdjacentHTML('beforeend', '<button role="tab" data-product-tool="library">Library</button>');
+ap.insertAdjacentHTML('beforeend', '<section data-product-panel="library" hidden><p data-product-status></p><iframe data-src="https://example.test/tool?tool=library"></iframe></section>');
+aliasDom.window.eval(fs.readFileSync(path.join(dir, 'order-workspace-tabs.js'), 'utf8'));
+check(ad.querySelector('[data-product-tool="library"]').getAttribute('aria-selected') === 'true' && ad.querySelector('[data-product-panel="library"] iframe').src.includes('library'), 'legacy FAQ URL opens library');
+aliasDom.window.TheanOrderWorkspace.product('flows');
+check(ad.querySelector('[data-product-tool="library"]').getAttribute('aria-selected') === 'true', 'legacy script caller maps to library');
+aliasDom.window.close();
 check(errors.length === 0, 'no uncaught DOM events');
 console.log(`OK (${checks} workspace and guide DOM checks)`);
 dom.window.close();

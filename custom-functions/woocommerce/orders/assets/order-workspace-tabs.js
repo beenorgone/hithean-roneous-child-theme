@@ -86,6 +86,7 @@
     }
     function selectTool(key, workspace) {
         workspace = workspace || (current === 'exports' ? 'exports' : 'products');
+        if (workspace === 'products' && (key === 'flows' || key === 'faqs')) key = 'library';
         var config = tools[workspace];
         if (!config || !config.panel) return;
         var panel = Array.from(config.panel.querySelectorAll('[data-product-panel]')).find(function (el) { return el.dataset.productPanel === key; });
@@ -223,6 +224,7 @@
     var url = new URL(location.href);
     Object.keys(tools).forEach(function (workspace) {
         var config = tools[workspace], initial = config.param ? url.searchParams.get(config.param) : null;
+        if (workspace === 'products' && (initial === 'flows' || initial === 'faqs')) initial = 'library';
         if (config.panel && Array.from(config.panel.querySelectorAll('[data-product-tool]')).some(function (button) { return button.dataset.productTool === initial; })) config.key = initial;
     });
     var initialWorkspace = url.searchParams.get('thean_workspace');
