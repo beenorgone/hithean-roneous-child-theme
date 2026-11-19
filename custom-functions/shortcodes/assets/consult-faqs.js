@@ -7,7 +7,7 @@
     var cfg = JSON.parse(cfgEl.textContent || '{}');
     var $ = function (sel) { return root.querySelector(sel); };
     var listEl = $('[data-hfq-list]'), statusEl = $('[data-hfq-status]'), qEl = $('[data-hfq-q]'), nameEl = $('[data-hfq-name]'), slot = $('[data-hfq-form-slot]');
-    var items = [];
+    var items = [], editor = null, editorId = null;
 
     try { nameEl.value = sessionStorage.getItem('hcf-name') || ''; } catch (e) { /* bỏ qua */ }
 
@@ -22,7 +22,7 @@
         (children || []).forEach(function (c) { if (c) node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
         return node;
     }
-    function status(msg, err) { statusEl.textContent = msg || ''; statusEl.classList.toggle('is-error', !!err); }
+    function status(msg, err) { statusEl.textContent = msg || ''; statusEl.classList.toggle('is-error', !!err); statusEl.dispatchEvent(new Event('hcf:status')); }
     function norm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase(); }
     function fill(text) { return String(text || '').replace(/\{ten\}/g, nameEl.value.trim() || 'anh/chị'); }
     function copy(text, btn) {
@@ -82,7 +82,9 @@
 
     function form(f) {
         f = f || { id: 0, q: '', a: '', skus: [], keywords: [] };
-        slot.innerHTML = '';
+        if (editor && editorId === f.id) { editor.open(); return; }
+        clearEditor();
+        editorId = f.id;
         var q = el('textarea', { class: 'hcf-in', rows: 2, required: true, placeholder: 'Câu hỏi khách hay gặp' }); q.value = f.q;
         var a = el('textarea', { class: 'hcf-in', rows: 5, required: true, placeholder: 'Câu trả lời mẫu (dùng {ten} cho tên khách)' }); a.value = f.a;
         var skus = el('input', { class: 'hcf-in', value: (f.skus || []).join(', '), placeholder: 'SKU liên quan (không bắt buộc)' });
@@ -92,17 +94,23 @@
             el('h3', { text: f.id ? 'Sửa FAQ #' + f.id : 'FAQ mới' }),
             el('label', {}, ['Câu hỏi', q]), el('label', {}, ['Câu trả lời', a]),
             el('div', { class: 'hcf-form__grid' }, [el('label', {}, ['SKU', skus]), el('label', {}, ['Từ khóa', kw])]),
-            el('div', { class: 'hcf-form__actions' }, [save, el('button', { type: 'button', class: 'hcf-btn', text: 'Hủy', onclick: function () { slot.innerHTML = ''; } })])
+            el('div', { class: 'hcf-form__actions' }, [save, el('button', { type: 'button', class: 'hcf-btn', text: 'Hủy', onclick: clearEditor })])
         ]);
         box.addEventListener('submit', function (e) {
             e.preventDefault();
             save.disabled = true;
             post('hithean_faq_save', { faq: JSON.stringify({ id: f.id, q: q.value, a: a.value, skus: skus.value, keywords: kw.value }) }).then(function (d) {
-                load(d.items); slot.innerHTML = ''; status(d.updated ? 'Đã cập nhật FAQ.' : 'Đã thêm FAQ.');
+                load(d.items); clearEditor(); status(d.updated ? 'Đã cập nhật FAQ.' : 'Đã thêm FAQ.');
             }).catch(function (err) { status(err.message, true); }).finally(function () { save.disabled = false; });
         });
         slot.appendChild(box);
+        if (window.hcfMobileForm) editor = window.hcfMobileForm(box, { title: f.id ? 'Sửa FAQ #' + f.id : 'FAQ mới', cta: '✏️ Tiếp tục soạn FAQ', autoOpen: true, status: statusEl });
         q.focus();
+    }
+
+    function clearEditor() {
+        if (editor) { editor.destroy(); editor = null; }
+        editorId = null; slot.innerHTML = '';
     }
 
     function remove(id) {

@@ -314,7 +314,7 @@ Subtab = công cụ cố định ở `thean_order_product_tools()` (order-produc
   Copy → `hithean_faq_used` đếm lượt, dùng nhiều lên đầu. Cùng file: **tài liệu tham khảo chung** (option `hithean_consult_reference`, ≤20.000
   ký tự, quản lý sửa ở tab AI tư vấn) và **gói xuất / nhập sang site khác** `thean-consult-bundle` (kịch bản + FAQ + tài liệu, không mang
   ID / lượt dùng; `hithean_consult_export` scope all|flows|faqs, `hithean_consult_import` — trùng tiêu đề / câu hỏi → cập nhật, tài liệu gộp
-  kèm nguồn). JS dùng chung `consult-bundle.js`. Site nhận phải có cùng module (theanmarket **chưa port**).
+  kèm nguồn). JS dùng chung `consult-bundle.js`. Site nhận phải có cùng module (đã port sang theanmarket, gói JSON tương thích).
 - **AI tư vấn** `[product_advisor_ai]` (`shortcodes/shortcode-product-advisor.php`, module `product_advisor`, feature AI `product_advisor_ai`):
   câu hỏi / đoạn chat khách + SKU (tùy chọn; tự nhận SKU / tên SP — `hpa_detect_products()`) → AI đọc: dữ liệu SP (catalogue + metabox
   `product_info_*`) ≤5 SP + danh mục rút gọn + **kịch bản khớp + mục lục kịch bản** + **FAQ khớp** + tài liệu tham khảo chung + ô "tham khảo thêm"
@@ -322,6 +322,18 @@ Subtab = công cụ cố định ở `thean_order_product_tools()` (order-produc
   tốn lượt AI). Kết quả: 💾 Lưu vào FAQ (mọi nhân viên), Lưu thành kịch bản nháp (quản lý). ≤3 lượt hội thoại, cache 30 phút, ≤10 lượt/phút/người.
 - Quyền: xem / copy `edit_shop_orders`; quản lý / xuất / nhập `manage_woocommerce`. CSS/JS `shortcodes/assets/consult-tools.css`, `consult-flows.js`,
   `consult-faqs.js`, `consult-bundle.js`, `product-advisor.js`. Test: `php tests/consult-flows.php`, `node tests/consult-tools-ui.cjs`.
+
+Biến kịch bản: `{sp:SKU:title|link|gia}`, `{nhom:slug:title|link}`, `{danh_muc:slug:title|link}`,
+`{thuong_hieu:slug:title|link}`; nhóm = product_tag. `consult-variables.php` tra dữ liệu công khai khi xem/copy
+và trước khi đưa kịch bản vào AI; AJAX `hithean_consult_resolve` có nonce/quyền, tối đa 60 biến/lượt.
+Copy tra lại giá/link; thiếu dữ liệu chặn copy. Gói xuất giữ token, mỗi site tự tra. Màn sửa có Chèn biến + Xem thử.
+Nút tải `consult-starter.json`: 10 kịch bản draft để sửa rồi nhập, không tự ghi dữ liệu. Hướng dẫn và mẫu đọc được:
+[`docs/consultation-starter-scripts.md`](docs/consultation-starter-scripts.md).
+Kiểm tra thêm: `php tests/consult-variables.php`, `node tests/consult-variables-ui.cjs`.
+
+Mobile ≤760px: form AI và tài liệu chung thu thành CTA; form thêm/sửa kịch bản, FAQ và lưu FAQ từ AI
+mở popup native `<dialog>` qua `consult-modal.js`. Đóng/Escape giữ nguyên bản nháp; lưu/AI thành công đóng
+popup, lỗi hiển thị trong popup. Chuyển về desktop trả chính form đó về trang; kiểm tra `node tests/consult-mobile.cjs`.
 
 ## Tab 🏦 Sepay ở `/quan-ly-don`
 

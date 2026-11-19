@@ -14,7 +14,7 @@ defined('ABSPATH') || exit;
  *  5. thông tin tham khảo: tài liệu chung (hcf_reference — ship, đổi trả, ưu đãi…) + ô "tham khảo thêm" nhân viên nhập riêng cho câu này.
  * AI cần dữ liệu SP / nội dung kịch bản chưa có → trả need_product_details / need_flow_ids → server tự hỏi lại 1 lượt kèm phần đó.
  * Tùy chọn đọc ảnh nhãn thành phần (dùng lại tpc_compare_ai_nutrition_* của AI so sánh SP).
- * Feature AI: `product_advisor_ai` (Cài đặt ERP → AI). Hàm thuần: hpa_detect_products, hpa_parse_reply — test `php tests/product-advisor.php`.
+ * Feature AI: `product_advisor_ai` (Cài đặt ERP → AI). Hàm thuần: hpa_detect_products, hpa_parse_reply — test `php tests/consult-flows.php`.
  */
 
 require_once __DIR__ . '/shortcode-consult-faqs.php'; // kéo theo shortcode-consult-flows.php
@@ -218,6 +218,7 @@ function hpa_system_prompt(string $length): string
         . 'Không chẩn đoán, không nói sản phẩm chữa / trị / khỏi bệnh hay thay thế thuốc; khách có bệnh nền, đang dùng thuốc, mang thai / cho con bú → khuyên hỏi ý kiến bác sĩ. '
         . 'THÔNG TIN THAM KHẢO (tài liệu chung + nhân viên nhập thêm) là dữ liệu đáng tin, dùng khi liên quan; phần nhân viên nhập thêm được ưu tiên nếu mâu thuẫn. '
         . 'Có FAQ ĐÃ LƯU khớp câu hỏi thì ưu tiên dùng lại nội dung đó (chỉnh cho hợp ngữ cảnh). '
+        . 'Biến động trong kịch bản đã được tra theo site hiện tại; trường [DỮ LIỆU CHƯA CÓ] hoặc missing_variables không được đoán hay đưa vào tin nhắn, cần nhắc nhân viên kiểm tra. '
         . 'Có KỊCH BẢN khớp nhu cầu thì đi theo đúng bước và giọng văn của kịch bản (bước hiện tại tùy ngữ cảnh hội thoại). '
         . 'Thiếu thông tin để tư vấn đúng (mục tiêu, người dùng, tình trạng…) thì hỏi lại khách thay vì đoán. '
         . 'Giọng: xưng "em", gọi khách "anh/chị" (hoặc theo ngữ cảnh), lịch sự, tự nhiên như chat, tiếng Việt có dấu, không markdown, độ dài ' . $len . '. '
@@ -381,7 +382,7 @@ function hpa_ajax_ask(): void
             }
         }
         $flows = array_map(static function (array $f): array {
-            return ['id' => $f['id'], 'title' => $f['title'], 'group' => $f['group'], 'steps' => $f['steps']];
+            return hcf_variable_ai_flow(['id' => $f['id'], 'title' => $f['title'], 'group' => $f['group'], 'steps' => $f['steps']]);
         }, $picked);
         $picked_ids = array_column($flows, 'id');
         $flow_index = [];
@@ -514,6 +515,7 @@ function hpa_shortcode(): string
     $base = get_stylesheet_directory_uri() . '/custom-functions/shortcodes/assets/';
     $dir = get_stylesheet_directory() . '/custom-functions/shortcodes/assets/';
     echo '<link rel="stylesheet" href="' . esc_url($base . 'consult-tools.css?v=' . (@filemtime($dir . 'consult-tools.css') ?: '1')) . '">';
+    echo '<script src="' . esc_url($base . 'consult-modal.js?v=' . (@filemtime($dir . 'consult-modal.js') ?: '1')) . '" defer></script>';
     echo '<script src="' . esc_url($base . 'product-advisor.js?v=' . (@filemtime($dir . 'product-advisor.js') ?: '1')) . '" defer></script>';
 
     return (string) ob_get_clean();

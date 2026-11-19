@@ -8,7 +8,7 @@
     var $ = function (sel) { return root.querySelector(sel); };
     var listEl = $('[data-hcf-list]'), detailEl = $('[data-hcf-detail]'), statusEl = $('[data-hcf-status]');
     var qEl = $('[data-hcf-q]'), groupEl = $('[data-hcf-group]'), nameEl = $('[data-hcf-name]');
-    var flows = [], currentId = 0, editing = false;
+    var flows = [], currentId = 0, editing = false, editor = null, previewSeq = 0;
 
     try { nameEl.value = sessionStorage.getItem('hcf-name') || ''; } catch (e) { /* bỏ qua */ }
 
@@ -23,7 +23,7 @@
         (children || []).forEach(function (c) { if (c) node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
         return node;
     }
-    function status(msg, err) { statusEl.textContent = msg || ''; statusEl.classList.toggle('is-error', !!err); }
+    function status(msg, err) { statusEl.textContent = msg || ''; statusEl.classList.toggle('is-error', !!err); statusEl.dispatchEvent(new Event('hcf:status')); }
     function norm(s) {
         return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
     }
@@ -40,18 +40,23 @@
         var done = function () {
             if (!btn) return;
             var old = btn.textContent;
-            btn.classList.add('is-copied'); btn.textContent = '✓ Đã copy';
+            btn.classList.add('is-copied'); btn.textContent = '✓ Đã copy'; status('Đã copy câu mẫu.');
             setTimeout(function () { btn.classList.remove('is-copied'); btn.textContent = old; }, 1200);
         };
         if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(text).then(done, function () { legacyCopy(text); done(); });
-        } else { legacyCopy(text); done(); }
+            navigator.clipboard.writeText(text).then(done, fallback);
+        } else fallback();
+        function fallback() {
+            if (legacyCopy(text)) done();
+            else status('Trình duyệt không cho copy tự động. Hãy chọn và sao chép câu mẫu đang hiển thị.', true);
+        }
     }
     function legacyCopy(text) {
         var ta = el('textarea', { style: 'position:fixed;opacity:0' }); ta.value = text;
         document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); } catch (e) { /* bỏ qua */ }
-        ta.remove();
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { /* show manual-copy guidance */ }
+        ta.remove(); return ok;
     }
     window.hcfCopy = copy;
 
@@ -62,6 +67,57 @@
         return fetch(cfg.ajax, { method: 'POST', body: body, credentials: 'same-origin' })
             .then(function (r) { return r.json().catch(function () { throw new Error('Phản hồi không hợp lệ (HTTP ' + r.status + ')'); }); })
             .then(function (res) { if (!res || !res.success) throw new Error((res && res.data && res.data.message) || 'Lỗi không xác định'); return res.data; });
+    }
+
+    function resolveTexts(texts) {
+        if (!texts.some(function (t) { return /\{(?!ten\})[^{}]+\}/.test(t); })) return Promise.resolve({ texts: texts, errors: [] });
+        return post('hithean_consult_resolve', { texts: JSON.stringify(texts) });
+    }
+    function copyResolved(texts, btn) {
+        btn.disabled = true;
+        resolveTexts(texts.map(fill)).then(function (d) {
+            if (d.errors && d.errors.length) { status(d.errors.join(' '), true); return; }
+            var paragraph = btn.parentNode.querySelector('[data-hcf-say]');
+            if (paragraph && d.texts.length === 1) paragraph.textContent = d.texts[0];
+            copy(d.texts.join('\n\n'), btn);
+        }).catch(function (err) { status(err.message, true); }).finally(function () { btn.disabled = false; });
+    }
+    function previewVariables() {
+        var seq = ++previewSeq;
+        var nodes = Array.prototype.slice.call(detailEl.querySelectorAll('[data-hcf-say]'), 0, 30);
+        if (!nodes.length) return;
+        resolveTexts(nodes.map(function (node) { return fill(node._raw); })).then(function (d) {
+            if (seq !== previewSeq || editing) return;
+            nodes.forEach(function (node, i) { node.textContent = d.texts[i]; });
+            if (d.errors && d.errors.length) status('Cần sửa biến trước khi copy: ' + d.errors.join(' '), true);
+        }).catch(function (err) { if (seq === previewSeq) status(err.message, true); });
+    }
+    function variablePicker(textarea) {
+        var type = el('select', { class: 'hcf-in', 'aria-label': 'Loại biến' }, [
+            el('option', { value: 'sp', text: 'Sản phẩm theo SKU' }), el('option', { value: 'nhom', text: 'Nhóm sản phẩm theo slug' }),
+            el('option', { value: 'danh_muc', text: 'Danh mục theo slug' }), el('option', { value: 'thuong_hieu', text: 'Thương hiệu theo slug' })]);
+        var ref = el('input', { class: 'hcf-in', placeholder: 'SKU hoặc slug trên site', 'aria-label': 'SKU hoặc slug' });
+        var prop = el('select', { class: 'hcf-in', 'aria-label': 'Dữ liệu cần chèn' }, [el('option', { value: 'title', text: 'Tên' }), el('option', { value: 'link', text: 'Link' }), el('option', { value: 'gia', text: 'Giá hiện tại (SP)' })]);
+        type.addEventListener('change', function () { prop.querySelector('[value=gia]').disabled = type.value !== 'sp'; if (type.value !== 'sp' && prop.value === 'gia') prop.value = 'title'; });
+        var insert = el('button', { type: 'button', class: 'hcf-btn hcf-btn--sm', text: '＋ Chèn biến' });
+        insert.addEventListener('click', function () {
+            var key = ref.value.trim();
+            if (!key || /[{}\r\n]/.test(key)) { ref.focus(); status('Nhập SKU hoặc slug hợp lệ.', true); return; }
+            var token = '{' + type.value + ':' + key + ':' + prop.value + '}';
+            var start = textarea.selectionStart, end = textarea.selectionEnd;
+            textarea.value = textarea.value.slice(0, start) + token + textarea.value.slice(end);
+            textarea.focus(); textarea.setSelectionRange(start + token.length, start + token.length);
+        });
+        var preview = el('button', { type: 'button', class: 'hcf-btn hcf-btn--sm', text: '👁 Xem thử câu mẫu' });
+        var result = el('p', { class: 'hcf-variable-preview', role: 'status' });
+        preview.addEventListener('click', function () {
+            preview.disabled = true;
+            resolveTexts([fill(textarea.value)]).then(function (d) { result.textContent = d.errors && d.errors.length ? d.errors.join(' ') : d.texts[0]; result.classList.toggle('is-error', !!(d.errors && d.errors.length)); })
+                .catch(function (err) { result.textContent = err.message; }).finally(function () { preview.disabled = false; });
+        });
+        return el('details', { class: 'hcf-variable-tools' }, [el('summary', { text: '＋ Chèn biến sản phẩm / nhóm / danh mục' }),
+            el('p', { class: 'hpa-meta', text: 'Tên khách: {ten}. Ví dụ {sp:SKU:title}, {sp:SKU:link}, {sp:SKU:gia}. Nhóm = product_tag; danh mục = product_cat. Nhập đúng SKU/slug trên từng site; giá được tra lại khi copy.' }),
+            el('div', { class: 'hcf-variable-picker' }, [type, ref, prop, insert, preview]), result]);
     }
 
     function haystack(f) {
@@ -100,7 +156,7 @@
     }
 
     function select(id, scroll) {
-        currentId = id; editing = false;
+        currentId = id; editing = false; status('');
         try { history.replaceState(null, '', '#kb-' + id); } catch (e) { /* bỏ qua */ }
         renderList(); renderDetail();
         if (scroll && window.matchMedia('(max-width:760px)').matches) detailEl.scrollIntoView({ behavior: 'smooth' });
@@ -108,12 +164,15 @@
 
     function sayBlock(text) {
         var btn = el('button', { type: 'button', class: 'hcf-btn hcf-btn--sm', text: '📋 Copy' });
-        var box = el('div', { class: 'hcf-say', title: 'Bấm để copy' }, [el('p', { text: fill(text) }), btn]);
-        box.addEventListener('click', function () { copy(fill(text), btn); });
+        var paragraph = el('p', { text: fill(text), 'data-hcf-say': '' }); paragraph._raw = text;
+        var box = el('div', { class: 'hcf-say', title: 'Bấm để tra biến và copy' }, [paragraph, btn]);
+        box.addEventListener('click', function () { if (!btn.disabled) copyResolved([text], btn); });
         return box;
     }
 
     function renderDetail() {
+        previewSeq++;
+        if (editor) { editor.destroy(); editor = null; }
         detailEl.innerHTML = '';
         if (editing) return renderForm();
         var f = flows.find(function (x) { return x.id === currentId; });
@@ -123,9 +182,9 @@
             detailEl.appendChild(el('div', { class: 'hcf-empty' }, kids));
             return;
         }
-        var all = (f.steps || []).map(function (s) { return variants(s.say)[0]; }).filter(Boolean).map(fill).join('\n\n');
+        var all = (f.steps || []).map(function (s) { return variants(s.say)[0]; }).filter(Boolean);
         var allBtn = el('button', { type: 'button', class: 'hcf-btn', text: '📋 Copy toàn bộ câu mẫu' });
-        allBtn.addEventListener('click', function () { copy(all, allBtn); });
+        allBtn.addEventListener('click', function () { copyResolved(all, allBtn); });
         var linkBtn = el('button', { type: 'button', class: 'hcf-btn', text: '🔗', title: 'Copy link kịch bản' });
         linkBtn.addEventListener('click', function () { copy(location.href.split('#')[0] + '#kb-' + f.id, linkBtn); });
         detailEl.appendChild(el('div', { class: 'hcf-detail__head' }, [
@@ -145,6 +204,7 @@
             ol.appendChild(li);
         });
         detailEl.appendChild(ol);
+        previewVariables();
         if (f.updated) detailEl.appendChild(el('p', { class: 'hpa-meta', text: 'Cập nhật: ' + f.updated }));
     }
 
@@ -170,7 +230,7 @@
                 el('button', { type: 'button', class: 'hcf-btn hcf-btn--sm', text: '↑', onclick: move(-1) }),
                 el('button', { type: 'button', class: 'hcf-btn hcf-btn--sm', text: '↓', onclick: move(1) }),
                 el('button', { type: 'button', class: 'hcf-btn hcf-btn--sm hcf-btn--danger', text: '✕', onclick: function () { box.remove(); } })]));
-            box.appendChild(t); box.appendChild(say); box.appendChild(note);
+            box.appendChild(t); box.appendChild(say); box.appendChild(variablePicker(say)); box.appendChild(note);
             box._get = function () { return { title: t.value, say: say.value, note: note.value }; };
             stepsBox.appendChild(box);
         }
@@ -195,10 +255,11 @@
                 steps: Array.prototype.map.call(stepsBox.children, function (b) { return b._get(); }) };
             saveBtn.disabled = true; status('Đang lưu…');
             post('hithean_cflow_save', { flow: JSON.stringify(data) }).then(function (d) {
-                load(d.flows); status('Đã lưu.'); select(d.id);
+                editing = false; load(d.flows); status('Đã lưu.'); select(d.id);
             }).catch(function (err) { status(err.message, true); }).finally(function () { saveBtn.disabled = false; });
         });
         detailEl.appendChild(form);
+        if (window.hcfMobileForm) editor = window.hcfMobileForm(form, { title: f.id ? 'Sửa kịch bản' : 'Kịch bản mới', cta: '✏️ Tiếp tục soạn kịch bản', autoOpen: true, status: statusEl });
         title.focus();
     }
 
@@ -219,7 +280,7 @@
     groupEl.addEventListener('change', renderList);
     nameEl.addEventListener('input', function () { try { sessionStorage.setItem('hcf-name', nameEl.value); } catch (e) { /* bỏ qua */ } if (!editing) renderDetail(); });
     var newBtn = $('[data-hcf-new]');
-    if (newBtn) newBtn.addEventListener('click', function () { currentId = 0; editing = true; renderList(); renderDetail(); });
+    if (newBtn) newBtn.addEventListener('click', function () { if (editor && editing && !currentId) { editor.open(); return; } currentId = 0; editing = true; renderList(); renderDetail(); });
     if (window.hcfBundleTools) window.hcfBundleTools(root, cfg, 'flows', function (d) { load(d.flows); }, status);
 
     post('hithean_cflow_list').then(function (d) {

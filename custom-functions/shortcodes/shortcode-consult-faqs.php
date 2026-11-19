@@ -437,6 +437,7 @@ function hcf_faq_shortcode(): string
     </div>
     <script type="application/json" id="hfq-cfg"><?php echo wp_json_encode($cfg); ?></script>
     <link rel="stylesheet" href="<?php echo esc_url($base . 'consult-tools.css?v=' . (@filemtime($dir . 'consult-tools.css') ?: '1')); ?>">
+    <script src="<?php echo esc_url($base . 'consult-modal.js?v=' . (@filemtime($dir . 'consult-modal.js') ?: '1')); ?>" defer></script>
     <script src="<?php echo esc_url($base . 'consult-bundle.js?v=' . (@filemtime($dir . 'consult-bundle.js') ?: '1')); ?>" defer></script>
     <script src="<?php echo esc_url($base . 'consult-faqs.js?v=' . (@filemtime($dir . 'consult-faqs.js') ?: '1')); ?>" defer></script>
     <?php

@@ -553,7 +553,7 @@ function tpc_loader_modules()
             'id' => 'consult_flows',
             'file' => 'custom-functions/shortcodes/shortcode-consult-flows.php',
             'shortcodes' => ['consult_flows'],
-            'ajax_actions' => ['hithean_cflow_list', 'hithean_cflow_save', 'hithean_cflow_delete', 'hithean_cflow_import'],
+            'ajax_actions' => ['hithean_cflow_list', 'hithean_cflow_save', 'hithean_cflow_delete', 'hithean_cflow_import', 'hithean_consult_resolve'],
         ],
         [
             // FAQ tư vấn nội bộ + tài liệu tham khảo chung cho AI + gói xuất / nhập sang site khác (kịch bản + FAQ).

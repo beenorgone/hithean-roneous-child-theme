@@ -16,7 +16,7 @@ Cột *docblock* thấp = khu khó đọc với người mới và với AI: vi�
 | [`marketing`](marketing.md) | 6 | ~1.600 | 105 | 20% | Marketing: popup, thanh menu đáy + "Ưu đãi của tôi", vòng quay may mắn, CRO landing agent (chạy theo lịch). |
 | [`marketing/lucky-wheel`](marketing-lucky-wheel.md) | 3 | ~2.000 | 79 | 3% | Vòng quay may mắn: cài đặt, widget, dọn mã. |
 | [`marketing/offers`](marketing-offers.md) | 14 | ~2.300 | 115 | 59% | Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền. |
-| [`shortcodes`](shortcodes.md) | 25 | ~16.400 | 271 | 30% | Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nh… |
+| [`shortcodes`](shortcodes.md) | 26 | ~16.500 | 278 | 32% | Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nh… |
 | [`woocommerce/checkout`](woocommerce-checkout.md) | 5 | ~2.600 | 59 | 17% | Checkout: TK nhận tiền (BACS + eim), trang thanh toán, trang cảm ơn, xác nhận chuyển khoản / chờ thanh toán. |
 | [`woocommerce/orders`](woocommerce-orders.md) | 37 | ~11.200 | 423 | 62% | Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HP… |
 | [`woocommerce/orders/order-creator`](woocommerce-orders-order-creator.md) | 2 | ~4.600 | 102 | 59% | Trang Tạo đơn hộ khách /tao-don/. |

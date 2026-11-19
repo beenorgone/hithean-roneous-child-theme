@@ -1,0 +1,242 @@
+{
+  "format": "thean-consult-bundle",
+  "version": 1,
+  "site": "editable-starter",
+  "instructions": [
+    "Sửa các SKU/slug có CAN_SUA/can-sua thành dữ liệu thật trước khi dùng.",
+    "Tất cả kịch bản là draft: AI không sử dụng cho tới khi bạn duyệt và đổi thành publish.",
+    "Nhập cùng gói vào cả 2 site; biến tự tra theo dữ liệu từng site.",
+    "Gói mẫu không chứa chính sách giá/ship/đổi trả cố định."
+  ],
+  "flows": [
+    {
+      "title": "01 · Giới thiệu một sản phẩm",
+      "group": "Giới thiệu sản phẩm",
+      "keywords": [
+        "giới thiệu",
+        "sản phẩm này"
+      ],
+      "skus": [
+        "SKU_CAN_SUA"
+      ],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Hỏi nhu cầu",
+          "say": "Dạ {ten}, mình đang tìm sản phẩm cho nhu cầu nào và dùng cho ai ạ?",
+          "note": "Hỏi đủ nhu cầu trước khi đề xuất."
+        },
+        {
+          "title": "Gửi thông tin",
+          "say": "Dạ em gửi mình {sp:SKU_CAN_SUA:title}:\n{sp:SKU_CAN_SUA:link}\nGiá hiện tại: {sp:SKU_CAN_SUA:gia}.",
+          "note": "Sửa SKU_CAN_SUA thành SKU thật có trên từng site. Không thêm công dụng chưa có trong thông tin sản phẩm."
+        }
+      ]
+    },
+    {
+      "title": "02 · So sánh hai lựa chọn",
+      "group": "So sánh",
+      "keywords": [
+        "so sánh",
+        "khác nhau",
+        "chọn loại"
+      ],
+      "skus": [
+        "SKU_A_CAN_SUA",
+        "SKU_B_CAN_SUA"
+      ],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Xác định tiêu chí",
+          "say": "Dạ {ten}, mình ưu tiên tiêu chí nào để em đối chiếu hai lựa chọn cho sát nhu cầu ạ?",
+          "note": ""
+        },
+        {
+          "title": "Gửi hai lựa chọn",
+          "say": "Em gửi mình thông tin để xem cùng em nhé:\n1. {sp:SKU_A_CAN_SUA:title} — {sp:SKU_A_CAN_SUA:gia}\n{sp:SKU_A_CAN_SUA:link}\n2. {sp:SKU_B_CAN_SUA:title} — {sp:SKU_B_CAN_SUA:gia}\n{sp:SKU_B_CAN_SUA:link}",
+          "note": "Dùng công cụ So sánh SP để kiểm tra thành phần, quy cách; không tự khẳng định loại nào tốt hơn."
+        }
+      ]
+    },
+    {
+      "title": "03 · Khách hỏi một nhóm sản phẩm",
+      "group": "Dẫn danh mục",
+      "keywords": [
+        "nhóm sản phẩm",
+        "có loại nào"
+      ],
+      "skus": [],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Gửi nhóm",
+          "say": "Dạ {ten}, em gửi nhóm {nhom:nhom-can-sua:title} để mình xem các lựa chọn hiện có:\n{nhom:nhom-can-sua:link}",
+          "note": "Nhóm sản phẩm = product_tag. Thay nhom-can-sua bằng slug thật; không dùng tên nhóm thay slug."
+        },
+        {
+          "title": "Thu hẹp lựa chọn",
+          "say": "Mình ưu tiên loại, quy cách hay khoảng giá nào để em chọn vài sản phẩm phù hợp cho mình ạ?",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "title": "04 · Khách muốn xem danh mục",
+      "group": "Dẫn danh mục",
+      "keywords": [
+        "danh mục",
+        "xem thêm"
+      ],
+      "skus": [],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Gửi danh mục",
+          "say": "Dạ {ten}, mình xem danh mục {danh_muc:danh-muc-can-sua:title} tại đây ạ:\n{danh_muc:danh-muc-can-sua:link}",
+          "note": "Danh mục = product_cat. Kiểm tra slug trên cả hai site."
+        },
+        {
+          "title": "Hỏi lựa chọn",
+          "say": "Mình đang quan tâm sản phẩm nào trong danh mục để em gửi thông tin chi tiết ạ?",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "title": "05 · Khách hỏi thương hiệu",
+      "group": "Dẫn danh mục",
+      "keywords": [
+        "thương hiệu",
+        "hãng"
+      ],
+      "skus": [],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Gửi thương hiệu",
+          "say": "Dạ {ten}, em gửi trang {thuong_hieu:thuong-hieu-can-sua:title} trên website bên em:\n{thuong_hieu:thuong-hieu-can-sua:link}",
+          "note": "Dùng khi cả hai site có taxonomy thuong-hieu và đúng slug. Không tự nhận là đại lý/nhà phân phối nếu chưa có căn cứ."
+        }
+      ]
+    },
+    {
+      "title": "06 · Khách hỏi giá / chê giá cao",
+      "group": "Giá bán",
+      "keywords": [
+        "giá bao nhiêu",
+        "đắt",
+        "giá cao"
+      ],
+      "skus": [
+        "SKU_CAN_SUA"
+      ],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Xác nhận đúng sản phẩm",
+          "say": "Dạ {ten}, mình đang hỏi {sp:SKU_CAN_SUA:title} đúng không ạ? Giá hiện tại trên website là {sp:SKU_CAN_SUA:gia}:\n{sp:SKU_CAN_SUA:link}",
+          "note": "Giá biến thể cần SKU đúng quy cách; SKU cha có nhiều giá sẽ trả khoảng giá."
+        },
+        {
+          "title": "Hỏi ngân sách",
+          "say": "Nếu mình có khoảng ngân sách dự kiến, em sẽ kiểm tra thêm lựa chọn để mình cân nhắc ạ.",
+          "note": "Không tự hứa giảm giá, tặng quà hoặc miễn phí vận chuyển."
+        }
+      ]
+    },
+    {
+      "title": "07 · Khách hỏi cách dùng / thành phần",
+      "group": "Thông tin sản phẩm",
+      "keywords": [
+        "cách dùng",
+        "thành phần",
+        "hướng dẫn"
+      ],
+      "skus": [
+        "SKU_CAN_SUA"
+      ],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Xác nhận quy cách",
+          "say": "Dạ {ten}, em gửi thông tin của {sp:SKU_CAN_SUA:title}:\n{sp:SKU_CAN_SUA:link}\nMình cho em biết quy cách đang xem hoặc gửi ảnh nhãn để em đối chiếu đúng hướng dẫn nhé ạ.",
+          "note": "Đọc HDSD/thành phần đã lưu và nhãn thật trước khi trả lời; không tự thêm liều dùng."
+        },
+        {
+          "title": "Kiểm tra thông tin",
+          "say": "Em kiểm tra đúng thông tin trên nhãn rồi gửi lại mình phần mình đang hỏi ạ.",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "title": "08 · Khách hỏi còn hàng / quy cách",
+      "group": "Trước đặt hàng",
+      "keywords": [
+        "còn hàng",
+        "quy cách",
+        "size"
+      ],
+      "skus": [
+        "SKU_CAN_SUA"
+      ],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Gửi đúng sản phẩm",
+          "say": "Dạ {ten}, đây là {sp:SKU_CAN_SUA:title}:\n{sp:SKU_CAN_SUA:link}\nMình cần quy cách nào và số lượng bao nhiêu để em kiểm tra tồn trước khi lên đơn ạ?",
+          "note": "Link/giá không thay thế xác nhận tồn. Không cam kết còn hàng khi chưa kiểm tra."
+        }
+      ]
+    },
+    {
+      "title": "09 · Chốt thông tin đơn hàng",
+      "group": "Tạo đơn",
+      "keywords": [
+        "đặt hàng",
+        "lên đơn",
+        "chốt đơn"
+      ],
+      "skus": [
+        "SKU_CAN_SUA"
+      ],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Xác nhận lựa chọn",
+          "say": "Dạ {ten}, em xác nhận mình đang chọn {sp:SKU_CAN_SUA:title}, giá hiện tại {sp:SKU_CAN_SUA:gia}:\n{sp:SKU_CAN_SUA:link}\nMình lấy số lượng bao nhiêu ạ?",
+          "note": "Tổng tiền/phí ship/ưu đãi phải kiểm tra lại trong Tạo đơn."
+        },
+        {
+          "title": "Xin thông tin giao",
+          "say": "Mình gửi em tên người nhận, số điện thoại và địa chỉ giao hàng để em kiểm tra và lên đơn cho mình nhé ạ.",
+          "note": "Chỉ thu thông tin cần thiết cho đơn hàng qua kênh làm việc được phép."
+        }
+      ]
+    },
+    {
+      "title": "10 · Khách cần hỗ trợ sau mua",
+      "group": "Sau bán hàng",
+      "keywords": [
+        "đổi trả",
+        "hỗ trợ",
+        "vấn đề đơn hàng"
+      ],
+      "skus": [],
+      "status": "draft",
+      "steps": [
+        {
+          "title": "Tiếp nhận",
+          "say": "Dạ {ten}, mình gửi em mã đơn và mô tả vấn đề đang gặp; nếu liên quan sản phẩm, mình gửi thêm ảnh để em kiểm tra đúng trường hợp nhé ạ.",
+          "note": ""
+        },
+        {
+          "title": "Chuyển xử lý",
+          "say": "Em đã ghi nhận thông tin. Em sẽ kiểm tra đơn và chính sách áp dụng rồi báo lại mình phương án xử lý ạ.",
+          "note": "Không tự hứa đổi trả/hoàn tiền hay thời hạn khi chưa xác nhận chính sách và quyền xử lý."
+        }
+      ]
+    }
+  ]
+}

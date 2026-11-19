@@ -12,6 +12,8 @@ defined('ABSPATH') || exit;
  * AI tư vấn (shortcode-product-advisor.php) đọc nội dung kịch bản: kịch bản khớp (hcf_match) + mục lục mọi kịch bản đang dùng.
  */
 
+require_once __DIR__ . '/consult-variables.php';
+
 defined('HCF_OPTION') || define('HCF_OPTION', 'hithean_consult_flows');
 defined('HCF_HISTORY_OPTION') || define('HCF_HISTORY_OPTION', 'hithean_consult_flows_history');
 defined('HCF_MAX_FLOWS') || define('HCF_MAX_FLOWS', 500);
@@ -409,6 +411,7 @@ function hcf_shortcode(): string
             <input type="text" class="hcf-in hcf-in--name" data-hcf-name placeholder="Tên khách (thay {ten})" aria-label="Tên khách">
             <?php if ($cfg['manage']) : ?>
                 <button type="button" class="hcf-btn hcf-btn--pri" data-hcf-new>＋ Thêm kịch bản</button>
+                <a class="hcf-btn" href="<?php echo esc_url(get_stylesheet_directory_uri() . '/custom-functions/shortcodes/assets/consult-starter.json'); ?>" download="kich-ban-tu-van-mau.json">⤓ Kịch bản mẫu để sửa</a>
                 <button type="button" class="hcf-btn" data-hcb-export="flows" title="Tải kịch bản (JSON) — sao lưu / nhập sang site khác">⤓ Xuất</button>
                 <button type="button" class="hcf-btn" data-hcb-export="all" title="Kịch bản + FAQ + tài liệu tham khảo chung trong 1 file — mang sang site khác">⤓ Trọn bộ</button>
                 <label class="hcf-btn" title="Nhập file xuất từ site này hoặc site khác (trùng tiêu đề / câu hỏi → cập nhật)">⤒ Nhập<input type="file" accept=".json,application/json" data-hcb-import hidden></label>
@@ -440,6 +443,7 @@ function hcf_assets(): string
     $ver = static function (string $f) use ($dir): string { return (string) (@filemtime($dir . $f) ?: '1'); };
 
     return '<link rel="stylesheet" href="' . esc_url($base . 'consult-tools.css?v=' . $ver('consult-tools.css')) . '">'
+        . '<script src="' . esc_url($base . 'consult-modal.js?v=' . $ver('consult-modal.js')) . '" defer></script>'
         . '<script src="' . esc_url($base . 'consult-bundle.js?v=' . $ver('consult-bundle.js')) . '" defer></script>'
         . '<script src="' . esc_url($base . 'consult-flows.js?v=' . $ver('consult-flows.js')) . '" defer></script>';
 }

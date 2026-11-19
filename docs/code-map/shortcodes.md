@@ -4,7 +4,7 @@
 
 > Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nhúng Google Docs/Sheets…
 
-25 file · ~16.400 dòng · 271 hàm (30% có docblock)
+26 file · ~16.500 dòng · 278 hàm (32% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -26,6 +26,7 @@
 | AJAX | `hithean_consult_export` | shortcode-consult-faqs.php |
 | AJAX | `hithean_consult_import` | shortcode-consult-faqs.php |
 | AJAX | `hithean_consult_ref_save` | shortcode-consult-faqs.php |
+| AJAX | `hithean_consult_resolve` | consult-variables.php |
 | AJAX | `hithean_export_ai_check` | shortcode-order-export-confirm.php |
 | AJAX | `hithean_export_bulk_assign` | export-bulk-web.php |
 | AJAX | `hithean_export_bulk_discard` | export-bulk-web.php |
@@ -117,6 +118,18 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 `hithean_anc_offer_expired` · `init` · `mb_relationships_init` · `rwmb_meta_boxes` · `wp_enqueue_scripts` · `wp_footer`
 
 ## File
+
+### `shortcodes/consult-variables.php`
+
+| Hàm | Mô tả |
+|---|---|
+| `hcf_variable_tokens(array $texts)` | Variables shared by consultation preview/copy and AI. Stored scripts/bundles retain tokens, never source-site URLs. {sp:SKU:title\|link\|gia}, {nhom:slug:title\|link}, {danh_muc:sl… |
+| `hcf_variable_parse(string $token)` | Parse a token without querying WordPress. |
+| `hcf_variable_plain(string $value)` | Convert rendered catalogue data to plain text (including WooCommerce currency entities). |
+| `hcf_variable_entity(array $ref)` | Read one public entity, reused for all fields of that entity in this request. |
+| `hcf_variables_resolve(array $texts)` | Resolve a bounded batch; missing/invalid variables stay visible and are returned as errors to block copying. |
+| `hcf_variable_ai_flow(array $flow)` | Resolve before giving scripts to AI; unavailable fields are explicitly marked, never guessed. |
+| `hcf_variables_ajax_resolve()` | — |
 
 ### `shortcodes/export-bulk-web.php`
 

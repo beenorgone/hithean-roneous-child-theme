@@ -60,6 +60,7 @@ function boot(html, file, handler, pre) {
     ok(says[0].textContent.includes('Dạ em hiểu chị Lan ạ'), 'thay {ten} bằng tên khách');
     ok(f.d.querySelector('.hcf-note').textContent.includes('Không giảm giá'), 'ghi chú nội bộ');
     says[0].click();
+    await tick(); await tick();
     ok(f.w.copied[0] === 'Dạ em hiểu chị Lan ạ', 'bấm câu mẫu → copy đã thay tên');
     ok(f.w.location.hash === '#kb-1', 'link kịch bản theo hash');
     f.d.querySelector('[data-hcf-new]').click();

@@ -1,0 +1,46 @@
+/* Actual script editor: variable preview, fresh copy, unresolved copy protection and token insertion. */
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { JSDOM } = require('jsdom');
+let checks = 0;
+const check = (v, m) => { assert.ok(v, m); checks++; };
+const tick = () => new Promise(r => setTimeout(r, 0));
+const w = new JSDOM(`<div id="hcf-root"><input data-hcf-q><select data-hcf-group></select><input data-hcf-name><button data-hcf-new></button><p data-hcf-status></p><nav data-hcf-list></nav><section data-hcf-detail></section></div><script type="application/json" id="hcf-cfg">{"ajax":"/a","nonce":"n","manage":true}</script>`, { url: 'https://example.test', runScripts: 'outside-only' }).window;
+const d = w.document, calls = [], copied = [];
+let price = '100.000 ₫', missing = false;
+const flow = { id: 1, title: 'Product script', group: '', status: 'publish', keywords: [], skus: ['X'], steps: [{ title: 'Info', say: 'Dạ {ten}: {sp:X:title} — {sp:X:gia}\n{sp:X:link}', note: '' }] };
+w.fetch = async (_, opts) => {
+ const data = Object.fromEntries(opts.body.entries()); calls.push(data);
+ const response = data.action === 'hithean_consult_resolve' ? { texts: JSON.parse(data.texts).map(t => t.replace('{sp:X:title}', '<img src=x> Product').replace('{sp:X:gia}', price).replace('{sp:X:link}', 'https://current.test/x')), errors: missing ? ['Không tìm thấy SKU X'] : [] } : { flows: [flow] };
+ return { status: 200, json: async () => ({ success: true, data: response }) };
+};
+w.matchMedia = () => ({ matches: false });
+w.document.execCommand = () => { copied.push([...d.querySelectorAll('textarea')].pop().value); return true; };
+w.eval(fs.readFileSync(path.join(__dirname, '../custom-functions/shortcodes/assets/consult-flows.js'), 'utf8'));
+(async () => {
+ await tick(); await tick();
+ d.querySelector('[data-hcf-name]').value = 'chị Lan';
+ d.querySelector('[data-hcf-list] button').click(); await tick(); await tick();
+ const say = d.querySelector('.hcf-say');
+ check(say.textContent.includes('chị Lan') && say.textContent.includes('100.000 ₫'), 'selected script previews customer name and resolved data');
+ check(!say.querySelector('img') && say.textContent.includes('<img src=x>'), 'server values render as text without HTML execution');
+ price = '150.000 ₫'; say.click(); await tick(); await tick();
+ check(copied.length === 1 && copied[0].includes('150.000 ₫') && copied[0].includes('https://current.test/x'), 'copy resolves current price rather than copying stale preview');
+ check(calls.filter(c => c.action === 'hithean_consult_resolve').every(c => c.texts.includes('{sp:X:gia}')), 'resolver always receives stored tokens');
+ missing = true; say.click(); await tick(); await tick();
+ check(copied.length === 1 && d.querySelector('[data-hcf-status]').textContent.includes('Không tìm thấy SKU'), 'missing variable blocks clipboard and shows error');
+ missing = false;
+ [...d.querySelectorAll('button')].find(b => b.textContent === '✏️ Sửa').click();
+ const step = d.querySelector('.hcf-fstep'), ta = step.querySelector('textarea'), tools = step.querySelector('.hcf-variable-tools');
+ ta.value = 'Hello '; ta.setSelectionRange(6, 6);
+ tools.querySelector('input').value = 'X';
+ tools.querySelector('[aria-label="Dữ liệu cần chèn"]').value = 'gia';
+ [...tools.querySelectorAll('button')].find(b => b.textContent.includes('Chèn biến')).click();
+ check(ta.value === 'Hello {sp:X:gia}', 'picker inserts token at cursor into raw template');
+ [...tools.querySelectorAll('button')].find(b => b.textContent.includes('Xem thử')).click(); await tick(); await tick();
+ check(tools.querySelector('[role=status]').textContent === 'Hello 150.000 ₫', 'editor can preview unsaved token text');
+ const type = tools.querySelector('[aria-label="Loại biến"]'); type.value = 'nhom'; type.dispatchEvent(new w.Event('change'));
+ check(tools.querySelector('[value=gia]').disabled && tools.querySelector('[aria-label="Dữ liệu cần chèn"]').value === 'title', 'term variables cannot select product price');
+ console.log(`OK (${checks} consultation variable UI checks)`);
+})().catch(e => { console.error(e); process.exit(1); });

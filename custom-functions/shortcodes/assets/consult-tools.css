@@ -100,3 +100,38 @@ button.hpa-prod { border:1px dashed #94a3b8; cursor:pointer; }
 .hpa-ref { margin-top:10px; }
 .hpa-save { display:grid; gap:8px; }
 .hpa-faqsave { display:grid; gap:6px; }
+
+/* Mobile form CTAs and native modal: background is inert; Escape returns to the CTA. */
+.hcf-mobile-launcher[hidden], .hcf-mobile-dialog:not([open]), .hpa-out[hidden], .hpa-faq[hidden] { display:none; }
+.hcf-mobile-launcher { margin:8px 0; }
+.hcf-mobile-launcher > button { width:100%; justify-content:center; min-height:44px; }
+.hcf-mobile-open { overflow:hidden; }
+.hcf-mobile-dialog { width:calc(100% - 16px); max-width:680px; max-height:calc(100dvh - 16px); padding:0; border:0; border-radius:16px; box-shadow:0 20px 70px #0f172a40; background:#fff; overflow:auto; overscroll-behavior:contain; }
+.hcf-mobile-dialog::backdrop { background:#0f172a99; }
+.hcf-mobile-dialog__head { display:flex; align-items:center; justify-content:space-between; gap:12px; position:sticky; top:0; z-index:2; background:#fff; border-bottom:1px solid var(--c-line); padding:12px 16px; }
+.hcf-mobile-dialog__head h2 { margin:0; font-size:18px; }
+.hcf-mobile-dialog__head button { min-height:44px; }
+.hcf-mobile-dialog__body { padding:16px; }
+.hcf-mobile-dialog > .hcf-status { margin:0; padding:0 16px 12px; }
+.hcf-mobile-dialog .hcf-form__actions { padding-bottom:max(8px, env(safe-area-inset-bottom)); }
+.hcf-mobile-dialog .hcf-form, .hcf-mobile-dialog .hcf-form > *, .hcf-mobile-dialog .hpa-skus { min-width:0; }
+.hcf-mobile-dialog .hcf-in { max-width:100%; font-size:16px; }
+.hcf-mobile-dialog .hcf-step { margin:0; }
+.hcf-mobile-dialog .hcf-form > h2, .hcf-mobile-dialog .hcf-form > h3 { display:none; }
+.hcf-mobile-dialog .hpa-ref { margin:0; }
+@media (max-width:760px) {
+  .hcf-mobile-dialog .hpa-skus { flex-basis:100%; }
+  .hcf-mobile-dialog .hpa-card h3 { flex-wrap:wrap; }
+}
+
+/* Token insertion remains inside the editor, including the mobile dialog. */
+.hcf-variable-tools { border:1px solid var(--c-line); border-radius:8px; padding:8px; background:#fff; }
+.hcf-variable-tools summary { cursor:pointer; color:var(--c-pri); font-weight:500; }
+.hcf-variable-picker { display:flex; flex-wrap:wrap; gap:6px; }
+.hcf-variable-picker > * { min-width:0; max-width:100%; flex:1 1 140px; }
+.hcf-variable-preview { white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; }
+.hcf-variable-preview.is-error { color:#b91c1c; }
+.hcf-say p { overflow-wrap:anywhere; }
+@media (max-width:760px) {
+  .hcf-variable-picker > select:first-child, .hcf-variable-picker > input { flex-basis:100%; }
+}
