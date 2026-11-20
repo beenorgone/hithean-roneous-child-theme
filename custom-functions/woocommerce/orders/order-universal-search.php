@@ -2125,6 +2125,9 @@ function thean_ous_render_ui(): void
             <?php if (function_exists('thean_order_portal_sepay_enabled') && thean_order_portal_sepay_enabled()) : ?>
                 <button type="button" id="thean-workspace-sepay" role="tab" aria-controls="thean-ous-sepay-panel" aria-selected="false" tabindex="-1" data-order-workspace="sepay">🏦 Sepay</button>
             <?php endif; ?>
+            <?php if (function_exists('thean_order_portal_ship_enabled') && thean_order_portal_ship_enabled()) : ?>
+                <button type="button" id="thean-workspace-ship" role="tab" aria-controls="thean-ous-ship-panel" aria-selected="false" tabindex="-1" data-order-workspace="ship">🚚 Đối soát vận chuyển</button>
+            <?php endif; ?>
             <?php if (function_exists('thean_order_portal_legacy_url')) : // /quan-ly-don: link về danh sách Woo, căn phải cùng hàng tab ?>
                 <a class="thean-workspace-legacy" href="<?php echo esc_url(thean_order_portal_legacy_url()); ?>" title="Mở danh sách đơn WooCommerce gốc">Phiên bản cũ ↗</a>
             <?php endif; ?>
@@ -2199,6 +2202,7 @@ function thean_ous_render_ui(): void
     <?php thean_order_render_product_workspace(); ?>
     <?php thean_order_render_export_workspace(); ?>
     <?php if (function_exists('thean_order_portal_render_sepay_tab')) thean_order_portal_render_sepay_tab(); ?>
+    <?php if (function_exists('thean_order_portal_render_ship_tab')) thean_order_portal_render_ship_tab(); ?>
     <nav class="thean-workspace-foot" id="thean-workspace-foot" aria-label="Khu làm việc" hidden>
         <?php // 1 dòng. Theanmarket: admin-embed.js (shopee-export) chèn nút 🛍️ Shopee ngay sau 📋 Website. ?>
         <button type="button" data-order-workspace="orders" aria-pressed="true">📋 Website <b data-thean-foot-count hidden></b></button>

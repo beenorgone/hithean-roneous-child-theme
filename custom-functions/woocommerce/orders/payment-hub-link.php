@@ -75,6 +75,33 @@ add_action('wp_ajax_child_theme_hub_sepay_url', function (): void {
     wp_send_json_success(['url' => $url]);
 });
 
+/** Plugin eim có trang nhúng Đối soát vận chuyển của hub (tab 🚚 ở /quan-ly-don, order-portal.php). */
+function child_theme_hub_ship_enabled(): bool
+{
+    return function_exists('eim_ship_embed_iframe_url');
+}
+
+/**
+ * URL iframe Đối soát vận chuyển của hub — view std (Tiêu chuẩn: đối soát lấy hàng ĐVVC) | ahamove. Token dùng 1 lần,
+ * sống vài phút → ký lúc mở tab con / Tải lại.
+ */
+add_action('wp_ajax_child_theme_hub_ship_url', function (): void {
+    check_ajax_referer('child_theme_hub_pay', 'nonce');
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => 'Không có quyền.'], 403);
+    }
+    if (!child_theme_hub_ship_enabled()) {
+        wp_send_json_error(['message' => 'Chưa bật plugin eim (bản có trang nhúng Đối soát vận chuyển của hub).']);
+    }
+    $view = sanitize_key(wp_unslash($_POST['view'] ?? 'std'));
+    $url = eim_ship_embed_iframe_url(in_array($view, ['std', 'ahamove'], true) ? $view : 'std');
+    if (is_wp_error($url)) {
+        wp_send_json_error(['message' => $url->get_error_message()]);
+    }
+    nocache_headers();
+    wp_send_json_success(['url' => $url]);
+});
+
 function child_theme_payment_hub_link_script(): void
 {
     static $printed = false;

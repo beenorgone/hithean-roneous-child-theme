@@ -8,6 +8,7 @@
     var create = document.getElementById('thean-ous-create-panel');
     var exports = document.getElementById('thean-ous-exports-panel');
     var sepay = document.getElementById('thean-ous-sepay-panel');
+    var ship = document.getElementById('thean-ous-ship-panel'); // 🚚 Đối soát vận chuyển (trang nhúng hub, 2 tab con)
     var shopee = document.getElementById('thean-spx-embed'); // theanmarket: khối Xuất kho Shopee (admin-embed.php) = khu riêng
     var foot = document.getElementById('thean-workspace-foot');
     if (!bar || !board || !orders || !products || !foot) return;
@@ -17,6 +18,7 @@
     if (exports) products.parentNode.insertBefore(exports, products.nextSibling);
     if (create) products.parentNode.insertBefore(create, products);
     if (sepay) (exports || products).parentNode.insertBefore(sepay, (exports || products).nextSibling);
+    if (ship) (sepay || exports || products).parentNode.insertBefore(ship, (sepay || exports || products).nextSibling);
     if (shopee) orders.parentNode.insertBefore(shopee, orders.nextSibling);
     foot.hidden = false;
     var current = 'orders', sepayDirty = false;
@@ -25,6 +27,7 @@
         products: { panel: products, key: 'info', param: 'thean_product_tool' },
         exports: { panel: exports, key: 'export_review', param: 'thean_export_tool' },
         sepay: { panel: sepay, key: 'queue', param: 'thean_sepay_tool' },
+        ship: { panel: ship, key: 'std', param: 'thean_ship_tool' },
         shopee: { panel: shopee, plain: true } // không có iframe công cụ: chỉ ẩn / hiện khối
     };
     function updateUrl() {
@@ -64,6 +67,7 @@
             var fd = new FormData();
             fd.append('action', panel.dataset.srcAction);
             fd.append('nonce', panel.dataset.srcNonce || '');
+            if (panel.dataset.srcView) fd.append('view', panel.dataset.srcView);
             var loaded = frame.onload;
             frame.onload = null; // about:blank không tính là tải xong
             frame.src = 'about:blank'; // đánh dấu đang tải: mở lại tab không xin thêm token
@@ -146,6 +150,7 @@
     }
     setExportKind(exportKind, false);
     function toolWorkspace(button) {
+        if (ship && ship.contains(button)) return 'ship';
         return exports && exports.contains(button) ? 'exports' : 'products';
     }
     document.addEventListener('click', function (event) {

@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-37 file · ~11.200 dòng · 423 hàm (62% có docblock)
+37 file · ~11.300 dòng · 426 hàm (63% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -14,6 +14,7 @@
 |---|---|---|
 | AJAX | `child_theme_hub_pay_url` | payment-hub-link.php |
 | AJAX | `child_theme_hub_sepay_url` | payment-hub-link.php |
+| AJAX | `child_theme_hub_ship_url` | payment-hub-link.php |
 | AJAX | `thean_customer_note_templates` | customer-note-templates.php |
 | AJAX | `thean_export_missing_images` | order-export-missing-images.php |
 | AJAX | `thean_order_export_review` | order-export-review.php |
@@ -353,6 +354,8 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_order_portal_render_create_tab()` | — |
 | `thean_order_portal_sepay_enabled()` | Tab 🏦 Sepay: chỉ ở /quan-ly-don, cần plugin eim (widget hub) + quyền xác nhận thanh toán. |
 | `thean_order_portal_render_sepay_tab()` | Hàng đợi Sepay của hub (widget eim, tab sepay_all = đủ mọi giao dịch, không lọc theo site). URL iframe mang token dùng 1 lần nên không in sẵn: order-workspace-tabs.js gọi AJAX c… |
+| `thean_order_portal_ship_enabled()` | Tab 🚚 Đối soát vận chuyển: chỉ ở /quan-ly-don, cần plugin eim (trang nhúng hub) + quyền quản lý Woo. |
+| `thean_order_portal_render_ship_tab()` | Đối soát vận chuyển của hub (trang nhúng eim /eim-embed/shipping/), 2 tab con: Tiêu chuẩn (đối soát lấy hàng ĐVVC — GHTK…) và Ahamove. Mỗi tab con 1 iframe; URL mang token dùng… |
 | `thean_order_portal_render_returns_panel()` | Board tab Hoàn hàng → khung [order_return_management] (iframe công cụ ?thean_order_tool=returns) ngay dưới danh sách đơn hoàn. JS chuyển khung xuống sau #thean-ous-board, hiện k… |
 | `thean_order_portal_board_initial()` | Trang đầu board in sẵn vào trang (bỏ 1 lượt admin-ajax). Tab = ?thean_board, không có thì tab đã xem lần trước (cookie thean_ous_tab do JS ghi cùng localStorage). Mở thẳng tab T… |
 
@@ -612,6 +615,7 @@ Popup widget hub [eim_payment_hub] dùng chung cho mọi màn xác nhận thanh 
 | Hàm | Mô tả |
 |---|---|
 | `child_theme_hub_pay_enabled()` | — |
+| `child_theme_hub_ship_enabled()` | Plugin eim có trang nhúng Đối soát vận chuyển của hub (tab 🚚 ở /quan-ly-don, order-portal.php). |
 | `child_theme_payment_hub_link_script()` | — |
 | `child_theme_payment_hub_toast_script()` | — |
 

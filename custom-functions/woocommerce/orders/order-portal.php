@@ -52,6 +52,43 @@ function thean_order_portal_render_sepay_tab(): void
     <?php
 }
 
+/** Tab 🚚 Đối soát vận chuyển: chỉ ở /quan-ly-don, cần plugin eim (trang nhúng hub) + quyền quản lý Woo. */
+function thean_order_portal_ship_enabled(): bool
+{
+    return function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()
+        && function_exists('child_theme_hub_ship_enabled') && child_theme_hub_ship_enabled()
+        && current_user_can('manage_woocommerce');
+}
+
+/**
+ * Đối soát vận chuyển của hub (trang nhúng eim /eim-embed/shipping/), 2 tab con: Tiêu chuẩn (đối soát lấy hàng
+ * ĐVVC — GHTK…) và Ahamove. Mỗi tab con 1 iframe; URL mang token dùng 1 lần nên không in sẵn: order-workspace-tabs.js
+ * gọi AJAX child_theme_hub_ship_url (kèm view) khi mở tab con / bấm Tải lại.
+ */
+function thean_order_portal_render_ship_tab(): void
+{
+    if (!thean_order_portal_ship_enabled()) return;
+    $tools = ['std' => 'Tiêu chuẩn', 'ahamove' => 'Ahamove'];
+    $ajax = admin_url('admin-ajax.php');
+    $nonce = wp_create_nonce('child_theme_hub_pay');
+    ?>
+    <section class="thean-ous-products thean-products-workspace" id="thean-ous-ship-panel" data-tool-workspace="ship" role="tabpanel" aria-labelledby="thean-workspace-ship" hidden>
+        <div class="thean-ous-board__head"><h2>🚚 Đối soát vận chuyển</h2></div>
+        <div class="thean-workspace-tabs" role="tablist" aria-label="Đối soát vận chuyển">
+            <?php foreach ($tools as $key => $label) : ?>
+                <button type="button" id="thean-ship-tab-<?php echo esc_attr($key); ?>" role="tab" aria-controls="thean-ship-<?php echo esc_attr($key); ?>" aria-selected="<?php echo $key === 'std' ? 'true' : 'false'; ?>" tabindex="<?php echo $key === 'std' ? '0' : '-1'; ?>" data-product-tool="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></button>
+            <?php endforeach; ?>
+        </div>
+        <?php foreach ($tools as $key => $label) : ?>
+            <section id="thean-ship-<?php echo esc_attr($key); ?>" role="tabpanel" aria-labelledby="thean-ship-tab-<?php echo esc_attr($key); ?>" data-product-panel="<?php echo esc_attr($key); ?>" data-src-action="child_theme_hub_ship_url" data-src-view="<?php echo esc_attr($key); ?>" data-src-ajax="<?php echo esc_url($ajax); ?>" data-src-nonce="<?php echo esc_attr($nonce); ?>"<?php echo $key !== 'std' ? ' hidden' : ''; ?>>
+                <div class="thean-portal-tool-head"><p class="thean-product-status" role="status" aria-live="polite" data-product-status>Mở tab để tải đối soát <?php echo esc_html($label); ?>.</p><button type="button" class="thean-ous__more-btn" data-product-reload="<?php echo esc_attr($key); ?>" title="Mở phiên mới ở hub (dùng khi khung báo hết phiên)">↻ Tải lại</button></div>
+                <iframe title="Đối soát vận chuyển — <?php echo esc_attr($label); ?> (hub)" referrerpolicy="no-referrer" allow="clipboard-write"></iframe>
+            </section>
+        <?php endforeach; ?>
+    </section>
+    <?php
+}
+
 /**
  * Board tab Hoàn hàng → khung [order_return_management] (iframe công cụ ?thean_order_tool=returns) ngay dưới danh sách
  * đơn hoàn. JS chuyển khung xuống sau #thean-ous-board, hiện khi board đang mở tab 'return' ở khu Đơn hàng; iframe
