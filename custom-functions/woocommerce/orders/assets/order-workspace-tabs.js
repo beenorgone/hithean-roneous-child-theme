@@ -8,7 +8,7 @@
     var create = document.getElementById('thean-ous-create-panel');
     var exports = document.getElementById('thean-ous-exports-panel');
     var sepay = document.getElementById('thean-ous-sepay-panel');
-    var ship = document.getElementById('thean-ous-ship-panel'); // 🚚 Đối soát vận chuyển (trang nhúng hub, 2 tab con)
+    var ship = document.getElementById('thean-ous-ship-panel'); // 🚚 Đối soát vận chuyển (tab con: hub Tiêu chuẩn / Ahamove + Shopee nội bộ)
     var shopee = document.getElementById('thean-spx-embed'); // theanmarket: khối Xuất kho Shopee (admin-embed.php) = khu riêng
     var foot = document.getElementById('thean-workspace-foot');
     if (!bar || !board || !orders || !products || !foot) return;
@@ -27,7 +27,7 @@
         products: { panel: products, key: 'info', param: 'thean_product_tool' },
         exports: { panel: exports, key: 'export_review', param: 'thean_export_tool' },
         sepay: { panel: sepay, key: 'queue', param: 'thean_sepay_tool' },
-        ship: { panel: ship, key: 'std', param: 'thean_ship_tool' },
+        ship: { panel: ship, key: (ship && ship.dataset.defaultTool) || 'std', param: 'thean_ship_tool' }, // std · ahamove (hub) · shopee (chỉ site có module)
         shopee: { panel: shopee, plain: true } // không có iframe công cụ: chỉ ẩn / hiện khối
     };
     function updateUrl() {

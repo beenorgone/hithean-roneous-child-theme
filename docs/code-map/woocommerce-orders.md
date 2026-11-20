@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-37 file · ~11.300 dòng · 426 hàm (63% có docblock)
+37 file · ~11.300 dòng · 427 hàm (63% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -354,8 +354,9 @@ Canonical bridge for the warehouse workflow's legacy post-meta confirmation.
 | `thean_order_portal_render_create_tab()` | — |
 | `thean_order_portal_sepay_enabled()` | Tab 🏦 Sepay: chỉ ở /quan-ly-don, cần plugin eim (widget hub) + quyền xác nhận thanh toán. |
 | `thean_order_portal_render_sepay_tab()` | Hàng đợi Sepay của hub (widget eim, tab sepay_all = đủ mọi giao dịch, không lọc theo site). URL iframe mang token dùng 1 lần nên không in sẵn: order-workspace-tabs.js gọi AJAX c… |
-| `thean_order_portal_ship_enabled()` | Tab 🚚 Đối soát vận chuyển: chỉ ở /quan-ly-don, cần plugin eim (trang nhúng hub) + quyền quản lý Woo. |
-| `thean_order_portal_render_ship_tab()` | Đối soát vận chuyển của hub (trang nhúng eim /eim-embed/shipping/), 2 tab con: Tiêu chuẩn (đối soát lấy hàng ĐVVC — GHTK…) và Ahamove. Mỗi tab con 1 iframe; URL mang token dùng… |
+| `thean_order_portal_ship_tools()` | Tab con của 🚚 Đối soát vận chuyển: Tiêu chuẩn + Ahamove (trang nhúng hub eim /eim-embed/shipping/, cần plugin eim) và Shopee (chỉ phần Đối soát của module shopee-export — /xuat-… |
+| `thean_order_portal_ship_enabled()` | Tab 🚚 Đối soát vận chuyển: chỉ ở /quan-ly-don, cần ít nhất 1 tab con (hub eim hoặc module Shopee). |
+| `thean_order_portal_render_ship_tab()` | Mỗi tab con 1 iframe. Tab hub: URL mang token dùng 1 lần nên không in sẵn — order-workspace-tabs.js gọi AJAX child_theme_hub_ship_url (kèm view) khi mở tab con / bấm Tải lại. Ta… |
 | `thean_order_portal_render_returns_panel()` | Board tab Hoàn hàng → khung [order_return_management] (iframe công cụ ?thean_order_tool=returns) ngay dưới danh sách đơn hoàn. JS chuyển khung xuống sau #thean-ous-board, hiện k… |
 | `thean_order_portal_board_initial()` | Trang đầu board in sẵn vào trang (bỏ 1 lượt admin-ajax). Tab = ?thean_board, không có thì tab đã xem lần trước (cookie thean_ous_tab do JS ghi cùng localStorage). Mở thẳng tab T… |
 

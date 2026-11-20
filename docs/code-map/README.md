@@ -18,6 +18,6 @@ Cột *docblock* thấp = khu khó đọc với người mới và với AI: vi�
 | [`marketing/offers`](marketing-offers.md) | 14 | ~2.300 | 115 | 59% | Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền. |
 | [`shortcodes`](shortcodes.md) | 27 | ~16.800 | 294 | 33% | Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nh… |
 | [`woocommerce/checkout`](woocommerce-checkout.md) | 5 | ~2.600 | 59 | 17% | Checkout: TK nhận tiền (BACS + eim), trang thanh toán, trang cảm ơn, xác nhận chuyển khoản / chờ thanh toán. |
-| [`woocommerce/orders`](woocommerce-orders.md) | 37 | ~11.300 | 426 | 63% | Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HP… |
+| [`woocommerce/orders`](woocommerce-orders.md) | 37 | ~11.300 | 427 | 63% | Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HP… |
 | [`woocommerce/orders/order-creator`](woocommerce-orders-order-creator.md) | 2 | ~4.600 | 102 | 59% | Trang Tạo đơn hộ khách /tao-don/. |
 | [`woocommerce/products`](woocommerce-products.md) | 18 | ~8.300 | 210 | 33% | Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR. |

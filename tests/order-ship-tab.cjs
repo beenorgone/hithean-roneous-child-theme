@@ -61,6 +61,24 @@ const tick = () => new Promise(r => setTimeout(r, 0));
     check(calls2.join() === 'ahamove', 'link sâu mở thẳng tab con Ahamove');
     check(!st.hidden && st.textContent.includes('Hub chưa bật nhúng'), 'lỗi từ hub hiện ở dòng trạng thái');
     dom2.window.close();
+    // Tab con Shopee (module shopee-export cùng site): iframe data-src cố định, không gọi AJAX; site không có hub → tab con đầu = shopee.
+    const dom3 = new JSDOM(`<!doctype html><body>
+<form id="thean-ous-bar"><div role="tablist"><button type="button" role="tab" data-order-workspace="orders">Orders</button><button type="button" role="tab" data-order-workspace="ship">Ship</button></div></form>
+<section id="thean-ous-board"></section><section id="thean-ous-orders-panel"></section>
+<section id="thean-ous-products-panel" hidden></section>
+<section id="thean-ous-ship-panel" data-default-tool="shopee" hidden><div role="tablist"><button type="button" role="tab" data-product-tool="shopee">Shopee</button></div><section data-product-panel="shopee"><p data-product-status></p><button type="button" data-product-reload="shopee">Reload</button><iframe data-src="https://shop.test/xuat-kho-shopee/?spx_only=reconcile"></iframe></section></section>
+<nav id="thean-workspace-foot" hidden><button type="button" data-order-workspace="orders">Orders</button></nav>
+</body>`, { url: 'https://shop.test/quan-ly-don/', runScripts: 'outside-only' });
+    let fetched3 = 0;
+    dom3.window.fetch = () => { fetched3++; return Promise.reject(new Error('no fetch')); };
+    dom3.window.eval(fs.readFileSync(path.join(dir, 'order-workspace-tabs.js'), 'utf8'));
+    const d3 = dom3.window.document, f3 = d3.querySelector('#thean-ous-ship-panel iframe');
+    check(!f3.getAttribute('src'), 'Shopee: chưa mở tab thì chưa tải');
+    d3.querySelector('[data-order-workspace="ship"]').click();
+    await tick();
+    check(f3.src === 'https://shop.test/xuat-kho-shopee/?spx_only=reconcile' && fetched3 === 0, 'Shopee: tab con mặc định theo data-default-tool, tải data-src, không xin token');
+    check(dom3.window.location.search.includes('thean_ship_tool=shopee'), 'Shopee: URL nhớ tab con');
+    dom3.window.close();
     check(errors.length === 0, 'không có lỗi DOM');
     console.log(`OK (${checks} ship tab checks)`);
     dom.window.close();

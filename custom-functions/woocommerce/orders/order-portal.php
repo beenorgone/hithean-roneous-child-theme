@@ -52,38 +52,67 @@ function thean_order_portal_render_sepay_tab(): void
     <?php
 }
 
-/** Tab 🚚 Đối soát vận chuyển: chỉ ở /quan-ly-don, cần plugin eim (trang nhúng hub) + quyền quản lý Woo. */
+/**
+ * Tab con của 🚚 Đối soát vận chuyển: Tiêu chuẩn + Ahamove (trang nhúng hub eim /eim-embed/shipping/, cần plugin eim)
+ * và Shopee (chỉ phần Đối soát của module shopee-export — /xuat-kho-shopee/?spx_only=reconcile, chỉ site có module).
+ * @return array<string,array{label:string,hub:bool,src?:string}>
+ */
+function thean_order_portal_ship_tools(): array
+{
+    static $tools = null;
+    if ($tools !== null) return $tools;
+    $tools = [];
+    if (!current_user_can('manage_woocommerce')) return $tools;
+    if (function_exists('child_theme_hub_ship_enabled') && child_theme_hub_ship_enabled()) {
+        $tools['std'] = ['label' => 'Tiêu chuẩn', 'hub' => true];
+        $tools['ahamove'] = ['label' => 'Ahamove', 'hub' => true];
+    }
+    $spx = dirname(__DIR__) . '/shipping/shopee-export/shopee-export.php';
+    if (!function_exists('thean_spx_can') && is_file($spx)) require_once $spx;
+    if (function_exists('thean_spx_can') && thean_spx_can() && defined('THEAN_SPX_ROUTE')) {
+        $tools['shopee'] = ['label' => 'Shopee', 'hub' => false, 'src' => add_query_arg('spx_only', 'reconcile', home_url('/' . THEAN_SPX_ROUTE . '/'))];
+    }
+    return $tools;
+}
+
+/** Tab 🚚 Đối soát vận chuyển: chỉ ở /quan-ly-don, cần ít nhất 1 tab con (hub eim hoặc module Shopee). */
 function thean_order_portal_ship_enabled(): bool
 {
     return function_exists('thean_order_portal_is_route') && thean_order_portal_is_route()
-        && function_exists('child_theme_hub_ship_enabled') && child_theme_hub_ship_enabled()
-        && current_user_can('manage_woocommerce');
+        && thean_order_portal_ship_tools() !== [];
 }
 
 /**
- * Đối soát vận chuyển của hub (trang nhúng eim /eim-embed/shipping/), 2 tab con: Tiêu chuẩn (đối soát lấy hàng
- * ĐVVC — GHTK…) và Ahamove. Mỗi tab con 1 iframe; URL mang token dùng 1 lần nên không in sẵn: order-workspace-tabs.js
- * gọi AJAX child_theme_hub_ship_url (kèm view) khi mở tab con / bấm Tải lại.
+ * Mỗi tab con 1 iframe. Tab hub: URL mang token dùng 1 lần nên không in sẵn — order-workspace-tabs.js gọi AJAX
+ * child_theme_hub_ship_url (kèm view) khi mở tab con / bấm Tải lại. Tab Shopee: cùng site, data-src cố định.
  */
 function thean_order_portal_render_ship_tab(): void
 {
     if (!thean_order_portal_ship_enabled()) return;
-    $tools = ['std' => 'Tiêu chuẩn', 'ahamove' => 'Ahamove'];
+    $tools = thean_order_portal_ship_tools();
+    $first = (string) array_key_first($tools);
     $ajax = admin_url('admin-ajax.php');
     $nonce = wp_create_nonce('child_theme_hub_pay');
     ?>
-    <section class="thean-ous-products thean-products-workspace" id="thean-ous-ship-panel" data-tool-workspace="ship" role="tabpanel" aria-labelledby="thean-workspace-ship" hidden>
+    <section class="thean-ous-products thean-products-workspace" id="thean-ous-ship-panel" data-tool-workspace="ship" data-default-tool="<?php echo esc_attr($first); ?>" role="tabpanel" aria-labelledby="thean-workspace-ship" hidden>
         <div class="thean-ous-board__head"><h2>🚚 Đối soát vận chuyển</h2></div>
         <div class="thean-workspace-tabs" role="tablist" aria-label="Đối soát vận chuyển">
-            <?php foreach ($tools as $key => $label) : ?>
-                <button type="button" id="thean-ship-tab-<?php echo esc_attr($key); ?>" role="tab" aria-controls="thean-ship-<?php echo esc_attr($key); ?>" aria-selected="<?php echo $key === 'std' ? 'true' : 'false'; ?>" tabindex="<?php echo $key === 'std' ? '0' : '-1'; ?>" data-product-tool="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></button>
+            <?php foreach ($tools as $key => $tool) : $on = $key === $first; ?>
+                <button type="button" id="thean-ship-tab-<?php echo esc_attr($key); ?>" role="tab" aria-controls="thean-ship-<?php echo esc_attr($key); ?>" aria-selected="<?php echo $on ? 'true' : 'false'; ?>" tabindex="<?php echo $on ? '0' : '-1'; ?>" data-product-tool="<?php echo esc_attr($key); ?>"><?php echo esc_html($tool['label']); ?></button>
             <?php endforeach; ?>
         </div>
-        <?php foreach ($tools as $key => $label) : ?>
-            <section id="thean-ship-<?php echo esc_attr($key); ?>" role="tabpanel" aria-labelledby="thean-ship-tab-<?php echo esc_attr($key); ?>" data-product-panel="<?php echo esc_attr($key); ?>" data-src-action="child_theme_hub_ship_url" data-src-view="<?php echo esc_attr($key); ?>" data-src-ajax="<?php echo esc_url($ajax); ?>" data-src-nonce="<?php echo esc_attr($nonce); ?>"<?php echo $key !== 'std' ? ' hidden' : ''; ?>>
+        <?php foreach ($tools as $key => $tool) : $label = $tool['label']; ?>
+            <?php if ($tool['hub']) : ?>
+            <section id="thean-ship-<?php echo esc_attr($key); ?>" role="tabpanel" aria-labelledby="thean-ship-tab-<?php echo esc_attr($key); ?>" data-product-panel="<?php echo esc_attr($key); ?>" data-src-action="child_theme_hub_ship_url" data-src-view="<?php echo esc_attr($key); ?>" data-src-ajax="<?php echo esc_url($ajax); ?>" data-src-nonce="<?php echo esc_attr($nonce); ?>"<?php echo $key !== $first ? ' hidden' : ''; ?>>
                 <div class="thean-portal-tool-head"><p class="thean-product-status" role="status" aria-live="polite" data-product-status>Mở tab để tải đối soát <?php echo esc_html($label); ?>.</p><button type="button" class="thean-ous__more-btn" data-product-reload="<?php echo esc_attr($key); ?>" title="Mở phiên mới ở hub (dùng khi khung báo hết phiên)">↻ Tải lại</button></div>
                 <iframe title="Đối soát vận chuyển — <?php echo esc_attr($label); ?> (hub)" referrerpolicy="no-referrer" allow="clipboard-write"></iframe>
             </section>
+            <?php else : ?>
+            <section id="thean-ship-<?php echo esc_attr($key); ?>" role="tabpanel" aria-labelledby="thean-ship-tab-<?php echo esc_attr($key); ?>" data-product-panel="<?php echo esc_attr($key); ?>"<?php echo $key !== $first ? ' hidden' : ''; ?>>
+                <div class="thean-portal-tool-head"><p class="thean-product-status" role="status" aria-live="polite" data-product-status>Mở tab để tải đối soát <?php echo esc_html($label); ?>.</p><span><button type="button" class="thean-ous__more-btn" data-product-reload="<?php echo esc_attr($key); ?>">↻ Tải lại</button> <a class="thean-ous__more-btn" href="<?php echo esc_url($tool['src']); ?>" target="_blank" rel="noopener">Mở riêng ↗</a></span></div>
+                <iframe title="Đối soát vận chuyển — <?php echo esc_attr($label); ?>" data-src="<?php echo esc_url($tool['src']); ?>" referrerpolicy="same-origin" allow="clipboard-write"></iframe>
+            </section>
+            <?php endif; ?>
         <?php endforeach; ?>
     </section>
     <?php
