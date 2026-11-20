@@ -4,7 +4,7 @@
 
 > Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền.
 
-14 file · ~2.300 dòng · 115 hàm (59% có docblock)
+15 file · ~2.300 dòng · 119 hàm (60% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -33,7 +33,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`add_option_hithean_offers_snapshot` · `admin_enqueue_scripts` · `admin_menu` · `child_theme_lark_channel_enabled` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `hithean_offers_lark_flush` · `hithean_site_topbar` · `template_redirect` · `update_option_hithean_offers_snapshot` · `woocommerce_after_shop_loop_item` · `woocommerce_after_shop_loop_item_title` · `woocommerce_before_shop_loop_item_title` · `wp_enqueue_scripts` · `wp_footer`
+`add_option_hithean_offers_snapshot` · `admin_enqueue_scripts` · `admin_menu` · `child_theme_lark_channel_enabled` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `hithean_offers_freshness` · `hithean_offers_lark_flush` · `hithean_site_topbar` · `template_redirect` · `update_option_hithean_offers_snapshot` · `woocommerce_after_shop_loop_item` · `woocommerce_after_shop_loop_item_title` · `woocommerce_before_shop_loop_item_title` · `wp_enqueue_scripts` · `wp_footer`
 
 ## File
 
@@ -69,6 +69,17 @@ Class: `Hithean_Offers_CLI` — Collect and inspect product offers using the sam
 | `hithean_offers_parse(string $html)` | The expected product title + summary distinguish a product from a soft error page. |
 | `hithean_offers_node_text(DOMNode $node)` | — |
 | `hithean_offers_ai(array $snippets)` | AI selects evidence, never controls dates, scope, publication, tools or URLs. |
+
+### `marketing/offers/freshness.php`
+
+Giữ snapshot công khai /uu-dai/ luôn mới.
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_offers_freshness_state(int $last, int $now, bool $public, bool $running)` | Hàm thuần — có test. $last = lần quét thành công gần nhất (0 = chưa có). → ['scan' => cần quét, 'alert' => cần báo, 'expires' => mốc dữ liệu hết hạn (0 = chưa có), 'level' => ok… |
+| `hithean_offers_freshness_current()` | — |
+| `hithean_offers_keep_fresh()` | Cron hithean_offers_freshness. |
+| `hithean_offers_freshness_notice()` | Cảnh báo ở trang quản trị Ưu đãi sản phẩm (gọi từ admin.php). |
 
 ### `marketing/offers/lark-notify.php`
 

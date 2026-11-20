@@ -134,7 +134,8 @@ function hithean_offers_admin(): void {
     hithean_offers_form_start('rollback'); echo '<button class="button">Khôi phục snapshot trước</button></form></div>';
     $last = (int) get_option('hithean_offers_last_success', 0); $next = wp_next_scheduled('hithean_offers_weekly');
     echo '<p>Thành công gần nhất: ' . esc_html($last ? wp_date('d/m/Y H:i', $last) : 'Chưa có') . ' · Lịch tiếp theo: ' . esc_html($next ? wp_date('d/m/Y H:i', $next) : 'Chưa bật') . '</p>';
-    echo '<p>Đọc cấu hình Discount Rules, Product Addon, giá sale WooCommerce và vòng quay. Đồng bộ tự động mỗi tuần một lần khi bật lịch, hoặc khi bấm “Đồng bộ ngay”. Cron server mỗi 5 phút chỉ xử lý tác vụ đến hạn.</p>';
+    echo '<p>Đọc cấu hình Discount Rules, Product Addon, giá sale WooCommerce và vòng quay. Đồng bộ tự động mỗi tuần một lần khi bật lịch, hoặc khi bấm “Đồng bộ ngay”. Khi đang hiển thị công khai, hệ thống tự đồng bộ lại trước khi dữ liệu quá ' . (HITHEAN_OFFERS_FRESHNESS / DAY_IN_SECONDS) . ' ngày (quá hạn thì ưu đãi bị ẩn) và báo Lark nếu không đồng bộ được. Cron server mỗi 5 phút chỉ xử lý tác vụ đến hạn.</p>';
+    echo hithean_offers_freshness_notice();
     $scheduler_error = get_option('hithean_offers_scheduler_error', '');
     if ($scheduler_error) { echo '<p class="ho-error">Lịch quét: ' . esc_html($scheduler_error) . '</p>'; }
     foreach ($run['errors'] ?? [] as $error) { echo '<p class="ho-error">SP #' . absint($error['product_id']) . ': ' . esc_html($error['message']) . '</p>'; }

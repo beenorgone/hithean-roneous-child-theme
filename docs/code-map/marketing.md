@@ -17,6 +17,7 @@
 | CPT | `hithean_offer` | offers.php |
 | admin-post | `hithean_cro_action` | cro-landing-agent.php |
 | cron | `hithean_cro_landing_weekly` | cro-landing-agent.php |
+| cron | `hithean_offers_freshness` | offers.php |
 | cron | `hithean_offers_weekly` | offers.php |
 | shortcode | `[hithean_offers]` | offers.php |
 

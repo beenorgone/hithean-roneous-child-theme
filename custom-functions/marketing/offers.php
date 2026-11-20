@@ -18,6 +18,7 @@ require_once __DIR__ . '/offers/offer-card.php';
 require_once __DIR__ . '/offers/loop-button.php';
 require_once __DIR__ . '/offers/topbar.php';
 require_once __DIR__ . '/offers/lark-notify.php';
+require_once __DIR__ . '/offers/freshness.php';
 if (is_admin()) { require_once __DIR__ . '/offers/admin.php'; }
 if (defined('WP_CLI') && WP_CLI) { require_once __DIR__ . '/offers/cli.php'; }
 
@@ -29,6 +30,10 @@ function hithean_offers_settings(): array {
 /** Migrate the former daily event without changing saved publication/automation switches. */
 function hithean_offers_sync_schedule(): void {
     if (wp_next_scheduled('hithean_offers_daily')) { wp_clear_scheduled_hook('hithean_offers_daily'); }
+    // Đang hiển thị công khai → luôn giữ dữ liệu mới (offers/freshness.php), kể cả khi tắt lịch tuần.
+    $public = !hithean_offers_settings()['preview'];
+    if ($public && !wp_next_scheduled('hithean_offers_freshness')) { wp_schedule_event(time() + HOUR_IN_SECONDS, 'twicedaily', 'hithean_offers_freshness'); }
+    if (!$public && wp_next_scheduled('hithean_offers_freshness')) { wp_clear_scheduled_hook('hithean_offers_freshness'); }
     if (!hithean_offers_settings()['enabled']) {
         if (wp_next_scheduled('hithean_offers_weekly')) { wp_clear_scheduled_hook('hithean_offers_weekly'); }
         return;
@@ -55,7 +60,7 @@ add_action('hithean_offers_weekly', static function (): void {
 add_action('hithean_offers_work', 'hithean_offers_work');
 add_action('hithean_offers_boundary', 'hithean_offers_publish');
 add_action('switch_theme', static function (): void {
-    foreach (['hithean_offers_daily', 'hithean_offers_weekly', 'hithean_offers_work', 'hithean_offers_boundary', 'hithean_offers_lark_flush'] as $hook) { wp_clear_scheduled_hook($hook); }
+    foreach (['hithean_offers_daily', 'hithean_offers_weekly', 'hithean_offers_work', 'hithean_offers_boundary', 'hithean_offers_lark_flush', 'hithean_offers_freshness'] as $hook) { wp_clear_scheduled_hook($hook); }
 });
 add_shortcode('hithean_offers', 'hithean_offers_shortcode');
 add_action('wp_enqueue_scripts', 'hithean_offers_enqueue');

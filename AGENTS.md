@@ -129,6 +129,11 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
   `hithean_offers_lark_state`) → 1 tin "post": mới / thay đổi (nội dung, thời gian, SP thêm-bỏ) / ngừng (hết hạn, gỡ). Lần bật đầu chỉ ghi mốc;
   lỗi gửi giữ mốc, thử lại ≤3 lần. Gửi qua kênh Lark **`uu_dai` — nhóm riêng**, không dùng nhóm kho (Cài đặt ERP → Lark; cùng tab có
   @Tất cả = option `hithean_offers_lark_settings.mention_all` + gửi thử danh sách). Test: `php tests/offers-lark-notify.php`.
+- **Giữ dữ liệu ưu đãi mới** (`marketing/offers/freshness.php`): mỗi dòng snapshot chỉ "đang áp dụng" `HITHEAN_OFFERS_FRESHNESS` (8 ngày) sau lần quét —
+  quá hạn là /uu-dai/, "Nhận ưu đãi", nút danh mục, thanh đầu trang **cùng trống** (sự cố 19/11/2026: tắt "Tự đồng bộ mỗi tuần" → trang trống).
+  Khi hiển thị công khai, cron `hithean_offers_freshness` (2 lần/ngày, có cả khi tắt lịch tuần) tự quét lại khi lần thành công
+  (`hithean_offers_last_success`) cũ ≥ 6 ngày; còn ≤ 1 ngày / đã quá hạn mà chưa mới → báo Lark kênh `uu_dai` (≤ 1 tin / 20 giờ) + cảnh báo đỏ ở trang
+  quản trị. Hàm thuần `hithean_offers_freshness_state()`. Test: `php tests/offers-freshness.php`.
 - **Thanh ưu đãi đầu trang** (`marketing/offers/topbar.php` + `marketing/assets/offers-topbar.{css,js}`, nạp mọi request): thanh dính trên cùng, in ở
   `do_action('hithean_site_topbar')` trong `header.php` (landing template riêng tự không có), ẩn ở thanh toán / cảm ơn / `/uu-dai/`. Bật + soạn nội dung ở
   Ưu đãi sản phẩm → Cấu hình & xuất bản (`hithean_offers_settings()` `topbar`, `topbar_text` — mỗi dòng 1 thông điệp, `Nội dung | link`, ≤6 dòng xoay vòng 5s —
@@ -287,7 +292,7 @@ Port từ theanmarket. Thanh tìm sticky ở danh sách đơn admin, **thay ô t
 ## Test
 
 Chạy thuần PHP, không cần WordPress: `php tests/<file>.php`
-- `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`, `offers-lark-notify.php`, `lark-core.php`, `warehouse-export-lark.php`,
+- `order-universal-search.php`, `export-bulk-web.php`, `lucky-wheel-coupon-lookup.php`, `offers-test.php`, `offers-lark-notify.php`, `offers-freshness.php`, `lark-core.php`, `warehouse-export-lark.php`,
   `offers-structured-test.php`, `landing-template-test.php`.
 - `my-offers.php`, `loop-offers-button.php`, `loop-rule-price.php`, `offers-order.php`, `out-of-stock-loop.php` (SP hết hàng + không đặt trước ở danh sách: xếp cuối / ẩn — Cài đặt ERP → WooCommerce, option `hithean_oos_loop_mode` + ngoại lệ theo đường dẫn trang `hithean_oos_loop_rules` (`*` = cả nhánh); shortcode `[products het_hang="an|cuoi"]` đè cả hai); UI thanh đáy / "Ưu đãi của tôi": `node tests/site-footer-menu-ui.cjs` (cần jsdom).
 - Popup thao tác nhanh (order-quick-modals.php): `node tests/order-quick-modals-ui.cjs` (cần jsdom + php).

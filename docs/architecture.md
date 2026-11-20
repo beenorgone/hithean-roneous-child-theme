@@ -79,7 +79,7 @@ Viết tay, máy kiểm (`docs-sync --check`): mọi `paths` / `tpc_loader_path_
 | `auth/` | 4 | ~500 |
 | `core/` | 20 | ~4.600 |
 | `integrations/` | 3 | 90 |
-| `marketing/` | 23 | ~5.800 |
+| `marketing/` | 24 | ~5.900 |
 | `shortcodes/` | 27 | ~16.800 |
 | `woocommerce/checkout/` | 5 | ~2.600 |
 | `woocommerce/orders/` | 39 | ~15.900 |
