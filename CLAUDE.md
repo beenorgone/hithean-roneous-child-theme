@@ -11,6 +11,7 @@ xem `docs/erp-mesh.md`. Nhiều module được port qua lại với theme thean
 
 | Cần | Đọc |
 |---|---|
+| **Chuẩn code chung mọi repo** (một sự thật một chỗ, database, test, git) — đọc trước khi sửa code | [`docs/coding-standards.md`](docs/coding-standards.md) (bản đồng bộ, không sửa ở đây) |
 | Request đi đâu, tpc_loader, **bảng route**, tầng, module, thêm tính năng ở đâu | [`docs/architecture.md`](docs/architecture.md) |
 | Tìm hàm / AJAX / hook / shortcode / cron của một khu | [`docs/code-map/`](docs/code-map/README.md) (sinh tự động) |
 | Mục lục docs + cơ chế tự cập nhật | [`docs/README.md`](docs/README.md) |
