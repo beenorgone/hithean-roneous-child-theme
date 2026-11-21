@@ -145,6 +145,11 @@ file eim, nhật ký guard).
 
 ## 4. Test
 
+- **Một lệnh chạy mọi test** của repo (vd `php tests/run.php`), lệnh đó **tự gom** mọi file test theo mẫu tên
+  (`tests/test-*.php`, `tests/*.js`…), mỗi file một process nếu chúng tự giả lập hàm; lỗi = mã thoát khác 0. File test
+  phải chạy tay từng cái coi như không có: eim từng có 3 test đỏ âm thầm (một thay đổi chung làm vỡ DB giả) tới khi bộ
+  chạy chung gom chúng vào. File test mới phải báo lỗi bằng mã thoát (`exit(1)` / exception), không chỉ in chữ "FAIL".
+- Đổi hàm dùng chung (helper, khoá, kiểm bảng…) → chạy **toàn bộ** test của repo, không chỉ test của tính năng đang làm.
 - Test **đối chiếu ngược**: rút sự thật từ mã nguồn (route, action, meta key) rồi so với khai báo. Test chép lại bảng
   khai báo chỉ nói lại điều code đã nói.
 - Hàm tính toán là hàm thuần (mảng vào, mảng ra), test chạy không cần WordPress / DB.
