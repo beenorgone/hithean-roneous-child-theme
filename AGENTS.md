@@ -2,6 +2,15 @@
 
 # Hi The An — Roneous Child Theme
 
+<!-- CODING-STANDARDS:BEGIN — sinh bởi tools/coding-standards-sync.php (repo ivarvietnam-wr-nitro-child-theme), không sửa tay -->
+> **BẮT BUỘC với mọi agent (Claude, Codex, subagent, người mới):** trước khi viết code **hoặc** thiết kế / đề xuất
+> phương án, đọc chuẩn code chung [`docs/coding-standards.md`](docs/coding-standards.md) — tối thiểu dòng "Đọc nhanh",
+> hai nguyên tắc bao trùm (**một sự thật, một chỗ**; **sai lầm không kêu**) và mục ứng với việc đang làm (dữ liệu / bảng
+> → mục 1–2 + checklist 2.9). Phương án hay commit đi ngược chuẩn phải nêu rõ luật nào và vì sao.
+
+@docs/coding-standards.md
+<!-- CODING-STANDARDS:END -->
+
 WordPress child theme (parent: `roneous`) cho hithean.com — cửa hàng bán sản phẩm do IVAR sản xuất
 (An New Chapter, Yeast Hero…). **Không có kho riêng**: đơn được xuất từ kho Theanmarket (kho dùng chung),
 xem `docs/erp-mesh.md`. Nhiều module được port qua lại với theme theanmarket

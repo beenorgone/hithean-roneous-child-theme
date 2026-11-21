@@ -195,6 +195,9 @@ file eim, nhật ký guard).
 
 ## 9. Khi làm việc dưới danh nghĩa AI
 
+- Đọc file này **trước** khi viết code hoặc thiết kế phương án (khối BẮT BUỘC trong `CLAUDE.md` của mọi repo nạp sẵn nó).
+- Phương án / plan có mục **Đối chiếu chuẩn**: luật nào áp vào, chỗ nào đi ngược và vì sao; tính năng có dữ liệu trả lời
+  checklist 2.9.
 - Báo cáo trung thực: test đỏ thì nói đỏ kèm output; bước nào bỏ qua thì nói; chỉ mới lint thì không nói "đã chạy".
 - Không tin báo cáo của agent khác hay của chính mình ở phiên trước — đối chiếu lại bằng số đo.
 - Hỏi khi quyết định là của nghiệp vụ (chặn hay cảnh báo, giữ bao lâu, hạn mức bao nhiêu); tự quyết khi có mặc định
