@@ -45,15 +45,34 @@ function thean_legacy_meta_hpos(): bool
         && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
 }
 
-/** Cờ đang tự ghi (chặn vòng lặp: ghi HPOS → WC đồng bộ ngược ra posts → hook post meta). */
+/**
+ * Cờ đang tự ghi (chặn vòng lặp: ghi HPOS → WC đồng bộ ngược ra posts → hook post meta). Đếm lồng nhau:
+ * true = vào, false = ra (luôn ghép cặp trong try/finally), không tham số = đang trong vùng nào không.
+ */
 function thean_legacy_meta_busy(?bool $set = null): bool
 {
-    static $busy = false;
-    if ($set !== null) {
-        $busy = $set;
+    static $depth = 0;
+    if ($set === true) {
+        $depth++;
+    } elseif ($set === false) {
+        $depth = max(0, $depth - 1);
     }
-    return $busy;
+    return $depth > 0;
 }
+
+/**
+ * Lỗi giữ chặt: lưu đơn HPOS (WC_Order::save) thì WC tự chép meta HPOS → posts (update/add/delete_post_meta). Mirror
+ * coi đó là "code cũ ghi posts" và chép NGƯỢC tập giá trị posts đang dở dang về HPOS. VD đơn có 2 dòng ship_code
+ * (1 dòng rỗng): update_meta_data ghi dòng đầu, xóa dòng rỗng → WC gọi delete_post_meta(id, 'ship_code', '') = xóa
+ * MỌI dòng ở posts → mirror thấy posts trống → xóa luôn mã vừa lưu ở HPOS ("Lưu vận chuyển" làm mất mã vận đơn).
+ * Trong lúc WC lưu đơn, HPOS là nguồn → mirror bỏ qua.
+ */
+add_action('woocommerce_before_order_object_save', static function () {
+    thean_legacy_meta_busy(true);
+}, PHP_INT_MIN);
+add_action('woocommerce_after_order_object_save', static function () {
+    thean_legacy_meta_busy(false);
+}, PHP_INT_MIN);
 
 /** Giá trị meta coi là trống ('' / null / [] / chuỗi toàn khoảng trắng). Hàm thuần. */
 function thean_legacy_meta_empty($value): bool

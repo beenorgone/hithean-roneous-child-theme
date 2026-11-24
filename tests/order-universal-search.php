@@ -288,6 +288,12 @@ $__ai = thean_export_ai_result_from_note("AI review ảnh xuất kho\nKết qu�
 check($__ai['overall'] === 'review' && $__ai['order_match'] === 'mismatch' && $__ai['items_match'] === 'unclear' && $__ai['missing_or_suspected_missing'] === ['thiếu A', 'thừa B'], 'AI result from note: review');
 check(thean_export_ai_result_from_note('AI review ảnh xuất kho đã được đưa vào hàng đợi.') === null && thean_export_ai_result_from_note('Đã xác nhận xuất kho bởi Tuan') === null, 'non-result notes ignored');
 check(thean_legacy_meta_empty('  ') && thean_legacy_meta_empty([]) && thean_legacy_meta_empty(null) && !thean_legacy_meta_empty('0') && !thean_legacy_meta_empty([1]), 'legacy meta empty');
+// Lỗi giữ chặt: WC lưu đơn HPOS tự chép meta sang posts → mirror không được chép ngược (mất mã vận đơn khi "Lưu vận chuyển").
+foreach ($GLOBALS['__actions']['woocommerce_before_order_object_save'] ?? [] as $__cb) if ((new ReflectionFunction($__cb))->getNumberOfRequiredParameters() === 0) $__cb();
+thean_legacy_meta_busy(true); thean_legacy_meta_busy(false); // thean_legacy_meta_save lồng trong lúc lưu đơn
+$__busy_in = thean_legacy_meta_busy();
+foreach ($GLOBALS['__actions']['woocommerce_after_order_object_save'] ?? [] as $__cb) if ((new ReflectionFunction($__cb))->getNumberOfRequiredParameters() === 0) $__cb();
+check($__busy_in && !thean_legacy_meta_busy(), 'legacy mirror paused while WC saves the order (nested busy counted)');
 check(in_array('warehouse_export_images', thean_legacy_meta_keys(), true) && in_array('export_confirmed_by', thean_legacy_meta_keys(), true), 'legacy meta keys');
 check(thean_ops_shipping_statuses() === ['shipping', 'local-shipping', 'partial-shipping'], 'shipping statuses');
 check(preg_match("/pf\.meta_value = '1'\) AND o\.(date_created_gmt|post_date_gmt) >= '\d{4}-/", thean_ous_board_tab_sql('proof'))
