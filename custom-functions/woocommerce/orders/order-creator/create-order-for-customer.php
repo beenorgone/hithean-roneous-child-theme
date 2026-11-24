@@ -4489,6 +4489,7 @@ function order_creator_render_page(): void
 </div>
 
 <script>window.OrderCreator = <?php echo $config; // phpcs:ignore ?>;</script>
+<script src="<?php echo esc_url(get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/invoice-image-export.js'); ?>?ver=<?php echo esc_attr(filemtime(__DIR__ . '/../assets/invoice-image-export.js')); ?>"></script>
 <script src="<?php echo esc_url(order_creator_assets_uri('create-order.js')); ?>?ver=<?php echo esc_attr($js_ver); ?>"></script>
 <?php if (($_GET['thean_order_embed'] ?? '') === '1') { if (function_exists('child_theme_payment_hub_link_script')) child_theme_payment_hub_link_script(); wp_print_footer_scripts(); } else { wp_footer(); } ?>
 </body>

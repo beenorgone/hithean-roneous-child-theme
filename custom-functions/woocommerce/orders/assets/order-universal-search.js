@@ -541,6 +541,16 @@
             });
         });
     }
+    var invoiceImage = null;
+    function invoiceExporter() {
+        if (!invoiceImage) invoiceImage = window.TheanInvoiceImage({
+            frame: invoice.querySelector('iframe'),
+            message: invoice.querySelector('[data-thean-ous-invoice-msg]'),
+            libraryUrl: cfg.html2canvasUrl,
+            fileName: function () { return 'hoa-don-' + invoice.getAttribute('data-order-id') + '.jpg'; }
+        });
+        return invoiceImage;
+    }
     // Xem hóa đơn (bản xem trước của trang Tạo đơn — AJAX order_creator_invoice_preview) trong popup, In / Mở tab mới.
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-thean-ous-invoice]');
@@ -549,10 +559,14 @@
             var url = btn.getAttribute('data-thean-ous-invoice');
             invoice.querySelector('#thean-ous-invoice-title').textContent = '🧾 Hóa đơn đơn #' + (btn.getAttribute('data-order-id') || '');
             invoice.querySelector('[data-thean-ous-invoice-open]').href = url;
+            invoice.setAttribute('data-order-id', btn.getAttribute('data-order-id') || '');
+            invoiceExporter().preload();
             invoice.querySelector('iframe').src = url;
             setOpen(invoice, true);
             return;
         }
+        if (e.target.closest('[data-thean-ous-invoice-jpg]')) invoiceExporter().download();
+        if (e.target.closest('[data-thean-ous-invoice-copy]')) invoiceExporter().copy();
         if (e.target.closest('[data-thean-ous-invoice-print]')) {
             try { invoice.querySelector('iframe').contentWindow.print(); } catch (err) { toast('Không in được — dùng "Mở tab mới".', true); }
         }

@@ -2388,80 +2388,23 @@
     }
 
     // ---------- invoice modal ----------
-    // html2canvas (~200KB, đóng gói trong repo: assets/vendor/) chỉ cần khi xuất / copy ảnh hóa đơn → nạp khi mở popup
-    // hóa đơn, không chặn lúc tải trang. Ảnh QR đã được máy chủ nhúng data URI nên ảnh chụp giữ được QR.
-    var html2canvasReady = null;
-    function loadHtml2canvas() {
-        if (typeof html2canvas !== 'undefined') { return Promise.resolve(); }
-        if (html2canvasReady) { return html2canvasReady; }
-        html2canvasReady = new Promise(function (resolve, reject) {
-            var s = document.createElement('script');
-            s.src = CFG.html2canvasUrl;
-            s.onload = function () { resolve(); };
-            s.onerror = function () { html2canvasReady = null; reject('Thư viện tạo ảnh chưa tải được.'); }; // lần bấm sau thử lại
-            document.head.appendChild(s);
+    var invoiceImage = null;
+    function invoiceExporter() {
+        if (!invoiceImage) invoiceImage = window.TheanInvoiceImage({
+            frame: $('#oc-invoice-frame'),
+            message: $('#oc-invoice-msg'),
+            libraryUrl: CFG.html2canvasUrl,
+            fileName: function () { return 'hoa-don-' + (state.lastOrder ? state.lastOrder.order_number : Date.now()) + '.jpg'; }
         });
-        return html2canvasReady;
+        return invoiceImage;
     }
-
     function openInvoice(url) {
-        loadHtml2canvas().catch(function () {}); // tải sẵn: lúc bấm Xuất JPG / Copy ảnh đã có
-        $('#oc-invoice-msg').textContent = '';
+        invoiceExporter().preload();
         $('#oc-invoice-frame').src = url;
         openModal('#oc-invoice-modal');
     }
-
-    function invoiceCanvas() {
-        var frame = $('#oc-invoice-frame');
-        var doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
-        if (!doc) { return Promise.reject('Không đọc được hóa đơn.'); }
-        var images = Array.prototype.slice.call(doc.images || []);
-        var ready = images.map(function (img) {
-            if (img.complete) { return Promise.resolve(); }
-            return new Promise(function (resolve) {
-                img.addEventListener('load', resolve, { once: true });
-                img.addEventListener('error', resolve, { once: true });
-            });
-        });
-        var fonts = doc.fonts && doc.fonts.ready ? doc.fonts.ready : Promise.resolve();
-        return Promise.all(ready.concat(fonts, loadHtml2canvas())).then(function () {
-            return html2canvas(doc.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-        });
-    }
-
-    function invoiceFileName() {
-        return 'hoa-don-' + (state.lastOrder ? state.lastOrder.order_number : Date.now()) + '.jpg';
-    }
-
-    function invoiceToJpg() {
-        $('#oc-invoice-msg').textContent = 'Đang tạo ảnh...';
-        invoiceCanvas().then(function (canvas) {
-            var a = document.createElement('a');
-            a.href = canvas.toDataURL('image/jpeg', 0.92);
-            a.download = invoiceFileName();
-            a.click();
-            $('#oc-invoice-msg').textContent = '';
-        }).catch(function (e) { $('#oc-invoice-msg').textContent = 'Lỗi tạo ảnh: ' + errText(e); });
-    }
-
-    function errText(e) { return e && e.message ? e.message : String(e); }
-
-    function invoiceCopy() {
-        if (!navigator.clipboard || !window.ClipboardItem) { $('#oc-invoice-msg').textContent = 'Trình duyệt không hỗ trợ copy ảnh — hãy dùng Xuất JPG.'; return; }
-        $('#oc-invoice-msg').textContent = 'Đang chuẩn bị ảnh...';
-        // Gọi clipboard.write NGAY trong lúc bấm, đưa Promise ảnh vào ClipboardItem — Safari từ chối nếu chờ chụp xong
-        // rồi mới ghi (hết "user gesture").
-        var blob = invoiceCanvas().then(function (canvas) {
-            return new Promise(function (resolve, reject) {
-                canvas.toBlob(function (b) { b ? resolve(b) : reject(new Error('Không tạo được ảnh.')); }, 'image/png');
-            });
-        });
-        navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]).then(function () {
-            $('#oc-invoice-msg').textContent = '✅ Đã copy ảnh hóa đơn — dán (Ctrl/Cmd+V) vào chat để gửi khách.';
-        }).catch(function (e) {
-            $('#oc-invoice-msg').textContent = 'Không copy được ảnh (' + errText(e) + ') — hãy dùng Xuất JPG.';
-        });
-    }
+    function invoiceToJpg() { invoiceExporter().download(); }
+    function invoiceCopy() { invoiceExporter().copy(); }
 
     // ---------- tabs ----------
     function switchTab(tab) {

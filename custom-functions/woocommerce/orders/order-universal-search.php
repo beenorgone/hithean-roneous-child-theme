@@ -1941,6 +1941,7 @@ function thean_ous_ui_config(): array
         $commands[] = ['cmd' => $key, 'label' => $label, 'example' => $example, 'desc' => $desc];
     }
     return [
+        'html2canvasUrl' => get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/order-creator/assets/vendor/html2canvas.min.js?ver=1.4.1',
         'ajaxUrl'        => admin_url('admin-ajax.php'),
         'nonce'          => wp_create_nonce('thean_ous'),
         'ver'            => thean_ous_build_ver(),
@@ -2069,7 +2070,8 @@ function thean_ous_enqueue_assets(): void
     $dir = get_stylesheet_directory() . '/custom-functions/woocommerce/orders/assets/';
     $uri = get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/';
     wp_enqueue_style('thean-ous', $uri . 'order-universal-search.css', [], (string) @filemtime($dir . 'order-universal-search.css'));
-    wp_enqueue_script('thean-ous', $uri . 'order-universal-search.js', [], (string) @filemtime($dir . 'order-universal-search.js'), true);
+    wp_enqueue_script('thean-invoice-image', $uri . 'invoice-image-export.js', [], (string) filemtime($dir . 'invoice-image-export.js'), true);
+    wp_enqueue_script('thean-ous', $uri . 'order-universal-search.js', ['thean-invoice-image'], (string) @filemtime($dir . 'order-universal-search.js'), true);
     wp_add_inline_script('thean-ous', 'window.theanOusCfg = ' . wp_json_encode(thean_ous_ui_config()) . ';', 'before');
     wp_enqueue_script('thean-workspace-tabs', $uri . 'order-workspace-tabs.js', ['thean-ous'], (string) @filemtime($dir . 'order-workspace-tabs.js'), true);
     if (function_exists('thean_flow_popup_enqueue')) {
@@ -2222,9 +2224,12 @@ function thean_ous_render_ui(): void
             <button type="button" class="thean-ous-modal__close" data-thean-ous-close aria-label="Đóng">&times;</button>
             <div class="thean-ous-invoice__head">
                 <h2 class="thean-ous-modal__title" id="thean-ous-invoice-title">🧾 Hóa đơn</h2>
+                <button type="button" class="thean-ous__more-btn" data-thean-ous-invoice-jpg>Xuất JPG</button>
+                <button type="button" class="thean-ous__more-btn" data-thean-ous-invoice-copy>Copy ảnh (gửi chat)</button>
                 <button type="button" class="thean-ous__more-btn" data-thean-ous-invoice-print>🖨 In</button>
                 <a class="thean-ous__more-btn" data-thean-ous-invoice-open href="#" target="_blank" rel="noopener">Mở tab mới ↗</a>
             </div>
+            <p data-thean-ous-invoice-msg role="status" aria-live="polite"></p>
             <iframe class="thean-ous-invoice__frame" title="Hóa đơn" src="about:blank"></iframe>
         </div>
     </div>

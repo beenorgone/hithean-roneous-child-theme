@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-37 file · ~11.300 dòng · 427 hàm (63% có docblock)
+37 file · ~11.400 dòng · 427 hàm (63% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
