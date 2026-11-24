@@ -1,0 +1,93 @@
+/* Hồ sơ khoa học — nút, popup, thẻ, slider (research-core.php dựng HTML). Cùng khung với nút Hồ sơ pháp lý / Ưu đãi. */
+.hithean-research-trigger, .hithean-research-dialog, .hithean-research-slider {
+    --hr-green: #214f3c; --hr-green-ink: #285239; --hr-green-soft: #edf5ec; --hr-green-line: #cfe0cd;
+    --hr-blue: var(--default-color-dark-blue, #0047ba); --hr-navy: #001f3f; --hr-yellow: #fbb917;
+    --hr-ink: var(--default-color-brown, #3b2222); --hr-cream: var(--default-color-beige, #f7f6f2); --hr-line: #3b22221c; --hr-muted: #6b5d5d;
+}
+
+/* ---- Nút ---- */
+.hithean-research-trigger { display: flex !important; align-items: center; gap: 12px; box-sizing: border-box; width: 100%; height: auto !important; min-height: 52px; margin: 0 0 14px !important; padding: 10px 14px !important; border: 1px solid var(--hr-green-line) !important; border-radius: 8px !important; background: var(--hr-green-soft) !important; color: var(--hr-green-ink) !important; box-shadow: none !important; font-family: inherit; font-size: 13px; font-weight: 400; line-height: 1.4; letter-spacing: 0 !important; text-align: left; text-transform: none !important; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+.hithean-research-trigger:hover { border-color: var(--hr-green) !important; box-shadow: 0 4px 12px #214f3c1a !important; }
+.hithean-research-trigger:focus-visible { outline: 2px solid var(--hr-blue); outline-offset: 3px; }
+.hithean-research-trigger__icon { flex: 0 0 auto; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--hr-green); color: var(--hr-yellow); }
+.hithean-research-trigger__text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hithean-research-trigger__text strong { font-size: 14px; font-weight: 700; color: var(--hr-green); }
+.hithean-research-trigger__text small { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; opacity: .85; }
+.hithean-research-trigger__count { flex: 0 0 auto; min-width: 22px; padding: 2px 7px; border-radius: 99px; background: var(--hr-yellow); color: var(--hr-ink); font-size: 12px; font-weight: 700; text-align: center; }
+/* Trang SP: .summary là flex có order (product-purchase.css) — đặt ngay sau khối Hồ sơ pháp lý. */
+body.hithean-product-purchase .product-single .summary > .hithean-research-trigger { order: 9; }
+body.hithean-product-purchase:has(#pcn-proof-dialog) .product-single .summary > .hithean-research-trigger { order: 5; }
+@media (max-width: 767px) {
+    body.hithean-product-purchase .product-single .summary > .hithean-research-trigger { order: 60; }
+    body.hithean-product-purchase:has(#pcn-proof-dialog) .product-single .summary > .hithean-research-trigger { order: 46; }
+}
+.hithean-research-archive, .hithean-research-inline { max-width: 560px; margin: 12px 0; }
+
+/* ---- Popup ---- */
+.hithean-research-dialog { box-sizing: border-box; width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 0; border: 0; border-radius: 20px; background: #fff; color: var(--hr-ink); box-shadow: 0 20px 60px #3b222233; line-height: 1.55; text-align: left; }
+.hithean-research-dialog[open] { display: flex; flex-direction: column; }
+.hithean-research-dialog::backdrop { background: #3b222299; }
+.hithean-research-dialog * { box-sizing: border-box; }
+.hithean-research-dialog__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--hr-line); }
+.hithean-research-dialog__head h3 { margin: 0; padding: 0; font-size: 20px; font-weight: 600; line-height: 1.3; letter-spacing: -.02em; text-transform: none; color: inherit; }
+.hithean-research-dialog__head p { margin: 4px 0 0; font-size: 13px; opacity: .7; }
+.hithean-research-dialog .hithean-research-dialog__close { flex-shrink: 0; width: 40px; height: 40px; min-height: 0; margin: 0; padding: 0; border: 1px solid #3b22223a; border-radius: 0; background: #fff; color: var(--hr-ink); font-size: 22px; line-height: 1; cursor: pointer; box-shadow: none; }
+.hithean-research-dialog__filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px 0; background: var(--hr-cream); }
+.hithean-research-dialog__filters button { margin: 0; padding: 5px 12px; border: 1px solid var(--hr-line); border-radius: 99px; background: #fff; color: var(--hr-ink); font: inherit; font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; cursor: pointer; box-shadow: none; }
+.hithean-research-dialog__filters button[aria-pressed="true"] { background: var(--hr-green); border-color: var(--hr-green); color: #fff; }
+.hithean-research-dialog__list { display: grid; gap: 12px; padding: 12px 16px 16px; overflow-y: auto; background: var(--hr-cream); }
+.hithean-research-dialog__foot { margin: 0; padding: 12px 24px 16px; border-top: 1px solid var(--hr-line); font-size: 12px; color: var(--hr-muted); }
+
+/* ---- Thẻ ---- */
+.hr-card { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--hr-line); border-radius: 14px; background: #fff; color: var(--hr-ink, #3b2222); text-align: left; }
+.hr-card[hidden] { display: none; }
+.hr-card__media { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 7; max-width: 100%; overflow: hidden; background: linear-gradient(135deg, #e8efe6, #d5e3d2); }
+.hr-card__media--news { background: linear-gradient(135deg, #e7ecf5, #d3ddef); }
+.hr-card__media--video { background: #2b2b2b; }
+.hr-card__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hr-card__media iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.hr-card__mediaicon { font-size: 28px; opacity: .6; }
+.hr-card .hr-card__play { position: relative; width: 58px; height: 40px; margin: 0; padding: 0; border: 0; border-radius: 10px; background: #e62117; color: #fff; font-size: 18px; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px #0006; }
+.hr-card__media--video:has(.hr-card__play) { aspect-ratio: 16 / 9; }
+.hr-card__body { display: flex; flex: 1; flex-direction: column; gap: 8px; padding: 14px 16px 16px; }
+.hr-card__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.hr-chip { padding: 2px 8px; border: 1px solid var(--hr-line, #3b22221c); border-radius: 99px; background: var(--hr-cream, #f7f6f2); font-size: 11px; font-weight: 600; line-height: 1.5; }
+.hr-chip--strong { border-color: #b8dcc6; background: #e3f3e9; color: #0b6b3a; }
+.hr-chip--mid { border-color: #f1d79a; background: #fff4dc; color: #8a5a00; }
+.hr-chip--low { color: #6b5d5d; }
+.hr-card .hr-card__title { margin: 0; padding: 0; font-size: 15px; font-weight: 600; line-height: 1.4; letter-spacing: 0; text-transform: none; color: var(--hr-navy, #001f3f); }
+.hr-card__meta, .hr-card__topic { margin: 0; font-size: 12px; color: var(--hr-muted, #6b5d5d); }
+.hr-card__topic b { color: var(--hr-green, #214f3c); }
+.hr-card__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 4px; }
+.hr-card .hr-btn { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 8px 12px; border: 1px solid var(--hr-green, #214f3c); border-radius: 8px; background: var(--hr-green, #214f3c); color: #fff; font: inherit; font-size: 13px; font-weight: 600; line-height: 1.3; text-transform: none; letter-spacing: 0; text-decoration: none; cursor: pointer; box-shadow: none; }
+.hr-card .hr-btn--ghost { border-color: var(--hr-blue, #0047ba); background: #fff; color: var(--hr-blue, #0047ba); }
+.hr-card .hr-btn:focus-visible, .hr-card .hr-seg button:focus-visible, .hr-card--slide:focus-visible { outline: 2px solid var(--hr-blue, #0047ba); outline-offset: 2px; }
+.hr-card__ai { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--hr-line, #3b22221c); }
+.hr-card__ai[hidden] { display: none; }
+.hr-card__aihead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 600; color: var(--hr-green, #214f3c); }
+.hr-seg { display: inline-flex; overflow: hidden; border: 1px solid var(--hr-line, #3b22221c); border-radius: 99px; }
+.hr-card .hr-seg button { margin: 0; padding: 4px 12px; border: 0; border-radius: 0; background: #fff; color: var(--hr-ink, #3b2222); font: inherit; font-size: 12px; font-weight: 600; text-transform: none; cursor: pointer; box-shadow: none; }
+.hr-card .hr-seg button[aria-pressed="true"] { background: var(--hr-navy, #001f3f); color: #fff; }
+.hr-card__summary { display: grid; gap: 8px; font-size: 13.5px; }
+.hr-card__summary h5 { margin: 0; font-size: 14px; font-weight: 700; text-transform: none; letter-spacing: 0; color: inherit; }
+.hr-card__summary p, .hr-card__summary ul { margin: 0; }
+.hr-card__summary ul { display: grid; gap: 4px; padding-left: 18px; }
+.hr-card__limits { padding: 8px 10px; border-radius: 8px; background: var(--hr-cream, #f7f6f2); font-size: 12.5px; }
+.hr-card__disc { padding: 8px 10px; border: 1px solid #f1e2bd; border-radius: 8px; background: #fffaf0; font-size: 11.5px; line-height: 1.5; color: var(--hr-muted, #6b5d5d); }
+
+/* ---- Slider ---- */
+.hithean-research-slider { box-sizing: border-box; max-width: 1170px; margin: 32px auto; padding: 0 15px; color: var(--hr-ink); clear: both; }
+.hithean-research-slider__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.hithean-research-slider__head h2 { margin: 0; font-size: 22px; line-height: 1.3; color: var(--hr-navy); }
+.hithean-research-slider__head p { margin: 4px 0 0; font-size: 13px; color: var(--hr-muted); }
+.hithean-research-slider__nav { display: flex; flex: 0 0 auto; gap: 6px; }
+.hithean-research-slider__nav button { width: 38px; height: 38px; min-height: 0; margin: 0; padding: 0; border: 1px solid var(--hr-line); border-radius: 50%; background: #fff; color: var(--hr-ink); font-size: 18px; line-height: 1; cursor: pointer; box-shadow: none; }
+.hithean-research-slider__track { display: grid; grid-auto-columns: calc((100% - 32px) / 3); grid-auto-flow: column; gap: 16px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: thin; }
+.hithean-research-slider__track > .hr-card { scroll-snap-align: start; cursor: pointer; }
+.hr-card__cta { margin-top: auto; padding-top: 4px; font-size: 13px; font-weight: 600; color: var(--hr-green, #214f3c); }
+@media (max-width: 767px) {
+    .hithean-research-slider__track { grid-auto-columns: 85%; }
+    .hithean-research-slider__head h2 { font-size: 19px; }
+    .hithean-research-dialog__head { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .hithean-research-slider__track { scroll-behavior: auto; } }

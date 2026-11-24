@@ -39,6 +39,10 @@ function theme_ai_feature_registry(): array
             'label'       => 'AI tư vấn sản phẩm',
             'description' => 'Tab Sản phẩm - Tư vấn ở /quan-ly-don: soạn tin nhắn trả lời khách từ dữ liệu SP (theo SKU) và kịch bản tư vấn.',
         ],
+        'research_summary_ai' => [
+            'label'       => 'Hồ sơ khoa học — AI tóm tắt VI/EN',
+            'description' => 'Sản phẩm → Hồ sơ khoa học: AI soạn bản nháp tóm tắt tiếng Việt + English từ abstract / transcript / PDF đã bóc. Chỉ là bản nháp, quản lý duyệt rồi mới đăng.',
+        ],
         'export_image_ai_check' => [
             'label'       => 'Xuất kho — AI kiểm tra ảnh lấy hàng',
             'description' => 'Đối chiếu ảnh lấy hàng với mã đơn, sản phẩm và số lượng. Kết quả chỉ để hỗ trợ kiểm tra, không tự xác nhận xuất kho.',

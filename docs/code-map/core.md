@@ -4,7 +4,7 @@
 
 > Hạ tầng theme: module loader (what-loads-when), nạp theo màn admin, template router, enqueue, guard upload/file/CSP, AI settings/providers, địa chỉ VN, thông tin công ty, admin chrome.
 
-20 file · ~4.600 dòng · 142 hàm (38% có docblock)
+20 file · ~4.600 dòng · 143 hàm (38% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -221,6 +221,7 @@ Lark — kết nối dùng chung cho mọi thông báo của site (GIỐNG HỆT
 | `tpc_loader_modules()` | — |
 | `tpc_cond_is_product()` | — |
 | `tpc_cond_is_product_taxonomy()` | — |
+| `tpc_cond_research_public()` | Hồ sơ khoa học: trang SP + trang danh mục SP (không gồm tag / thương hiệu). |
 | `tpc_cond_is_checkout()` | — |
 | `tpc_cond_site_footer_menu()` | Thanh menu đáy toàn site: trang chủ + mọi trang trừ trang sản phẩm, cửa hàng / danh mục (đã có thanh riêng), giỏ / thanh toán / cảm ơn (flow mua hàng), landing ANC / Yeast Hero… |
 | `tpc_loader_front_module_matches(array $module)` | — |

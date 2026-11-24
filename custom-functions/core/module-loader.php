@@ -465,6 +465,25 @@ function tpc_loader_modules()
             'condition' => 'tpc_cond_is_product',
         ],
         [
+            // Hồ sơ khoa học — trang khách (nút + popup + slider): SP, danh mục, landing, trang có shortcode.
+            'id' => 'research_public',
+            'file' => 'custom-functions/woocommerce/products/research/research-public.php',
+            'condition' => 'tpc_cond_research_public',
+            'path_groups' => ['anc_landing'],
+            'shortcodes' => ['hithean_research'],
+        ],
+        [
+            // Hồ sơ khoa học — bảng Kanban (Sản phẩm → Hồ sơ khoa học), metabox SP, AJAX.
+            'id' => 'research_admin',
+            'file' => 'custom-functions/woocommerce/products/research/research-admin.php',
+            'admin' => true,
+            'ajax_actions' => [
+                'hithean_research_list', 'hithean_research_get', 'hithean_research_ingest', 'hithean_research_extract',
+                'hithean_research_save', 'hithean_research_ai', 'hithean_research_status', 'hithean_research_delete',
+                'hithean_research_upload', 'hithean_research_targets', 'hithean_research_link',
+            ],
+        ],
+        [
             'id' => 'product_archive_footer_menu',
             'file' => 'custom-functions/woocommerce/products/product-archive-footer-menu.php',
             'condition' => 'tpc_cond_is_product_taxonomy',
@@ -593,6 +612,13 @@ function tpc_cond_is_product()
 function tpc_cond_is_product_taxonomy()
 {
     return function_exists('is_product_taxonomy') && is_product_taxonomy();
+}
+
+/** Hồ sơ khoa học: trang SP + trang danh mục SP (không gồm tag / thương hiệu). */
+function tpc_cond_research_public()
+{
+    return (function_exists('is_product') && is_product())
+        || (function_exists('is_product_category') && is_product_category());
 }
 
 function tpc_cond_is_checkout()

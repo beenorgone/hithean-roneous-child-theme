@@ -156,6 +156,24 @@ Nhãn đơn vị vận chuyển: **nguồn duy nhất** `hithean_shipper_labels(
 - /uu-dai/: vừa vào hỏi nhanh (dialog `data-ho-ask`) xem theo sản phẩm hay chương trình; bỏ qua khi URL có `?xem=san-pham|chuong-trinh`
   hoặc đã chọn trong phiên (sessionStorage `ho-mode`).
 
+## Hồ sơ khoa học (`woocommerce/products/research/`, phương án `plans/science-research-library.md`)
+
+- Nhân sự dán link (YouTube / DOI / tạp chí / báo / link Google Scholar) ở **Sản phẩm → Hồ sơ khoa học** (bảng Kanban 6 cột:
+  Mới dán → Cần bổ sung → Bản nháp AI → Chờ duyệt → Đã đăng → Lưu trữ) → `hithean_research_ingest()` (**mọi đường nhập đi qua đây**)
+  bóc metadata (Crossref, Europe PMC, thẻ `citation_*` / JSON-LD, YouTube oEmbed + Data API khi có `YOUTUBE_API_KEY`) → AI soạn tóm tắt
+  VI/EN (feature `research_summary_ai`, chỉ vào `summary_draft`) → `manage_woocommerce` duyệt & đăng (sao sang `summary_public`).
+  **Không scrape Scholar**; thiếu nội dung gốc (< 300 ký tự, không PDF) → "Cần bổ sung", AI không chạy. `edit_products` soạn / gửi duyệt.
+- Bảng `{prefix}hithean_research` (url_hash UNIQUE chống trùng) + `{prefix}hithean_research_links` (product / product_cat / page ×
+  include / pin / exclude). **Một hàm quyết định trang nào hiện gì**: `hithean_research_resolve()` (thuần) — SP nhận ghim + gắn riêng +
+  gắn từ mọi danh mục (kể cả cha) − ẩn ở SP; ≤ 12 thẻ. Ghim / ẩn ở metabox "Hồ sơ khoa học" của SP. **Một hàm dựng thẻ**:
+  `hithean_research_card_html()` (popup, slider, xem trước admin). Disclaimer: `hithean_research_disclaimer()` (nguyên văn đã chốt).
+- Trang khách (module `research_public`): nút "Hồ sơ khoa học liên quan" ở `hithean_before_product_chat_ctas` (12) + slider ở
+  `woocommerce_after_single_product_summary` (15); danh mục: dưới mô tả + sau lưới SP; landing: `[hithean_research layout="both|button|slider"]`.
+  In sẵn HTML (WP Rocket cache được), tóm tắt trong `<template translate="no">`, video chỉ tải iframe youtube-nocookie khi bấm ▶.
+  Ghi / đăng / gắn → `hithean_research_purge()` xoá cache các trang liên quan (danh mục → cả SP trong đó ≤ 200).
+- Test: `php tests/research-core.php`, `php tests/research-extract.php`, `php tests/research-loader.php`,
+  `node tests/research-ui.cjs`, `node tests/research-admin-ui.cjs` (cần jsdom + php).
+
 ## Lark (`core/lark.php` — GIỐNG HỆT hithean ↔ theanmarket, sửa thì chép sang cả 2 site, kèm `tests/lark-core.php`)
 
 Mọi thông báo Lark đi qua **kênh đặt tên**: tính năng khai `child_theme_lark_register_channel('kho', [label, description, fallback])`

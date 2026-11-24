@@ -4,7 +4,7 @@
 
 > Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR.
 
-18 file · ~8.300 dòng · 210 hàm (33% có docblock)
+23 file · ~10.500 dòng · 294 hàm (44% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -18,6 +18,17 @@
 | AJAX | `hithean_atc_popup_view` | add-to-cart-popup.php |
 | AJAX | `hithean_product_linking_search` | product-linking.php |
 | AJAX | `hithean_product_purchase_quote` | product-purchase.php |
+| AJAX | `hithean_research_ai` | research-admin.php |
+| AJAX | `hithean_research_delete` | research-admin.php |
+| AJAX | `hithean_research_extract` | research-admin.php |
+| AJAX | `hithean_research_get` | research-admin.php |
+| AJAX | `hithean_research_ingest` | research-admin.php |
+| AJAX | `hithean_research_link` | research-admin.php |
+| AJAX | `hithean_research_list` | research-admin.php |
+| AJAX | `hithean_research_save` | research-admin.php |
+| AJAX | `hithean_research_status` | research-admin.php |
+| AJAX | `hithean_research_targets` | research-admin.php |
+| AJAX | `hithean_research_upload` | research-admin.php |
 | AJAX | `hithean_sc_extract` | sales-count.php |
 | AJAX | `hithean_sc_preview_shortcode` | sales-count.php |
 | AJAX công khai | `hithean_atc_popup` | add-to-cart-popup.php |
@@ -34,6 +45,7 @@
 | admin-post công khai | `hithean_sc_capture` | sales-count.php |
 | cron | `hithean_proof_cache_refresh` | proof-embed-cache.php |
 | cron | `hithean_proof_cache_sweep` | proof-embed-cache.php |
+| shortcode | `[hithean_research]` | research-public.php |
 | shortcode | `[hithean_sales_count]` | sales-count.php |
 | shortcode | `[product_nutrition_label]` | product-nutrition-label.php |
 | taxonomy | `bo-suu-tap` | recipe-post-type.php |
@@ -50,6 +62,8 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_ecom_card_after_info` | product-page.php |
 | `hithean_ecom_modal_after_desc` | product-page.php |
 | `hithean_proof_cache_ttl` | proof-embed-cache.php |
+| `hithean_research_ai_config` | research-ai.php |
+| `hithean_research_purged` | research-core.php |
 | `hithean_sc_ai_config` | sales-count-admin.php |
 | `woocommerce_add_to_cart_fragments` | add-to-cart-popup.php |
 | `woocommerce_cart_item_name` | add-to-cart-popup.php |
@@ -59,7 +73,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`add_option_hithean_oos_loop_rules` · `admin_enqueue_scripts` ×2 · `admin_footer` · `admin_head` · `admin_init` ×3 · `admin_menu` ×2 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×2 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `shortcode_atts_products` ×2 · `template_redirect` · `theme_ai_feature_registry` · `update_option_hithean_oos_loop_mode` · `update_option_hithean_oos_loop_rules` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_before_shop_loop_item_title` · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_post_class` · `woocommerce_product_tabs` ×3 · `woocommerce_related_products` · `woocommerce_shortcode_products_query` · `woocommerce_shortcode_products_query_results` · `woocommerce_single_product_summary` ×2 · `wp_enqueue_scripts` ×7 · `wp_footer` ×7 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
+`add_meta_boxes_product` · `add_option_hithean_oos_loop_rules` · `admin_enqueue_scripts` ×3 · `admin_footer` · `admin_head` · `admin_init` ×4 · `admin_menu` ×3 · `admin_notices` · `all_admin_notices` · `body_class` ×2 · `edit_form_after_title` · `hithean_after_product_chat_cta` · `hithean_before_product_chat_ctas` ×3 · `hithean_ecom_buy_button_inner` · `hithean_ecom_modal_after_desc` · `hithean_proof_cache_refresh` · `hithean_proof_cache_sweep` · `init` ×5 · `ivar_shortcodes_guide` · `mb_relationships_init` · `post_row_actions` · `posts_clauses` · `pre_option_woocommerce_cart_redirect_after_add` · `product_cat_edit_form_fields` · `rwmb_meta_boxes` ×4 · `save_post_product` ×2 · `shortcode_atts_products` ×2 · `template_redirect` · `theme_ai_feature_registry` · `update_option_hithean_oos_loop_mode` · `update_option_hithean_oos_loop_rules` · `woocommerce_add_to_cart` · `woocommerce_add_to_cart_fragments` · `woocommerce_add_to_cart_redirect` · `woocommerce_after_shop_loop` · `woocommerce_after_shop_loop_item` ×2 · `woocommerce_after_shop_loop_item_title` ×6 · `woocommerce_after_single_product_summary` · `woocommerce_archive_description` · `woocommerce_before_add_to_cart_button` ×2 · `woocommerce_before_shop_loop_item_title` · `woocommerce_get_price_html` ×2 · `woocommerce_loop_add_to_cart_args` · `woocommerce_loop_add_to_cart_link` · `woocommerce_post_class` · `woocommerce_product_tabs` ×3 · `woocommerce_related_products` · `woocommerce_shortcode_products_query` · `woocommerce_shortcode_products_query_results` · `woocommerce_single_product_summary` ×3 · `wp_enqueue_scripts` ×8 · `wp_footer` ×8 · `wp_get_attachment_image_attributes` · `wp_head` ×3 · `⟨"created_{$tax}"⟩` · `⟨"edited_{$tax}"⟩` · `⟨"{$tax}_add_form_fields"⟩` · `⟨"{$tax}_edit_form_fields"⟩`
 
 ## File
 
@@ -309,6 +323,125 @@ Server-side cache for the IVAR proof widgets (Kiểm nghiệm + Hồ sơ pháp l
 | `recipe_post_type()` | — |
 | `recipe_post_meta_boxes($meta_boxes)` | — |
 | `register_bo_suu_tap_taxonomy()` | — |
+
+### `woocommerce/products/research/research-admin.php`
+
+Hồ sơ khoa học — quản trị: Sản phẩm → Hồ sơ khoa học (bảng Kanban), metabox SP, danh sách ở màn sửa danh mục, AJAX.
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_research_can_publish()` | — |
+| `hithean_research_board_url(int $id = 0)` | — |
+| `hithean_research_admin_config()` | — |
+| `hithean_research_render_board()` | — |
+| `hithean_research_ajax_guard(string $cap = 'edit_products')` | Kiểm nonce + quyền; lỗi → JSON 403. |
+| `hithean_research_ajax_payload()` | Payload JSON gửi dạng base64 trong trường `payload`. |
+| `hithean_research_ajax_id()` | — |
+| `hithean_research_send_wp_error(WP_Error $error)` | — |
+| `hithean_research_board_card(array $row, array $link_counts)` | Thẻ gọn cho bảng Kanban. |
+| `hithean_research_target_label(string $type, int $id)` | Nhãn hiển thị của một trang gắn. |
+| `hithean_research_detail(int $id)` | Chi tiết đầy đủ cho ngăn sửa. |
+| `hithean_research_send_detail(int $id, string $message = '')` | — |
+| `hithean_research_product_candidates(int $product_id)` | Các tài liệu liên quan tới SP (đã đăng hoặc chưa), kèm trạng thái ở SP: pin \| include \| exclude \| inherit. |
+| `hithean_research_product_box_html(int $product_id)` | — |
+
+### `woocommerce/products/research/research-ai.php`
+
+Hồ sơ khoa học — AI soạn tóm tắt VI/EN (feature `research_summary_ai`, Cài đặt ERP → AI).
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_research_ai_config()` | — |
+| `hithean_research_source_hash(array $row)` | Dấu của nội dung gốc: tóm tắt cũ hơn dấu này → cảnh báo "bản nháp cũ hơn nội dung". |
+| `hithean_research_ai_prompt(array $row)` | — |
+| `hithean_research_ai_parse(array $data)` | Kiểm + chuẩn hoá JSON AI trả về. |
+| `hithean_research_ai_generate(int $id)` | Sinh bản nháp tóm tắt cho một tài liệu. |
+
+### `woocommerce/products/research/research-core.php`
+
+Hồ sơ khoa học — lõi dữ liệu + dựng thẻ (dùng chung trang khách, bảng quản trị, metabox).
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_research_table()` | — |
+| `hithean_research_links_table()` | — |
+| `hithean_research_install()` | Tạo / nâng cấp bảng (gọi ở admin_init và trước mọi lần ghi). |
+| `hithean_research_statuses()` | Cột Kanban: key => [nhãn, gợi ý việc tiếp theo]. |
+| `hithean_research_types()` | — |
+| `hithean_research_evidence_levels()` | Mức bằng chứng: rank nhỏ = mạnh hơn (dùng để sắp). |
+| `hithean_research_disclaimer(string $lang, string $topic)` | Disclaimer duy nhất (nguyên văn chủ sản phẩm chốt 24/11/2026). |
+| `hithean_research_plain_text($value, int $max)` | Văn bản thuần do người dùng nhập: bỏ thẻ HTML thật (bắt đầu bằng chữ cái), GIỮ ký hiệu khoa học như "p<0.05", "n>100" (sanitize_textarea_field biến "<" thành "&lt;"). Hiển thị l… |
+| `hithean_research_normalize_summary($raw)` | Chuẩn hoá tóm tắt VI/EN về một cấu trúc: {vi:{headline,summary,points[],limits}, en:{…}, …meta}. Nhận mảng hoặc chuỗi JSON; trường lạ bị bỏ, chuỗi bị cắt độ dài. |
+| `hithean_research_summary_complete(array $summary)` | Đủ để đăng: cả VI và EN có tiêu đề + đoạn tóm tắt. |
+| `hithean_research_resolve(array $links, array $items, array $context, int $limit = HITHEAN_RESEARCH_MAX_ITEMS)` | Quyết định danh sách tài liệu hiện ở một trang. |
+| `hithean_research_bump_cache()` | Bỏ cache đọc của mọi trang (gọi sau mọi lần ghi). |
+| `hithean_research_get(int $id)` | — |
+| `hithean_research_get_many(array $ids, bool $published_only = true)` | — |
+| `hithean_research_writable_columns()` | Cột được phép ghi qua hithean_research_save(). |
+| `hithean_research_save(int $id, array $fields)` | Ghi các cột của một tài liệu — mọi đường ghi (bóc tách, sửa tay, AI, đổi trạng thái) đi qua đây. |
+| `hithean_research_upsert_identity(string $url_hash, array $fields, int $user_id)` | Tạo dòng theo url_hash, trùng thì trả dòng cũ (INSERT … ON DUPLICATE KEY UPDATE, an toàn khi dán song song). |
+| `hithean_research_delete(int $id)` | Xoá hẳn (chỉ tài liệu đã lưu trữ). |
+| `hithean_research_link_types()` | — |
+| `hithean_research_links_of(int $research_id)` | — |
+| `hithean_research_replace_includes(int $research_id, array $targets)` | Đặt danh sách trang "include" của một tài liệu (bảng quản trị). Giữ nguyên pin / exclude đã đặt ở từng SP. |
+| `hithean_research_set_link(int $research_id, string $type, int $target_id, string $mode)` | Đặt chế độ của một tài liệu tại một trang: include \| pin \| exclude \| '' (gỡ). |
+| `hithean_research_context_for_product(int $product_id)` | Ngữ cảnh của SP: chính SP + mọi danh mục (kể cả danh mục cha). |
+| `hithean_research_context_for_term(int $term_id)` | Ngữ cảnh danh mục: chính danh mục + danh mục con trực tiếp. |
+| `hithean_research_context_for_page(int $page_id)` | — |
+| `hithean_research_for_context(array $context)` | Tài liệu đã đăng của một ngữ cảnh, theo thứ tự hiển thị — 2 truy vấn, cache theo last_changed. |
+| `hithean_research_purge(array $links)` | Xoá cache các trang bị ảnh hưởng bởi những dòng gắn. Danh mục → cả trang danh mục và SP trong đó (≤ 200). Không có WP Rocket thì bỏ qua (trang không cache). |
+| `hithean_research_source_url(array $row)` | — |
+| `hithean_research_meta_line(array $row)` | Dòng "Nguồn · năm". |
+| `hithean_research_summary_html(array $summary, string $lang, string $topic)` | Khối tóm tắt một ngôn ngữ (kèm disclaimer). |
+| `hithean_research_card_html(array $row, string $mode = 'dialog')` | Thẻ tài liệu — một nơi dựng cho popup ($mode 'dialog'), slider ('slide') và xem trước admin. Tóm tắt nằm trong <template> (in sẵn vào trang → WP Rocket cache được, không gọi AJAX). |
+| `hithean_research_trigger_subtitle(array $rows)` | Dòng phụ dưới tiêu đề nút: "4 tài liệu · Tạp chí · Video". |
+| `hithean_research_trigger_html(array $rows, string $dialog_id)` | Nút mở popup. |
+| `hithean_research_dialog_html(array $rows, string $dialog_id, string $subtitle)` | Popup (native dialog) với bộ lọc theo loại. |
+| `hithean_research_slider_html(array $rows, string $dialog_id)` | Section slider "Hồ sơ khoa học liên quan". |
+
+### `woocommerce/products/research/research-extract.php`
+
+Hồ sơ khoa học — bóc tách nguồn từ link.
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_research_strlen(string $s)` | — |
+| `hithean_research_substr(string $s, int $len)` | — |
+| `hithean_research_normalize_url(string $url)` | Bỏ tham số theo dõi, fragment; host chữ thường. '' khi không phải http(s). |
+| `hithean_research_youtube_id(string $url)` | ID video YouTube (watch, youtu.be, shorts, embed, live) hoặc ''. |
+| `hithean_research_doi_from_string(string $text)` | DOI đầu tiên trong chuỗi (chữ thường, bỏ dấu câu cuối) hoặc ''. |
+| `hithean_research_is_scholar(string $url)` | — |
+| `hithean_research_scholar_target(string $url)` | Link gốc trong link Google Scholar (scholar_url?url=…) hoặc ''. |
+| `hithean_research_identity(string $url)` | Danh tính của link: khoá chống trùng + loại + DOI / video. |
+| `hithean_research_parse_date(string $value)` | Ngày bất kỳ ("2023", "2023/05/02", ISO) → Y-m-d hoặc ''. |
+| `hithean_research_clean_text(string $text)` | Bỏ thẻ HTML thật (bắt đầu bằng chữ cái) rồi giải mã entity — giữ "p<0.05" (strip_tags cắt mất đoạn sau "<"). |
+| `hithean_research_dom(string $html)` | — |
+| `hithean_research_parse_html_meta(string $html)` | Metadata từ thẻ meta (citation_*, dc.*, og:*) + JSON-LD (ScholarlyArticle / Article / NewsArticle / VideoObject). |
+| `hithean_research_extract_article_text(string $html)` | Thân bài: <article> → <main> → <body>, bỏ script/nav/…; ghép đoạn văn, cắt 20.000 ký tự. |
+| `hithean_research_parse_crossref(array $json)` | Crossref /works/{doi} → metadata. |
+| `hithean_research_parse_europepmc(array $json)` | Europe PMC search (resultType=core) → abstract + PMID. |
+| `hithean_research_guess_evidence(string $pub_type, string $title)` | Đoán mức bằng chứng từ loại bài (Europe PMC / tiêu đề). '' khi không chắc. |
+| `hithean_research_parse_oembed(array $json)` | YouTube oEmbed → tiêu đề, kênh, thumbnail. |
+| `hithean_research_parse_youtube_api(array $json)` | YouTube Data API videos.list (part=snippet) → mô tả, ngày đăng. |
+| `hithean_research_merge(array ...$parts)` | Gộp nhiều nguồn metadata: giá trị đầu tiên không rỗng thắng. |
+| `hithean_research_image_allowed(string $image, string $source_url)` | Host ảnh được phép tải về Media: i.ytimg.com hoặc cùng tên miền gốc với nguồn. |
+| `hithean_research_fetch(string $url, array $headers = [])` | GET an toàn (chặn IP nội bộ), ≤ 2 MB, ≤ 3 redirect. @return string\|WP_Error thân phản hồi. |
+| `hithean_research_fetch_json(string $url)` | — |
+| `hithean_research_ingest(string $url, int $user_id)` | Nhập một link: tạo dòng (trùng → trả dòng cũ) rồi bóc tách khi dòng mới / đang chờ nội dung. |
+| `hithean_research_extract(int $id, ?array $identity = null)` | Bóc tách metadata + nội dung cho một dòng, ghi lại, chuyển trạng thái (draft khi đủ nội dung, ngược lại needs_input). |
+| `hithean_research_sideload_thumb(string $image, string $source_url, int $research_id)` | Tải ảnh đại diện về Media (chỉ host cho phép). 0 khi không tải được. |
+
+### `woocommerce/products/research/research-public.php`
+
+Hồ sơ khoa học — trang khách: nút "Hồ sơ khoa học liên quan" + popup + slider; shortcode cho landing.
+
+| Hàm | Mô tả |
+|---|---|
+| `hithean_research_current_context()` | Ngữ cảnh tự hiện của trang đang xem (SP / danh mục) hoặc null. Trang / landing chỉ hiện qua shortcode [hithean_research] (HTML landing tự chọn chỗ đặt) — shortcode tự nạp CSS/JS. |
+| `hithean_research_current_rows()` | Tài liệu của trang hiện tại (nhớ trong request). |
+| `hithean_research_queue_dialog(string $dialog_id, array $rows, string $subtitle)` | Popup cần in ở footer: dialog_id => [rows, subtitle]. |
+| `hithean_research_enqueue()` | — |
+| `hithean_research_print_product_trigger()` | In nút ở trang SP một lần (CSS order trong research.css đặt nút ngay sau Hồ sơ pháp lý). |
 
 ### `woocommerce/products/sales-count-admin.php`
 
