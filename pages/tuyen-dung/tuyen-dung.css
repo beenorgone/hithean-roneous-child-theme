@@ -1,0 +1,104 @@
+/* Trang Tuyển dụng — hithean.com. GIỐNG HỆT bản sinh — KHÔNG SỬA TAY. Sửa ở ivarvietnam-wr-nitro-child-theme/pages/tuyen-dung/build.py rồi chạy python3 pages/tuyen-dung/build.py (ghi cả ivarvietnam lẫn hithean).
+   Mọi rule nằm dưới .hta; màu lấy từ biến --default-color-* của theme, có màu dự phòng. */
+
+.hta {
+  --j-accent: var(--default-color-green-dark, #00843d);
+  --j-accent-ink: var(--default-color-green-dark, #00843d);
+  --j-dark: var(--default-color-brown, #3b2222);
+  --j-ink: var(--default-color-brown, #3b2222);
+  --j-muted: #6b5d55;
+  --j-soft: var(--default-color-beige, #f7f6f2);
+  --j-line: rgba(59, 34, 34, .14);
+  --j-btn-bg: var(--default-color-green-dark, #00843d);
+  --j-btn-ink: #fff;
+  --j-btn-hover: #006b31;
+  --j-hero-bg: var(--default-color-beige, #f7f6f2);
+  --j-hero-ink: var(--default-color-brown, #3b2222);
+  --j-hero-muted: #6b5d55;
+  --j-hero-accent: var(--default-color-green-dark, #00843d);
+  --j-tag-hot: var(--default-color-red, #bf1f33);
+  --j-radius: 10px;
+  color: var(--j-ink); background: #fff;
+  font-family: "Be Vietnam Pro", "Be Vietnam", -apple-system, "Segoe UI", sans-serif; line-height: 1.65; }
+.hta *, .hta *::before, .hta *::after { box-sizing: border-box; }
+.hta a { text-decoration: none; }
+.hta a:focus-visible, .hta summary:focus-visible { outline: 3px solid var(--j-accent); outline-offset: 3px; }
+.hta h1, .hta h2, .hta h3 { font-family: "Oswald", "Be Vietnam Pro", sans-serif; font-weight: 500; line-height: 1.3; letter-spacing: .01em; }
+.hta-shell { width: min(1180px, calc(100% - 32px)); margin-inline: auto; }
+
+.hta-topbar { position: sticky; top: 0; z-index: 30; background: #fff; box-shadow: 0 2px 22px rgba(0, 0, 0, .06); }
+.hta-topbar .hta-shell { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 68px; }
+.hta-topbar img { display: block; width: auto; height: 44px; }
+.hta-topbar nav { display: flex; align-items: center; gap: 18px; }
+.hta-topbar nav a { color: var(--j-ink); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.hta-topbar nav a:hover { color: var(--j-accent-ink); }
+.hta-topbar nav a.hta-topbar-cta { display: inline-flex; align-items: center; min-height: 42px; padding: 8px 16px; border-radius: 6px; background: var(--j-btn-bg); color: var(--j-btn-ink); }
+.hta-topbar nav a.hta-topbar-cta:hover { background: var(--j-btn-hover); color: var(--j-btn-ink); }
+
+.hta-hero { margin-top: 20px; background: var(--j-hero-bg); color: var(--j-hero-ink); border-radius: var(--j-radius); padding: clamp(36px, 6vw, 72px) clamp(20px, 5vw, 64px); text-align: center; }
+.hta-kicker { margin: 0; font-family: "Oswald", sans-serif; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--j-hero-accent); }
+.hta-hero h1 { margin: 12px 0 16px; color: inherit; font-size: clamp(30px, 4.6vw, 52px); text-transform: uppercase; }
+.hta-hero h1 em { display: block; font-style: normal; color: var(--j-hero-accent); }
+.hta-hero p.hta-lead { max-width: 660px; margin: 0 auto; color: var(--j-hero-muted); font-size: clamp(15px, 1.4vw, 17px); }
+.hta-perks { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; margin: 22px 0 0; padding: 0; list-style: none; font-size: 14px; color: var(--j-hero-muted); }
+.hta-perks li::before { content: "✓"; color: var(--j-hero-accent); font-weight: 700; margin-right: 6px; }
+
+.hta-jobs { margin: 32px auto 28px; scroll-margin-top: 90px; }
+.hta-jobs > h2, .hta-steps h2 { margin: 0 0 16px; color: var(--j-ink); font-size: clamp(24px, 3vw, 32px); text-transform: uppercase; text-align: center; }
+.hta-tab-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.hta-tablist { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 14px; }
+.hta-tablist label { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; margin: 0; padding: 10px 20px; border: 1px solid var(--j-line); border-radius: 999px; background: #fff; color: var(--j-ink); cursor: pointer; font-family: "Oswald", sans-serif; font-size: 15px; font-weight: 500; letter-spacing: .03em; text-transform: uppercase; transition: background .2s ease, color .2s ease, border-color .2s ease; }
+.hta-tablist label:hover { border-color: var(--j-accent); }
+.hta-tablist label span { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: rgba(0, 0, 0, .08); font-size: 12px; }
+.hta-panel { display: none; }
+.hta-group-desc { max-width: 680px; margin: 0 auto 4px; text-align: center; color: var(--j-muted); font-size: 15px; }
+.hta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0 0; }
+.hta-job { display: flex; flex-direction: column; min-width: 0; padding: 26px 24px; background: #fff; border: 1px solid var(--j-line); border-radius: var(--j-radius); box-shadow: 2px 10px 16px 0 rgba(0, 0, 0, .06); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+.hta-job:hover { transform: translateY(-3px); border-color: var(--j-accent); box-shadow: 0 18px 35px rgba(0, 0, 0, .1); }
+.hta-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.hta-tag { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--j-soft); color: var(--j-muted); }
+.hta-tag.hot { background: var(--j-tag-hot); color: #fff; }
+.hta-tag.new { background: var(--j-accent); color: var(--j-btn-ink); }
+.hta-job h3.hta-job-title { margin: 0 0 4px; color: var(--j-ink); font-size: 22px; text-transform: uppercase; }
+.hta-sub { margin: 0 0 14px; color: var(--j-muted); font-size: 14px; }
+.hta-meta { display: grid; gap: 6px; margin: 0 0 14px; padding: 0; list-style: none; font-size: 14px; }
+.hta-meta b { color: var(--j-ink); }
+.hta-job details { margin-bottom: 18px; padding-top: 10px; border-top: 1px dashed var(--j-line); font-size: 14px; }
+.hta-job summary { cursor: pointer; list-style: none; color: var(--j-accent-ink); font-weight: 600; }
+.hta-job summary::-webkit-details-marker { display: none; }
+.hta-job summary::after { content: " ▾"; }
+.hta-job details[open] summary::after { content: " ▴"; }
+.hta-job h4 { margin: 14px 0 4px; color: var(--j-ink); font-family: "Oswald", sans-serif; font-size: 15px; font-weight: 500; text-transform: uppercase; }
+.hta-job ul.hta-list { margin: 0; padding-left: 18px; }
+.hta-job ul.hta-list li { margin: 3px 0; }
+.hta-cta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.hta-cta a { flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 10px 16px; border-radius: 6px; border: 1px solid var(--j-btn-bg); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--j-ink); background: #fff; transition: background .2s ease, color .2s ease; }
+.hta-cta a.hta-pri { background: var(--j-btn-bg); color: var(--j-btn-ink); }
+.hta-cta a.hta-pri:hover { background: var(--j-btn-hover); border-color: var(--j-btn-hover); color: var(--j-btn-ink); }
+.hta-cta a:not(.hta-pri):hover { background: var(--j-soft); color: var(--j-ink); }
+
+.hta-steps { margin: 0 auto 28px; padding: clamp(24px, 4vw, 40px); background: var(--j-soft); border-radius: var(--j-radius); }
+.hta-steps ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.hta-steps li { counter-increment: s; display: flex; align-items: center; gap: 10px; padding: 14px; background: #fff; border-radius: 8px; font-size: 14px; }
+.hta-steps li::before { content: counter(s); flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--j-dark); color: #fff; font-family: "Oswald", sans-serif; }
+.hta-contact { margin: 0 auto 40px; text-align: center; color: var(--j-muted); font-size: 14px; }
+.hta-contact a { color: var(--j-accent-ink); font-weight: 600; }
+
+.hta-footer { padding: 22px 0; background: var(--j-dark); color: rgba(255, 255, 255, .78); font-size: 13px; }
+.hta-footer .hta-shell { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; }
+.hta-footer a { color: #fff; font-weight: 600; }
+
+@media (max-width: 600px) {
+  .hta-topbar nav a:not(.hta-topbar-cta) { display: none; }
+  .hta-topbar img { height: 36px; }
+  .hta-grid { grid-template-columns: 1fr; }
+  .hta-job { padding: 22px 18px; }
+}
+
+/* Tab nhóm việc (CSS thuần, không JS) */
+#hta-tab-live:checked ~ .hta-panels [data-group="live"] { display: block; }
+#hta-tab-live:checked ~ .hta-tablist label[for="hta-tab-live"] { background: var(--j-btn-bg); border-color: var(--j-btn-bg); color: var(--j-btn-ink); }
+#hta-tab-live:focus-visible ~ .hta-tablist label[for="hta-tab-live"] { outline: 3px solid var(--j-accent); outline-offset: 3px; }
+#hta-tab-sx:checked ~ .hta-panels [data-group="sx"] { display: block; }
+#hta-tab-sx:checked ~ .hta-tablist label[for="hta-tab-sx"] { background: var(--j-btn-bg); border-color: var(--j-btn-bg); color: var(--j-btn-ink); }
+#hta-tab-sx:focus-visible ~ .hta-tablist label[for="hta-tab-sx"] { outline: 3px solid var(--j-accent); outline-offset: 3px; }
