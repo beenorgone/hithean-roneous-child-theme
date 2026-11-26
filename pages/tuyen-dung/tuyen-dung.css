@@ -1,4 +1,4 @@
-/* Trang Tuyển dụng — hithean.com. GIỐNG HỆT bản sinh — KHÔNG SỬA TAY. Sửa ở ivarvietnam-wr-nitro-child-theme/pages/tuyen-dung/build.py rồi chạy python3 pages/tuyen-dung/build.py (ghi cả ivarvietnam lẫn hithean).
+/* Trang Tuyển dụng — hithean.com. FILE SINH — KHÔNG SỬA TAY. Nội dung: ivarvietnam-wr-nitro-child-theme/pages/tuyen-dung/content.json (app soạn: python3 pages/tuyen-dung/editor.py); giao diện: build.py cùng thư mục.
    Mọi rule nằm dưới .hta; màu lấy từ biến --default-color-* của theme, có màu dự phòng. */
 
 .hta {
