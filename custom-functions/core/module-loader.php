@@ -75,6 +75,8 @@ $general_includes = [
     'custom-functions/woocommerce/products/product-navigation-settings.php',
     // Widget QC / Hồ sơ pháp lý của IVAR: cache HTML phía server, in sẵn vào trang.
     'custom-functions/woocommerce/products/proof-embed-cache.php',
+    // Landing Tuyển dụng: nội dung soạn ở ERP ivarvietnam, lấy về + giữ bản tốt cuối ([ivar_tuyen_dung], REST làm mới).
+    'custom-functions/integrations/ivar-recruitment.php',
     'custom-functions/core/company-info-settings.php',
     'custom-functions/admin/blogpost-metabox.php',
     'custom-functions/woocommerce/products/product-metabox.php',

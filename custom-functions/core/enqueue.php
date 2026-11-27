@@ -76,15 +76,7 @@ if (!function_exists('roneous_child_enqueue_styles')) {
             }
         }
 
-        // Landing Tuyển dụng — pages/tuyen-dung/ sinh từ ivarvietnam .../pages/tuyen-dung/build.py
-        if (is_page('tuyen-dung')) {
-            wp_enqueue_style(
-                'hithean-tuyen-dung-style',
-                get_stylesheet_directory_uri() . '/pages/tuyen-dung/tuyen-dung.css',
-                array('hithean-custom-style'),
-                filemtime(get_stylesheet_directory() . '/pages/tuyen-dung/tuyen-dung.css')
-            );
-        }
+        // Landing Tuyển dụng: CSS in nội tuyến cùng nội dung lấy từ IVAR (integrations/ivar-recruitment.php).
 
         if (function_exists('is_cart') && is_cart()) {
             wp_enqueue_style(
