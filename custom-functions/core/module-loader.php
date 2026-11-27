@@ -599,6 +599,9 @@ function tpc_loader_modules()
             'id' => 'company_info',
             'file' => 'custom-functions/shortcodes/shortcode-company-info.php',
             'shortcodes' => ['company_info'],
+            // Landing tuyển dụng: [company_info] nằm trong HTML lấy từ IVAR (integrations/ivar-recruitment.php),
+            // không có trong post_content / file landing nên dò shortcode không thấy.
+            'paths' => ['/tuyen-dung'],
         ],
     ];
 
