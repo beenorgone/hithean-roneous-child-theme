@@ -109,6 +109,10 @@ $general_includes = [
     'custom-functions/woocommerce/orders/warehouse-export-workflow.php',
     'custom-functions/woocommerce/orders/order-creator/create-order-for-customer.php', // Trang /tao-don/ — tạo đơn hộ khách
 
+    // Checkout validation must also load for wc-ajax=checkout (before the wp hook).
+    'custom-functions/woocommerce/checkout/checkout-blocklist-policy.php',
+    'custom-functions/woocommerce/checkout/checkout-blocklist.php',
+
     // checkout-page.php → conditional (tpc_loader_modules)
     'custom-functions/woocommerce/orders/order-age-lock.php', // khóa đổi trạng thái đơn tạo >365 ngày (người dùng không phải admin + mọi tiến trình tự động)
     'custom-functions/woocommerce/orders/order-payment-status-guard.php', // payment confirmation before manual delivery/completion

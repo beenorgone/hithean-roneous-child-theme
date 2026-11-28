@@ -4,7 +4,7 @@
 
 > Checkout: TK nhận tiền (BACS + eim), trang thanh toán, trang cảm ơn, xác nhận chuyển khoản / chờ thanh toán.
 
-5 file · ~2.600 dòng · 59 hàm (17% có docblock)
+7 file · ~2.600 dòng · 63 hàm (22% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -29,7 +29,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`woocommerce_bacs_accounts` ×2 · `woocommerce_before_checkout_form` · `woocommerce_email_after_order_table` · `woocommerce_email_before_order_table` · `woocommerce_thankyou_bacs`
+`woocommerce_after_checkout_validation` · `woocommerce_bacs_accounts` ×2 · `woocommerce_before_checkout_form` · `woocommerce_email_after_order_table` · `woocommerce_email_before_order_table` · `woocommerce_thankyou_bacs`
 
 ## File
 
@@ -42,6 +42,24 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `hithean_payment_transfer_content($order_id)` | Nội dung chuyển khoản của 1 đơn: tiền tố cấu hình ở eim (Cài đặt → Kế toán → QR chuyển khoản, vd "TKPHTA" = tài khoản ảo HTA của ACB) + mã đơn hiển thị cho khách (calculate_sepa… |
 | `hithean_payment_qr_url(?array $account, float $amount, string $des)` | Link ảnh QR chuyển khoản; '' khi không có TK hoặc eim tắt. |
 | `hithean_payment_bank_accounts(array $keep = [])` | Nhãn TK cho dropdown "Tài khoản nhận" (metabox, trang tạo đơn, form xác nhận). $keep: giá trị đơn đang lưu — luôn giữ trong danh sách để lưu lại đơn cũ không xoá mất TK đã bỏ kh… |
+
+### `woocommerce/checkout/checkout-blocklist-policy.php`
+
+Site-owned checkout blocklist; canonical local phone digits and lowercase emails.
+
+| Hàm | Mô tả |
+|---|---|
+| `child_theme_checkout_blocklist_policy()` | Return the identities blocked from placing customer checkout orders on this site. |
+
+### `woocommerce/checkout/checkout-blocklist.php`
+
+Reject blocked customer identities before Classic Checkout creates an order. GIỐNG HỆT hithean ↔ theanmarket; edit in hithean and copy with tests/checkout-blocklist.php. Site-ow…
+
+| Hàm | Mô tả |
+|---|---|
+| `child_theme_checkout_phone_key($phone)` | Normalize a Vietnamese phone number for exact blocklist matching. |
+| `child_theme_checkout_blocked_fields(array $data)` | Return blocked billing field names; either identity independently prevents checkout. |
+| `child_theme_checkout_validate_blocklist($data, $errors)` | Add checkout validation errors before WooCommerce creates an order or attempts payment. |
 
 ### `woocommerce/checkout/checkout-page.php`
 

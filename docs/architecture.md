@@ -67,6 +67,7 @@ Viết tay, máy kiểm (`docs-sync --check`): mọi `paths` / `tpc_loader_path_
 | `/protein-calculator/`, `/tien-ich/protein-calculator/` | nhóm `protein` | Tính protein |
 | `/an-new-chapter/`, `/an-new-chapter-b2b/`, `/an-new-chapter-b2b-organic/`, `/an-new-chapter-affiliate/` | nhóm `protein`, `anc_landing` (+ `anc_new_partner_offer` ở `/an-new-chapter-b2b/`) | Landing ANC (`pages/{slug}/`) |
 | `/doi-tac-yeast-hero/` | nhóm `anc_landing` | Landing đối tác Yeast Hero |
+| `/tuyen-dung/` | `integrations/ivar-recruitment.php` (luôn nạp) | Landing tuyển dụng lấy từ ERP IVAR qua REST |
 <!-- /ROUTES -->
 
 ## 4. Tầng
@@ -78,10 +79,10 @@ Viết tay, máy kiểm (`docs-sync --check`): mọi `paths` / `tpc_loader_path_
 | `admin/` | 4 | ~800 |
 | `auth/` | 4 | ~500 |
 | `core/` | 20 | ~4.600 |
-| `integrations/` | 3 | 90 |
+| `integrations/` | 4 | ~200 |
 | `marketing/` | 24 | ~5.900 |
 | `shortcodes/` | 27 | ~16.800 |
-| `woocommerce/checkout/` | 5 | ~2.600 |
+| `woocommerce/checkout/` | 7 | ~2.600 |
 | `woocommerce/orders/` | 39 | ~15.900 |
 | `woocommerce/products/` | 23 | ~10.500 |
 <!-- /AUTO:layers -->

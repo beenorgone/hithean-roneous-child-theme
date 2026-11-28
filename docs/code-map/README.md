@@ -12,12 +12,12 @@ Cột *docblock* thấp = khu khó đọc với người mới và với AI: vi�
 | [`auth`](auth.md) | 4 | ~500 | 7 | 14% | Đăng nhập OTP email / SMS Firebase, email lỗi, email tác vụ. |
 | [`bootstrap`](bootstrap.md) | 2 | ~700 | 12 | 8% | Điểm vào: bootstrap.php chỉ require core/* rồi core/module-loader.php; shortcode-social-display.php (social fan/marquee… |
 | [`core`](core.md) | 20 | ~4.600 | 143 | 38% | Hạ tầng theme: module loader (what-loads-when), nạp theo màn admin, template router, enqueue, guard upload/file/CSP, AI… |
-| [`integrations`](integrations.md) | 3 | 90 | 2 | 0% | Adapter ngoài theme: MCP liên site (mcp-site-link), hóa đơn eim (shipper / mã vận đơn / meta xuất kho), GHTK. |
+| [`integrations`](integrations.md) | 4 | ~200 | 5 | 40% | Adapter ngoài theme: MCP liên site (mcp-site-link), hóa đơn eim (shipper / mã vận đơn / meta xuất kho), GHTK. |
 | [`marketing`](marketing.md) | 6 | ~1.600 | 105 | 20% | Marketing: popup, thanh menu đáy + "Ưu đãi của tôi", vòng quay may mắn, CRO landing agent (chạy theo lịch). |
 | [`marketing/lucky-wheel`](marketing-lucky-wheel.md) | 3 | ~2.000 | 79 | 3% | Vòng quay may mắn: cài đặt, widget, dọn mã. |
 | [`marketing/offers`](marketing-offers.md) | 15 | ~2.300 | 119 | 60% | Trang ưu đãi /uu-dai/: lưu trữ, bóc tách AI, thẻ ưu đãi, structured data, worker nền. |
 | [`shortcodes`](shortcodes.md) | 27 | ~16.800 | 294 | 33% | Shortcode: xuất kho / hoàn hàng / đơn đã giao, so sánh SP (+AI), protein calculator, landing ANC, thông tin công ty, nh… |
-| [`woocommerce/checkout`](woocommerce-checkout.md) | 5 | ~2.600 | 59 | 17% | Checkout: TK nhận tiền (BACS + eim), trang thanh toán, trang cảm ơn, xác nhận chuyển khoản / chờ thanh toán. |
+| [`woocommerce/checkout`](woocommerce-checkout.md) | 7 | ~2.600 | 63 | 22% | Checkout: TK nhận tiền (BACS + eim), trang thanh toán, trang cảm ơn, xác nhận chuyển khoản / chờ thanh toán. |
 | [`woocommerce/orders`](woocommerce-orders.md) | 37 | ~11.400 | 427 | 63% | Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HP… |
 | [`woocommerce/orders/order-creator`](woocommerce-orders-order-creator.md) | 2 | ~4.600 | 102 | 59% | Trang Tạo đơn hộ khách /tao-don/. |
 | [`woocommerce/products`](woocommerce-products.md) | 23 | ~10.500 | 294 | 44% | Sản phẩm: trang SP, mua hàng, lượt bán, tab, taxonomy, nhãn dinh dưỡng, popup giỏ hàng, nhúng hồ sơ IVAR. |
