@@ -26,6 +26,8 @@ foreach ([true, false] as $hpos) {
             $board[$range][$tab] = 'SELECT DISTINCT o.' . thean_ops_step_tables()['id'] . ' ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql($tab, $range) . ' ORDER BY o.' . thean_ops_step_tables()['id'];
         }
     }
+    $issue_sql = 'SELECT DISTINCT o.' . thean_ops_step_tables()['id'] . ' ' . thean_ous_board_sql('all') . ' AND ' . thean_ous_board_tab_sql('issue', 'all');
+    $issue_groups_sql = 'SELECT ' . thean_issue_group_sql() . ' AS incident_group, COUNT(DISTINCT o.' . thean_ops_step_tables()['id'] . ') AS n ' . thean_ous_board_sql('all') . ' AND ' . thean_ous_board_tab_sql('issue', 'all') . ' GROUP BY incident_group';
     $memberships = [];
     foreach (['auto','7','30','90','120','180','270','360','all'] as $range) {
         $wpdb->queries = [];
@@ -37,7 +39,7 @@ foreach ([true, false] as $hpos) {
         $timestamp = strtotime($instant);
         $year_cases[] = ['now' => $timestamp, 'sql' => thean_ous_range_sql('year', 'o', null, $timestamp)];
     }
-    $out[] = ['hpos' => $hpos, 'queries' => $rows, 'board' => $board, 'memberships' => $memberships, 'now' => time(), 'year_cases' => $year_cases];
+    $out[] = ['hpos' => $hpos, 'queries' => $rows, 'board' => $board, 'memberships' => $memberships, 'issue_sql' => $issue_sql, 'issue_groups_sql' => $issue_groups_sql, 'now' => time(), 'year_cases' => $year_cases];
 }
 echo json_encode($out);
 '''
@@ -135,7 +137,7 @@ for scope in scopes:
             assert got == want, (hpos, range_name, tab, got, want, sql)
             checks += 1
     for range_name, sql in scope['memberships'].items():
-        got = {oid: (step, bool(proof)) for oid, step, cod, proof, internal in db.execute(sql)}
+        got = {oid: (step, bool(proof)) for oid, step, cod, proof, incidents, internal in db.execute(sql)}
         eligible = expected.get(range_name, [1, 2, 4, 5, 8, 9])
         proof_ids = {'auto': [8, 9], '7': [8], '30': [8, 9],
                      '90': [4, 7, 8, 9, 11], 'all': [4, 7, 8, 9, 11]}.get(range_name, [4, 7, 8, 9, 11])
@@ -165,5 +167,16 @@ for scope in scopes:
     got = [row[0] for row in db.execute(scope['board']['all']['cod'])]
     assert got == [23, 24], (hpos, got)
     checks += 1
+    # Incidents are a parallel queue: active picking/shipping rows retain their original step.
+    db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (1, '_thean_incidents_open', '1'))
+    db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (1, '_thean_incidents_group', 'order_overdue'))
+    db.execute(f'INSERT INTO {meta} VALUES (?,?,?)', (8, '_thean_delivery_issue', '1'))
+    issue_ids = {row[0] for row in db.execute(scope['issue_sql'])}
+    assert issue_ids == {1, 8}, (hpos, 'parallel incidents', issue_ids)
+    membership_rows = list(db.execute(scope['memberships']['all']))
+    assert all(bool(incidents) == (oid in {1, 8}) for oid, step, cod, proof, incidents, internal in membership_rows)
+    group_counts = dict(db.execute(scope['issue_groups_sql']))
+    assert group_counts == {'order_overdue': 1, 'delivery': 1}, (hpos, group_counts)
+    checks += 3
     db.close()
 print(f'OK ({checks} executed SQL checks)')

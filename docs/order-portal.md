@@ -86,3 +86,7 @@ the Woo fallback, board reads and all popups on each site. Review Query Monitor
 on the new document and its AJAX reads separately: the document no longer runs
 the admin lifecycle, but the existing AJAX endpoints still use WordPress admin
 bootstrap. Record actual server timings before claiming a production speedup.
+
+## Sự cố đơn hàng
+
+Nhãn, popup xử lý, bộ lọc và quy tắc chặn dùng hệ thống [Sự cố đơn hàng](order-incidents.md). Dữ liệu dùng meta đơn hiện có, không thêm bảng.

@@ -20,7 +20,6 @@ function thean_register_order_meta_boxes($meta_boxes)
         'Giao nhanh 1 giờ'           => 'Giao nhanh 1 giờ',
         'Giao nhanh 2 giờ'           => 'Giao nhanh 2 giờ',
         'Giao nhanh 4 giờ'           => 'Giao nhanh 4 giờ',
-        'Thiếu SP'                   => 'Thiếu SP',
         // Luồng xác nhận đơn: order-auto-tasks.php + bảng điều phối (order-workspace.php) tự gắn/gỡ.
         'Cần gọi xác nhận đơn'       => 'Cần gọi xác nhận đơn',
         'Chờ khách phản hồi'         => 'Chờ khách phản hồi',
@@ -28,6 +27,8 @@ function thean_register_order_meta_boxes($meta_boxes)
         'Cần báo hủy'                => 'Cần báo hủy',
         'Chờ thanh toán'             => 'Chờ thanh toán',
     ];
+
+    $handling_status_options += thean_issue_shortage_options();
 
     // TK nhận: WooCommerce BACS + eim (bank-accounts.php). Giữ TK đơn đang mở đã
     // lưu để bấm Lưu đơn cũ không xoá mất TK đã bỏ khỏi cấu hình.

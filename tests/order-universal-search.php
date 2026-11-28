@@ -22,6 +22,7 @@ if (!function_exists('esc_attr')) { function esc_attr($s) { return htmlspecialch
 function wp_timezone() { return new DateTimeZone('Asia/Ho_Chi_Minh'); }
 function get_user_meta() { return ''; }
 function add_filter(...$a) {}
+function is_wp_error($value) { return $value instanceof WP_Error; }
 $GLOBALS['__transients'] = [];
 function get_transient($k) { return $GLOBALS['__transients'][$k] ?? false; }
 function set_transient($k, $v, $ttl = 0) { $GLOBALS['__transients'][$k] = $v; $GLOBALS['__ttls'][$k] = $ttl; return true; }
@@ -95,6 +96,7 @@ class FakeWpdb
     public array $queries = [];
     public array $board_counts = [];
     public array $cod_counts = [];
+    public array $incident_counts = [];
     public array $board_memberships = [];
     public array $board_ids = [];
     public array $unsynced_ids = [];
@@ -114,6 +116,7 @@ class FakeWpdb
     }
     public function get_results($sql, $format) {
         $this->queries[] = $sql;
+        if (strpos($sql, ' AS incident_group') !== false) return $this->incident_counts;
         if (strpos($sql, 'SELECT (SELECT cd.meta_value') === 0) return $this->cod_counts;
         return strpos($sql, ' AS proof') !== false ? $this->board_memberships : $this->board_counts;
     }
@@ -138,10 +141,12 @@ class FakeWpdb
 }
 $GLOBALS['wpdb'] = new FakeWpdb();
 
+require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-issues-site.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-legacy-meta-sync.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-ops-step.php';
 if (!function_exists('wp_parse_url')) { function wp_parse_url($u, $c = -1) { return parse_url($u, $c); } }
 if (!function_exists('home_url')) { function home_url($p = '') { return 'https://www.example.test' . $p; } }
+require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-issues.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-universal-search.php';
 require dirname(__DIR__) . '/custom-functions/woocommerce/orders/order-vat-request.php';
 
@@ -371,7 +376,7 @@ foreach ([true, false] as $hpos) {
     $counts = thean_ous_board_counts();
     check($counts['picking'] === 25 && $counts['proof'] === 3, 'counts + proof count cached');
     thean_ous_board_counts();
-    check(count($wpdb->queries) === 4, 'second count request skips SQL (steps + proof + internal)');
+    check(count($wpdb->queries) === 5, 'second count request skips SQL (steps + COD + proof + internal + incidents)');
     $key = thean_ous_board_cache_key('counts');
     check($GLOBALS['__ttls'][$key] === 10, 'counts expire after 10 seconds');
     $wpdb->board_ids = [901, 900];
@@ -391,7 +396,7 @@ foreach ([true, false] as $hpos) {
     $wpdb->queries = [];
     thean_ous_board_counts(); thean_ous_board_counts();
     thean_ous_board_page_ids('picking', 0, 10); thean_ous_board_page_ids('picking', 0, 10);
-    check(count($wpdb->queries) === 5, 'empty counts and IDs cached');
+    check(count($wpdb->queries) === 6, 'empty counts and IDs cached');
     $key = thean_ous_board_cache_key('counts');
     $GLOBALS['__options']['thean_internal_email_domains'] = 'private.example';
     check(thean_ous_board_cache_key('counts') !== $key, 'domain settings change cache scope');
@@ -437,11 +442,11 @@ foreach ([true, false] as $hpos) {
         check($r->success && $r->data['tab'] === 'picking' && $r->data['panes'] === null && $r->data['rows'] === '', 'active-tab response without all-tab panes');
     }
     $sql = implode("\n", $wpdb->queries);
-    check(count($wpdb->queries) === 5 && strpos($sql, 'LIMIT 10 OFFSET 0') !== false && strpos($sql, "s.meta_value = 'picking'") !== false && strpos($sql, 'a.meta_value') === false, 'only counts and active-page SQL; no foreground backfill');
+    check(count($wpdb->queries) === 6 && strpos($sql, 'LIMIT 10 OFFSET 0') !== false && strpos($sql, "s.meta_value = 'picking'") !== false && strpos($sql, 'a.meta_value') === false, 'only counts and active-page SQL; no foreground backfill');
     $_POST['refresh'] = 1;
     $wpdb->queries = [];
     try { thean_ous_ajax_board(); } catch (JsonResponse $r) {}
-    check(count($wpdb->queries) === 5, 'explicit refresh bypasses server counts and IDs cache');
+    check(count($wpdb->queries) === 6, 'explicit refresh bypasses server counts and IDs cache');
     unset($_POST['refresh']);
     $wpdb->queries = []; $GLOBALS['__caps'] = [];
     try { thean_ous_ajax_board(); } catch (JsonResponse $r) { check(!$r->success, 'unauthorized board rejected'); }
@@ -485,7 +490,7 @@ foreach ([true, false] as $hpos) {
     check(thean_ous_board_cache_key('counts', '30') !== thean_ous_board_cache_key('counts', '90'), 'board range scopes counts cache');
     thean_ops_board_invalidate(); $wpdb->queries = [];
     thean_ous_board_counts('7'); thean_ous_board_counts('90');
-    check(count($wpdb->queries) === 8, 'counts for different ranges do not collide');
+    check(count($wpdb->queries) === 10, 'counts for different ranges do not collide');
     $wpdb->queries = [];
     thean_ous_board_page_ids('return', 0, 10, '7');
     thean_ous_board_page_ids('return', 0, 10, 'all');
@@ -560,11 +565,28 @@ foreach ([true, false] as $hpos) {
     $flat = array_merge($flow['main'], $flow['side']);
     check(count($flat) === count(array_unique($flat)) && !array_diff(array_keys(thean_ops_step_tabs()), $flat) && !array_diff($flat, array_keys(thean_ops_step_tabs())), 'flow covers every board tab exactly once');
     check(array_column(thean_ous_board_tabs('30'), 'key') === $flat && $tabs['confirm']['lane'] === 'main' && $tabs['confirm']['no'] === 1 && $tabs['cod']['no'] === 6 && $tabs['proof']['lane'] === 'side', 'board tabs ordered + numbered by operating flow');
-    check($tabs['confirm']['groups'][1]['count'] === 3 && $tabs['cod']['groups'][0]['count'] === 4 && count($wpdb->queries) === 4, 'group counts reuse same aggregate queries');
+    check($tabs['confirm']['groups'][1]['count'] === 3 && $tabs['cod']['groups'][0]['count'] === 4 && count($wpdb->queries) === 5, 'group counts reuse same aggregate queries');
     $wpdb->board_memberships = [['order_id' => 910, 'step' => 'payment', 'proof' => 0], ['order_id' => 911, 'step' => 'none', 'cod' => 1, 'proof' => 1]];
     check(thean_ous_board_memberships([910,911], '30') === [910 => ['confirm'], 911 => ['cod','proof']], 'row patches map raw steps to canonical tabs with proof overlap');
     $wpdb->board_counts = []; $wpdb->cod_counts = []; $wpdb->board_memberships = [];
 }
+foreach ([true, false] as $hpos) {
+    \Automattic\WooCommerce\Utilities\OrderUtil::$hpos = $hpos;
+    thean_ops_board_invalidate();
+    $wpdb->incident_counts = [['incident_group' => 'ghtk_overdue', 'n' => 2], ['incident_group' => 'order_overdue', 'n' => 1], ['incident_group' => 'manual', 'n' => 3]];
+    $tabs = array_column(thean_ous_board_tabs('all'), null, 'key');
+    check($tabs['issue']['label'] === 'Sự cố' && $tabs['issue']['count'] === 6, 'general incident queue counts primary groups once');
+    $groups = array_column($tabs['issue']['groups'], null, 'key');
+    check($groups['incident_ghtk_overdue']['count'] === 2 && $groups['incident_manual']['count'] === 3, 'incident groups expose independent totals');
+    check(thean_ous_board_in_tab(['step' => 'picking', 'incident' => true], 'issue') && thean_ous_board_in_tab(['step' => 'picking', 'incident' => true], 'picking'), 'incidents overlay the original operating step');
+    $wpdb->incident_counts = [];
+    thean_ops_board_invalidate();
+}
+$_POST['issue_filter'] = 'open';
+$incident_key = thean_ous_ids_cache_key($empty, 'all');
+thean_ops_board_invalidate();
+check(thean_ous_ids_cache_key($empty, 'all') !== $incident_key, 'incident changes invalidate filtered search ID caches');
+unset($_POST['issue_filter']);
 ob_start(); thean_ous_render_workflow_guide(); $guide = ob_get_clean();
 check(strpos($guide, 'aria-labelledby="thean-ous-workflow-title"') !== false && strpos($guide, 'Đơn chờ thanh toán trước') !== false
     && strpos($guide, 'GHTK / Viettel') !== false && strpos($guide, 'AI chỉ hỗ trợ') !== false, 'guide explains both grouped tabs and human export confirmation');

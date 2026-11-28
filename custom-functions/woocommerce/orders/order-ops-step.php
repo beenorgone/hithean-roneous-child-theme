@@ -59,7 +59,7 @@ function thean_ops_step_tabs(): array
         'export'   => 'Chưa kiểm tra ảnh xuất kho',
         'delivery' => 'Đã đóng gói, chờ giao VC',
         'shipping' => 'Đang giao',
-        'issue'    => 'Sự cố giao hàng', // cờ _thean_delivery_issue trên đơn Chờ giao VC / Đang giao (order-flow-notes.php)
+        'issue'    => 'Sự cố', // cờ _thean_delivery_issue trên đơn Chờ giao VC / Đang giao (order-flow-notes.php)
         'cod'      => 'Chờ thu COD',
         'proof'    => 'Thiếu / chưa xác nhận ảnh xuất kho', // chỉ đơn đã giao đi; có thể chồng lên bước chính
         'return'   => 'Hoàn hàng',
@@ -104,6 +104,7 @@ function thean_ops_step_tab(string $step): string
 /** Nhóm trong cùng một tab; dùng chung cho SQL, badge và UI. */
 function thean_ops_step_groups(string $tab): array
 {
+    if ($tab === 'issue') return thean_issue_groups();
     return [
         'confirm' => ['confirm' => 'Đơn chờ xác nhận', 'payment' => 'Đơn chờ thanh toán trước'],
         'cod' => ['cod_fast' => 'Đang giao nhanh / Đã giao / Hoàn thành', 'cod_delivered' => 'GHTK / Viettel — Đã giao / Hoàn thành'],

@@ -1555,6 +1555,7 @@ function thean_ow_skip_export_proof(WC_Order $order, string $reason): array
  */
 function thean_ow_apply_flow(WC_Order $order, string $flow, string $reason): array
 {
+    if ($flow === 'resume' && ($error = thean_issue_action_error($order)) !== '') return [false, $error];
     $flows = thean_ow_order_flows();
     if (!isset($flows[$flow])) return [false, 'Thao tác không hợp lệ.'];
     [$target, $need_reason, $label] = $flows[$flow];
@@ -1593,7 +1594,7 @@ function thean_ow_apply_flow(WC_Order $order, string $flow, string $reason): arr
     if ($flow === 'hold') $order->update_meta_data('_thean_ow_hold_from', $status);
     else $order->delete_meta_data('_thean_ow_hold_from');
     // WooCommerce tự trả tồn kho khi chuyển Đã hủy (wc_maybe_increase_stock_levels).
-    $order->update_status($target, $label . ($reason !== '' ? ': ' . $reason : '') . '.', true);
+    if (!$order->update_status($target, $label . ($reason !== '' ? ': ' . $reason : '') . '.', true)) return [false, 'Không đổi được trạng thái. Kiểm tra Sự cố và các điều kiện xử lý đơn.'];
     return [true, 'Đã chuyển sang: ' . wc_get_order_status_name($target)];
 }
 
@@ -1609,6 +1610,8 @@ function thean_ow_ajax(): void
     }
 
     $task = sanitize_key($_POST['task'] ?? '');
+    if (in_array($task, ['cod_confirm', 'preorder_confirm'], true) && ($_POST['result'] ?? '') === 'confirmed'
+        && ($error = thean_issue_action_error($order)) !== '') wp_send_json_error(['message' => $error]);
     switch ($task) {
         case 'render':
             // Helper tem niêm phong nằm ở edit-order-page.php (chỉ load ở màn sửa đơn).
@@ -1632,6 +1635,7 @@ function thean_ow_ajax(): void
 
         case 'set_status':
             $target = sanitize_key($_POST['status'] ?? '');
+            if (thean_issue_forward_status($target) && ($error = thean_issue_action_error($order)) !== '') wp_send_json_error(['message' => $error]);
             if (!isset(thean_ow_delivery_statuses()[$target])) wp_send_json_error(['message' => 'Trạng thái không hợp lệ.']);
             if (function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order)) {
                 wp_send_json_error(['message' => 'Đơn đã bị khóa đổi trạng thái (chỉ admin).']);
@@ -1639,7 +1643,7 @@ function thean_ow_ajax(): void
             if (function_exists('hithean_order_payment_status_error') && ($error = hithean_order_payment_status_error($order, $target)) !== '') {
                 wp_send_json_error(['message' => $error]);
             }
-            $order->update_status($target, 'Đổi trạng thái từ bảng điều phối đơn.', true);
+            if (!$order->update_status($target, 'Đổi trạng thái từ bảng điều phối đơn.', true)) wp_send_json_error(['message' => 'Không đổi được trạng thái. Kiểm tra Sự cố và các điều kiện xử lý đơn.']);
             wp_send_json_success(['message' => 'Đã chuyển sang: ' . wc_get_order_status_name($target)]);
             break;
 
@@ -1725,6 +1729,7 @@ function thean_ow_ajax(): void
                 wp_send_json_error(['message' => 'Chỉ người được chỉ định (Cài đặt ERP → Xử lý đơn) mới đổi trạng thái tùy ý.'], 403);
             }
             $target = sanitize_key($_POST['status'] ?? '');
+            if (thean_issue_forward_status($target) && ($error = thean_issue_action_error($order)) !== '') wp_send_json_error(['message' => $error]);
             if ($target === '' || !wc_is_order_status('wc-' . $target)) wp_send_json_error(['message' => 'Trạng thái không hợp lệ.']);
             if (function_exists('thean_order_status_is_locked') && thean_order_status_is_locked($order)) {
                 wp_send_json_error(['message' => 'Đơn đã bị khóa đổi trạng thái (chỉ admin).']);
@@ -1734,7 +1739,7 @@ function thean_ow_ajax(): void
             if (function_exists('hithean_order_payment_status_error') && ($error = hithean_order_payment_status_error($order, $target)) !== '') {
                 wp_send_json_error(['message' => $error]);
             }
-            $order->update_status($target, '🔁 Đổi trạng thái tùy ý (bảng điều phối)' . ($reason !== '' ? ': ' . $reason : '') . '.', true);
+            if (!$order->update_status($target, '🔁 Đổi trạng thái tùy ý (bảng điều phối)' . ($reason !== '' ? ': ' . $reason : '') . '.', true)) wp_send_json_error(['message' => 'Không đổi được trạng thái. Kiểm tra Sự cố và các điều kiện xử lý đơn.']);
             wp_send_json_success(['message' => 'Đã chuyển sang: ' . wc_get_order_status_name($target)]);
             break;
 
@@ -1771,7 +1776,7 @@ function thean_ow_ajax(): void
             thean_ow_update_list($order, 'handling_status', $add, $remove);
             // Như khách cũ ở order-auto-tasks.php: xác nhận xong chuyển "Chuẩn bị giao VC" để soạn hàng.
             if ($result === 'confirmed' && in_array($order->get_status(), ['pending', 'on-hold', 'processing'], true) && wc_is_order_status('wc-packaging')) {
-                $order->update_status('packaging', '📞 ' . $note, true);
+                if (!$order->update_status('packaging', '📞 ' . $note, true)) wp_send_json_error(['message' => 'Không xác nhận được đơn. Kiểm tra Sự cố và các điều kiện xử lý đơn.']);
             } else {
                 $order->add_order_note('📞 ' . $note, false, true);
             }

@@ -637,6 +637,7 @@ function thean_ous_find_order_ids(array $f, int $cap = THEAN_OUS_CAP, string $ra
         $where[] = "{$st_col} IN ('" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), $f['statuses'])) . "')";
     }
 
+    $where[] = thean_issue_filter_sql();
     $window = thean_ous_range_sql($range);
     $exact = $range === 'auto' ? thean_ous_candidate_ids($f['id'] !== '' ? $f['id'] : $f['text']) : [];
     $where[] = $exact ? '(' . $window . " OR o.{$id_col} IN (" . implode(',', $exact) . '))' : $window;
@@ -656,7 +657,8 @@ function thean_ous_orders_version(): string
 function thean_ous_ids_cache_key(array $f, string $range = 'auto'): string
 {
     unset($f['errors']);
-    return 'thean_ous_' . md5(wp_json_encode([$f, thean_ous_range($range), 'date-window-v1', gmdate('Y-m-d-H-i'), thean_ous_hpos_enabled(), thean_ous_orders_version()]));
+    $incident_filter = thean_issue_filter();
+    return 'thean_ous_' . md5(wp_json_encode([$f, $incident_filter, $incident_filter !== '' ? get_option('thean_ops_board_revision', '0') : '', thean_ous_range($range), 'date-window-v1', gmdate('Y-m-d-H-i'), thean_ous_hpos_enabled(), thean_ous_orders_version()]));
 }
 
 /** Còn bị khóa tìm kiếm bao nhiêu giây (0 = không). */
@@ -1074,10 +1076,12 @@ function thean_ous_ship_code_short(string $code): string
     return preg_match('/^S\d+\..*\.(\d+)$/i', $code, $m) ? $m[1] : $code;
 }
 
-function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?array $orders = null, array $flows = []): string
+function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?array $orders = null, array $flows = [], $incident_result = null): string
 {
+    $orders = $orders ?? thean_ous_load_orders($ids);
+    $incident_result = $incident_result ?? thean_issue_sync($orders);
     ob_start();
-    foreach ($orders ?? thean_ous_load_orders($ids) as $order) {
+    foreach ($orders as $order) {
         $id = $order->get_id();
         // Bước tiếp theo (board đã tính sẵn thì dùng gợi ý của board).
         $flow = $flows[$id] ?? (function_exists('thean_ops_step_compute') ? thean_ops_step_compute($order) : ['step' => '', 'hint' => '', 'proof' => false]);
@@ -1094,7 +1098,7 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?ar
         $phone   = $order->get_billing_phone() ?: $order->get_shipping_phone();
         $address = thean_ous_address_line($order);
         ?>
-        <tr data-order-id="<?php echo esc_attr($id); ?>" data-ops-step="<?php echo esc_attr($flow['step']); ?>" data-ops-cod="<?php echo esc_attr($flow['cod'] ?? ''); ?>" tabindex="0">
+        <tr data-order-id="<?php echo esc_attr($id); ?>" data-ops-step="<?php echo esc_attr($flow['step']); ?>" data-ops-cod="<?php echo esc_attr($flow['cod'] ?? ''); ?>" data-incident-group="<?php $incident_group = thean_issue_view_group(thean_issue_all($order)); echo esc_attr($incident_group !== '' ? 'incident_' . $incident_group : ''); ?>" tabindex="0">
             <td class="thean-ous__c-check"><label><input type="checkbox" data-thean-ous-check value="<?php echo esc_attr($id); ?>" aria-label="Chọn đơn #<?php echo esc_attr($id); ?>"></label></td>
             <td class="thean-ous__c-order">
                 <div class="thean-ous__order-head">
@@ -1103,6 +1107,7 @@ function thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?ar
                 </div>
                 <small><?php echo thean_ous_highlight($order->get_order_number(), $tokens); ?> · <?php echo esc_html(thean_ous_short_date($order)); ?></small>
                 <?php echo thean_ous_step_badge($order, $flow); ?>
+                <?php echo thean_issue_button($order, is_wp_error($incident_result) ? $incident_result->get_error_message() : ''); ?>
                 <div class="thean-ous__total">
                     <?php echo wp_kses_post(wc_price($order->get_total(), ['currency' => $order->get_currency()])); ?>
                     <small><?php echo esc_html($order->get_payment_method_title()); ?></small>
@@ -1303,14 +1308,14 @@ function thean_ous_board_sql(string $range = 'auto'): string
     $excluded = "'" . implode("','", array_map(static fn($s) => esc_sql('wc-' . $s), thean_ops_excluded_statuses())) . "'";
     // Điều kiện cuối: mốc khóa đơn cũ và khoảng ngày tạo đang chọn.
     return "FROM {$t['orders']} o
-            JOIN {$t['meta']} s ON s.{$t['fk']} = o.{$t['id']} AND s.meta_key = '" . THEAN_OPS_STEP_META . "' AND (s.meta_value <> 'none' OR " . thean_ops_cod_sql($t) . ")
+            JOIN {$t['meta']} s ON s.{$t['fk']} = o.{$t['id']} AND s.meta_key = '" . THEAN_OPS_STEP_META . "' AND (s.meta_value <> 'none' OR " . thean_ops_cod_sql($t) . " OR " . thean_issue_open_sql() . ")
             WHERE o.{$t['type']} = 'shop_order'
               AND o.{$t['status']} NOT IN ('trash', 'auto-draft', 'wc-checkout-draft', 'draft')
               AND (o.{$t['status']} NOT IN ({$excluded}) OR s.meta_value IN ('return', 'proof') OR " . thean_ops_cod_sql($t) . ")
               AND (s.meta_value <> 'proof' OR " . thean_ops_cod_sql($t) . " OR " . thean_ous_proof_since_sql($t) . ")
               AND NOT EXISTS (SELECT 1 FROM {$t['meta']} x WHERE x.{$t['fk']} = o.{$t['id']} AND x.meta_key = '_spx_date' AND x.meta_value <> '')
               AND " . thean_ops_age_sql($t) . "
-              AND " . thean_ous_range_sql($range, 'o', 's.meta_value');
+              AND " . thean_ous_range_sql($range, 'o', 's.meta_value') . ' AND ' . thean_issue_filter_sql();
 }
 
 /**
@@ -1325,6 +1330,7 @@ function thean_ous_board_tab_sql(string $tab, string $range = 'auto'): string
         return thean_ops_internal_sql($t, false); // luồng ngoại lệ: đơn nội bộ ở mọi bước
     }
     $not_internal = ' AND ' . thean_ops_internal_sql($t);
+    if ($tab === 'issue') return thean_issue_open_sql() . $not_internal;
     if ($tab === 'proof') {
         return "EXISTS (SELECT 1 FROM {$t['meta']} pf WHERE pf.{$t['fk']} = o.{$t['id']} AND pf.meta_key = '" . THEAN_OPS_PROOF_META . "' AND pf.meta_value = '1')"
             . ' AND ' . thean_ous_proof_since_sql($t)
@@ -1355,6 +1361,7 @@ function thean_ous_board_in_tab(array $res, string $tab): bool
     if (!empty($res['internal']) || $tab === 'internal') {
         return $tab === 'internal' && !empty($res['internal']) && ((string) ($res['step'] ?? '') !== '' || !empty($res['cod']));
     }
+    if ($tab === 'issue') return !empty($res['incident']) || ($res['step'] ?? '') === 'issue';
     if ($tab === 'cod') {
         return !empty($res['cod']);
     }
@@ -1422,6 +1429,16 @@ function thean_ous_board_stats(string $range = 'auto'): array
     }
     if (isset($counts['internal'])) {
         $counts['internal'] = (int) $wpdb->get_var('SELECT COUNT(DISTINCT o.' . $t['id'] . ') ' . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('internal', $range));
+    }
+    $incident_rows = $wpdb->get_results('SELECT ' . thean_issue_group_sql() . ' AS incident_group, COUNT(DISTINCT o.' . $t['id'] . ') AS n '
+        . thean_ous_board_sql($range) . ' AND ' . thean_ous_board_tab_sql('issue', $range) . ' GROUP BY incident_group LIMIT ' . count(thean_issue_groups()), ARRAY_A);
+    $counts['issue'] = 0;
+    foreach (array_keys(thean_issue_groups()) as $group) $steps[$group] = 0;
+    foreach ((array) $incident_rows as $row) {
+        $group = 'incident_' . $row['incident_group'];
+        if (!array_key_exists($group, $steps)) $group = 'incident_other';
+        $steps[$group] += (int) $row['n'];
+        $counts['issue'] += (int) $row['n'];
     }
     $stats = ['counts' => $counts, 'steps' => $steps];
     set_transient($key, $stats, THEAN_OUS_BOARD_CACHE_TTL);
@@ -1493,6 +1510,7 @@ function thean_ous_board_payload(array $req): array
     $range = thean_ous_range((string) ($req['range'] ?? 'auto'));
     $started = microtime(true);
     $pending = thean_ops_step_request_backfill();
+    $pending = get_option('thean_incidents_scan_version') !== THEAN_ISSUE_SCAN_VERSION || $pending;
     // Làm mới chủ động phải bỏ cache server, kể cả khi không có đơn đổi bước.
     if (!empty($req['refresh'])) {
         thean_ops_board_invalidate();
@@ -1525,6 +1543,7 @@ function thean_ous_board_payload(array $req): array
     $queried = microtime(true);
     $orders = [];
     $fresh = thean_ops_step_sync_ids(array_merge([], ...array_values($ids_by)), $orders);
+    foreach ($orders as $id => $order) $fresh[$id]['incident'] = thean_issue_primary_group(thean_issue_all($order)) !== '';
     // Có đơn vừa đổi tab (meta cũ) → lấy lại danh sách: đơn chuyển SANG tab khác không bị kẹt ngoài trang đầu của tab đó
     // ("Xem thêm" tính tiếp theo offset nên sẽ nhảy qua nó).
     $moved = false;
@@ -1549,13 +1568,16 @@ function thean_ous_board_payload(array $req): array
         $fresh += thean_ops_step_sync_ids(array_values($new), $new_orders);
         $orders += $new_orders;
     }
+    $incident_result = thean_issue_sync(array_values($orders));
+    foreach ($orders as $id => $order) $fresh[$id]['incident'] = thean_issue_primary_group(thean_issue_all($order)) !== '';
     $show_by = [];
     $hints   = [];
     $recount = false;
     foreach ($ids_by as $t => $ids) {
         $show_by[$t] = [];
         foreach ($ids as $id) {
-            if (isset($fresh[$id]) && thean_ous_board_in_tab($fresh[$id], $t)) {
+            if (isset($fresh[$id]) && thean_ous_board_in_tab($fresh[$id], $t)
+                && (is_wp_error($incident_result) || thean_issue_matches_filter($orders[$id]))) {
                 $show_by[$t][] = $id;
                 $hints[$id]    = $fresh[$id]['hint'];
             } else {
@@ -1563,7 +1585,7 @@ function thean_ous_board_payload(array $req): array
             }
         }
     }
-    if ($recount) {
+    if ($recount || $orders || thean_issue_filter() !== '') {
         $counts = thean_ous_board_counts($range);
     }
 
@@ -1576,7 +1598,8 @@ function thean_ous_board_payload(array $req): array
         $panes[$t] = [
             'tab'      => $t,
             'range_label' => thean_ous_range_label($range, $t),
-            'rows'     => thean_ous_render_rows($show, [], array_intersect_key($hints, array_flip($show)), array_map(static fn($id) => $orders[$id], $show), $fresh),
+            'group_hint' => $t === 'issue' ? (isset(thean_issue_types()[thean_issue_filter()]) ? 'Mỗi đơn hiện một lần theo loại đang lọc; mở Sự cố để xem tất cả.' : 'Mỗi đơn hiện một lần theo sự cố chính, ưu tiên đang chặn; mở Sự cố để xem tất cả.') : '',
+            'rows'     => thean_ous_render_rows($show, [], array_intersect_key($hints, array_flip($show)), array_map(static fn($id) => $orders[$id], $show), $fresh, $incident_result),
             'total'    => $total,
             'shown'    => $shown,
             'has_more' => $shown < $total && !empty($ids_by[$t]),
@@ -1612,7 +1635,7 @@ function thean_ous_board_memberships(array $ids, string $range): array
     }
     $t = thean_ops_step_tables();
     $rows = $wpdb->get_results("SELECT DISTINCT o.{$t['id']} AS order_id, s.meta_value AS step, ("
-        . thean_ous_board_tab_sql('cod', $range) . ') AS cod, (' . thean_ous_board_tab_sql('proof', $range) . ') AS proof, (' . thean_ous_board_tab_sql('internal', $range) . ') AS internal ' . thean_ous_board_sql($range)
+        . thean_ous_board_tab_sql('cod', $range) . ') AS cod, (' . thean_ous_board_tab_sql('proof', $range) . ') AS proof, (' . thean_ous_board_tab_sql('issue', $range) . ') AS incidents, (' . thean_ous_board_tab_sql('internal', $range) . ') AS internal ' . thean_ous_board_sql($range)
         . " AND o.{$t['id']} IN (" . implode(',', $ids) . ')', ARRAY_A);
     $out = array_fill_keys($ids, []);
     $labels = thean_ops_step_tabs();
@@ -1625,8 +1648,9 @@ function thean_ous_board_memberships(array $ids, string $range): array
             $out[$id][] = 'internal'; // đơn nội bộ chỉ thuộc tab Đơn nội bộ
             continue;
         }
+        if (!empty($row['incidents'])) $out[$id][] = 'issue';
         $tab = thean_ops_step_tab($row['step']);
-        if (isset($labels[$tab]) && !in_array($tab, ['proof', 'cod'], true)) {
+        if (isset($labels[$tab]) && !in_array($tab, ['proof', 'cod', 'issue'], true)) {
             $out[$id][] = $tab;
         }
         if (!empty($row['cod']) && !in_array('cod', $out[$id], true)) {
@@ -1660,6 +1684,8 @@ function thean_ous_ajax_rows(): void
     $flows = thean_ops_step_sync_ids($ids, $orders);
     // Mutation request đã hoàn tất cả shutdown trước khi UI gọi endpoint này.
     thean_ops_board_invalidate();
+    $incident_result = thean_issue_sync(array_values($orders));
+    if (is_wp_error($incident_result)) wp_send_json_error(['message' => $incident_result->get_error_message()], 503);
     $memberships = thean_ous_board_memberships($ids, $range);
     $matches = $valid_query ? thean_ous_find_order_ids($filters, count($ids), $range, $ids) : [];
     $patches = [];
@@ -1669,9 +1695,9 @@ function thean_ous_ajax_rows(): void
         $patches[] = [
             'id' => $id,
             'tabs' => $memberships[$id] ?? [],
-            'rows' => $order ? thean_ous_render_rows([$id], [], [], [$order], $flows) : '',
+            'rows' => $order ? thean_ous_render_rows([$id], [], [], [$order], $flows, $incident_result) : '',
             'search_match' => (bool) $match,
-            'search_rows' => $match ? thean_ous_render_rows([$id], thean_ous_highlight_tokens($filters), [], [$order], $flows) : '',
+            'search_rows' => $match ? thean_ous_render_rows([$id], thean_ous_highlight_tokens($filters), [], [$order], $flows, $incident_result) : '',
         ];
     }
     $tabs = thean_ous_board_tabs($range);
@@ -1682,6 +1708,7 @@ function thean_ous_ajax_rows(): void
 /** Đổi trạng thái 1 đơn (thao tác hàng loạt). Trả [thành công?, thông báo]. */
 function thean_ous_bulk_status(WC_Order $order, string $status, string $note): array
 {
+    if (thean_issue_forward_status($status) && ($error = thean_issue_action_error($order)) !== '') return [false, $error];
     if ($status === '' || !wc_is_order_status('wc-' . $status)) {
         return [false, 'Trạng thái không hợp lệ.'];
     }
@@ -1694,7 +1721,7 @@ function thean_ous_bulk_status(WC_Order $order, string $status, string $note): a
     if (function_exists('hithean_order_payment_status_error') && ($error = hithean_order_payment_status_error($order, $status)) !== '') {
         return [false, $error];
     }
-    $order->update_status($status, '🔁 Đổi trạng thái hàng loạt (ô tìm đơn)' . ($note !== '' ? ': ' . $note : '') . '.', true);
+    if (!$order->update_status($status, '🔁 Đổi trạng thái hàng loạt (ô tìm đơn)' . ($note !== '' ? ': ' . $note : '') . '.', true)) return [false, 'Không đổi được trạng thái. Kiểm tra Sự cố và các điều kiện xử lý đơn.'];
     return [true, 'Đã chuyển sang: ' . wc_get_order_status_name($status)];
 }
 
@@ -1823,7 +1850,7 @@ function thean_ous_ajax_search(): void
         'has_more' => $page * $per < $total,
         'per'      => $per,
         'pages'    => max(1, (int) ceil($total / $per)),
-        'summary'  => array_merge([thean_ous_range_label($range) . ($range === 'auto' ? ' · ID/mã đơn: toàn bộ' : '')], thean_ous_filter_summary($filters)),
+        'summary'  => array_merge([thean_ous_range_label($range) . ($range === 'auto' ? ' · ID/mã đơn: toàn bộ' : '')], thean_ous_filter_summary($filters), thean_issue_filter() !== '' && get_option('thean_incidents_scan_version') !== THEAN_ISSUE_SCAN_VERSION ? ['Đang kiểm tra sự cố ở nền; kết quả có thể chưa đầy đủ.'] : []),
     ]);
 }
 
@@ -1977,7 +2004,7 @@ function thean_ous_render_workflow_guide(): void
         'export' => 'Kiểm tra ảnh, mã đơn, sản phẩm và số lượng rồi xác nhận xuất kho. AI chỉ hỗ trợ đọc ảnh; AI báo khớp và việc tải ảnh không thay cho người xác nhận.',
         'delivery' => 'Đã có ảnh và xác nhận xuất kho: chọn đơn vị vận chuyển, nhập mã vận đơn và ghi nhận bàn giao. Khách tự lấy thì bàn giao khi khách đến.',
         'shipping' => 'Theo dõi giao hàng; chỉ chuyển Đã giao khi có căn cứ khách đã nhận. Theo dõi đơn giao một phần và xử lý yêu cầu hoàn nếu có. Giao không được (không liên lạc được khách, sai địa chỉ, khách từ chối…) → bấm ⚠️ Báo sự cố (bắt buộc ghi chú) để đơn sang tab Sự cố giao hàng.',
-        'issue' => 'Đơn chờ giao / đang giao bị gắn cờ sự cố (kèm ghi chú). Liên hệ khách / ĐVVC xử lý, cập nhật ghi chú khi có tiến triển; xong thì bấm ✅ Xử lý xong sự cố để đơn quay lại luồng giao hàng, hoặc tạo yêu cầu hoàn. Đơn chuyển Đã giao / Hoàn thành / Hủy thì cờ tự gỡ.',
+        'issue' => 'Các đơn có sự cố chưa xử lý, chia nhóm theo sự cố chính (ưu tiên đang chặn). Đơn giữ nguyên bước vận hành; mọi sự cố đều hiện trong popup. Sự cố giao hàng cũ: đơn chờ giao / đang giao bị gắn cờ sự cố (kèm ghi chú). Liên hệ khách / ĐVVC xử lý, cập nhật ghi chú khi có tiến triển; xong thì bấm ✅ Xử lý xong sự cố để đơn quay lại luồng giao hàng, hoặc tạo yêu cầu hoàn. Đơn chuyển Đã giao / Hoàn thành / Hủy thì cờ tự gỡ.',
         'cod' => 'Đơn COD từ bước giao hàng trở đi chưa xác nhận thanh toán, theo dõi song song với bước xử lý. Đơn còn chờ xác nhận, lấy hàng hoặc kiểm tra xuất kho chưa vào tab này. Nhóm 1: COD chưa xác nhận thanh toán và có trạng thái Đang giao nhanh / Đã giao / Hoàn thành. Nhóm 2: GHTK / Viettel đã giao / hoàn thành (tách khỏi nhóm 1). GHTK / Viettel chưa giao xong không thuộc tab này. Chỉ xác nhận khi thực nhận tiền; hoàn thành đơn không phải xác nhận thu COD.',
         'proof' => 'Danh sách ngoại lệ: đơn đã giao đi (đang giao, đã giao, giao một phần, hoàn thành…) còn thiếu ảnh hoặc thiếu người xác nhận xuất kho. Bổ sung ảnh / kiểm tra và xác nhận. Một đơn có thể đồng thời ở tab theo dõi giao, COD hoặc hoàn hàng. Đơn giao nhanh chỉ mang nhãn Giao nhanh chưa được coi là đã bàn giao.',
         'return' => 'Theo dõi yêu cầu hoàn, tiếp nhận hàng thực tế, kiểm tra ảnh và số lượng rồi ghi nhận kết quả theo quyền được cấp.',
@@ -2067,6 +2094,7 @@ function thean_ous_enqueue_assets(): void
     if (!thean_ous_is_list_ui()) {
         return;
     }
+    thean_issue_enqueue();
     $dir = get_stylesheet_directory() . '/custom-functions/woocommerce/orders/assets/';
     $uri = get_stylesheet_directory_uri() . '/custom-functions/woocommerce/orders/assets/';
     wp_enqueue_style('thean-ous', $uri . 'order-universal-search.css', [], (string) @filemtime($dir . 'order-universal-search.css'));
@@ -2157,6 +2185,14 @@ function thean_ous_render_ui(): void
                 <button type="button" class="thean-ous-stf__btn" aria-haspopup="dialog" aria-expanded="false" title="Lọc đơn theo trạng thái / nhóm trạng thái (kết hợp với ô tìm; để trống ô tìm = liệt kê đơn theo trạng thái)">Trạng thái <b data-thean-ous-stf-count hidden></b> ▾</button>
                 <div class="thean-ous-stf__panel" role="dialog" aria-label="Lọc theo trạng thái" hidden></div>
             </div>
+            <select name="issue_filter" class="thean-ous-issue-filter" aria-label="Lọc sự cố">
+                <option value="">Sự cố: tất cả đơn</option>
+                <option value="open">Có sự cố chưa xử lý</option>
+                <option value="blocked">Sự cố đang chặn</option>
+                <?php foreach (thean_issue_types() as $key => $definition) : ?>
+                    <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($definition['label']); ?></option>
+                <?php endforeach; ?>
+            </select>
             <kbd>/</kbd>
             <button type="submit" class="thean-ous-bar__submit">Tìm</button>
             <button type="button" class="thean-ous-bar__board" data-thean-ous-board title="Tải đơn cần xử lý ngay trên trang, chia tab theo bước (giống bảng điều phối)">📋 <span>Tải đơn cần xử lý</span></button>

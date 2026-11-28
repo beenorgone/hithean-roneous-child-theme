@@ -101,6 +101,7 @@ $general_includes = [
     'custom-functions/woocommerce/checkout/bank-accounts.php',
     'custom-functions/woocommerce/orders/order-admin-error-solver.php',
     'custom-functions/woocommerce/orders/order-shipper.php', // nhãn đơn vị vận chuyển — nguồn duy nhất (metabox, eim, ô tìm đơn)
+    'custom-functions/woocommerce/orders/order-issues-site.php', // site field/tag adapter for the shared incidents module
     'custom-functions/woocommerce/orders/order-metabox.php',
     'custom-functions/woocommerce/orders/customer-note-templates.php',
     'custom-functions/woocommerce/orders/order-number.php',
@@ -120,6 +121,7 @@ $general_includes = [
     'custom-functions/woocommerce/orders/order-hpos-compat.php', // HPOS: link sửa đơn, bảng meta đơn, get_post_meta() trên đơn đọc từ HPOS
     'custom-functions/woocommerce/orders/order-legacy-meta-sync.php', // HPOS: post meta do code cũ ghi → HPOS + khôi phục chứng từ XK bị mất
     'custom-functions/woocommerce/orders/order-ops-step.php', // bước vận hành lưu sẵn (meta) cho board "Cần xử lý"
+    'custom-functions/woocommerce/orders/order-issues.php', // shared incidents: AJAX + cron + save policy, always loaded
     'custom-functions/woocommerce/orders/order-vat-request.php', // nhập thông tin xuất VAT (ảnh tin nhắn khách + AI) → eim / VAT chờ khớp
     'custom-functions/woocommerce/checkout/thank-you-page.php', // order admin page, thank you page, and emails can use this
     'custom-functions/auth/firebase-sms-login.php',

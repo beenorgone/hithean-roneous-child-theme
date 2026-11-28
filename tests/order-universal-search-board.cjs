@@ -15,6 +15,7 @@ function fixture() {
         Map, Date, AbortController, URL, window: {},
         rowUpdates: Promise.resolve(), rowEpoch: 0, rowScope: 0, rowPatches: new Map(), lastPatchTabs: null, activeBoardData: null, activeSearchData: null,
         overlayRows: html => html, rememberBoard() {},
+        issueSelect: { value: '' }, currentIssue: '', currentQuery: () => ctx.input.value,
         currentRange: 'auto', rangeSelect: { value: 'auto' },
         searchCtl: null, state: { q: '', page: 0, loading: false },
         timer: 0, clearTimeout() {}, cache: new Map(),

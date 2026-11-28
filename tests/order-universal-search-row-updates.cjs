@@ -54,7 +54,7 @@ function fixture() {
 }
 async function settle() { for (let i = 0; i < 14; i++) await Promise.resolve(); }
 for (const range of ['120', '180', '270', '360', 'year', 'invalid']) {
-    const linked = { URLSearchParams, location: { search: '?thean_range=' + range }, rangeSelect: { value: '' } };
+    const linked = { bar: { elements: {} }, URLSearchParams, location: { search: '?thean_range=' + range }, rangeSelect: { value: '' } };
     vm.createContext(linked);
     vm.runInContext(section("    var currentRange = 'auto';", '    var suggest ='), linked);
     check(linked.currentRange === (range === 'invalid' ? 'auto' : range) && linked.rangeSelect.value === linked.currentRange, 'shared link restores range selector: ' + range);
@@ -236,5 +236,26 @@ const get = (f, id) => f.ctx.body(f.ctx.board).querySelector(`tr[data-order-id="
     check(short.ctx.boardState.shown === 8 && get(short,80) === stableShort, 'remaining four orders appear without replacing existing rows or duplicating rescanned IDs');
     check(!short.ctx.body(short.ctx.board).querySelector('[data-ops-group-header="cod_fast"] [data-thean-ous-more]')
         && short.ctx.body(short.ctx.board).querySelector('.thean-ous__more').hidden, 'both load-more controls disappear after all eight orders are displayed');
+    const incidents = fixture();
+    const incidentTabs = (carrier, other) => [{ key: 'issue', label: 'Sự cố', count: carrier + other, groups: [
+        { key: 'incident_ghtk_overdue', label: '7 ngày GHTK chưa giao xong', count: carrier },
+        { key: 'incident_order_overdue', label: '7 ngày chưa giao xong', count: other }
+    ] }];
+    const incidentRow = (id, step, group) => gr(id, step).replace('tabindex="0"', `data-incident-group="${group}" tabindex="0"`);
+    incidents.ctx.loadBoard('issue', 1, false);
+    const ip = page('issue', [101,100], incidentTabs(1,1), 100);
+    ip.data.rows = incidentRow(101,'picking','incident_order_overdue') + incidentRow(100,'shipping','incident_ghtk_overdue');
+    incidents.requests[0].resolve(ip); await settle();
+    check(get(incidents,100).previousElementSibling.dataset.opsGroupHeader === 'incident_ghtk_overdue', 'incident flow groups by incident instead of shipping step');
+    check(get(incidents,101).previousElementSibling.dataset.opsGroupHeader === 'incident_order_overdue' && get(incidents,101).dataset.opsStep === 'picking', 'general overdue group preserves real operating step');
+    check(incidents.ctx.boardState.shown === 2, 'one row per order across incident groups');
+    const stableIncident = get(incidents,100);
+    task = incidents.ctx.refreshOrders([101]); await settle();
+    const regroup = patch(101,['issue','shipping'],incidentTabs(2,0));
+    regroup.data.orders[0].rows = incidentRow(101,'shipping','incident_ghtk_overdue');
+    incidents.requests[1].resolve(regroup); await task;
+    check(get(incidents,101).dataset.opsGroup === 'incident_ghtk_overdue' && get(incidents,100) === stableIncident, 'issue regroup updates one row and preserves unrelated node');
+    check(incidents.ctx.body(incidents.ctx.board).querySelectorAll('tr[data-order-id]').length === 2, 'regroup never duplicates an order');
+    check(!incidents.ctx.body(incidents.ctx.board).querySelector('[data-ops-group-header="incident_order_overdue"]'), 'empty incident groups disappear after regroup');
     console.log(`OK (${checks} DOM and request checks)`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

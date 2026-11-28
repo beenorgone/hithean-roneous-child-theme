@@ -7,6 +7,10 @@
     var input = bar.elements.q;
     var rangeSelect = bar.elements.range;
     var currentRange = 'auto';
+    var issueSelect = bar.elements.issue_filter;
+    var currentIssue = '';
+    try { currentIssue = new URLSearchParams(location.search).get('thean_issue') || ''; } catch (e) {}
+    if (issueSelect) { issueSelect.value = currentIssue; currentIssue = issueSelect.value; }
     try {
         var linkedRange = new URLSearchParams(location.search).get('thean_range');
         if (['auto', '7', '30', '90', '120', '180', '270', '360', 'year', 'all'].indexOf(linkedRange) !== -1) currentRange = linkedRange;
@@ -150,6 +154,7 @@
         var fd = new FormData();
         fd.append('action', action);
         fd.append('nonce', cfg.nonce);
+        fd.append('issue_filter', currentIssue);
         Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
         return fetch(cfg.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd, signal: ctl.signal })
             .then(function (r) { return r.json(); })
@@ -355,8 +360,12 @@
         }
         rows.forEach(function (row) { delete row.dataset.opsGroup; });
         groups.forEach(function (group) {
-            var members = rows.filter(function (row) { return (data.tab === 'cod' ? row.dataset.opsCod : row.dataset.opsStep) === group.key; });
+            var members = rows.filter(function (row) { return (data.tab === 'issue' ? row.dataset.incidentGroup : (data.tab === 'cod' ? row.dataset.opsCod : row.dataset.opsStep)) === group.key; });
             var header = Array.from(tbody.querySelectorAll('[data-ops-group-header]')).find(function (row) { return row.dataset.opsGroupHeader === group.key; });
+            if (data.tab === 'issue' && !group.count && !members.length) {
+                if (header) { if (anchor === header) anchor = header.nextElementSibling; header.remove(); }
+                return;
+            }
             if (!header) {
                 header = document.createElement('tr');
                 header.dataset.opsGroupHeader = group.key;
@@ -835,8 +844,8 @@
         rememberTab(data.tab);
         syncUrlTab(data.tab);
         renderTabs(data.tabs, data.tab);
-        board.querySelector('.thean-ous-modal__status').textContent = '— ' + (data.range_label || '') + ' · cập nhật ' + data.at + (data.pending ? ' · đang chờ kiểm tra phân bước ở nền' : '');
-        if (!data.total) { notice(body(board), data.pending ? 'Chưa có đơn ở bước này. Hệ thống đang chờ kiểm tra phân bước ở nền; bấm Làm mới sau ít giây.' : 'Không có đơn nào ở bước này 🎉'); return; }
+        board.querySelector('.thean-ous-modal__status').textContent = '— ' + (data.range_label || '') + ' · cập nhật ' + data.at + (data.pending ? ' · đang kiểm tra bước / sự cố ở nền' : '') + (data.group_hint ? ' · ' + data.group_hint : '');
+        if (!data.total) { notice(body(board), data.pending ? 'Chưa có đơn ở bước này. Hệ thống đang kiểm tra bước / sự cố ở nền; bấm Làm mới sau ít giây.' : 'Không có đơn nào ở bước này 🎉'); return; }
         fillTable(board, data, page);
         boardState.shown = data.shown;
         rememberBoard(data);
@@ -914,10 +923,13 @@
 
     function changeRange() {
         currentRange = rangeSelect.value;
+        currentIssue = issueSelect ? issueSelect.value : '';
         rowScope++; rowEpoch++;
         rowPatches.clear(); lastPatchTabs = null; activeBoardData = null; activeSearchData = null;
         clearTimeout(timer);
         if (searchCtl) searchCtl.abort();
+        if (boardCtl) boardCtl.abort();
+        boardCtl = null; boardState.loading = false;
         searchCtl = null;
         state.loading = false;
         state.page = 0;
@@ -927,6 +939,8 @@
             var url = new URL(location.href);
             if (currentRange === 'auto') url.searchParams.delete('thean_range');
             else url.searchParams.set('thean_range', currentRange);
+            if (currentIssue) url.searchParams.set('thean_issue', currentIssue);
+            else url.searchParams.delete('thean_issue');
             history.replaceState(history.state, '', url.toString());
         } catch (e) {}
         if (!board.hidden) loadBoard(boardState.tab || savedTab(), 1, false);
@@ -937,6 +951,7 @@
         }
     }
     if (rangeSelect) rangeSelect.addEventListener('change', changeRange);
+    if (issueSelect) issueSelect.addEventListener('change', changeRange);
 
     function openPreview(orderId) {
         preview.dataset.orderId = String(orderId);
@@ -1227,6 +1242,7 @@
         if (close) setOpen(close.closest('.thean-ous-modal'), false);
     });
     document.addEventListener('keydown', function (e) {
+        if (document.querySelector('.thean-incidents[open]')) return;
         if (e.target.closest('#thean-workspace-menu')) return; // Native dialog handles focus and Escape.
         if (guide && !guide.hidden) {
             if (e.key === 'Escape') {

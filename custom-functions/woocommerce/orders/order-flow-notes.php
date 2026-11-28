@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) exit;
  *    `thean_flow_note_templates` = [kind => string[]], sửa ở Cài đặt ERP → Xử lý đơn → "Mẫu ghi chú thao tác".
  *    Option chưa có → mẫu mặc định; đã lưu (kể cả để trống 1 loại) → dùng đúng giá trị đã lưu.
  * 2. Sự cố giao hàng: cờ `_thean_delivery_issue` = '1' (+ _note / _at / _by). Đơn đang ở bước Chờ giao VC / Đang giao mà có cờ
- *    → bước 'issue' (tab "Sự cố giao hàng", thean_ops_step_compute). Gắn cờ BẮT BUỘC ghi chú; gỡ cờ khi xử lý xong
+ *    → bước 'issue' (tab "Sự cố", nhóm "Sự cố giao hàng", thean_ops_step_compute). Gắn cờ BẮT BUỘC ghi chú; gỡ cờ khi xử lý xong
  *    (ghi chú không bắt buộc) hoặc tự gỡ khi đơn chuyển Đã giao / Hoàn thành / Hủy / Thất bại / Hoàn tiền.
  * 3. Tạo ghi chú đơn (nội bộ / gửi khách) từ ô tìm đơn, board ở danh sách đơn và /quan-ly-don (nút 📝 Ghi chú).
  * AJAX: task `delivery_issue` + `add_note` của thean_order_workspace (order-workspace.php).

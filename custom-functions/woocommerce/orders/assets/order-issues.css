@@ -1,0 +1,22 @@
+/* GIỐNG HỆT theanmarket ↔ hithean. Scoped Material incident controls. */
+.thean-incident-badge{display:inline-flex;margin:6px 0;padding:5px 9px;border:1px solid #b9cce8;border-radius:16px;background:#edf4ff;color:#0047ba;font:inherit;font-size:12px;line-height:1.5;cursor:pointer;white-space:normal;text-align:left}
+.thean-incident-badge.is-blocked{border-color:#e4a2a2;color:#9b2020;background:#fff0f0}
+.thean-incidents{box-sizing:border-box;width:min(720px,calc(100vw - 24px));max-height:90dvh;margin:auto;padding:20px;border:0;border-radius:16px;background:#fff;color:#172b4d;box-shadow:0 16px 56px #001f3f44;font:14px/1.5 system-ui,sans-serif;overflow:auto}
+.thean-incidents::backdrop{background:#001f3f88}
+.thean-incidents header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.thean-incidents h2{margin:0;font-size:21px}.thean-incidents h3{margin:0 0 8px;font-size:16px}
+.thean-incidents p{white-space:pre-wrap;overflow-wrap:anywhere}.thean-incidents-help{color:#52647a}
+.thean-incident-card,.thean-incidents-create{margin:16px 0 0;padding:16px;border:1px solid #d6dfeb;border-radius:12px}.thean-incident-card.is-blocked{border-left:4px solid #c62828}
+.thean-incidents textarea,.thean-incidents select{box-sizing:border-box;display:block;width:100%;margin:10px 0;padding:10px;border:1px solid #8c9eb5;border-radius:6px;font:inherit;background:#fff;color:inherit}
+.thean-incidents button{padding:9px 14px;border:1px solid #0047ba;border-radius:20px;background:#0047ba;color:white;font:inherit;cursor:pointer;min-height:40px}
+.thean-incidents button:disabled{opacity:.55;cursor:wait}.thean-incidents button:focus-visible,.thean-incident-badge:focus-visible{outline:3px solid #fbb917;outline-offset:2px}
+.thean-incidents-actions{display:flex;flex-wrap:wrap;gap:8px}.thean-incidents a{color:#0047ba;text-decoration:underline}
+.thean-ous-issue-filter{max-width:210px;min-height:36px;border:1px solid #a8b8ce;border-radius:6px;background:#fff;color:#001f3f;font:inherit}
+@media(max-width:600px){.thean-incidents{padding:14px}.thean-incident-card,.thean-incidents-create{padding:12px}.thean-ous-issue-filter{max-width:150px}}
+
+/* Use the board's own group variables, with specificity above its default group palette. */
+.thean-ous__table tr[data-ops-group-header="incident_ghtk_overdue"],.thean-ous__table tr[data-ops-group="incident_ghtk_overdue"]{--ous-group-accent:#e77716;--ous-group-bg:#fff0e5;--ous-group-text:#8c3b00}
+.thean-ous__table tr[data-ops-group-header="incident_order_overdue"],.thean-ous__table tr[data-ops-group="incident_order_overdue"]{--ous-group-accent:#d5a400;--ous-group-bg:#fff7dc;--ous-group-text:#725100}
+.thean-ous__table tr[data-ops-group-header="incident_nearby_orders"],.thean-ous__table tr[data-ops-group="incident_nearby_orders"]{--ous-group-accent:#686bc4;--ous-group-bg:#eef0ff;--ous-group-text:#343780}
+.thean-ous__table tr[data-ops-group-header="incident_delivery"],.thean-ous__table tr[data-ops-group="incident_delivery"]{--ous-group-accent:#c85757;--ous-group-bg:#ffeded;--ous-group-text:#8b2424}
+.thean-ous__table tr[data-ops-group-header="incident_manual"],.thean-ous__table tr[data-ops-group="incident_manual"]{--ous-group-accent:#0047ba;--ous-group-bg:#eaf4ff;--ous-group-text:#0047ba}

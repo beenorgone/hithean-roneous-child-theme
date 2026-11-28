@@ -893,6 +893,8 @@ add_action('wp_ajax_ajax_confirm_export', function () {
     $order = wc_get_order($order_id);
     if (!$order) wp_send_json_error("Không tìm thấy đơn");
 
+    if (($error = thean_issue_action_error($order)) !== '') wp_send_json_error($error);
+
     if (get_post_meta($order_id, 'export_confirmed_by', true) || $order->get_meta('export_confirmed_by')) {
         wp_send_json_error('Đơn này đã được xác nhận xuất kho.');
     }

@@ -1559,6 +1559,7 @@ function order_creator_order_is_local_delivery(WC_Order $order): bool
 
 function order_creator_customer_confirmed_cod_order(WC_Order $order): array
 {
+    if (($error = thean_issue_action_error($order)) !== '') throw new Exception($error);
     if ($order->get_payment_method() !== 'cod') {
         throw new Exception('Chỉ áp dụng cho đơn COD.');
     }
@@ -1586,7 +1587,7 @@ function order_creator_customer_confirmed_cod_order(WC_Order $order): array
     $order->update_meta_data('_order_creator_customer_confirmed_at', $confirmed_at);
     $order->update_meta_data('_order_creator_customer_confirmed_by', $user ? (int) $user->ID : 0);
     if ($previous_status !== $target_status) {
-        $order->update_status($target_status, $reason);
+        if (!$order->update_status($target_status, $reason)) throw new Exception('Không xác nhận được đơn. Kiểm tra Sự cố và các điều kiện xử lý đơn.');
     } else {
         $order->add_order_note($reason, false);
     }

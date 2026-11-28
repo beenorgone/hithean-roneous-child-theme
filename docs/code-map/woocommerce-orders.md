@@ -4,7 +4,7 @@
 
 > Đơn hàng: trạng thái, số đơn, khóa đơn cũ, bước vận hành + board "Cần xử lý", bảng điều phối, tìm đơn, /quan-ly-don, HPOS, VAT, xuất kho + Lark.
 
-37 file · ~11.400 dòng · 427 hàm (63% có docblock)
+39 file · ~12.100 dòng · 473 hàm (66% có docblock)
 
 [← Mục lục bản đồ code](README.md)
 
@@ -18,6 +18,7 @@
 | AJAX | `thean_customer_note_templates` | customer-note-templates.php |
 | AJAX | `thean_export_missing_images` | order-export-missing-images.php |
 | AJAX | `thean_order_export_review` | order-export-review.php |
+| AJAX | `thean_order_issues` | order-issues.php |
 | AJAX | `thean_order_usearch` | order-universal-search.php |
 | AJAX | `thean_order_usearch_alerts` | order-universal-search.php |
 | AJAX | `thean_order_usearch_board` | order-universal-search.php |
@@ -39,6 +40,8 @@
 | cron | `hithean_export_lark_remind_async` | warehouse-export-lark-follow-up.php |
 | cron | `thean_ops_step_backfill` | order-ops-step.php |
 | cron | `thean_ops_step_sweep` | order-ops-step.php |
+| cron | `thean_order_issues_changed` | order-issues.php |
+| cron | `thean_order_issues_scan` | order-issues.php |
 | cron | `⟨$hook⟩` | order-ops-step.php |
 | shortcode | `[bulk_change_order_status_form]` | shortcode-order-status-change.php |
 | shortcode | `[woocommerce_order_tracking]` | order-tracking.php |
@@ -52,6 +55,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 | `thean_hpos_read_private_keys` | order-hpos-compat.php |
 | `thean_legacy_meta_keys` | order-legacy-meta-sync.php |
 | `thean_ops_excluded_statuses` | order-ops-step.php |
+| `thean_order_issue_types` | order-issues.php |
 | `thean_ous_status_groups` | order-universal-search.php |
 | `woocommerce_admin_order_actions` | order-universal-search.php |
 | `woocommerce_order_tracking_form` | order-tracking.php |
@@ -60,7 +64,7 @@ Module khác móc vào đây để thêm hành vi — đổi tên là gãy im l�
 
 ## Hook khu này lắng nghe
 
-`acp/column/value` · `acp/storage_model/meta` · `add_meta_boxes` · `added_post_meta` · `admin_body_class` ×2 · `admin_enqueue_scripts` ×4 · `admin_footer` ×10 · `admin_head` ×2 · `admin_init` ×2 · `admin_menu` · `admin_notices` · `admin_print_footer_scripts` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `cron_schedules` · `current_screen` · `deleted_post_meta` ×2 · `disable_months_dropdown` · `edit_form_top` · `eim_is_internal_order` · `get_post_metadata` · `hithean_export_ai_check_async` · `hithean_export_ai_check_completed` · `hithean_export_lark_alert_async` · `hithean_export_lark_batch_async` · `hithean_export_lark_notify_async` · `hithean_export_lark_remind_async` · `hithean_warehouse_export_confirmed` · `init` ×3 · `manage_posts_extra_tablenav` · `order_edit_form_top` · `post_class` · `posts_pre_query` · `redirect_post_location` · `request` · `rwmb_field_meta` · `rwmb_meta_boxes` · `rwmb_warehouse_export_images_value` · `save_post_shop_order` · `shutdown` ×3 · `template_redirect` ×2 · `thean_ops_step_backfill` · `thean_ops_step_sweep` · `theme_ai_feature_registry` · `updated_post_meta` · `wc_order_statuses` · `woocommerce_admin_order_actions` ×4 · `woocommerce_admin_order_actions_end` · `woocommerce_admin_order_actions_start` · `woocommerce_after_order_object_save` ×2 · `woocommerce_before_order_itemmeta` · `woocommerce_before_order_object_save` ×3 · `woocommerce_hpos_pre_query` · `woocommerce_order_list_table_extra_tablenav` · `woocommerce_order_list_table_prepare_items_query_args` · `woocommerce_order_number` · `woocommerce_order_status_changed` ×2 · `woocommerce_order_status_failed` · `woocommerce_order_status_on-hold` · `woocommerce_order_status_packaging` · `woocommerce_order_status_processing` · `woocommerce_order_status_received-payment` · `woocommerce_order_status_shipping` · `woocommerce_order_statuses_that_restore_stock` · `woocommerce_process_shop_order_meta` · `woocommerce_thankyou` · `woocommerce_update_order` · `wp_enqueue_scripts` · `wp_footer` ×3 · `⟨$thean_hpc_hook⟩` · `⟨$thean_lms_hook⟩` · `⟨$thean_ops_hook⟩` ×2
+`acp/column/value` · `acp/storage_model/meta` · `add_meta_boxes` · `added_post_meta` · `admin_body_class` ×2 · `admin_enqueue_scripts` ×4 · `admin_footer` ×10 · `admin_head` ×2 · `admin_init` ×3 · `admin_menu` · `admin_notices` · `admin_print_footer_scripts` · `child_theme_lark_settings_fields` · `child_theme_lark_settings_save` · `cron_schedules` · `current_screen` · `deleted_post_meta` ×2 · `devvn_ghtk_create_order_products` · `disable_months_dropdown` · `edit_form_top` · `eim_is_internal_order` · `get_post_metadata` · `hithean_export_ai_check_async` · `hithean_export_ai_check_completed` · `hithean_export_lark_alert_async` · `hithean_export_lark_batch_async` · `hithean_export_lark_notify_async` · `hithean_export_lark_remind_async` · `hithean_warehouse_export_confirmed` · `init` ×3 · `manage_posts_extra_tablenav` · `order_edit_form_top` · `post_class` · `posts_pre_query` · `redirect_post_location` · `request` · `rwmb_field_meta` · `rwmb_meta_boxes` · `rwmb_warehouse_export_images_value` · `save_post_shop_order` · `shutdown` ×3 · `template_redirect` ×2 · `thean_ops_step_backfill` · `thean_ops_step_sweep` · `thean_order_issues_changed` · `thean_order_issues_scan` · `theme_ai_feature_registry` · `updated_post_meta` · `wc_order_statuses` · `woocommerce_admin_order_actions` ×4 · `woocommerce_admin_order_actions_end` · `woocommerce_admin_order_actions_start` · `woocommerce_after_order_object_save` ×3 · `woocommerce_before_order_itemmeta` · `woocommerce_before_order_object_save` ×4 · `woocommerce_hpos_pre_query` · `woocommerce_order_list_table_extra_tablenav` · `woocommerce_order_list_table_prepare_items_query_args` · `woocommerce_order_number` · `woocommerce_order_status_changed` ×2 · `woocommerce_order_status_failed` · `woocommerce_order_status_on-hold` · `woocommerce_order_status_packaging` · `woocommerce_order_status_processing` · `woocommerce_order_status_received-payment` · `woocommerce_order_status_shipping` · `woocommerce_order_statuses_that_restore_stock` · `woocommerce_process_shop_order_meta` · `woocommerce_thankyou` · `woocommerce_update_order` · `wp_enqueue_scripts` · `wp_footer` ×3 · `⟨$hook⟩` · `⟨$thean_hpc_hook⟩` · `⟨$thean_lms_hook⟩` · `⟨$thean_ops_hook⟩` ×2
 
 ## File
 
@@ -216,6 +220,66 @@ HPOS: helper + đọc meta đơn từ HPOS. Dùng chung theanmarket + hithean (f
 | `thean_order_create_customer(WC_Order $order)` | Tạo tài khoản khách theo thông tin đặt / giao của đơn. WP_User \| WP_Error. |
 | `thean_not_internal_apply(WC_Order $order, array $opts)` | Áp "Không phải nội bộ". $opts: remove_email (bool), new_email (string), customer (bool), note (string). Trả [ok, message]. |
 | `thean_not_internal_button(WC_Order $order)` | Nút "🙅 Không phải nội bộ" (popup kind notinternal). |
+
+### `woocommerce/orders/order-issues-site.php`
+
+Site-owned incident fields and shortage tag catalogue; shared incident code reads this adapter.
+
+| Hàm | Mô tả |
+|---|---|
+| `thean_issue_site_fields()` | Canonical metadata keys in precedence order (historical fallbacks remain readable). |
+| `thean_issue_shortage_options()` | Shortage values are shared by the metabox and incident rules. |
+
+### `woocommerce/orders/order-issues.php`
+
+Order incidents: per-instance order meta, delivery adapter and server-side action policy. GIỐNG HỆT theanmarket ↔ hithean; edit together and run tests/order-issues.php. No new t…
+
+| Hàm | Mô tả |
+|---|---|
+| `thean_issue_types()` | Register incident types; providers own detection, transitions and blocking policy. |
+| `thean_issue_field_values(WC_Order $order, string $field)` | Read a site-owned multi-value field, with explicit precedence and no ad-hoc key guessing. |
+| `thean_issue_undelivered(WC_Order $order)` | Delivery completion is distinct from a partial delivery; failed/accounting orders are out. |
+| `thean_issue_dispatch_at(WC_Order $order)` | Parse recorded dispatch dates explicitly in the site timezone; absent/invalid dates stay unknown. |
+| `thean_issue_overdue_evidence(WC_Order $order, string $type, int $since, ?int $now = null)` | Stable time-based evidence: the daily age display must not reopen an issue each day. |
+| `thean_issue_detect_order_overdue(WC_Order $order, array $candidates = [], ?int $now = null)` | Order-created clock excludes preorders and every canonical shortage tag. |
+| `thean_issue_detect_ghtk_overdue(WC_Order $order, array $candidates = [], ?int $now = null)` | Carrier clock requires GHTK plus a recorded handoff date; never infer it from a label creation. |
+| `thean_issue_primary_group(array $records)` | Choose one primary group per order: blocking first, then registered operational priority. |
+| `thean_issue_view_group(array $records)` | A specific type filter groups by that matching type; otherwise use the primary incident. |
+| `thean_issue_groups()` | Group labels for the general incident board; independent of the order's operating step. |
+| `thean_issue_open_sql(string $alias = 'o')` | Open-incident query independent of an optional UI filter; legacy delivery remains authoritative. |
+| `thean_issue_group_sql()` | Primary group projection, with a live fallback for unmigrated legacy delivery incidents. |
+| `thean_issue_phone(string $value)` | Canonical phone for exact identity matching; empty/short values never match. |
+| `thean_issue_identity(WC_Order $order)` | Extract only the identity needed for detection, without persisting it. |
+| `thean_issue_excluded_statuses()` | One status catalogue for SQL detection and per-order validation. |
+| `thean_issue_closed_statuses()` | Completed deliveries plus excluded orders are out of the recurring undelivered sweep. |
+| `thean_issue_status_sql(array $statuses)` | Database status representations share the same domain catalogue as the detectors. |
+| `thean_issue_match(array $a, array $b)` | Direct matches only: no transitive grouping through an intermediate order. |
+| `thean_issue_eligible(WC_Order $order)` | Exclude failed/replaced orders and non-customer accounting/shipping aggregates. |
+| `thean_issue_candidates(array $orders)` | Read candidate identities in one bounded query for a batch of displayed/scanned orders. |
+| `thean_issue_detect_nearby(WC_Order $order, array $candidates)` | Stable evidence signature includes identity/date changes, but not ordinary workflow progress. |
+| `thean_issue_records(WC_Order $order)` | Read persisted instances; derived filter keys are deliberately outside this prefix. |
+| `thean_issue_delivery(WC_Order $order)` | Read the legacy delivery source without copying its data into another record. |
+| `thean_issue_all(WC_Order $order)` | Aggregate all registered sources; unknown types remain visible and fail closed if blocking. |
+| `thean_issue_blocks(array $record)` | Compute blocking from canonical records, not the disposable SQL summaries. |
+| `thean_issue_locked(int $id, callable $callback)` | Serialize mutations per order; requests never leave an option-based lock behind. |
+| `thean_issue_projection(array $records)` | Derive disposable query fields from canonical records without persisting empty indexes. |
+| `thean_issue_index(WC_Order $order)` | Rebuild query projections from authoritative instances and the delivery adapter. |
+| `thean_issue_needs_refresh(WC_Order $order, array $candidates)` | Ordinary list reads use already-loaded metadata; only changed records need a write lock/re-read. |
+| `thean_issue_refresh(WC_Order $order, array $candidates)` | Refresh automatic instances under the caller's order lock. |
+| `thean_issue_sync(array $orders, bool $force = false)` | Batch candidate read; each order is then re-read under its own mutation lock. |
+| `thean_issue_action_error(WC_Order $order)` | Server policy for forward manual actions. Automated integrations retain their existing flows. |
+| `thean_issue_forward_status(string $status)` | Whether a status destination advances fulfilment (shared by individual and bulk actions). |
+| `thean_issue_guard_status($order)` | Allow holding/cancelling/returns; check every other status change before transition side effects. |
+| `thean_issue_meta_changed($meta_id, $order_id, $key)` | Catch legacy/meta-only delivery and identity updates; own incident writes do not queue themselves. |
+| `thean_issue_scan_start()` | Start a bounded initial scan; store only a cursor, never customer data or an ID queue in options. |
+| `thean_issue_scan_run()` | — |
+| `thean_issue_filter()` | Validate the SQL-filter selection shared by all search/board requests. |
+| `thean_issue_filter_sql(string $alias = 'o')` | Query disposable summaries plus live legacy delivery flags; all dynamic values are prepared. |
+| `thean_issue_matches_filter(WC_Order $order)` | Match a refreshed row using the same filter meaning as the SQL projection. |
+| `thean_issue_button(WC_Order $order, string $error = '')` | Render a row entry point even when there is no incident, so staff can report one. |
+| `thean_issue_enqueue()` | Enqueue independent shared UI on the existing search/portal asset path. |
+| `thean_issue_payload(WC_Order $order)` | Return safe, minimal UI data and current authoritative evidence token. |
+| `thean_issue_ajax()` | Read/mutate one incident through one authenticated endpoint. Recheck evidence under the order lock. |
 
 ### `woocommerce/orders/order-legacy-meta-sync.php`
 
@@ -472,7 +536,7 @@ Popup thao tác nhanh ở danh sách đơn admin (cột Thao tác, ô tìm đơn
 | `thean_ous_load_orders(array $ids)` | Đọc gộp các đơn của 1 trang bằng 1 lần wc_get_orders (HPOS: read_multiple; legacy: WP_Query + prime cache post/meta/items). Giữ đúng thứ tự $ids; đơn nào không trả về thì wc_get… |
 | `thean_ous_step_badge(WC_Order $order, array $flow)` | Nhãn "📍 bước của flow" ở dòng kết quả: bước tính trực tiếp (cùng logic board), lý do khi đơn không vào board, và cảnh báo khi meta bước board đang lưu khác (dữ liệu cũ / cache)… |
 | `thean_ous_ship_code_short(string $code)` | Mã vận đơn GHTK dạng "S12734516.BO.SGP120-V44.1363613511" → chỉ lấy phần cuối "1363613511" (mã tra cứu ngắn). Mã khác định dạng giữ nguyên. |
-| `thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?array $orders = null, array $flows = [])` | — |
+| `thean_ous_render_rows(array $ids, array $tokens, array $hints = [], ?array $orders = null, array $flows = [], $…)` | — |
 | `thean_ous_render_address_block(WC_Order $order, string $type)` | — |
 | `thean_ous_export_images(WC_Order $order)` | URL ảnh xuất kho của đơn (meta warehouse_export_images, mỗi dòng 1 URL). Đọc meta đơn (HPOS) trước, trống thì đọc postmeta — đơn cũ / luồng ghi thẳng update_post_meta chưa sync… |
 | `thean_ous_render_preview(WC_Order $order)` | — |
